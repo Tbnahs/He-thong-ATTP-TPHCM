@@ -221,7 +221,7 @@ export function FacilityProfilePage() {
 
 function ApplicationForm() {
   const [type, setType] = useState<ApplicationType>('food-supplier');
-  const [fields, setFields] = useState<Record<string, string>>({});
+  const [fields, setFields] = useState<Record<string, string | string[]>>({});
   const [files, setFiles] = useState<Attachment[]>([]);
   const [notice, setNotice] = useState('');
   const [submitted, setSubmitted] = useState(false);
@@ -229,7 +229,7 @@ function ApplicationForm() {
   const create = useCreateApplication();
   const { data: suppliers } = useListApprovedSuppliers({ query: { queryKey: getListApprovedSuppliersQueryKey() } });
   const { data: criteriaSet, isLoading: loadingCriteria, isError: criteriaError } = useGetCriteria({ type });
-  const update = (key: string, value: string) => setFields(prev => ({ ...prev, [key]: value }));
+   const update = (key: string, value: string | string[]) => setFields(prev => ({ ...prev, [key]: value }));
   const changeType = (nextType: ApplicationType) => {
     setType(nextType);
     setFields({});
@@ -254,7 +254,12 @@ function ApplicationForm() {
   const submit = (event: FormEvent) => {
     event.preventDefault();
      const criteria = criteriaSet?.criteria.filter(item => item.active).sort((a, b) => a.order - b.order) ?? [];
-     const missing = criteria.filter(item => item.required && (item.answerType === 'file' ? !files.some(file => file.fieldKey === item.key) : !fields[item.key]?.trim()));
+      const missing = criteria.filter(item => {
+        if (!item.required) return false;
+        if (item.answerType === 'file') return !files.some(file => file.fieldKey === item.key);
+        const value = fields[item.key];
+        return Array.isArray(value) ? value.length === 0 : !value?.trim();
+      });
      if (missing.length) { setNotice(`Vui lòng hoàn thiện: ${missing.slice(0, 3).map(item => item.label).join(', ')}${missing.length > 3 ? '…' : ''}.`); return; }
      const data = { ...fields } as Record<string, unknown>;
      criteria.filter(item => item.answerType === 'file').forEach(item => {
@@ -275,13 +280,17 @@ function ApplicationForm() {
   </form>{notice && <Notice message={notice} onClose={() => setNotice('')} />}</div>;
 }
 
-function DynamicQuestion({ item, value, files, suppliers, onChange, onFiles, onRemoveFile }: { item: CriteriaDefinition; value: string; files: Attachment[]; suppliers: { id: string; name: string; taxCode: string }[]; onChange: (value: string) => void; onFiles: (event: ChangeEvent<HTMLInputElement>) => void; onRemoveFile: (name: string) => void }) {
+function DynamicQuestion({ item, value, files, suppliers, onChange, onFiles, onRemoveFile }: { item: CriteriaDefinition; value: string | string[]; files: Attachment[]; suppliers: { id: string; name: string; taxCode: string }[]; onChange: (value: string | string[]) => void; onFiles: (event: ChangeEvent<HTMLInputElement>) => void; onRemoveFile: (name: string) => void }) {
   const options = item.key === 'supplierId' ? suppliers.map(supplier => `${supplier.id} · ${supplier.name} · ${supplier.taxCode}`) : item.options;
   const requiredMark = item.required ? <span className="text-destructive"> *</span> : null;
   const sourceNote = item.sourceMaterials.length > 0 ? <div className="mt-2 rounded-lg border border-primary/10 bg-secondary/50 px-3 py-2 text-xs text-muted-foreground"><span className="font-bold text-primary">Căn cứ:</span> {item.sourceMaterials.map(source => source.name).join(', ')}</div> : null;
   if (item.answerType === 'file') return <div className="mt-5 first:mt-0"><label className="mb-2 block text-sm font-semibold">{item.label}{requiredMark}</label>{item.description && <p className="mb-2 text-xs text-muted-foreground">{item.description}</p>}{sourceNote}<p className="mb-2 mt-3 text-xs text-muted-foreground">PDF, JPG hoặc PNG · tối đa 5MB/tệp · có thể chọn nhiều tệp</p><label className="focus-ring flex min-h-16 cursor-pointer items-center gap-3 rounded-xl border border-dashed border-primary/35 bg-secondary/30 px-4 text-sm font-semibold text-primary hover:bg-secondary"><Plus size={18} /><span>Chọn tệp minh chứng</span><input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" multiple onChange={onFiles} className="sr-only" data-testid={`input-criteria-${item.key}`} /></label>{files.length > 0 && <div className="mt-3 space-y-2">{files.map(file => <div key={file.name} className="flex items-center justify-between rounded-lg bg-muted px-3 py-2 text-sm"><span className="flex min-w-0 items-center gap-2 truncate"><FileText size={15} className="shrink-0 text-primary" />{file.name}</span><button type="button" onClick={() => onRemoveFile(file.name)} className="focus-ring ml-3 shrink-0 text-muted-foreground hover:text-destructive" aria-label={`Xóa ${file.name}`}><X size={15} /></button></div>)}</div>}</div>;
-  if (item.answerType === 'yes-no' || item.answerType === 'select') return <label className="mt-5 block first:mt-0"><span className="mb-2 block text-sm font-semibold">{item.label}{requiredMark}</span><select value={value} onChange={event => onChange(event.target.value)} className="focus-ring h-11 w-full rounded-xl border border-input bg-background px-3 text-sm" data-testid={`input-criteria-${item.key}`}><option value="">Chọn một phương án</option>{options.map(option => <option key={option} value={option}>{option}</option>)}</select>{item.description && <span className="mt-1 block text-xs text-muted-foreground">{item.description}</span>}{sourceNote}</label>;
-  return <label className="mt-5 block first:mt-0"><span className="mb-2 block text-sm font-semibold">{item.label}{requiredMark}</span><input type={item.answerType === 'number' ? 'number' : item.answerType === 'date' ? 'date' : 'text'} value={value} onChange={event => onChange(event.target.value)} className="focus-ring h-11 w-full rounded-xl border border-input bg-background px-3 text-sm" data-testid={`input-criteria-${item.key}`} />{item.description && <span className="mt-1 block text-xs text-muted-foreground">{item.description}</span>}{sourceNote}</label>;
+  if (item.answerType === 'multi-select') {
+    const selected = Array.isArray(value) ? value : value ? [value] : [];
+    return <fieldset className="mt-5 first:mt-0"><legend className="mb-2 block text-sm font-semibold">{item.label}{requiredMark}</legend><div className="grid gap-2 sm:grid-cols-2">{options.map(option => <label key={option} className="flex cursor-pointer items-center gap-3 rounded-xl border border-input bg-background px-3 py-3 text-sm hover:bg-secondary"><input type="checkbox" checked={selected.includes(option)} onChange={event => onChange(event.target.checked ? [...selected, option] : selected.filter(current => current !== option))} className="h-4 w-4 accent-primary" data-testid={`input-criteria-${item.key}-${option}`} /><span>{option}</span></label>)}</div>{item.description && <span className="mt-2 block text-xs text-muted-foreground">{item.description}</span>}{sourceNote}</fieldset>;
+  }
+  if (item.answerType === 'yes-no' || item.answerType === 'select') return <label className="mt-5 block first:mt-0"><span className="mb-2 block text-sm font-semibold">{item.label}{requiredMark}</span><select value={Array.isArray(value) ? value[0] ?? '' : value} onChange={event => onChange(event.target.value)} className="focus-ring h-11 w-full rounded-xl border border-input bg-background px-3 text-sm" data-testid={`input-criteria-${item.key}`}><option value="">Chọn một phương án</option>{options.map(option => <option key={option} value={option}>{option}</option>)}</select>{item.description && <span className="mt-1 block text-xs text-muted-foreground">{item.description}</span>}{sourceNote}</label>;
+  return <label className="mt-5 block first:mt-0"><span className="mb-2 block text-sm font-semibold">{item.label}{requiredMark}</span><input type={item.answerType === 'number' ? 'number' : item.answerType === 'date' ? 'date' : 'text'} value={Array.isArray(value) ? value.join(', ') : value} onChange={event => onChange(event.target.value)} className="focus-ring h-11 w-full rounded-xl border border-input bg-background px-3 text-sm" data-testid={`input-criteria-${item.key}`} />{item.description && <span className="mt-1 block text-xs text-muted-foreground">{item.description}</span>}{sourceNote}</label>;
 }
 
 function FormSection({ title, icon: Icon, children }: { title: string; icon: typeof UserRound; children: ReactNode }) { return <section className="rounded-2xl border border-border bg-card p-5 md:p-7"><div className="mb-6 flex items-center gap-3 border-b border-border pb-4"><div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-primary"><Icon size={18} /></div><h2 className="text-lg font-extrabold">{title}</h2></div>{children}</section>; }

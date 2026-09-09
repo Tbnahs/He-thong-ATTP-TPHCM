@@ -359,7 +359,7 @@ components:
       enum: [food-supplier, meal-provider, school]
     CriteriaAnswerType:
       type: string
-      enum: [text, number, date, yes-no, select, file]
+      enum: [text, number, date, yes-no, select, multi-select, file]
     CriteriaSource:
       type: object
       properties:

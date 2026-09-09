@@ -54,7 +54,7 @@ const defaults: CriteriaStore = {
       criterion("food-supplier", "licenseIssued", "Ngày cấp giấy phép", "food-supplier-group-2", "date", 0, [], { order: 6, prerequisite: true }),
       criterion("food-supplier", "licenseExpires", "Ngày hết hạn giấy phép", "food-supplier-group-2", "date", 0, [], { order: 7, prerequisite: true }),
       criterion("food-supplier", "businessLicense", "Giấy đăng ký kinh doanh", "food-supplier-group-2", "file", 0, [], { order: 8, prerequisite: true }),
-      criterion("food-supplier", "productGroups", "Nhóm sản phẩm cung cấp", "food-supplier-group-3", "select", 20, ["Rau củ quả", "Thịt gia súc", "Thủy sản", "Thực phẩm chế biến"], { order: 9 }),
+      criterion("food-supplier", "productGroups", "Nhóm sản phẩm cung cấp", "food-supplier-group-3", "multi-select", 20, ["Rau củ quả", "Thịt gia súc", "Thủy sản", "Thực phẩm chế biến"], { order: 9 }),
       criterion("food-supplier", "origin", "Vùng trồng / nuôi / khai thác", "food-supplier-group-3", "text", 10, [], { order: 10, required: false }),
       criterion("food-supplier", "qualityCertificate", "Chứng nhận chất lượng", "food-supplier-group-3", "file", 10, [], { order: 11, required: false }),
       criterion("food-supplier", "storageEvidence", "Ảnh khu vực bảo quản / kho chứa", "food-supplier-group-4", "file", 25, [], { order: 12 }),

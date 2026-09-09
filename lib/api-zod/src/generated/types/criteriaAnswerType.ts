@@ -15,5 +15,6 @@ export const CriteriaAnswerType = {
   date: 'date',
   'yes-no': 'yes-no',
   select: 'select',
+  'multi-select': 'multi-select',
   file: 'file',
 } as const;
