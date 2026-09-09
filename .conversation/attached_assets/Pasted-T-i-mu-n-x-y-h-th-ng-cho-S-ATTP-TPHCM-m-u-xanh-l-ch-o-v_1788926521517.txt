@@ -1,0 +1,39 @@
+Tôi muốn xây hệ thống cho Sở ATTP TPHCM,màu xanh lá chủ đạo với logo tôi gửi nhé. bạn xây 2 hệ thống liên thông với nhau bao gồm portal và hệ thống dành riêng cho Admin
+1. Portal:
+- Tra cứu (khách vãng lai vẫn có thể tra cứu)
++ Danh sách các cơ sở đủ điều kiện
++ Danh sách các sản phẩm doanh nghiệp tự công bố
++ Danh sách các sản phẩm đã được giấy tiếp nhận đăng ký bản công bố sản phẩm
++ Danh sách các sản phẩm quảng cáo được cấp phép
++ Danh sách cơ sở kiểm nghiệm được chỉ định
+- Trường học, đơn vị cung cấp thức ăn, đơn vị cung cấp nguyên liệu sẽ đăng ký hồ sơ trên cái portal này và chờ duyệt. Mỗi loại hình khác nhau thì form đăng ký sẽ khác nhau :
+Đây là bản đầy đủ cuối cùng của 3 form đăng ký, đã cập nhật toàn bộ các thay đổi đã chốt:
++ Form 1 — Đơn vị cung cấp thực phẩm
+Phần thông tin pháp nhân gồm tên đơn vị, mã số thuế, địa chỉ đầy đủ (tỉnh/thành, quận/huyện, phường/xã, số nhà), tên người đại diện pháp luật, số điện thoại và email — tất cả bắt buộc trừ email.
+Phần hồ sơ pháp lý yêu cầu khai số giấy phép ATTP, ngày cấp và ngày hết hạn, kèm file đính kèm bản scan/ảnh giấy phép; đồng thời phải đính kèm file giấy đăng ký kinh doanh. Cả hai file đều bắt buộc.
+Phần nguồn gốc sản phẩm cho phép chọn nhiều loại sản phẩm mà đơn vị cung cấp (bắt buộc), có thể ghi thêm vùng trồng/nuôi/khai thác và đính kèm chứng nhận chất lượng như VietGAP, GlobalGAP nếu có (không bắt buộc).
+Phần hình ảnh minh chứng bắt buộc phải có ảnh khu vực bảo quản/kho chứa thực phẩm (đăng được nhiều ảnh), còn ảnh phương tiện vận chuyển thì không bắt buộc.
++Form 2 — Đơn vị cung cấp suất ăn
+Thông tin pháp nhân và giấy phép ATTP khai tương tự Form 1, đều bắt buộc.
+Phần nhân lực cần khai tổng số nhân viên chế biến, số người có chứng chỉ tập huấn ATTP, và số người có giấy khám sức khỏe định kỳ còn hiệu lực — cả ba số liệu đều bắt buộc.
+Phần nguồn nhập yêu cầu chọn nhà cung cấp thực phẩm từ danh sách đã đăng ký ở Form 1 (dropdown tìm kiếm được, bắt buộc chọn).
+Phần năng lực cung ứng cần khai công suất cung cấp suất ăn mỗi ngày và số lượng trường/đơn vị đang phục vụ (bắt buộc), có thể liệt kê thêm tên cụ thể các trường đang phục vụ nếu muốn.
+Phần hình ảnh minh chứng yêu cầu đầy đủ và đều bắt buộc: ảnh khu vực chế biến thể hiện quy trình một chiều, ảnh trang thiết bị như tủ lạnh và hệ thống lưu mẫu, ảnh khu rửa tay/thay đồ bảo hộ, và ảnh nhân viên đang mặc đồ bảo hộ gồm mũ, khẩu trang, găng tay.
++ Form 3 — Cơ sở giáo dục (trường học)
+Bắt đầu bằng thông tin cơ bản của trường: tên trường, cấp học, địa chỉ.
+Tiếp theo hỏi trường có giáo viên/cán bộ chịu trách nhiệm về ATTP hay không (bắt buộc); nếu có thì hiện thêm ô nhập họ tên người phụ trách và yêu cầu đính kèm chứng chỉ/tập huấn ATTP của người đó.
+Sau đó là hình thức tổ chức bữa ăn, chọn một trong ba: tự nấu, liên kết với đơn vị suất ăn bên ngoài, hoặc thuê đơn vị nấu ngay tại bếp trường (bắt buộc chọn).
+Nếu chọn tự nấu: hiện thêm ô hỏi số nhân viên bếp và họ có chứng chỉ ATTP hay không.
+Nếu chọn liên kết hoặc thuê ngoài: trường tự nhập trực tiếp thông tin cơ bản của đơn vị suất ăn đó, gồm tên đơn vị (bắt buộc), mã số thuế nếu có (bắt buộc), số điện thoại liên hệ (bắt buộc), địa chỉ (không bắt buộc), và có thể đính kèm hình ảnh/file giấy tờ liên quan đến việc nhập hàng như hóa đơn, hợp đồng cung cấp suất ăn, hoặc giấy phép ATTP của đơn vị đó nếu trường có sẵn (không bắt buộc nhưng khuyến khích). Nếu đơn vị đó đã có sẵn trong hệ thống (do chính họ tự đăng ký ở Form 2), trường có thể chọn trực tiếp từ dropdown thay vì nhập lại.
+Phần cơ sở vật chất sơ bộ hỏi hai câu bắt buộc: trường có bếp ăn theo nguyên tắc một chiều không, và có khu lưu mẫu thức ăn không; có thể ghi thêm sức chứa căn tin theo số học sinh mỗi lượt (không bắt buộc).
+Phần hình ảnh minh chứng yêu cầu bắt buộc hai loại: ảnh bếp ăn/căn tin và ảnh khu lưu mẫu thức ăn.
+->Quy tắc chung áp dụng cho cả ba form: các trường upload chỉ nhận định dạng PDF, JPG hoặc PNG, tối đa 5MB mỗi file; mục ảnh minh chứng cho phép đăng nhiều ảnh cùng lúc. Sau khi nộp, hồ sơ mặc định ở trạng thái chờ duyệt và bị khóa không cho sửa, trừ khi admin yêu cầu bổ sung thì mới mở lại để chỉnh sửa. Riêng thông tin đơn vị suất ăn do trường tự nhập ở Form 3 sẽ được gắn nhãn "do bên thứ ba cung cấp, chưa xác minh trực tiếp" khi hiển thị, để phân biệt với hồ sơ do chính đơn vị suất ăn tự đăng ký và chịu trách nhiệm.
+2. Là hệ thống Admin để cán bộ quản lý ,duyệt các Hồ sơ cở sở,...bao gồm các chức năng sau:
+- QUẢN LÝ HỒ SƠ ĐĂNG KÝ (menu mới dành cho cán bộ chuyên môn của Sở)
++ Danh sách hồ sơ chờ duyệt từ 3 nhóm đối tượng
++ Màn hình xét duyệt/chấm điểm từng hồ sơ theo bộ tiêu chí
++ Duyệt/từ chối/yêu cầu bổ sung hồ sơ
++ Đẩy kết quả PASS ra trang tra cứu công khai
+- Quản lý tài khoản (đã có sẵn chưa cần vẽ chỉ cần hiển thi cái tên ở menu bên trái là dc)
+- Báo cáo thống kê(đã có sẵn chưa cần vẽ chỉ cần hiển thi cái tên ở menu bên trái là dc)
+

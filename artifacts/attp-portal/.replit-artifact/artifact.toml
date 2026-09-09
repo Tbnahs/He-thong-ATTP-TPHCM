@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "ATTP TP.HCM"
+description = "Cổng thông tin an toàn thực phẩm TP.HCM gồm tra cứu công khai, đăng ký hồ sơ cho trường học và đơn vị cung cấp, cùng khu vực Admin xét duyệt hồ sơ."
+version = "1.0.0"
+id = "artifacts/attp-portal"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23165
+
+[services.development]
+run = "pnpm --filter @workspace/attp-portal run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/attp-portal", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/attp-portal/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23165"
+BASE_PATH = "/"

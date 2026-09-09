@@ -5,7 +5,11 @@
  * API for the Ho Chi Minh City Food Safety Authority portal.
  * OpenAPI spec version: 0.1.0
  */
+import type { PublicRecord } from './publicRecord';
 
-export interface HealthStatus {
-  status: string;
+export interface PublicRecordPage {
+  items: PublicRecord[];
+  total: number;
+  page: number;
+  pageSize: number;
 }
