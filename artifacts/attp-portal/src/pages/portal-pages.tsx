@@ -127,7 +127,8 @@ export function AdminLoginPage() {
       navigate('/admin');
     } else {
       sessionStorage.removeItem('attp-reviewer-session');
-      navigate('/');
+      sessionStorage.setItem('attp-session-username', username.trim());
+      navigate('/facility/profile');
     }
   };
 
@@ -152,25 +153,59 @@ export function AdminLoginPage() {
 }
 
 export function FacilityProfilePage() {
-  type FacilityProfile = { name: string; taxCode: string; address: string; representative: string; phone: string; email: string; licenseNumber: string; licenseIssued: string; licenseExpires: string; productGroups: string; origin: string };
-  const defaultProfile: FacilityProfile = { name: 'Công ty TNHH Nông sản An Phú', taxCode: '0312345678', address: '184 Nguyễn Văn Linh, Quận 7, TP.HCM', representative: 'Nguyễn Hoàng Anh', phone: '0908 123 456', email: '', licenseNumber: 'ATTP-2026-088', licenseIssued: '2026-06-12', licenseExpires: '2027-06-12', productGroups: 'Rau củ quả, Thịt gia súc', origin: 'Hợp tác xã rau sạch Củ Chi' };
+  type FacilityProfile = { name: string; taxCode: string; address: string; representative: string; phone: string; email: string; licenseNumber: string; licenseIssued: string; licenseExpires: string; productGroups: string; origin: string; safetyOfficer: string; operatingHours: string; notes: string };
+  const defaultProfile: FacilityProfile = { name: 'Công ty TNHH Nông sản An Phú', taxCode: '0312345678', address: '184 Nguyễn Văn Linh, Quận 7, TP.HCM', representative: 'Nguyễn Hoàng Anh', phone: '0908 123 456', email: '', licenseNumber: 'ATTP-2026-088', licenseIssued: '2026-06-12', licenseExpires: '2027-06-12', productGroups: 'Rau củ quả, Thịt gia súc', origin: 'Hợp tác xã rau sạch Củ Chi', safetyOfficer: 'Lê Minh Trang', operatingHours: '06:00 - 17:00', notes: '' };
+  const accountName = sessionStorage.getItem('attp-session-username') || 'coso.demo';
+  const profileStorageKey = `attp-facility-profile:${accountName}`;
+  const attachmentStorageKey = `attp-facility-attachments:${accountName}`;
   const [profile, setProfile] = useState<FacilityProfile>(() => {
-    const saved = sessionStorage.getItem('attp-facility-profile');
+    const saved = sessionStorage.getItem(profileStorageKey) || (accountName === 'coso.demo' ? sessionStorage.getItem('attp-facility-profile') : null);
     if (!saved) return defaultProfile;
     try { return { ...defaultProfile, ...JSON.parse(saved) }; } catch { return defaultProfile; }
   });
+  const [attachments, setAttachments] = useState<string[]>(() => {
+    const saved = sessionStorage.getItem(attachmentStorageKey) || (accountName === 'coso.demo' ? sessionStorage.getItem('attp-facility-attachments') : null);
+    if (!saved) return ['giay-phep-attp.pdf', 'giay-dkkd.pdf', 'kho-bao-quan-01.jpg'];
+    try { return JSON.parse(saved); } catch { return ['giay-phep-attp.pdf', 'giay-dkkd.pdf', 'kho-bao-quan-01.jpg']; }
+  });
   const [notice, setNotice] = useState('');
+  const [error, setError] = useState('');
   const update = (key: keyof FacilityProfile, value: string) => setProfile((current: FacilityProfile) => ({ ...current, [key]: value }));
+  const addAttachments = (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(event.target.files ?? []);
+    const invalid = selectedFiles.find(file => !['application/pdf', 'image/jpeg', 'image/png'].includes(file.type) || file.size > 5 * 1024 * 1024);
+    if (invalid) {
+      setError('Chỉ nhận tệp PDF, JPG, PNG và mỗi tệp không quá 5MB.');
+      event.target.value = '';
+      return;
+    }
+    setAttachments(current => [...current, ...selectedFiles.map(file => file.name).filter(name => !current.includes(name))]);
+    event.target.value = '';
+    setError('');
+  };
+  const removeAttachment = (name: string) => setAttachments(current => current.filter(file => file !== name));
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    const required: Array<keyof FacilityProfile> = ['name', 'taxCode', 'address', 'representative', 'phone', 'licenseNumber', 'licenseIssued', 'licenseExpires', 'productGroups'];
+    if (required.some(key => !profile[key].trim())) {
+      setError('Vui lòng điền đầy đủ các trường bắt buộc trước khi lưu.');
+      setNotice('');
+      return;
+    }
+    sessionStorage.setItem(profileStorageKey, JSON.stringify(profile));
     sessionStorage.setItem('attp-facility-profile', JSON.stringify(profile));
-    setNotice('Thông tin hồ sơ cơ sở đã được lưu.');
+    sessionStorage.setItem(attachmentStorageKey, JSON.stringify(attachments));
+    sessionStorage.setItem('attp-facility-attachments', JSON.stringify(attachments));
+    setError('');
+    setNotice('Thông tin bổ sung đã được lưu và chuyển tới cán bộ chuyên môn rà soát.');
   };
 
-  const attachments = ['giay-phep-attp.pdf', 'giay-dkkd.pdf', 'kho-bao-quan-01.jpg'];
-  return <PublicShell><main className="mx-auto max-w-6xl px-5 py-9 lg:px-8 lg:py-12"><SectionHeading eyebrow="Tài khoản cơ sở" title="Hồ sơ cơ sở" description="Thông tin này được lấy từ hồ sơ đã đăng ký. Bạn có thể cập nhật lại khi có thay đổi hoặc nhận yêu cầu bổ sung." action={<StatusPill status="pending" />} /><div className="mb-6 flex items-start gap-3 rounded-2xl border border-orange-200 bg-orange-50 p-4 text-sm text-orange-950"><Bell className="mt-0.5 shrink-0" size={19} /><p><strong>Thông báo hồ sơ</strong><br />Cán bộ chuyên môn yêu cầu rà soát lại ảnh khu vực bảo quản trước khi hồ sơ được duyệt.</p></div><form onSubmit={submit} className="space-y-6">
+  return <PublicShell><main className="mx-auto max-w-6xl px-5 py-9 lg:px-8 lg:py-12"><SectionHeading eyebrow={`Tài khoản cơ sở · ${accountName}`} title="Hồ sơ cơ sở" description="Thông tin này được lấy từ hồ sơ đã đăng ký. Bạn có thể cập nhật lại khi có thay đổi hoặc nhận yêu cầu bổ sung." action={<StatusPill status="pending" />} /><div className="mb-6 flex items-start gap-3 rounded-2xl border border-orange-200 bg-orange-50 p-4 text-sm text-orange-950"><Bell className="mt-0.5 shrink-0" size={19} /><p><strong>Thông báo hồ sơ</strong><br />Cán bộ chuyên môn yêu cầu rà soát lại ảnh khu vực bảo quản trước khi hồ sơ được duyệt.</p></div><form onSubmit={submit} className="space-y-6">
     <FormSection title="Thông tin pháp nhân" icon={Building2}><div className="grid gap-4 md:grid-cols-2"><Field label="Tên cơ sở *" value={profile.name} onChange={value => update('name', value)} test="input-facility-name" wide /><Field label="Mã số thuế *" value={profile.taxCode} onChange={value => update('taxCode', value)} test="input-facility-tax-code" /><Field label="Địa chỉ đầy đủ *" value={profile.address} onChange={value => update('address', value)} test="input-facility-address" wide /><Field label="Người đại diện pháp luật *" value={profile.representative} onChange={value => update('representative', value)} test="input-facility-representative" /><Field label="Số điện thoại *" value={profile.phone} onChange={value => update('phone', value)} test="input-facility-phone" /><Field label="Email liên hệ" value={profile.email} onChange={value => update('email', value)} test="input-facility-email" type="email" /></div></FormSection>
-    <FormSection title="Giấy phép & nguồn gốc sản phẩm" icon={FileText}><div className="grid gap-4 md:grid-cols-3"><Field label="Số giấy phép ATTP *" value={profile.licenseNumber} onChange={value => update('licenseNumber', value)} test="input-facility-license-number" /><Field label="Ngày cấp *" value={profile.licenseIssued} onChange={value => update('licenseIssued', value)} test="input-facility-license-issued" type="date" /><Field label="Ngày hết hạn *" value={profile.licenseExpires} onChange={value => update('licenseExpires', value)} test="input-facility-license-expires" type="date" /><Field label="Nhóm sản phẩm cung cấp *" value={profile.productGroups} onChange={value => update('productGroups', value)} test="input-facility-product-groups" wide /><Field label="Vùng trồng / nuôi / khai thác" value={profile.origin} onChange={value => update('origin', value)} test="input-facility-origin" wide /></div><div className="mt-5"><p className="mb-2 text-sm font-semibold">Tệp đã nộp trong hồ sơ</p><div className="space-y-2">{attachments.map(file => <div key={file} className="flex items-center gap-2 rounded-xl bg-muted/70 px-3 py-3 text-sm"><FileText size={16} className="text-primary" />{file}</div>)}</div></div></FormSection>
+    <FormSection title="Giấy phép & nguồn gốc sản phẩm" icon={FileText}><div className="grid gap-4 md:grid-cols-3"><Field label="Số giấy phép ATTP *" value={profile.licenseNumber} onChange={value => update('licenseNumber', value)} test="input-facility-license-number" /><Field label="Ngày cấp *" value={profile.licenseIssued} onChange={value => update('licenseIssued', value)} test="input-facility-license-issued" type="date" /><Field label="Ngày hết hạn *" value={profile.licenseExpires} onChange={value => update('licenseExpires', value)} test="input-facility-license-expires" type="date" /><Field label="Nhóm sản phẩm cung cấp *" value={profile.productGroups} onChange={value => update('productGroups', value)} test="input-facility-product-groups" wide /><Field label="Vùng trồng / nuôi / khai thác" value={profile.origin} onChange={value => update('origin', value)} test="input-facility-origin" wide /></div></FormSection>
+    <FormSection title="Thông tin bổ sung" icon={UserRound}><div className="grid gap-4 md:grid-cols-2"><Field label="Người phụ trách an toàn thực phẩm" value={profile.safetyOfficer} onChange={value => update('safetyOfficer', value)} test="input-facility-safety-officer" /><Field label="Giờ hoạt động" value={profile.operatingHours} onChange={value => update('operatingHours', value)} test="input-facility-operating-hours" /><Field label="Ghi chú bổ sung cho cán bộ" value={profile.notes} onChange={value => update('notes', value)} test="input-facility-notes" wide placeholder="Ví dụ: thay đổi địa chỉ kho, bổ sung quy trình bảo quản..." /></div></FormSection>
+    <FormSection title="Tệp hồ sơ" icon={ImagePlus}><div className="space-y-3"><div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-muted-foreground">Bổ sung tài liệu khi cán bộ yêu cầu. Nhận PDF, JPG, PNG, tối đa 5MB mỗi tệp.</p><label className="focus-ring inline-flex cursor-pointer items-center gap-2 rounded-xl border border-primary/25 px-4 py-2.5 text-sm font-bold text-primary hover:bg-secondary"><Plus size={16} /> Thêm tệp<input type="file" accept=".pdf,.jpg,.jpeg,.png" multiple className="sr-only" onChange={addAttachments} data-testid="input-facility-attachments" /></label></div><div className="space-y-2">{attachments.map(file => <div key={file} className="flex items-center justify-between gap-3 rounded-xl bg-muted/70 px-3 py-3 text-sm"><span className="flex min-w-0 items-center gap-2 truncate"><FileText size={16} className="shrink-0 text-primary" />{file}</span><button type="button" onClick={() => removeAttachment(file)} className="shrink-0 text-xs font-bold text-muted-foreground hover:text-destructive" data-testid={`button-remove-facility-attachment-${file}`}>Xóa</button></div>)}</div></div></FormSection>
+    {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-800" role="alert" data-testid="status-facility-profile-error">{error}</p>}
     <div className="flex flex-col gap-4 rounded-2xl border border-border bg-secondary/50 p-5 sm:flex-row sm:items-center sm:justify-between"><div className="flex gap-3 text-sm"><LockKeyhole className="mt-0.5 shrink-0 text-primary" size={18} /><p><strong>Chỉ cập nhật thông tin cơ sở.</strong><br /><span className="text-muted-foreground">Sau khi lưu, thông tin sẽ được chuyển lại cho cán bộ chuyên môn rà soát.</span></p></div><Button type="submit" className="h-11 rounded-xl px-6" data-testid="button-save-facility-profile">Lưu thay đổi</Button></div>
   </form>{notice && <Notice message={notice} onClose={() => setNotice('')} />}</main></PublicShell>;
 }
