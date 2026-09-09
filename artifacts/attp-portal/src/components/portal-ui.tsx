@@ -16,7 +16,21 @@ export function PublicHeader() {
   const [location] = useLocation();
   const [, navigate] = useLocation();
   const [open, setOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [facilityAccount, setFacilityAccount] = useState(() => sessionStorage.getItem('attp-session-role') === 'facility');
+  const notificationStorageKey = `attp-read-notifications:${sessionStorage.getItem('attp-session-username') || 'coso.demo'}`;
+  const notifications = [
+    { id: 'review-request', title: 'Yêu cầu bổ sung hồ sơ', text: 'Vui lòng rà soát ảnh khu vực bảo quản trước khi hồ sơ được duyệt.', time: 'Mới nhất' },
+    { id: 'profile-reminder', title: 'Cập nhật thông tin cơ sở', text: 'Kiểm tra lại giấy phép ATTP và thông tin người phụ trách.', time: 'Hôm nay' },
+  ];
+  const [readNotifications, setReadNotifications] = useState<string[]>(() => {
+    try {
+      return JSON.parse(sessionStorage.getItem(notificationStorageKey) || '[]');
+    } catch {
+      return [];
+    }
+  });
+  const unreadCount = notifications.filter(item => !readNotifications.includes(item.id)).length;
   const nav = facilityAccount ? [['/', 'Tổng quan'], ['/lookup', 'Tra cứu'], ['/facility/profile', 'Hồ sơ cơ sở']] : [['/', 'Tổng quan'], ['/lookup', 'Tra cứu'], ['/register', 'Đăng ký hồ sơ']];
   useEffect(() => {
     const syncSession = () => setFacilityAccount(sessionStorage.getItem('attp-session-role') === 'facility');
@@ -27,7 +41,15 @@ export function PublicHeader() {
     sessionStorage.removeItem('attp-session-role');
     sessionStorage.removeItem('attp-reviewer-session');
     setFacilityAccount(false);
+    setNotificationsOpen(false);
     navigate('/');
+  };
+  const openNotification = (id: string) => {
+    const nextRead = readNotifications.includes(id) ? readNotifications : [...readNotifications, id];
+    setReadNotifications(nextRead);
+    sessionStorage.setItem(notificationStorageKey, JSON.stringify(nextRead));
+    setNotificationsOpen(false);
+    navigate('/facility/profile');
   };
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-background/90 backdrop-blur-xl">
@@ -37,7 +59,7 @@ export function PublicHeader() {
           {nav.map(([href, label]) => <Link key={href} href={href} className={`focus-ring rounded-full px-4 py-2 text-sm font-semibold transition-colors ${location === href ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-secondary hover:text-foreground'}`} data-testid={`link-nav-${label}`}>{label}</Link>)}
         </nav>
          <div className="flex items-center gap-2">
-           {facilityAccount ? <><Link href="/facility/profile" className="focus-ring relative rounded-full border border-primary/25 p-2 text-primary hover:bg-secondary" aria-label="Thông báo hồ sơ cơ sở" data-testid="link-facility-notifications"><Bell size={17} /><span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-extrabold text-destructive-foreground">2</span></Link><button onClick={logout} className="focus-ring hidden items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-bold text-muted-foreground hover:border-primary/30 hover:text-primary sm:inline-flex" data-testid="button-public-facility-logout"><LogOut size={15} /> Đăng xuất</button></> : <Link href="/admin/login" className="focus-ring hidden items-center gap-2 rounded-full border border-primary/25 px-3 py-2 text-xs font-bold text-primary hover:bg-secondary sm:inline-flex" data-testid="link-reviewer-login"><LogIn size={15} /> Đăng nhập</Link>}
+           {facilityAccount ? <><div className="relative"><button type="button" onClick={() => setNotificationsOpen(current => !current)} className="focus-ring relative rounded-full border border-primary/25 p-2 text-primary hover:bg-secondary" aria-label="Thông báo hồ sơ cơ sở" aria-expanded={notificationsOpen} data-testid="button-facility-notifications"><Bell size={17} />{unreadCount > 0 && <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-extrabold text-destructive-foreground">{unreadCount}</span>}</button>{notificationsOpen && <div className="absolute right-0 top-full z-50 mt-3 w-[min(21rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-border bg-card text-left shadow-2xl shadow-primary/10" role="region" aria-label="Danh sách thông báo" data-testid="panel-facility-notifications"><div className="flex items-center justify-between border-b border-border px-4 py-3"><div><p className="text-sm font-extrabold">Thông báo</p><p className="mt-0.5 text-xs text-muted-foreground">{unreadCount ? `${unreadCount} thông báo chưa đọc` : 'Bạn đã xem hết thông báo'}</p></div><Bell size={16} className="text-primary" /></div><div className="divide-y divide-border">{notifications.map(item => <button type="button" key={item.id} onClick={() => openNotification(item.id)} className={`focus-ring block w-full px-4 py-3 text-left transition-colors hover:bg-secondary ${readNotifications.includes(item.id) ? 'bg-card' : 'bg-secondary/45'}`} data-testid={`button-notification-${item.id}`}><div className="flex items-start gap-3"><span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${readNotifications.includes(item.id) ? 'bg-border' : 'bg-destructive'}`} /><span className="min-w-0"><span className="flex items-center justify-between gap-3"><span className="text-sm font-bold text-foreground">{item.title}</span><span className="shrink-0 text-[11px] font-medium text-muted-foreground">{item.time}</span></span><span className="mt-1 block text-xs leading-5 text-muted-foreground">{item.text}</span></span></div></button>)}</div><Link href="/facility/profile" onClick={() => setNotificationsOpen(false)} className="block border-t border-border px-4 py-3 text-center text-xs font-bold text-primary hover:bg-secondary" data-testid="link-view-facility-profile-from-notifications">Xem và cập nhật hồ sơ</Link></div>}</div><button onClick={logout} className="focus-ring hidden items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-bold text-muted-foreground hover:border-primary/30 hover:text-primary sm:inline-flex" data-testid="button-public-facility-logout"><LogOut size={15} /> Đăng xuất</button></> : <Link href="/admin/login" className="focus-ring hidden items-center gap-2 rounded-full border border-primary/25 px-3 py-2 text-xs font-bold text-primary hover:bg-secondary sm:inline-flex" data-testid="link-reviewer-login"><LogIn size={15} /> Đăng nhập</Link>}
            <button className="focus-ring rounded-lg p-2 md:hidden" onClick={() => setOpen(!open)} aria-label={open ? 'Đóng menu' : 'Mở menu'} data-testid="button-mobile-menu">{open ? <X size={21} /> : <Menu size={21} />}</button>
          </div>
       </div>
