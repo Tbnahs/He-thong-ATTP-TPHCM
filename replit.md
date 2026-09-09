@@ -1,15 +1,17 @@
-# [Project name]
+# ATTP TP.HCM
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Cổng thông tin an toàn thực phẩm TP.HCM với tra cứu công khai, đăng ký hồ sơ trực tuyến và khu vực quản trị xét duyệt.
 
 ## Run & Operate
 
 - `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/attp-portal run dev` — run the React/Vite portal (port 23165)
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
+- The managed Replit preview starts the portal and API artifact workflows automatically.
 
 ## Stack
 
@@ -22,7 +24,11 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/attp-portal/src/pages/portal-pages.tsx` — public portal, registration form, admin dashboard and criteria editor
+- `artifacts/attp-portal/src/components/portal-ui.tsx` — shared public/admin shells and UI patterns
+- `artifacts/api-server/src/lib/criteria-data.ts` — criteria groups, fields, answer types and versioning rules
+- `lib/api-spec/openapi.yaml` — API contract source of truth
+- `lib/db/src/schema/` — PostgreSQL/Drizzle schema definitions
 
 ## Architecture decisions
 
