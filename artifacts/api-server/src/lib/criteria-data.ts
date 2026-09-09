@@ -50,10 +50,10 @@ const defaults: CriteriaStore = {
       criterion("food-supplier", "taxCode", "Mã số thuế", "food-supplier-group-1", "text", 0, [], { order: 2 }),
       criterion("food-supplier", "address", "Địa chỉ đầy đủ", "food-supplier-group-1", "text", 0, [], { order: 3 }),
       criterion("food-supplier", "contact", "Số điện thoại liên hệ", "food-supplier-group-1", "text", 0, [], { order: 4 }),
-      criterion("food-supplier", "licenseNumber", "Số giấy phép ATTP", "food-supplier-group-2", "text", 0, [], { order: 5, prerequisite: true }),
-      criterion("food-supplier", "licenseIssued", "Ngày cấp giấy phép", "food-supplier-group-2", "date", 0, [], { order: 6, prerequisite: true }),
-      criterion("food-supplier", "licenseExpires", "Ngày hết hạn giấy phép", "food-supplier-group-2", "date", 0, [], { order: 7, prerequisite: true }),
-      criterion("food-supplier", "businessLicense", "Giấy đăng ký kinh doanh", "food-supplier-group-2", "file", 0, [], { order: 8, prerequisite: true }),
+      criterion("food-supplier", "licenseNumber", "Số giấy phép ATTP", "food-supplier-group-2", "text", 0, [], { order: 5 }),
+      criterion("food-supplier", "licenseIssued", "Ngày cấp giấy phép", "food-supplier-group-2", "date", 0, [], { order: 6 }),
+      criterion("food-supplier", "licenseExpires", "Ngày hết hạn giấy phép", "food-supplier-group-2", "date", 0, [], { order: 7 }),
+      criterion("food-supplier", "businessLicense", "Giấy đăng ký kinh doanh", "food-supplier-group-2", "file", 0, [], { order: 8 }),
       criterion("food-supplier", "productGroups", "Nhóm sản phẩm cung cấp", "food-supplier-group-3", "multi-select", 20, ["Rau củ quả", "Thịt gia súc", "Thủy sản", "Thực phẩm chế biến"], { order: 9 }),
       criterion("food-supplier", "origin", "Vùng trồng / nuôi / khai thác", "food-supplier-group-3", "text", 10, [], { order: 10, required: false }),
       criterion("food-supplier", "qualityCertificate", "Chứng nhận chất lượng", "food-supplier-group-3", "file", 10, [], { order: 11, required: false }),
@@ -73,10 +73,10 @@ const defaults: CriteriaStore = {
       criterion("meal-provider", "taxCode", "Mã số thuế", "meal-provider-group-1", "text", 0, [], { order: 2 }),
       criterion("meal-provider", "address", "Địa chỉ đầy đủ", "meal-provider-group-1", "text", 0, [], { order: 3 }),
       criterion("meal-provider", "contact", "Số điện thoại liên hệ", "meal-provider-group-1", "text", 0, [], { order: 4 }),
-      criterion("meal-provider", "licenseNumber", "Số giấy phép ATTP", "meal-provider-group-2", "text", 0, [], { order: 5, prerequisite: true }),
-      criterion("meal-provider", "licenseIssued", "Ngày cấp giấy phép", "meal-provider-group-2", "date", 0, [], { order: 6, prerequisite: true }),
-      criterion("meal-provider", "licenseExpires", "Ngày hết hạn giấy phép", "meal-provider-group-2", "date", 0, [], { order: 7, prerequisite: true }),
-      criterion("meal-provider", "legalEvidence", "Giấy tờ pháp lý", "meal-provider-group-2", "file", 0, [], { order: 8, prerequisite: true }),
+      criterion("meal-provider", "licenseNumber", "Số giấy phép ATTP", "meal-provider-group-2", "text", 0, [], { order: 5 }),
+      criterion("meal-provider", "licenseIssued", "Ngày cấp giấy phép", "meal-provider-group-2", "date", 0, [], { order: 6 }),
+      criterion("meal-provider", "licenseExpires", "Ngày hết hạn giấy phép", "meal-provider-group-2", "date", 0, [], { order: 7 }),
+      criterion("meal-provider", "legalEvidence", "Giấy tờ pháp lý", "meal-provider-group-2", "file", 0, [], { order: 8 }),
       criterion("meal-provider", "staffTotal", "Tổng số nhân viên chế biến", "meal-provider-group-3", "number", 20, [], { order: 9 }),
       criterion("meal-provider", "staffTrained", "Nhân viên có chứng chỉ tập huấn ATTP", "meal-provider-group-3", "number", 20, [], { order: 10 }),
       criterion("meal-provider", "staffHealth", "Nhân viên có khám sức khỏe còn hiệu lực", "meal-provider-group-3", "number", 20, [], { order: 11 }),
@@ -96,7 +96,7 @@ const defaults: CriteriaStore = {
       criterion("school", "schoolLevel", "Cấp học", "school-group-1", "select", 0, ["Mầm non", "Tiểu học", "THCS", "THPT"], { order: 2 }),
       criterion("school", "address", "Địa chỉ", "school-group-1", "text", 0, [], { order: 3 }),
       criterion("school", "contact", "Số điện thoại liên hệ", "school-group-1", "text", 0, [], { order: 4 }),
-      criterion("school", "schoolDecision", "Quyết định thành lập / giấy tờ pháp lý", "school-group-2", "file", 0, [], { order: 5, prerequisite: true }),
+      criterion("school", "schoolDecision", "Quyết định thành lập / giấy tờ pháp lý", "school-group-2", "file", 0, [], { order: 5 }),
       criterion("school", "hasFoodSafetyLead", "Có cán bộ phụ trách ATTP", "school-group-3", "yes-no", 15, ["Có", "Không"], { order: 6 }),
       criterion("school", "mealModel", "Hình thức tổ chức bữa ăn", "school-group-4", "select", 20, ["Tự nấu", "Liên kết đơn vị suất ăn", "Thuê đơn vị nấu tại bếp trường"], { order: 7 }),
       criterion("school", "kitchenOneWay", "Bếp ăn theo nguyên tắc một chiều", "school-group-5", "yes-no", 25, ["Có", "Không"], { order: 8 }),
@@ -140,7 +140,7 @@ export function updateCriteria(
     throw new Error("Mỗi tiêu chí phải thuộc một nhóm đã tồn tại.");
   }
   const score = input.criteria
-    .filter((item) => !item.prerequisite && item.active)
+    .filter((item) => item.active)
     .reduce((sum, item) => sum + item.maxScore, 0);
   if (score !== 100) {
     throw new Error(`Tổng điểm tiêu chí thường phải bằng 100 (hiện tại ${score}).`);
@@ -153,7 +153,7 @@ export function updateCriteria(
     effectiveFrom: input.effectiveFrom,
     totalScore: score,
     groups: input.groups.map((group, index) => ({ ...group, order: group.order || index + 1 })),
-    criteria: input.criteria.map((item, index) => ({ ...item, order: item.order || index + 1 })),
+    criteria: input.criteria.map((item, index) => ({ ...item, prerequisite: false, order: item.order || index + 1 })),
   };
   defaults[type] = next;
   history[type].unshift({

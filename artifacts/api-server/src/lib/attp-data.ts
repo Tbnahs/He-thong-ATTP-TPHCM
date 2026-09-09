@@ -270,28 +270,23 @@ export function reviewApplication(
   const app = applications.find((item) => item.id === id);
   if (!app) return undefined;
   const criteria = app.criteriaSnapshot ?? getCriteria(app.type).criteria;
-  const ordinaryCriteria = criteria.filter((item) => item.active && !item.prerequisite);
-  const prerequisiteResults = input.prerequisiteResults ?? {};
+  const ordinaryCriteria = criteria.filter((item) => item.active);
+  const prerequisiteResults = {};
   const scoreBreakdown = input.criteriaScores ?? {};
   const computedScore = ordinaryCriteria.reduce(
     (sum, item) => sum + Math.min(item.maxScore, Math.max(0, Number(scoreBreakdown[item.key] ?? 0))),
     0,
-  );
-  const prerequisiteFailed = criteria.some(
-    (item) => item.prerequisite && prerequisiteResults[item.key] === false,
   );
   app.status =
     input.action === "needs-more-info"
       ? "needs-more-info"
       : input.action === "reject"
         ? "rejected"
-        : prerequisiteFailed
-          ? "stopped"
-          : computedScore === 100
-            ? "approved"
-            : computedScore >= 80
-              ? "warning"
-              : "stopped";
+        : computedScore === 100
+          ? "approved"
+          : computedScore >= 80
+            ? "warning"
+            : "stopped";
   app.score = input.action === "needs-more-info" ? input.score : Math.round(computedScore);
   app.reviewNote = input.note || null;
   app.scoreBreakdown = scoreBreakdown;
