@@ -28,7 +28,7 @@ export function PublicHeader() {
            <button className="focus-ring rounded-lg p-2 md:hidden" onClick={() => setOpen(!open)} aria-label={open ? 'Đóng menu' : 'Mở menu'} data-testid="button-mobile-menu">{open ? <X size={21} /> : <Menu size={21} />}</button>
          </div>
       </div>
-      {open && <nav className="border-t border-border px-5 py-3 md:hidden" aria-label="Điều hướng di động">{nav.map(([href, label]) => <Link key={href} href={href} onClick={() => setOpen(false)} className="block border-b border-border/60 py-3 text-sm font-semibold" data-testid={`link-mobile-${label}`}>{label}</Link>)}</nav>}
+       {open && <nav className="border-t border-border px-5 py-3 md:hidden" aria-label="Điều hướng di động">{nav.map(([href, label]) => <Link key={href} href={href} onClick={() => setOpen(false)} className="block border-b border-border/60 py-3 text-sm font-semibold" data-testid={`link-mobile-${label}`}>{label}</Link>)}<Link href="/admin/login" onClick={() => setOpen(false)} className="block py-3 text-sm font-bold text-primary" data-testid="link-mobile-login">Đăng nhập</Link></nav>}
     </header>
   );
 }
