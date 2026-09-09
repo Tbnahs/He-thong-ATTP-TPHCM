@@ -30,7 +30,7 @@ import {
   type ReviewInputAction as ReviewAction,
 } from '@workspace/api-client-react';
 import { Button } from '@/components/ui/button';
-import { AdminShell, ButtonLink, EmptyState, MetricCard, PublicShell, SectionHeading, StatusPill } from '@/components/portal-ui';
+import { AdminShell, ButtonLink, EmptyState, FacilityShell, MetricCard, PublicShell, SectionHeading, StatusPill } from '@/components/portal-ui';
 
 const categoryNames: Record<string, string> = {
   'eligible-facilities': 'Cơ sở đủ điều kiện',
@@ -42,6 +42,7 @@ const categoryNames: Record<string, string> = {
 const typeNames: Record<string, string> = { 'food-supplier': 'Đơn vị cung cấp thực phẩm', 'meal-provider': 'Đơn vị cung cấp suất ăn', school: 'Cơ sở giáo dục' };
 const formatDate = (value?: string) => value ? new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(value)) : '—';
 const formatNumber = (value?: number) => typeof value === 'number' ? new Intl.NumberFormat('vi-VN').format(value) : '—';
+type AccountRole = 'admin' | 'facility';
 
 function Notice({ message, onClose }: { message: string; onClose: () => void }) {
   return <div className="fixed bottom-5 right-5 z-50 flex max-w-sm items-start gap-3 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-xl" role="status" data-testid="status-notice"><Check size={18} className="mt-0.5 shrink-0 text-accent" /><span>{message}</span><button onClick={onClose} aria-label="Đóng thông báo" data-testid="button-close-notice"><X size={16} /></button></div>;
@@ -103,6 +104,7 @@ export function RegisterPage() {
 
 export function AdminLoginPage() {
   const [, navigate] = useLocation();
+  const [role, setRole] = useState<AccountRole>('admin');
   const [username, setUsername] = useState('canbo.demo');
   const [password, setPassword] = useState('');
   const [notice, setNotice] = useState('');
@@ -113,28 +115,58 @@ export function AdminLoginPage() {
       setNotice('Vui lòng nhập tên đăng nhập và mật khẩu.');
       return;
     }
-    sessionStorage.setItem('attp-reviewer-session', 'active');
-    navigate('/admin');
+    sessionStorage.setItem('attp-session-role', role);
+    if (role === 'admin') {
+      sessionStorage.setItem('attp-reviewer-session', 'active');
+      navigate('/admin');
+    } else {
+      sessionStorage.removeItem('attp-reviewer-session');
+      navigate('/facility/profile');
+    }
   };
 
   return <PublicShell><main className="portal-grid min-h-[calc(100dvh-170px)] px-5 py-12 lg:px-8 lg:py-20">
     <div className="mx-auto max-w-xl overflow-hidden rounded-[2rem] border border-border bg-card shadow-2xl shadow-primary/10">
       <div className="p-8 lg:p-12">
         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-primary"><ShieldCheck size={24} /></div>
-        <p className="mono-label mt-7 text-primary">ĐĂNG NHẬP CÁN BỘ</p>
+         <p className="mono-label mt-7 text-primary">ĐĂNG NHẬP HỆ THỐNG</p>
          <h2 className="mt-2 text-3xl font-extrabold">Đăng nhập</h2>
-         <p className="mt-3 text-sm leading-6 text-muted-foreground">Đăng nhập để mở không gian quản trị hồ sơ và bắt đầu xét duyệt các hồ sơ đang chờ xử lý.</p>
+         <p className="mt-3 text-sm leading-6 text-muted-foreground">Chọn đúng loại tài khoản để vào khu vực làm việc tương ứng.</p>
         <form onSubmit={submit} className="mt-8 space-y-5">
+          <label className="block"><span className="mb-2 block text-sm font-semibold">Loại tài khoản</span><select value={role} onChange={e => { const nextRole = e.target.value as AccountRole; setRole(nextRole); setUsername(nextRole === 'admin' ? 'canbo.demo' : 'coso.demo'); }} className="focus-ring h-12 w-full rounded-xl border border-input bg-background px-4 text-sm font-semibold" data-testid="select-account-role"><option value="admin">Tài khoản Admin / cán bộ xét duyệt</option><option value="facility">Tài khoản cơ sở đăng ký hồ sơ</option></select></label>
           <label className="block"><span className="mb-2 block text-sm font-semibold">Tên đăng nhập hoặc email</span><input value={username} onChange={e => setUsername(e.target.value)} autoComplete="username" className="focus-ring h-12 w-full rounded-xl border border-input bg-background px-4 text-sm" data-testid="input-reviewer-username" /></label>
           <label className="block"><span className="mb-2 block text-sm font-semibold">Mật khẩu</span><input type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" placeholder="Nhập mật khẩu" className="focus-ring h-12 w-full rounded-xl border border-input bg-background px-4 text-sm" data-testid="input-reviewer-password" /></label>
           {notice && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm font-semibold text-red-800" role="alert" data-testid="status-login-error">{notice}</p>}
           <Button type="submit" className="h-12 w-full rounded-xl" data-testid="button-reviewer-login"><LogIn size={17} /> Đăng nhập vào bàn xét duyệt</Button>
         </form>
-        <p className="mt-5 rounded-xl bg-secondary/70 p-3 text-xs leading-5 text-muted-foreground"><strong className="text-foreground">Bản mẫu:</strong> nhập thông tin bất kỳ không để trống để xem giao diện Admin. Khi vận hành thật, màn hình này cần nối với tài khoản cán bộ/SSO của Sở.</p>
+        <p className="mt-5 rounded-xl bg-secondary/70 p-3 text-xs leading-5 text-muted-foreground"><strong className="text-foreground">Bản mẫu:</strong> nhập thông tin bất kỳ không để trống. Admin vào bàn xét duyệt; tài khoản cơ sở chỉ vào phần hồ sơ cơ sở để cập nhật thông tin.</p>
         <Link href="/" className="focus-ring mt-6 inline-flex items-center gap-2 text-sm font-bold text-primary" data-testid="link-back-public-login"><ArrowLeft size={16} /> Về cổng công khai</Link>
       </div>
     </div>
   </main></PublicShell>;
+}
+
+export function FacilityProfilePage() {
+  type FacilityProfile = { name: string; taxCode: string; address: string; representative: string; phone: string; email: string };
+  const defaultProfile: FacilityProfile = { name: 'Công ty TNHH Nông sản An Phú', taxCode: '0312345678', address: '184 Nguyễn Văn Linh, Quận 7, TP.HCM', representative: 'Nguyễn Hoàng Anh', phone: '0908 123 456', email: '' };
+  const [profile, setProfile] = useState<FacilityProfile>(() => {
+    const saved = sessionStorage.getItem('attp-facility-profile');
+    if (!saved) return defaultProfile;
+    try { return { ...defaultProfile, ...JSON.parse(saved) }; } catch { return defaultProfile; }
+  });
+  const [notice, setNotice] = useState('');
+  const update = (key: keyof FacilityProfile, value: string) => setProfile((current: FacilityProfile) => ({ ...current, [key]: value }));
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    sessionStorage.setItem('attp-facility-profile', JSON.stringify(profile));
+    setNotice('Thông tin hồ sơ cơ sở đã được lưu.');
+  };
+
+  return <FacilityShell><main className="mx-auto max-w-5xl px-5 py-9 lg:px-10"><SectionHeading eyebrow="Tài khoản cơ sở" title="Hồ sơ cơ sở" description="Cập nhật thông tin liên hệ và thông tin pháp nhân của cơ sở đã đăng ký." action={<StatusPill status="active" />} /><form onSubmit={submit} className="space-y-6">
+    <FormSection title="Thông tin cơ sở" icon={Building2}><div className="grid gap-4 md:grid-cols-2"><Field label="Tên cơ sở *" value={profile.name} onChange={value => update('name', value)} test="input-facility-name" wide /><Field label="Mã số thuế *" value={profile.taxCode} onChange={value => update('taxCode', value)} test="input-facility-tax-code" /><Field label="Địa chỉ đầy đủ *" value={profile.address} onChange={value => update('address', value)} test="input-facility-address" wide /></div></FormSection>
+    <FormSection title="Người liên hệ" icon={UserRound}><div className="grid gap-4 md:grid-cols-2"><Field label="Người đại diện pháp luật *" value={profile.representative} onChange={value => update('representative', value)} test="input-facility-representative" /><Field label="Số điện thoại *" value={profile.phone} onChange={value => update('phone', value)} test="input-facility-phone" /><Field label="Email liên hệ" value={profile.email} onChange={value => update('email', value)} test="input-facility-email" type="email" /></div></FormSection>
+    <div className="flex flex-col gap-4 rounded-2xl border border-border bg-secondary/50 p-5 sm:flex-row sm:items-center sm:justify-between"><div className="flex gap-3 text-sm"><LockKeyhole className="mt-0.5 shrink-0 text-primary" size={18} /><p><strong>Chỉ cập nhật thông tin cơ sở.</strong><br /><span className="text-muted-foreground">Hồ sơ xét duyệt và các quyết định của cán bộ được quản lý riêng trong khu vực Admin.</span></p></div><Button type="submit" className="h-11 rounded-xl px-6" data-testid="button-save-facility-profile">Lưu thay đổi</Button></div>
+  </form>{notice && <Notice message={notice} onClose={() => setNotice('')} />}</main></FacilityShell>;
 }
 
 function ApplicationForm() {

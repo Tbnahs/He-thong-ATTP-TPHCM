@@ -4,7 +4,7 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
-import { AdminApplicationPage, AdminDashboard, AdminLoginPage, AdminPlaceholder, HomePage, LookupPage, RegisterPage } from '@/pages/portal-pages';
+import { AdminApplicationPage, AdminDashboard, AdminLoginPage, AdminPlaceholder, FacilityProfilePage, HomePage, LookupPage, RegisterPage } from '@/pages/portal-pages';
 import {
   Route,
   Switch,
@@ -42,6 +42,9 @@ function Router() {
           <Route path="/admin/reports">
             <AdminGuard><AdminPlaceholder kind="reports" /></AdminGuard>
           </Route>
+          <Route path="/facility/profile">
+            <FacilityGuard><FacilityProfilePage /></FacilityGuard>
+          </Route>
         <Route component={NotFound} />
       </Switch>
     </RoutedErrorBoundary>
@@ -50,10 +53,24 @@ function Router() {
 
 function AdminGuard({ children }: { children: ReactNode }) {
   const [, navigate] = useLocation();
-  const [authenticated, setAuthenticated] = useState(() => sessionStorage.getItem('attp-reviewer-session') === 'active');
+  const [authenticated, setAuthenticated] = useState(() => sessionStorage.getItem('attp-session-role') === 'admin');
 
   useEffect(() => {
-    const syncSession = () => setAuthenticated(sessionStorage.getItem('attp-reviewer-session') === 'active');
+    const syncSession = () => setAuthenticated(sessionStorage.getItem('attp-session-role') === 'admin');
+    window.addEventListener('storage', syncSession);
+    if (!authenticated) navigate('/admin/login', { replace: true });
+    return () => window.removeEventListener('storage', syncSession);
+  }, [authenticated, navigate]);
+
+  return authenticated ? <>{children}</> : null;
+}
+
+function FacilityGuard({ children }: { children: ReactNode }) {
+  const [, navigate] = useLocation();
+  const [authenticated, setAuthenticated] = useState(() => sessionStorage.getItem('attp-session-role') === 'facility');
+
+  useEffect(() => {
+    const syncSession = () => setAuthenticated(sessionStorage.getItem('attp-session-role') === 'facility');
     window.addEventListener('storage', syncSession);
     if (!authenticated) navigate('/admin/login', { replace: true });
     return () => window.removeEventListener('storage', syncSession);
