@@ -1,10 +1,10 @@
-import { type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
-import { AdminApplicationPage, AdminDashboard, AdminPlaceholder, HomePage, LookupPage, RegisterPage } from '@/pages/portal-pages';
+import { AdminApplicationPage, AdminDashboard, AdminLoginPage, AdminPlaceholder, HomePage, LookupPage, RegisterPage } from '@/pages/portal-pages';
 import {
   Route,
   Switch,
@@ -23,16 +23,43 @@ function Router() {
          <Route path="/" component={HomePage} />
          <Route path="/lookup" component={LookupPage} />
          <Route path="/register" component={RegisterPage} />
-         <Route path="/admin" component={AdminDashboard} />
-         <Route path="/admin/applications" component={AdminDashboard} />
-         <Route path="/admin/applications/pending" component={AdminDashboard} />
-         <Route path="/admin/applications/:id" component={AdminApplicationPage} />
-         <Route path="/admin/accounts" component={() => <AdminPlaceholder kind="accounts" />} />
-         <Route path="/admin/reports" component={() => <AdminPlaceholder kind="reports" />} />
+          <Route path="/admin/login" component={AdminLoginPage} />
+          <Route path="/admin">
+            <AdminGuard><AdminDashboard /></AdminGuard>
+          </Route>
+          <Route path="/admin/applications">
+            <AdminGuard><AdminDashboard /></AdminGuard>
+          </Route>
+          <Route path="/admin/applications/pending">
+            <AdminGuard><AdminDashboard /></AdminGuard>
+          </Route>
+          <Route path="/admin/applications/:id">
+            <AdminGuard><AdminApplicationPage /></AdminGuard>
+          </Route>
+          <Route path="/admin/accounts">
+            <AdminGuard><AdminPlaceholder kind="accounts" /></AdminGuard>
+          </Route>
+          <Route path="/admin/reports">
+            <AdminGuard><AdminPlaceholder kind="reports" /></AdminGuard>
+          </Route>
         <Route component={NotFound} />
       </Switch>
     </RoutedErrorBoundary>
   );
+}
+
+function AdminGuard({ children }: { children: ReactNode }) {
+  const [, navigate] = useLocation();
+  const [authenticated, setAuthenticated] = useState(() => sessionStorage.getItem('attp-reviewer-session') === 'active');
+
+  useEffect(() => {
+    const syncSession = () => setAuthenticated(sessionStorage.getItem('attp-reviewer-session') === 'active');
+    window.addEventListener('storage', syncSession);
+    if (!authenticated) navigate('/admin/login', { replace: true });
+    return () => window.removeEventListener('storage', syncSession);
+  }, [authenticated, navigate]);
+
+  return authenticated ? <>{children}</> : null;
 }
 
 function RoutedErrorBoundary({ children }: { children: ReactNode }) {

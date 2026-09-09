@@ -1,7 +1,7 @@
 import { useMemo, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
 import { Link, useLocation, useParams } from 'wouter';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ArrowUpRight, BadgeCheck, BarChart3, Building2, Check, ChevronLeft, ChevronRight, ClipboardCheck, FileText, ImagePlus, Info, LockKeyhole, MapPin, Plus, Search, Send, ShieldCheck, SlidersHorizontal, Store, UserRound, Users, X } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, BadgeCheck, BarChart3, Building2, Check, ChevronLeft, ChevronRight, ClipboardCheck, FileText, ImagePlus, Info, LockKeyhole, LogIn, LogOut, MapPin, Plus, Search, Send, ShieldCheck, SlidersHorizontal, Store, UserRound, Users, X } from 'lucide-react';
 import {
   ApplicationType,
   getGetAdminSummaryQueryKey,
@@ -99,6 +99,50 @@ function RecordDialog({ record, onClose }: { record: PublicRecord; onClose: () =
 
 export function RegisterPage() {
   return <PublicShell><main className="mx-auto max-w-7xl px-5 py-12 lg:px-8 lg:py-16"><ApplicationForm /></main></PublicShell>;
+}
+
+export function AdminLoginPage() {
+  const [, navigate] = useLocation();
+  const [username, setUsername] = useState('canbo.demo');
+  const [password, setPassword] = useState('');
+  const [notice, setNotice] = useState('');
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    if (!username.trim() || !password.trim()) {
+      setNotice('Vui lòng nhập tên đăng nhập và mật khẩu.');
+      return;
+    }
+    sessionStorage.setItem('attp-reviewer-session', 'active');
+    navigate('/admin');
+  };
+
+  return <PublicShell><main className="portal-grid min-h-[calc(100dvh-170px)] px-5 py-12 lg:px-8 lg:py-20">
+    <div className="mx-auto grid max-w-5xl overflow-hidden rounded-[2rem] border border-border bg-card shadow-2xl shadow-primary/10 lg:grid-cols-[.9fr_1.1fr]">
+      <div className="bg-primary p-8 text-primary-foreground lg:p-12">
+        <p className="mono-label text-accent">KHU VỰC NỘI BỘ</p>
+        <h1 className="display-tight mt-5 text-4xl font-extrabold leading-tight">Cổng cán bộ<br />xét duyệt hồ sơ.</h1>
+        <p className="mt-5 text-sm leading-7 text-primary-foreground/75">Dành cho cán bộ chuyên môn của Sở An toàn thực phẩm Thành phố Hồ Chí Minh tiếp nhận, chấm điểm và ghi nhận kết quả xử lý hồ sơ.</p>
+        <div className="mt-10 space-y-4 text-sm text-primary-foreground/80">
+          {['Hàng đợi hồ sơ theo trạng thái', 'Bộ tiêu chí và điểm đánh giá', 'Lưu vết quyết định chuyên môn'].map(item => <div key={item} className="flex items-center gap-3"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent text-accent-foreground"><Check size={14} /></span>{item}</div>)}
+        </div>
+      </div>
+      <div className="p-8 lg:p-12">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-primary"><ShieldCheck size={24} /></div>
+        <p className="mono-label mt-7 text-primary">ĐĂNG NHẬP CÁN BỘ</p>
+        <h2 className="mt-2 text-3xl font-extrabold">Chào mừng trở lại</h2>
+        <p className="mt-3 text-sm leading-6 text-muted-foreground">Đăng nhập để mở không gian quản trị hồ sơ. Phiên bản hiện tại đang trình diễn luồng giao diện.</p>
+        <form onSubmit={submit} className="mt-8 space-y-5">
+          <label className="block"><span className="mb-2 block text-sm font-semibold">Tên đăng nhập hoặc email</span><input value={username} onChange={e => setUsername(e.target.value)} autoComplete="username" className="focus-ring h-12 w-full rounded-xl border border-input bg-background px-4 text-sm" data-testid="input-reviewer-username" /></label>
+          <label className="block"><span className="mb-2 block text-sm font-semibold">Mật khẩu</span><input type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" placeholder="Nhập mật khẩu" className="focus-ring h-12 w-full rounded-xl border border-input bg-background px-4 text-sm" data-testid="input-reviewer-password" /></label>
+          {notice && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm font-semibold text-red-800" role="alert" data-testid="status-login-error">{notice}</p>}
+          <Button type="submit" className="h-12 w-full rounded-xl" data-testid="button-reviewer-login"><LogIn size={17} /> Đăng nhập vào bàn xét duyệt</Button>
+        </form>
+        <p className="mt-5 rounded-xl bg-secondary/70 p-3 text-xs leading-5 text-muted-foreground"><strong className="text-foreground">Bản mẫu:</strong> nhập thông tin bất kỳ không để trống để xem giao diện Admin. Khi vận hành thật, màn hình này cần nối với tài khoản cán bộ/SSO của Sở.</p>
+        <Link href="/" className="focus-ring mt-6 inline-flex items-center gap-2 text-sm font-bold text-primary" data-testid="link-back-public-login"><ArrowLeft size={16} /> Về cổng công khai</Link>
+      </div>
+    </div>
+  </main></PublicShell>;
 }
 
 function ApplicationForm() {
