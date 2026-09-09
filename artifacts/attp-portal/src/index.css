@@ -144,7 +144,7 @@
   --app-font-sans: 'Be Vietnam Pro', sans-serif;
   --app-font-serif: Georgia, serif;
   --app-font-mono: 'IBM Plex Mono', monospace;
-  --radius: 0.5rem; /* 8px */
+  --radius: 0.75rem; /* 12px */
   --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0); /*replace with H S L */
   --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0); /*replace with H S L */
   --shadow-sm:
@@ -440,8 +440,9 @@
 }
 
 .portal-grid {
-  background-image: linear-gradient(hsl(var(--primary) / .055) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary) / .055) 1px, transparent 1px);
-  background-size: 30px 30px;
+  background-color: hsl(var(--background));
+  background-image: radial-gradient(circle at 82% 18%, hsl(var(--accent) / .16), transparent 20rem), linear-gradient(hsl(var(--primary) / .055) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary) / .055) 1px, transparent 1px);
+  background-size: auto, 30px 30px, 30px 30px;
 }
 .portal-noise::after {
   content: '';
@@ -456,7 +457,7 @@
 .mono-label { font-family: var(--app-font-mono); letter-spacing: .08em; text-transform: uppercase; font-size: .68rem; }
 .status-dot { width: .5rem; height: .5rem; border-radius: 999px; display: inline-block; }
 .lift { transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
-.lift:hover { transform: translateY(-3px); box-shadow: 0 16px 35px hsl(158 37% 15% / .1); }
+.lift:hover { transform: translateY(-4px); box-shadow: 0 20px 45px hsl(158 37% 15% / .12); }
 .focus-ring:focus-visible { outline: 3px solid hsl(var(--accent)); outline-offset: 3px; }
 @keyframes rise-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 .rise-in { animation: rise-in .5s ease both; }
