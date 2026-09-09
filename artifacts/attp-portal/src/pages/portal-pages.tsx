@@ -1,7 +1,7 @@
 import { useMemo, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
 import { Link, useLocation, useParams } from 'wouter';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ArrowUpRight, BadgeCheck, BarChart3, Building2, Check, ChevronLeft, ChevronRight, ClipboardCheck, FileText, ImagePlus, Info, LockKeyhole, LogIn, LogOut, MapPin, Plus, Search, Send, ShieldCheck, SlidersHorizontal, Store, UserRound, Users, X } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, BadgeCheck, BarChart3, Bell, Building2, Check, ChevronLeft, ChevronRight, ClipboardCheck, FileText, ImagePlus, Info, LockKeyhole, LogIn, MapPin, Plus, Search, Send, ShieldCheck, SlidersHorizontal, Store, UserRound, Users, X } from 'lucide-react';
 import {
   ApplicationType,
   getGetAdminSummaryQueryKey,
@@ -30,7 +30,7 @@ import {
   type ReviewInputAction as ReviewAction,
 } from '@workspace/api-client-react';
 import { Button } from '@/components/ui/button';
-import { AdminShell, ButtonLink, EmptyState, FacilityShell, MetricCard, PublicShell, SectionHeading, StatusPill } from '@/components/portal-ui';
+import { AdminShell, ButtonLink, EmptyState, MetricCard, PublicShell, SectionHeading, StatusPill } from '@/components/portal-ui';
 
 const categoryNames: Record<string, string> = {
   'eligible-facilities': 'Cơ sở đủ điều kiện',
@@ -43,6 +43,7 @@ const typeNames: Record<string, string> = { 'food-supplier': 'Đơn vị cung c�
 const formatDate = (value?: string) => value ? new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(value)) : '—';
 const formatNumber = (value?: number) => typeof value === 'number' ? new Intl.NumberFormat('vi-VN').format(value) : '—';
 type AccountRole = 'admin' | 'facility';
+const inferAccountRole = (username: string): AccountRole => /^(admin|canbo|reviewer|xetduyet)/i.test(username.trim()) ? 'admin' : 'facility';
 
 function Notice({ message, onClose }: { message: string; onClose: () => void }) {
   return <div className="fixed bottom-5 right-5 z-50 flex max-w-sm items-start gap-3 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-xl" role="status" data-testid="status-notice"><Check size={18} className="mt-0.5 shrink-0 text-accent" /><span>{message}</span><button onClick={onClose} aria-label="Đóng thông báo" data-testid="button-close-notice"><X size={16} /></button></div>;
@@ -50,12 +51,16 @@ function Notice({ message, onClose }: { message: string; onClose: () => void }) 
 
 export function HomePage() {
   const { data: summary, isLoading, isError } = useGetPublicSummary();
+  const facilityAccount = sessionStorage.getItem('attp-session-role') === 'facility';
+  const accountAction = facilityAccount
+    ? { href: '/facility/profile', title: 'Hồ sơ cơ sở', text: 'Xem lại toàn bộ thông tin đã đăng ký và cập nhật khi có yêu cầu bổ sung.' }
+    : { href: '/register', title: 'Nộp hồ sơ trực tuyến', text: 'Ba luồng đăng ký riêng cho nhà cung cấp, đơn vị suất ăn và cơ sở giáo dục.' };
   return <PublicShell><main>
     <section className="portal-grid overflow-hidden border-b border-border"><div className="mx-auto grid max-w-7xl gap-12 px-5 py-16 lg:grid-cols-[1.05fr_.95fr] lg:px-8 lg:py-24">
-      <div className="rise-in"><div className="mb-5 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-secondary px-3 py-1.5 text-xs font-bold text-primary"><span className="status-dot bg-primary" /> CỔNG THÔNG TIN CHÍNH THỨC</div><h1 className="display-tight max-w-3xl text-5xl font-extrabold leading-[1.02] tracking-tight md:text-7xl">Biết rõ nguồn gốc.<br /><span className="text-primary">An tâm mỗi bữa ăn.</span></h1><p className="mt-7 max-w-xl text-base leading-7 text-muted-foreground md:text-lg">Tra cứu nhanh các cơ sở, sản phẩm và hoạt động quảng cáo đã được Sở An toàn thực phẩm Thành phố Hồ Chí Minh công khai.</p><div className="mt-9 flex flex-wrap gap-3"><ButtonLink href="/lookup">Bắt đầu tra cứu</ButtonLink><ButtonLink href="/register" variant="outline">Đăng ký hồ sơ</ButtonLink></div></div>
+       <div className="rise-in"><div className="mb-5 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-secondary px-3 py-1.5 text-xs font-bold text-primary"><span className="status-dot bg-primary" /> CỔNG THÔNG TIN CHÍNH THỨC</div><h1 className="display-tight max-w-3xl text-5xl font-extrabold leading-[1.02] tracking-tight md:text-7xl">Biết rõ nguồn gốc.<br /><span className="text-primary">An tâm mỗi bữa ăn.</span></h1><p className="mt-7 max-w-xl text-base leading-7 text-muted-foreground md:text-lg">Tra cứu nhanh các cơ sở, sản phẩm và hoạt động quảng cáo đã được Sở An toàn thực phẩm Thành phố Hồ Chí Minh công khai.</p><div className="mt-9 flex flex-wrap gap-3"><ButtonLink href="/lookup">Bắt đầu tra cứu</ButtonLink><ButtonLink href={accountAction.href} variant="outline">{facilityAccount ? 'Hồ sơ cơ sở' : 'Đăng ký hồ sơ'}</ButtonLink></div></div>
       <div className="relative flex items-center justify-center lg:justify-end"><div className="absolute right-8 top-2 h-64 w-64 rounded-full bg-accent/30 blur-3xl" /><div className="relative w-full max-w-md rounded-[2rem] border border-primary/15 bg-card p-4 shadow-2xl shadow-primary/10"><div className="rounded-[1.5rem] bg-primary p-7 text-primary-foreground"><div className="flex items-start justify-between"><div><p className="mono-label text-accent">DỮ LIỆU CÔNG KHAI</p><p className="mt-2 text-2xl font-extrabold">Minh bạch để<br />lựa chọn tốt hơn.</p></div><ShieldCheck size={32} className="text-accent" /></div><div className="mt-10 grid grid-cols-2 gap-3">{[['Cơ sở', summary?.eligibleFacilities], ['Sản phẩm', (summary?.selfDeclaredProducts ?? 0) + (summary?.registeredProducts ?? 0)], ['Quảng cáo', summary?.licensedAdvertising], ['Kiểm nghiệm', summary?.testingFacilities]].map(([label, value]) => <div key={label as string} className="rounded-xl border border-primary-foreground/15 bg-primary-foreground/10 p-3"><p className="text-xs text-primary-foreground/65">{label as string}</p><p className="mt-1 text-2xl font-extrabold">{isLoading ? '…' : formatNumber(value as number)}</p></div>)}</div><Link href="/lookup" className="mt-5 flex items-center justify-between rounded-xl bg-accent px-4 py-3 text-sm font-bold text-accent-foreground" data-testid="link-card-lookup">Mở danh mục tra cứu <ArrowUpRight size={17} /></Link></div></div></div>
     </div></section>
-    <section className="mx-auto max-w-7xl px-5 py-16 lg:px-8"><SectionHeading eyebrow="Ba thao tác, một điểm đến" title="Dịch vụ được thiết kế cho đời sống thật." description="Từ một bữa ăn tại trường đến lựa chọn sản phẩm trong gia đình, thông tin chính thức luôn ở gần bạn." /><div className="grid gap-4 md:grid-cols-3"><HomeFeature icon={Search} number="01" title="Tra cứu công khai" text="Tìm theo tên, địa chỉ hoặc nhóm dữ liệu. Kết quả hiển thị tình trạng và ngày công bố." href="/lookup" /><HomeFeature icon={Send} number="02" title="Nộp hồ sơ trực tuyến" text="Ba luồng đăng ký riêng cho nhà cung cấp, đơn vị suất ăn và cơ sở giáo dục." href="/register" /><HomeFeature icon={ClipboardCheck} number="03" title="Quy trình có trách nhiệm" text="Mỗi hồ sơ được chấm điểm, ghi nhận ý kiến và lưu dấu quyết định của cán bộ chuyên môn." href="/admin" /></div></section>
+     <section className="mx-auto max-w-7xl px-5 py-16 lg:px-8"><SectionHeading eyebrow="Ba thao tác, một điểm đến" title="Dịch vụ được thiết kế cho đời sống thật." description="Từ một bữa ăn tại trường đến lựa chọn sản phẩm trong gia đình, thông tin chính thức luôn ở gần bạn." /><div className="grid gap-4 md:grid-cols-3"><HomeFeature icon={Search} number="01" title="Tra cứu công khai" text="Tìm theo tên, địa chỉ hoặc nhóm dữ liệu. Kết quả hiển thị tình trạng và ngày công bố." href="/lookup" /><HomeFeature icon={Send} number="02" title={accountAction.title} text={accountAction.text} href={accountAction.href} /><HomeFeature icon={ClipboardCheck} number="03" title="Quy trình có trách nhiệm" text="Mỗi hồ sơ được chấm điểm, ghi nhận ý kiến và lưu dấu quyết định của cán bộ chuyên môn." href="/admin" /></div></section>
     <HomeLookupSection />
     {isError && <div className="mx-auto max-w-7xl px-5 py-6 text-sm text-destructive" data-testid="status-summary-error">Không thể tải số liệu hiện tại. Bạn vẫn có thể sử dụng tra cứu công khai.</div>}
   </main></PublicShell>;
@@ -99,12 +104,12 @@ function RecordRow({ item, onOpen }: { item: PublicRecord; onOpen: () => void })
 function RecordDialog({ record, onClose }: { record: PublicRecord; onClose: () => void }) { return <div className="fixed inset-0 z-50 flex items-end justify-center bg-primary/30 p-0 backdrop-blur-sm sm:items-center sm:p-5" onClick={onClose}><div className="max-h-[90vh] w-full max-w-2xl overflow-auto rounded-t-3xl border border-border bg-card p-6 shadow-2xl sm:rounded-3xl" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" data-testid="dialog-record-detail"><div className="flex items-start justify-between"><div><p className="mono-label text-primary">{categoryNames[record.category]}</p><h2 className="mt-2 text-2xl font-extrabold">{record.title}</h2></div><button className="focus-ring rounded-lg p-2 hover:bg-muted" onClick={onClose} aria-label="Đóng chi tiết" data-testid="button-close-record"><X size={19} /></button></div><div className="mt-5 grid gap-3 rounded-2xl bg-secondary/60 p-4 text-sm sm:grid-cols-2"><p><span className="block text-xs text-muted-foreground">Địa chỉ</span><strong>{record.location}</strong></p><p><span className="block text-xs text-muted-foreground">Ngày công bố</span><strong>{formatDate(record.publishedAt)}</strong></p><p><span className="block text-xs text-muted-foreground">Trạng thái</span><StatusPill status={record.status} /></p></div><div className="mt-6"><h3 className="font-bold">Thông tin hồ sơ</h3><dl className="mt-3 divide-y divide-border">{Object.entries(record.metadata ?? {}).map(([key, value]) => <div key={key} className="flex justify-between gap-5 py-3 text-sm"><dt className="text-muted-foreground">{key}</dt><dd className="text-right font-semibold">{value}</dd></div>)}</dl></div></div></div>; }
 
 export function RegisterPage() {
+  if (sessionStorage.getItem('attp-session-role') === 'facility') return <FacilityProfilePage />;
   return <PublicShell><main className="mx-auto max-w-7xl px-5 py-12 lg:px-8 lg:py-16"><ApplicationForm /></main></PublicShell>;
 }
 
 export function AdminLoginPage() {
   const [, navigate] = useLocation();
-  const [role, setRole] = useState<AccountRole>('admin');
   const [username, setUsername] = useState('canbo.demo');
   const [password, setPassword] = useState('');
   const [notice, setNotice] = useState('');
@@ -115,13 +120,14 @@ export function AdminLoginPage() {
       setNotice('Vui lòng nhập tên đăng nhập và mật khẩu.');
       return;
     }
+    const role = inferAccountRole(username);
     sessionStorage.setItem('attp-session-role', role);
     if (role === 'admin') {
       sessionStorage.setItem('attp-reviewer-session', 'active');
       navigate('/admin');
     } else {
       sessionStorage.removeItem('attp-reviewer-session');
-      navigate('/facility/profile');
+      navigate('/');
     }
   };
 
@@ -132,14 +138,13 @@ export function AdminLoginPage() {
          <p className="mono-label mt-7 text-primary">ĐĂNG NHẬP HỆ THỐNG</p>
          <h2 className="mt-2 text-3xl font-extrabold">Đăng nhập</h2>
          <p className="mt-3 text-sm leading-6 text-muted-foreground">Chọn đúng loại tài khoản để vào khu vực làm việc tương ứng.</p>
-        <form onSubmit={submit} className="mt-8 space-y-5">
-          <label className="block"><span className="mb-2 block text-sm font-semibold">Loại tài khoản</span><select value={role} onChange={e => { const nextRole = e.target.value as AccountRole; setRole(nextRole); setUsername(nextRole === 'admin' ? 'canbo.demo' : 'coso.demo'); }} className="focus-ring h-12 w-full rounded-xl border border-input bg-background px-4 text-sm font-semibold" data-testid="select-account-role"><option value="admin">Tài khoản Admin / cán bộ xét duyệt</option><option value="facility">Tài khoản cơ sở đăng ký hồ sơ</option></select></label>
+         <form onSubmit={submit} className="mt-8 space-y-5">
           <label className="block"><span className="mb-2 block text-sm font-semibold">Tên đăng nhập hoặc email</span><input value={username} onChange={e => setUsername(e.target.value)} autoComplete="username" className="focus-ring h-12 w-full rounded-xl border border-input bg-background px-4 text-sm" data-testid="input-reviewer-username" /></label>
           <label className="block"><span className="mb-2 block text-sm font-semibold">Mật khẩu</span><input type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" placeholder="Nhập mật khẩu" className="focus-ring h-12 w-full rounded-xl border border-input bg-background px-4 text-sm" data-testid="input-reviewer-password" /></label>
           {notice && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm font-semibold text-red-800" role="alert" data-testid="status-login-error">{notice}</p>}
-          <Button type="submit" className="h-12 w-full rounded-xl" data-testid="button-reviewer-login"><LogIn size={17} /> Đăng nhập vào bàn xét duyệt</Button>
+           <Button type="submit" className="h-12 w-full rounded-xl" data-testid="button-reviewer-login"><LogIn size={17} /> Đăng nhập</Button>
         </form>
-        <p className="mt-5 rounded-xl bg-secondary/70 p-3 text-xs leading-5 text-muted-foreground"><strong className="text-foreground">Bản mẫu:</strong> nhập thông tin bất kỳ không để trống. Admin vào bàn xét duyệt; tài khoản cơ sở chỉ vào phần hồ sơ cơ sở để cập nhật thông tin.</p>
+         <p className="mt-5 rounded-xl bg-secondary/70 p-3 text-xs leading-5 text-muted-foreground"><strong className="text-foreground">Bản mẫu:</strong> dùng tên `canbo.demo` để vào Admin hoặc `coso.demo` để vào portal cơ sở. Khi vận hành thật, hệ thống sẽ nhận diện vai trò từ tài khoản được cấp.</p>
         <Link href="/" className="focus-ring mt-6 inline-flex items-center gap-2 text-sm font-bold text-primary" data-testid="link-back-public-login"><ArrowLeft size={16} /> Về cổng công khai</Link>
       </div>
     </div>
@@ -147,8 +152,8 @@ export function AdminLoginPage() {
 }
 
 export function FacilityProfilePage() {
-  type FacilityProfile = { name: string; taxCode: string; address: string; representative: string; phone: string; email: string };
-  const defaultProfile: FacilityProfile = { name: 'Công ty TNHH Nông sản An Phú', taxCode: '0312345678', address: '184 Nguyễn Văn Linh, Quận 7, TP.HCM', representative: 'Nguyễn Hoàng Anh', phone: '0908 123 456', email: '' };
+  type FacilityProfile = { name: string; taxCode: string; address: string; representative: string; phone: string; email: string; licenseNumber: string; licenseIssued: string; licenseExpires: string; productGroups: string; origin: string };
+  const defaultProfile: FacilityProfile = { name: 'Công ty TNHH Nông sản An Phú', taxCode: '0312345678', address: '184 Nguyễn Văn Linh, Quận 7, TP.HCM', representative: 'Nguyễn Hoàng Anh', phone: '0908 123 456', email: '', licenseNumber: 'ATTP-2026-088', licenseIssued: '2026-06-12', licenseExpires: '2027-06-12', productGroups: 'Rau củ quả, Thịt gia súc', origin: 'Hợp tác xã rau sạch Củ Chi' };
   const [profile, setProfile] = useState<FacilityProfile>(() => {
     const saved = sessionStorage.getItem('attp-facility-profile');
     if (!saved) return defaultProfile;
@@ -162,11 +167,12 @@ export function FacilityProfilePage() {
     setNotice('Thông tin hồ sơ cơ sở đã được lưu.');
   };
 
-  return <FacilityShell><main className="mx-auto max-w-5xl px-5 py-9 lg:px-10"><SectionHeading eyebrow="Tài khoản cơ sở" title="Hồ sơ cơ sở" description="Cập nhật thông tin liên hệ và thông tin pháp nhân của cơ sở đã đăng ký." action={<StatusPill status="active" />} /><form onSubmit={submit} className="space-y-6">
-    <FormSection title="Thông tin cơ sở" icon={Building2}><div className="grid gap-4 md:grid-cols-2"><Field label="Tên cơ sở *" value={profile.name} onChange={value => update('name', value)} test="input-facility-name" wide /><Field label="Mã số thuế *" value={profile.taxCode} onChange={value => update('taxCode', value)} test="input-facility-tax-code" /><Field label="Địa chỉ đầy đủ *" value={profile.address} onChange={value => update('address', value)} test="input-facility-address" wide /></div></FormSection>
-    <FormSection title="Người liên hệ" icon={UserRound}><div className="grid gap-4 md:grid-cols-2"><Field label="Người đại diện pháp luật *" value={profile.representative} onChange={value => update('representative', value)} test="input-facility-representative" /><Field label="Số điện thoại *" value={profile.phone} onChange={value => update('phone', value)} test="input-facility-phone" /><Field label="Email liên hệ" value={profile.email} onChange={value => update('email', value)} test="input-facility-email" type="email" /></div></FormSection>
-    <div className="flex flex-col gap-4 rounded-2xl border border-border bg-secondary/50 p-5 sm:flex-row sm:items-center sm:justify-between"><div className="flex gap-3 text-sm"><LockKeyhole className="mt-0.5 shrink-0 text-primary" size={18} /><p><strong>Chỉ cập nhật thông tin cơ sở.</strong><br /><span className="text-muted-foreground">Hồ sơ xét duyệt và các quyết định của cán bộ được quản lý riêng trong khu vực Admin.</span></p></div><Button type="submit" className="h-11 rounded-xl px-6" data-testid="button-save-facility-profile">Lưu thay đổi</Button></div>
-  </form>{notice && <Notice message={notice} onClose={() => setNotice('')} />}</main></FacilityShell>;
+  const attachments = ['giay-phep-attp.pdf', 'giay-dkkd.pdf', 'kho-bao-quan-01.jpg'];
+  return <PublicShell><main className="mx-auto max-w-6xl px-5 py-9 lg:px-8 lg:py-12"><SectionHeading eyebrow="Tài khoản cơ sở" title="Hồ sơ cơ sở" description="Thông tin này được lấy từ hồ sơ đã đăng ký. Bạn có thể cập nhật lại khi có thay đổi hoặc nhận yêu cầu bổ sung." action={<StatusPill status="pending" />} /><div className="mb-6 flex items-start gap-3 rounded-2xl border border-orange-200 bg-orange-50 p-4 text-sm text-orange-950"><Bell className="mt-0.5 shrink-0" size={19} /><p><strong>Thông báo hồ sơ</strong><br />Cán bộ chuyên môn yêu cầu rà soát lại ảnh khu vực bảo quản trước khi hồ sơ được duyệt.</p></div><form onSubmit={submit} className="space-y-6">
+    <FormSection title="Thông tin pháp nhân" icon={Building2}><div className="grid gap-4 md:grid-cols-2"><Field label="Tên cơ sở *" value={profile.name} onChange={value => update('name', value)} test="input-facility-name" wide /><Field label="Mã số thuế *" value={profile.taxCode} onChange={value => update('taxCode', value)} test="input-facility-tax-code" /><Field label="Địa chỉ đầy đủ *" value={profile.address} onChange={value => update('address', value)} test="input-facility-address" wide /><Field label="Người đại diện pháp luật *" value={profile.representative} onChange={value => update('representative', value)} test="input-facility-representative" /><Field label="Số điện thoại *" value={profile.phone} onChange={value => update('phone', value)} test="input-facility-phone" /><Field label="Email liên hệ" value={profile.email} onChange={value => update('email', value)} test="input-facility-email" type="email" /></div></FormSection>
+    <FormSection title="Giấy phép & nguồn gốc sản phẩm" icon={FileText}><div className="grid gap-4 md:grid-cols-3"><Field label="Số giấy phép ATTP *" value={profile.licenseNumber} onChange={value => update('licenseNumber', value)} test="input-facility-license-number" /><Field label="Ngày cấp *" value={profile.licenseIssued} onChange={value => update('licenseIssued', value)} test="input-facility-license-issued" type="date" /><Field label="Ngày hết hạn *" value={profile.licenseExpires} onChange={value => update('licenseExpires', value)} test="input-facility-license-expires" type="date" /><Field label="Nhóm sản phẩm cung cấp *" value={profile.productGroups} onChange={value => update('productGroups', value)} test="input-facility-product-groups" wide /><Field label="Vùng trồng / nuôi / khai thác" value={profile.origin} onChange={value => update('origin', value)} test="input-facility-origin" wide /></div><div className="mt-5"><p className="mb-2 text-sm font-semibold">Tệp đã nộp trong hồ sơ</p><div className="space-y-2">{attachments.map(file => <div key={file} className="flex items-center gap-2 rounded-xl bg-muted/70 px-3 py-3 text-sm"><FileText size={16} className="text-primary" />{file}</div>)}</div></div></FormSection>
+    <div className="flex flex-col gap-4 rounded-2xl border border-border bg-secondary/50 p-5 sm:flex-row sm:items-center sm:justify-between"><div className="flex gap-3 text-sm"><LockKeyhole className="mt-0.5 shrink-0 text-primary" size={18} /><p><strong>Chỉ cập nhật thông tin cơ sở.</strong><br /><span className="text-muted-foreground">Sau khi lưu, thông tin sẽ được chuyển lại cho cán bộ chuyên môn rà soát.</span></p></div><Button type="submit" className="h-11 rounded-xl px-6" data-testid="button-save-facility-profile">Lưu thay đổi</Button></div>
+  </form>{notice && <Notice message={notice} onClose={() => setNotice('')} />}</main></PublicShell>;
 }
 
 function ApplicationForm() {

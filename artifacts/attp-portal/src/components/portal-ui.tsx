@@ -1,6 +1,6 @@
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { ArrowRight, BarChart3, ClipboardCheck, FileSearch, FileText, Home, LogIn, LogOut, Menu, Search, ShieldCheck, X } from 'lucide-react';
+import { ArrowRight, BarChart3, Bell, ClipboardCheck, FileSearch, Home, LogIn, LogOut, Menu, Search, ShieldCheck, X } from 'lucide-react';
 import emblemPath from '../../../../.conversation/attached_assets/Emblem_of_Vietnam.svg_1788926527100.webp';
 
 export function BrandMark({ compact = false }: { compact?: boolean }) {
@@ -14,8 +14,21 @@ export function BrandMark({ compact = false }: { compact?: boolean }) {
 
 export function PublicHeader() {
   const [location] = useLocation();
+  const [, navigate] = useLocation();
   const [open, setOpen] = useState(false);
-  const nav = [['/', 'Tổng quan'], ['/lookup', 'Tra cứu'], ['/register', 'Đăng ký hồ sơ']];
+  const [facilityAccount, setFacilityAccount] = useState(() => sessionStorage.getItem('attp-session-role') === 'facility');
+  const nav = facilityAccount ? [['/', 'Tổng quan'], ['/lookup', 'Tra cứu'], ['/facility/profile', 'Hồ sơ cơ sở']] : [['/', 'Tổng quan'], ['/lookup', 'Tra cứu'], ['/register', 'Đăng ký hồ sơ']];
+  useEffect(() => {
+    const syncSession = () => setFacilityAccount(sessionStorage.getItem('attp-session-role') === 'facility');
+    window.addEventListener('storage', syncSession);
+    return () => window.removeEventListener('storage', syncSession);
+  }, []);
+  const logout = () => {
+    sessionStorage.removeItem('attp-session-role');
+    sessionStorage.removeItem('attp-reviewer-session');
+    setFacilityAccount(false);
+    navigate('/');
+  };
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-background/90 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-3 lg:px-8">
@@ -24,11 +37,11 @@ export function PublicHeader() {
           {nav.map(([href, label]) => <Link key={href} href={href} className={`focus-ring rounded-full px-4 py-2 text-sm font-semibold transition-colors ${location === href ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-secondary hover:text-foreground'}`} data-testid={`link-nav-${label}`}>{label}</Link>)}
         </nav>
          <div className="flex items-center gap-2">
-           <Link href="/admin/login" className="focus-ring hidden items-center gap-2 rounded-full border border-primary/25 px-3 py-2 text-xs font-bold text-primary hover:bg-secondary sm:inline-flex" data-testid="link-reviewer-login"><LogIn size={15} /> Đăng nhập</Link>
+           {facilityAccount ? <><Link href="/facility/profile" className="focus-ring relative rounded-full border border-primary/25 p-2 text-primary hover:bg-secondary" aria-label="Thông báo hồ sơ cơ sở" data-testid="link-facility-notifications"><Bell size={17} /><span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-extrabold text-destructive-foreground">2</span></Link><button onClick={logout} className="focus-ring hidden items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-bold text-muted-foreground hover:border-primary/30 hover:text-primary sm:inline-flex" data-testid="button-public-facility-logout"><LogOut size={15} /> Đăng xuất</button></> : <Link href="/admin/login" className="focus-ring hidden items-center gap-2 rounded-full border border-primary/25 px-3 py-2 text-xs font-bold text-primary hover:bg-secondary sm:inline-flex" data-testid="link-reviewer-login"><LogIn size={15} /> Đăng nhập</Link>}
            <button className="focus-ring rounded-lg p-2 md:hidden" onClick={() => setOpen(!open)} aria-label={open ? 'Đóng menu' : 'Mở menu'} data-testid="button-mobile-menu">{open ? <X size={21} /> : <Menu size={21} />}</button>
          </div>
       </div>
-       {open && <nav className="border-t border-border px-5 py-3 md:hidden" aria-label="Điều hướng di động">{nav.map(([href, label]) => <Link key={href} href={href} onClick={() => setOpen(false)} className="block border-b border-border/60 py-3 text-sm font-semibold" data-testid={`link-mobile-${label}`}>{label}</Link>)}<Link href="/admin/login" onClick={() => setOpen(false)} className="block py-3 text-sm font-bold text-primary" data-testid="link-mobile-login">Đăng nhập</Link></nav>}
+       {open && <nav className="border-t border-border px-5 py-3 md:hidden" aria-label="Điều hướng di động">{nav.map(([href, label]) => <Link key={href} href={href} onClick={() => setOpen(false)} className="block border-b border-border/60 py-3 text-sm font-semibold" data-testid={`link-mobile-${label}`}>{label}</Link>)}{facilityAccount ? <button onClick={logout} className="block py-3 text-left text-sm font-bold text-destructive" data-testid="button-mobile-facility-logout">Đăng xuất</button> : <Link href="/admin/login" onClick={() => setOpen(false)} className="block py-3 text-sm font-bold text-primary" data-testid="link-mobile-login">Đăng nhập</Link>}</nav>}
     </header>
   );
 }
@@ -45,32 +58,12 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const items = [['/admin', 'Tổng quan', Home], ['/admin/applications/pending', 'Hồ sơ đăng ký', ClipboardCheck], ['/admin/accounts', 'Quản lý tài khoản', ShieldCheck], ['/admin/reports', 'Báo cáo thống kê', BarChart3]];
   const logout = () => {
     sessionStorage.removeItem('attp-reviewer-session');
+    sessionStorage.removeItem('attp-session-role');
     navigate('/admin/login');
   };
   return <div className="portal-noise min-h-[100dvh] bg-background lg:grid lg:grid-cols-[270px_1fr]">
     <aside className="hidden min-h-[100dvh] bg-sidebar text-sidebar-foreground lg:flex lg:flex-col"><div className="border-b border-sidebar-border p-6"><BrandMark compact /><div className="mt-4"><p className="mono-label text-sidebar-primary">Không gian nghiệp vụ</p><p className="mt-1 text-lg font-bold">Bàn xét duyệt</p></div></div><nav className="flex-1 space-y-1 p-4" aria-label="Điều hướng quản trị">{items.map(([href, label, Icon]) => <Link key={href as string} href={href as string} className={`focus-ring flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${location.startsWith(href as string) ? 'bg-sidebar-primary text-sidebar-primary-foreground' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'}`} data-testid={`link-admin-${label}`}><Icon size={18} /><span>{label as string}</span></Link>)}</nav><div className="border-t border-sidebar-border p-5 text-xs text-sidebar-foreground/55">Phiên làm việc cán bộ<br /><span className="mt-1 inline-block font-semibold text-sidebar-foreground/80">Phòng Quản lý cơ sở</span></div></aside>
      <main className="min-w-0"><div className="border-b border-border bg-card px-5 py-4 lg:px-10"><div className="flex items-center justify-between"><div className="flex items-center gap-3 lg:hidden"><BrandMark compact /><span className="text-sm font-bold">Bàn xét duyệt</span></div><div className="hidden text-sm text-muted-foreground lg:block">SỞ ATTP TP.HCM / KHÔNG GIAN QUẢN TRỊ</div><div className="flex items-center gap-4"><Link href="/" className="focus-ring flex items-center gap-2 text-sm font-semibold text-primary" data-testid="link-back-public"><Home size={16} /> Cổng công khai</Link><button onClick={logout} className="focus-ring hidden items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-destructive sm:flex" data-testid="button-reviewer-logout"><LogOut size={16} /> Đăng xuất</button></div></div></div>{children}</main>
-  </div>;
-}
-
-export function FacilityShell({ children }: { children: ReactNode }) {
-  const [location] = useLocation();
-  const [, navigate] = useLocation();
-  const logout = () => {
-    sessionStorage.removeItem('attp-session-role');
-    sessionStorage.removeItem('attp-reviewer-session');
-    navigate('/admin/login');
-  };
-
-  return <div className="portal-noise min-h-[100dvh] bg-background lg:grid lg:grid-cols-[270px_1fr]">
-    <aside className="hidden min-h-[100dvh] bg-sidebar text-sidebar-foreground lg:flex lg:flex-col">
-      <div className="border-b border-sidebar-border p-6"><BrandMark compact /><div className="mt-4"><p className="mono-label text-sidebar-primary">KHU VỰC CƠ SỞ</p><p className="mt-1 text-lg font-bold">Tài khoản cơ sở</p></div></div>
-      <nav className="flex-1 space-y-1 p-4" aria-label="Điều hướng tài khoản cơ sở">
-        <Link href="/facility/profile" className={`focus-ring flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${location.startsWith('/facility/profile') ? 'bg-sidebar-primary text-sidebar-primary-foreground' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'}`} data-testid="link-facility-profile"><FileText size={18} /><span>Hồ sơ cơ sở</span></Link>
-      </nav>
-      <div className="border-t border-sidebar-border p-5 text-xs text-sidebar-foreground/55">Phiên làm việc cơ sở<br /><span className="mt-1 inline-block font-semibold text-sidebar-foreground/80">Cập nhật thông tin đăng ký</span></div>
-    </aside>
-    <main className="min-w-0"><div className="border-b border-border bg-card px-5 py-4 lg:px-10"><div className="flex items-center justify-between"><div className="flex items-center gap-3 lg:hidden"><BrandMark compact /><span className="text-sm font-bold">Tài khoản cơ sở</span></div><div className="hidden text-sm text-muted-foreground lg:block">SỞ ATTP TP.HCM / KHU VỰC CƠ SỞ</div><div className="flex items-center gap-4"><Link href="/" className="focus-ring flex items-center gap-2 text-sm font-semibold text-primary" data-testid="link-facility-public-home"><Home size={16} /> Cổng công khai</Link><button onClick={logout} className="focus-ring hidden items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-destructive sm:flex" data-testid="button-facility-logout"><LogOut size={16} /> Đăng xuất</button></div></div></div>{children}</main>
   </div>;
 }
 
