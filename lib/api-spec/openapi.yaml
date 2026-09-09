@@ -16,6 +16,8 @@ tags:
     description: Registration application operations
   - name: admin
     description: Internal review operations
+  - name: criteria
+    description: Dynamic registration criteria and form configuration
 paths:
   /healthz:
     get:
@@ -103,7 +105,7 @@ paths:
           name: status
           schema:
             type: string
-            enum: [pending, needs-more-info, approved, rejected]
+            enum: [pending, needs-more-info, approved, warning, stopped, rejected]
         - in: query
           name: type
           schema:
@@ -179,6 +181,74 @@ paths:
                 $ref: "#/components/schemas/Application"
         "404":
           description: Application not found
+  /criteria:
+    get:
+      operationId: getCriteria
+      tags: [criteria]
+      summary: Get the active criteria set for an application type
+      parameters:
+        - in: query
+          name: type
+          required: true
+          schema:
+            $ref: "#/components/schemas/ApplicationType"
+        - in: query
+          name: version
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Criteria set used to generate the registration form
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CriteriaSet"
+  /criteria/{type}:
+    patch:
+      operationId: updateCriteria
+      tags: [criteria]
+      summary: Create a new version of a criteria set
+      parameters:
+        - in: path
+          name: type
+          required: true
+          schema:
+            $ref: "#/components/schemas/ApplicationType"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CriteriaConfigInput"
+      responses:
+        "200":
+          description: Updated criteria set
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CriteriaSet"
+        "400":
+          description: The ordinary criteria do not total 100 points
+  /criteria/{type}/history:
+    get:
+      operationId: listCriteriaHistory
+      tags: [criteria]
+      summary: List criteria configuration change history
+      parameters:
+        - in: path
+          name: type
+          required: true
+          schema:
+            $ref: "#/components/schemas/ApplicationType"
+      responses:
+        "200":
+          description: Criteria configuration history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CriteriaHistoryEntry"
   /admin/summary:
     get:
       operationId: getAdminSummary
@@ -281,7 +351,99 @@ components:
           type: string
         size:
           type: integer
+        fieldKey:
+          type: string
       required: [name, kind, size]
+    ApplicationType:
+      type: string
+      enum: [food-supplier, meal-provider, school]
+    CriteriaAnswerType:
+      type: string
+      enum: [text, number, date, yes-no, select, file]
+    CriteriaDefinition:
+      type: object
+      properties:
+        id:
+          type: string
+        key:
+          type: string
+        label:
+          type: string
+        description:
+          type: string
+        group:
+          type: string
+        answerType:
+          $ref: "#/components/schemas/CriteriaAnswerType"
+        options:
+          type: array
+          items:
+            type: string
+        maxScore:
+          type: integer
+          minimum: 0
+        required:
+          type: boolean
+        prerequisite:
+          type: boolean
+        active:
+          type: boolean
+        order:
+          type: integer
+      required: [id, key, label, description, group, answerType, options, maxScore, required, prerequisite, active, order]
+    CriteriaSet:
+      type: object
+      properties:
+        type:
+          $ref: "#/components/schemas/ApplicationType"
+        version:
+          type: string
+        effectiveFrom:
+          type: string
+        totalScore:
+          type: integer
+        criteria:
+          type: array
+          items:
+            $ref: "#/components/schemas/CriteriaDefinition"
+      required: [type, version, effectiveFrom, totalScore, criteria]
+    CriteriaConfigInput:
+      type: object
+      properties:
+        criteria:
+          type: array
+          items:
+            $ref: "#/components/schemas/CriteriaDefinition"
+        effectiveFrom:
+          type: string
+        applyMode:
+          type: string
+          enum: [now, scheduled]
+      required: [criteria, effectiveFrom, applyMode]
+    CriteriaHistoryEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          $ref: "#/components/schemas/ApplicationType"
+        version:
+          type: string
+        changedAt:
+          type: string
+        changedBy:
+          type: string
+        changeType:
+          type: string
+        summary:
+          type: string
+        oldValue:
+          type: object
+          additionalProperties: true
+        newValue:
+          type: object
+          additionalProperties: true
+      required: [id, type, version, changedAt, changedBy, changeType, summary, oldValue, newValue]
     Application:
       type: object
       properties:
@@ -302,7 +464,7 @@ components:
           type: string
         status:
           type: string
-          enum: [pending, needs-more-info, approved, rejected]
+          enum: [pending, needs-more-info, approved, warning, stopped, rejected]
         score:
           type: integer
         reviewNote:
@@ -316,7 +478,21 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Attachment"
-      required: [id, reference, type, applicantName, address, contact, submittedAt, status, score, reviewNote, isThirdParty, data, attachments]
+        criteriaVersion:
+          type: string
+        criteriaSnapshot:
+          type: array
+          items:
+            $ref: "#/components/schemas/CriteriaDefinition"
+        scoreBreakdown:
+          type: object
+          additionalProperties:
+            type: number
+        prerequisiteResults:
+          type: object
+          additionalProperties:
+            type: boolean
+      required: [id, reference, type, applicantName, address, contact, submittedAt, status, score, reviewNote, isThirdParty, data, attachments, criteriaVersion, criteriaSnapshot, scoreBreakdown, prerequisiteResults]
     ApplicationInput:
       type: object
       properties:
@@ -339,10 +515,12 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Attachment"
+        criteriaVersion:
+          type: string
         isThirdParty:
           type: boolean
           default: false
-      required: [type, applicantName, address, contact, data, attachments]
+      required: [type, applicantName, address, contact, data, attachments, criteriaVersion]
     ReviewInput:
       type: object
       properties:
@@ -355,7 +533,15 @@ components:
           maximum: 100
         note:
           type: string
-      required: [action, score, note]
+        criteriaScores:
+          type: object
+          additionalProperties:
+            type: number
+        prerequisiteResults:
+          type: object
+          additionalProperties:
+            type: boolean
+      required: [action, score, note, criteriaScores, prerequisiteResults]
     AdminSummary:
       type: object
       properties:
@@ -365,6 +551,10 @@ components:
           type: integer
         approved:
           type: integer
+        warning:
+          type: integer
+        stopped:
+          type: integer
         rejected:
           type: integer
         total:
@@ -373,7 +563,7 @@ components:
           type: object
           additionalProperties:
             type: integer
-      required: [pending, needsMoreInfo, approved, rejected, total, byType]
+      required: [pending, needsMoreInfo, approved, warning, stopped, rejected, total, byType]
     SupplierOption:
       type: object
       properties:

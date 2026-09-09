@@ -15,6 +15,13 @@ import {
   ReviewApplicationBody,
   ReviewApplicationParams,
   ReviewApplicationResponse,
+  GetCriteriaQueryParams,
+  GetCriteriaResponse,
+  UpdateCriteriaParams,
+  UpdateCriteriaBody,
+  UpdateCriteriaResponse,
+  ListCriteriaHistoryParams,
+  ListCriteriaHistoryResponse,
 } from "@workspace/api-zod";
 import {
   createApplication,
@@ -22,6 +29,7 @@ import {
   getPublicRecords,
   reviewApplication,
 } from "../lib/attp-data";
+import { getCriteria, listCriteriaHistory, updateCriteria } from "../lib/criteria-data";
 
 const router: IRouter = Router();
 
@@ -117,6 +125,30 @@ router.patch("/applications/:id/review", (req, res) => {
   res.json(ReviewApplicationResponse.parse(application));
 });
 
+router.get("/criteria", (req, res) => {
+  const params = GetCriteriaQueryParams.parse(req.query);
+  res.json(GetCriteriaResponse.parse(getCriteria(params.type, params.version)));
+});
+
+router.patch("/criteria/:type", (req, res) => {
+  const params = UpdateCriteriaParams.parse(req.params);
+  const input = UpdateCriteriaBody.safeParse(req.body);
+  if (!input.success) {
+    res.status(400).json({ error: "Bộ tiêu chí chưa hợp lệ", details: input.error.flatten() });
+    return;
+  }
+  try {
+    res.json(UpdateCriteriaResponse.parse(updateCriteria(params.type, input.data)));
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : "Không thể lưu bộ tiêu chí" });
+  }
+});
+
+router.get("/criteria/:type/history", (req, res) => {
+  const params = ListCriteriaHistoryParams.parse(req.params);
+  res.json(ListCriteriaHistoryResponse.parse(listCriteriaHistory(params.type)));
+});
+
 router.get("/admin/summary", (_req, res) => {
   const apps = getApplications();
   const byType = apps.reduce<Record<string, number>>((counts, app) => {
@@ -127,7 +159,9 @@ router.get("/admin/summary", (_req, res) => {
     GetAdminSummaryResponse.parse({
       pending: apps.filter((app) => app.status === "pending").length,
       needsMoreInfo: apps.filter((app) => app.status === "needs-more-info").length,
-      approved: apps.filter((app) => app.status === "approved").length,
+       approved: apps.filter((app) => app.status === "approved").length,
+       warning: apps.filter((app) => app.status === "warning").length,
+       stopped: apps.filter((app) => app.status === "stopped").length,
       rejected: apps.filter((app) => app.status === "rejected").length,
       total: apps.length,
       byType,

@@ -23,6 +23,11 @@ import type {
   AdminSummary,
   Application,
   ApplicationInput,
+  ApplicationType,
+  CriteriaConfigInput,
+  CriteriaHistoryEntry,
+  CriteriaSet,
+  GetCriteriaParams,
   HealthStatus,
   ListApplicationsParams,
   ListPublicRecordsParams,
@@ -679,6 +684,239 @@ export const useReviewApplication = <TError = ErrorType<void>,
       > => {
       return useMutation(getReviewApplicationMutationOptions(options));
     }
+
+export const getGetCriteriaUrl = (params: GetCriteriaParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/criteria?${stringifiedParams}` : `/api/criteria`
+}
+
+/**
+ * @summary Get the active criteria set for an application type
+ */
+export const getCriteria = async (params: GetCriteriaParams, options?: Parameters<typeof customFetch>[1]): Promise<CriteriaSet> => {
+
+  return customFetch<CriteriaSet>(getGetCriteriaUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCriteriaQueryKey = (params?: GetCriteriaParams,) => {
+    return [
+    `/api/criteria`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetCriteriaQueryOptions = <TData = Awaited<ReturnType<typeof getCriteria>>, TError = ErrorType<unknown>>(params: GetCriteriaParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCriteria>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCriteriaQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCriteria>>> = ({ signal }) => getCriteria(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCriteria>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCriteriaQueryResult = NonNullable<Awaited<ReturnType<typeof getCriteria>>>
+export type GetCriteriaQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get the active criteria set for an application type
+ */
+
+export function useGetCriteria<TData = Awaited<ReturnType<typeof getCriteria>>, TError = ErrorType<unknown>>(
+ params: GetCriteriaParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCriteria>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCriteriaQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateCriteriaUrl = (type: ApplicationType,) => {
+
+
+
+
+  return `/api/criteria/${type}`
+}
+
+/**
+ * @summary Create a new version of a criteria set
+ */
+export const updateCriteria = async (type: ApplicationType,
+    criteriaConfigInput: CriteriaConfigInput, options?: Parameters<typeof customFetch>[1]): Promise<CriteriaSet> => {
+
+  return customFetch<CriteriaSet>(getUpdateCriteriaUrl(type),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(criteriaConfigInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateCriteriaMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCriteria>>, TError,{type: ApplicationType;data: BodyType<CriteriaConfigInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateCriteria>>, TError,{type: ApplicationType;data: BodyType<CriteriaConfigInput>}, TContext> => {
+
+const mutationKey = ['updateCriteria'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCriteria>>, {type: ApplicationType;data: BodyType<CriteriaConfigInput>}> = (props) => {
+          const {type,data} = props ?? {};
+
+          return  updateCriteria(type,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateCriteriaMutationResult = NonNullable<Awaited<ReturnType<typeof updateCriteria>>>
+    export type UpdateCriteriaMutationBody = BodyType<CriteriaConfigInput>
+    export type UpdateCriteriaMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a new version of a criteria set
+ */
+export const useUpdateCriteria = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCriteria>>, TError,{type: ApplicationType;data: BodyType<CriteriaConfigInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateCriteria>>,
+        TError,
+        {type: ApplicationType;data: BodyType<CriteriaConfigInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateCriteriaMutationOptions(options));
+    }
+
+export const getListCriteriaHistoryUrl = (type: ApplicationType,) => {
+
+
+
+
+  return `/api/criteria/${type}/history`
+}
+
+/**
+ * @summary List criteria configuration change history
+ */
+export const listCriteriaHistory = async (type: ApplicationType, options?: Parameters<typeof customFetch>[1]): Promise<CriteriaHistoryEntry[]> => {
+
+  return customFetch<CriteriaHistoryEntry[]>(getListCriteriaHistoryUrl(type),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListCriteriaHistoryQueryKey = (type: ApplicationType,) => {
+    return [
+    `/api/criteria/${type}/history`
+    ] as const;
+    }
+
+
+export const getListCriteriaHistoryQueryOptions = <TData = Awaited<ReturnType<typeof listCriteriaHistory>>, TError = ErrorType<unknown>>(type: ApplicationType, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCriteriaHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListCriteriaHistoryQueryKey(type);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCriteriaHistory>>> = ({ signal }) => listCriteriaHistory(type, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: type !== null && type !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listCriteriaHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListCriteriaHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof listCriteriaHistory>>>
+export type ListCriteriaHistoryQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List criteria configuration change history
+ */
+
+export function useListCriteriaHistory<TData = Awaited<ReturnType<typeof listCriteriaHistory>>, TError = ErrorType<unknown>>(
+ type: ApplicationType, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCriteriaHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListCriteriaHistoryQueryOptions(type,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetAdminSummaryUrl = () => {
 

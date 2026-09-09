@@ -52,12 +52,88 @@ export interface Attachment {
   name: string;
   kind: string;
   size: number;
+  fieldKey?: string;
 }
 
 export type ApplicationType = typeof ApplicationType[keyof typeof ApplicationType];
 
 
 export const ApplicationType = {
+  'food-supplier': 'food-supplier',
+  'meal-provider': 'meal-provider',
+  school: 'school',
+} as const;
+
+export type CriteriaAnswerType = typeof CriteriaAnswerType[keyof typeof CriteriaAnswerType];
+
+
+export const CriteriaAnswerType = {
+  text: 'text',
+  number: 'number',
+  date: 'date',
+  'yes-no': 'yes-no',
+  select: 'select',
+  file: 'file',
+} as const;
+
+export interface CriteriaDefinition {
+  id: string;
+  key: string;
+  label: string;
+  description: string;
+  group: string;
+  answerType: CriteriaAnswerType;
+  options: string[];
+  /** @minimum 0 */
+  maxScore: number;
+  required: boolean;
+  prerequisite: boolean;
+  active: boolean;
+  order: number;
+}
+
+export interface CriteriaSet {
+  type: ApplicationType;
+  version: string;
+  effectiveFrom: string;
+  totalScore: number;
+  criteria: CriteriaDefinition[];
+}
+
+export type CriteriaConfigInputApplyMode = typeof CriteriaConfigInputApplyMode[keyof typeof CriteriaConfigInputApplyMode];
+
+
+export const CriteriaConfigInputApplyMode = {
+  now: 'now',
+  scheduled: 'scheduled',
+} as const;
+
+export interface CriteriaConfigInput {
+  criteria: CriteriaDefinition[];
+  effectiveFrom: string;
+  applyMode: CriteriaConfigInputApplyMode;
+}
+
+export type CriteriaHistoryEntryOldValue = { [key: string]: unknown };
+
+export type CriteriaHistoryEntryNewValue = { [key: string]: unknown };
+
+export interface CriteriaHistoryEntry {
+  id: string;
+  type: ApplicationType;
+  version: string;
+  changedAt: string;
+  changedBy: string;
+  changeType: string;
+  summary: string;
+  oldValue: CriteriaHistoryEntryOldValue;
+  newValue: CriteriaHistoryEntryNewValue;
+}
+
+export type ApplicationTypeProperty = typeof ApplicationTypeProperty[keyof typeof ApplicationTypeProperty];
+
+
+export const ApplicationTypeProperty = {
   'food-supplier': 'food-supplier',
   'meal-provider': 'meal-provider',
   school: 'school',
@@ -70,15 +146,21 @@ export const ApplicationStatus = {
   pending: 'pending',
   'needs-more-info': 'needs-more-info',
   approved: 'approved',
+  warning: 'warning',
+  stopped: 'stopped',
   rejected: 'rejected',
 } as const;
 
 export type ApplicationData = { [key: string]: unknown };
 
+export type ApplicationScoreBreakdown = {[key: string]: number};
+
+export type ApplicationPrerequisiteResults = {[key: string]: boolean};
+
 export interface Application {
   id: string;
   reference: string;
-  type: ApplicationType;
+  type: ApplicationTypeProperty;
   applicantName: string;
   address: string;
   contact: string;
@@ -90,6 +172,10 @@ export interface Application {
   isThirdParty: boolean;
   data: ApplicationData;
   attachments: Attachment[];
+  criteriaVersion: string;
+  criteriaSnapshot: CriteriaDefinition[];
+  scoreBreakdown: ApplicationScoreBreakdown;
+  prerequisiteResults: ApplicationPrerequisiteResults;
 }
 
 export type ApplicationInputType = typeof ApplicationInputType[keyof typeof ApplicationInputType];
@@ -113,6 +199,7 @@ export interface ApplicationInput {
   contact: string;
   data: ApplicationInputData;
   attachments: Attachment[];
+  criteriaVersion: string;
   isThirdParty?: boolean;
 }
 
@@ -125,6 +212,10 @@ export const ReviewInputAction = {
   'needs-more-info': 'needs-more-info',
 } as const;
 
+export type ReviewInputCriteriaScores = {[key: string]: number};
+
+export type ReviewInputPrerequisiteResults = {[key: string]: boolean};
+
 export interface ReviewInput {
   action: ReviewInputAction;
   /**
@@ -133,6 +224,8 @@ export interface ReviewInput {
      */
   score: number;
   note: string;
+  criteriaScores: ReviewInputCriteriaScores;
+  prerequisiteResults: ReviewInputPrerequisiteResults;
 }
 
 export type AdminSummaryByType = {[key: string]: number};
@@ -141,6 +234,8 @@ export interface AdminSummary {
   pending: number;
   needsMoreInfo: number;
   approved: number;
+  warning: number;
+  stopped: number;
   rejected: number;
   total: number;
   byType: AdminSummaryByType;
@@ -192,6 +287,8 @@ export const ListApplicationsStatus = {
   pending: 'pending',
   'needs-more-info': 'needs-more-info',
   approved: 'approved',
+  warning: 'warning',
+  stopped: 'stopped',
   rejected: 'rejected',
 } as const;
 
@@ -203,4 +300,9 @@ export const ListApplicationsType = {
   'meal-provider': 'meal-provider',
   school: 'school',
 } as const;
+
+export type GetCriteriaParams = {
+type: ApplicationType;
+version?: string;
+};
 

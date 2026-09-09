@@ -4,7 +4,7 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
-import { AdminApplicationPage, AdminDashboard, AdminLoginPage, AdminPlaceholder, FacilityProfilePage, HomePage, LookupPage, RegisterPage } from '@/pages/portal-pages';
+import { AdminApplicationPage, AdminCriteriaPage, AdminDashboard, AdminLoginPage, AdminPlaceholder, FacilityProfilePage, HomePage, LookupPage, RegisterPage } from '@/pages/portal-pages';
 import {
   Route,
   Switch,
@@ -35,6 +35,9 @@ function Router() {
           </Route>
           <Route path="/admin/applications/:id">
             <AdminGuard><AdminApplicationPage /></AdminGuard>
+          </Route>
+          <Route path="/admin/criteria">
+            <AdminGuard><AdminCriteriaPage /></AdminGuard>
           </Route>
           <Route path="/admin/accounts">
             <AdminGuard><AdminPlaceholder kind="accounts" /></AdminGuard>

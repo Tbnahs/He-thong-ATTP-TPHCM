@@ -5,10 +5,9 @@
  * API for the Ho Chi Minh City Food Safety Authority portal.
  * OpenAPI spec version: 0.1.0
  */
+import type { ApplicationType } from './applicationType';
 
-export interface Attachment {
-  name: string;
-  kind: string;
-  size: number;
-  fieldKey?: string;
-}
+export type GetCriteriaParams = {
+type: ApplicationType;
+version?: string;
+};

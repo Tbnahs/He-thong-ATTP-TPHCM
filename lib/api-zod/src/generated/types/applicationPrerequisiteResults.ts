@@ -6,9 +6,4 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface Attachment {
-  name: string;
-  kind: string;
-  size: number;
-  fieldKey?: string;
-}
+export type ApplicationPrerequisiteResults = {[key: string]: boolean};

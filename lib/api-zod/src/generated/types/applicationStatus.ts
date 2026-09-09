@@ -13,5 +13,7 @@ export const ApplicationStatus = {
   pending: 'pending',
   'needs-more-info': 'needs-more-info',
   approved: 'approved',
+  warning: 'warning',
+  stopped: 'stopped',
   rejected: 'rejected',
 } as const;

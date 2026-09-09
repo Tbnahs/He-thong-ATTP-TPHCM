@@ -19,5 +19,6 @@ export interface ApplicationInput {
   contact: string;
   data: ApplicationInputData;
   attachments: Attachment[];
+  criteriaVersion: string;
   isThirdParty?: boolean;
 }

@@ -6,14 +6,17 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ApplicationData } from './applicationData';
+import type { ApplicationPrerequisiteResults } from './applicationPrerequisiteResults';
+import type { ApplicationScoreBreakdown } from './applicationScoreBreakdown';
 import type { ApplicationStatus } from './applicationStatus';
-import type { ApplicationType } from './applicationType';
+import type { ApplicationTypeProperty } from './applicationTypeProperty';
 import type { Attachment } from './attachment';
+import type { CriteriaDefinition } from './criteriaDefinition';
 
 export interface Application {
   id: string;
   reference: string;
-  type: ApplicationType;
+  type: ApplicationTypeProperty;
   applicantName: string;
   address: string;
   contact: string;
@@ -25,4 +28,8 @@ export interface Application {
   isThirdParty: boolean;
   data: ApplicationData;
   attachments: Attachment[];
+  criteriaVersion: string;
+  criteriaSnapshot: CriteriaDefinition[];
+  scoreBreakdown: ApplicationScoreBreakdown;
+  prerequisiteResults: ApplicationPrerequisiteResults;
 }

@@ -1,0 +1,56 @@
+ Hãy thiết kế chi tiết luồng "Form đăng ký động theo tiêu chí" và "Màn hình xét duyệt/chấm điểm hồ sơ" trong hệ thống quản lý an toàn thực phẩm (ATTP) của Sở An toàn thực phẩm TP.HCM.
+
+NGUYÊN TẮC CỐT LÕI:
+Form đăng ký mà cơ sở (đơn vị cung cấp thực phẩm / đơn vị cung cấp suất ăn / cơ sở giáo dục) nhìn thấy KHÔNG cố định trong code, mà được SINH RA từ chính bộ tiêu chí đánh giá mà admin đã cấu hình cho loại hình đó. Nói cách khác: tiêu chí đánh giá là gốc, form đăng ký là cái sinh ra từ gốc đó — admin thêm/sửa/xóa một tiêu chí thì form đăng ký của loại hình tương ứng tự động thêm/sửa/xóa câu hỏi theo.
+
+====================================
+PHẦN 1: ADMIN CẤU HÌNH BỘ TIÊU CHÍ (VÀ FORM TỰ SINH THEO)
+====================================
+- Với mỗi loại hình (3 loại: cung cấp thực phẩm / cung cấp suất ăn / cơ sở giáo dục), admin có màn hình quản lý danh sách tiêu chí, chia theo nhóm (ví dụ: hồ sơ pháp lý, nhân lực, cơ sở vật chất, trang thiết bị, nguồn gốc sản phẩm...)
+- Với mỗi tiêu chí, admin định nghĩa: tên tiêu chí, thuộc nhóm nào, số điểm, loại câu trả lời tương ứng sẽ hiện trên form đăng ký (ví dụ: Có/Không, nhập số, nhập text, upload ảnh/file, chọn từ danh sách), có bắt buộc cơ sở phải trả lời không, có phải "điều kiện tiên quyết" hay không (loại này không tính vào thang điểm %, chỉ cần không đạt là hồ sơ bị loại thẳng)
+- Admin có thể Thêm tiêu chí mới, Sửa tiêu chí có sẵn (kể cả đổi điểm), hoặc Ẩn tiêu chí không dùng nữa (không xóa cứng, để giữ lịch sử các hồ sơ cũ đã chấm theo tiêu chí đó)
+- Ràng buộc bắt buộc: tổng điểm của toàn bộ tiêu chí (trừ nhóm điều kiện tiên quyết) luôn phải bằng 100. Hệ thống hiển thị tổng điểm hiện tại real-time khi admin đang chỉnh sửa, cảnh báo rõ nếu chưa đủ hoặc vượt quá 100, không cho lưu cấu hình khi tổng lệch
+- Mỗi lần admin thêm/sửa/ẩn tiêu chí đều được ghi lại lịch sử: ai sửa, sửa lúc nào, giá trị cũ → giá trị mới. Có màn hình riêng xem lại lịch sử này, lọc theo loại hình / người sửa / thời gian
+- Khi thay đổi bộ tiêu chí, cho chọn "áp dụng ngay" hoặc "áp dụng từ ngày X". Các hồ sơ đã chấm điểm trước đó giữ nguyên kết quả theo đúng phiên bản tiêu chí tại thời điểm chấm — không bị tính lại khi tiêu chí sau này thay đổi
+
+- KẾT QUẢ SINH FORM: form đăng ký công khai cho cơ sở điền (khi họ đăng ký hồ sơ mới trên portal) sẽ hiển thị đúng các câu hỏi tương ứng 1-1 với các tiêu chí đang active của loại hình đó, đúng loại câu trả lời (Có/Không, nhập số, upload ảnh...) mà admin đã định nghĩa
+
+====================================
+PHẦN 2: CƠ SỞ ĐIỀN FORM ĐĂNG KÝ (ĐÃ SINH TỪ TIÊU CHÍ)
+====================================
+- Cơ sở chọn đúng loại hình của mình, hệ thống hiển thị đúng bộ câu hỏi đang active cho loại hình đó (được sinh từ Phần 1)
+- Với câu hỏi dạng upload, cho phép đính kèm nhiều ảnh/file
+- Sau khi điền đủ các câu hỏi bắt buộc, cơ sở nộp hồ sơ — hồ sơ chuyển sang trạng thái "Chờ duyệt"
+
+====================================
+PHẦN 3: MÀN HÌNH "QUẢN LÝ HỒ SƠ CƠ SỞ" — XÉT DUYỆT & CHẤM ĐIỂM (dành cho cán bộ Sở)
+====================================
+Màn hình chia làm 2 phần theo chiều dọc:
+
+PHẦN TRÊN — Thông tin cơ sở đã khai báo:
+- Hiển thị lại toàn bộ câu trả lời cơ sở đã điền khi đăng ký (đúng theo các câu hỏi được sinh từ bộ tiêu chí ở Phần 1)
+- Ảnh/file đính kèm hiển thị dạng thư viện, xem phóng to được
+
+PHẦN DƯỚI — Bảng chấm điểm theo tiêu chí:
+- Liệt kê từng tiêu chí (đúng bộ tiêu chí active tại thời điểm hồ sơ này được nộp), nhóm theo từng nhóm, kèm số điểm tối đa của tiêu chí đó
+- Với mỗi tiêu chí, cán bộ có 2 cách chấm:
+  a. Bấm nút "Đạt" → tự động nhận trọn điểm tối đa của tiêu chí đó
+  b. Tự nhập một số điểm khác (từ 0 đến điểm tối đa) → cho phép chấm một phần, không bắt buộc chỉ nhị phân đạt/không đạt
+- Tiêu chí thuộc nhóm "điều kiện tiên quyết" hiển thị riêng ở đầu bảng, chỉ có 2 lựa chọn Đạt/Không đạt (không nhập điểm)
+- Có thể ghi chú lý do cho từng tiêu chí (đặc biệt khi không cho điểm tối đa), để cơ sở biết cần khắc phục gì
+
+TỰ ĐỘNG TÍNH KẾT QUẢ:
+- Nếu có bất kỳ tiêu chí điều kiện tiên quyết nào bị đánh "Không đạt" → hồ sơ tự động chuyển "Dừng hoạt động" (không cần cộng điểm các tiêu chí còn lại)
+- Nếu đã qua hết điều kiện tiên quyết, hệ thống cộng dồn điểm cán bộ đã chấm ở các tiêu chí còn lại, ra tổng %:
+  - 100% → PASS
+  - 80–99% → Cảnh báo/tạm dừng (cơ sở có thời hạn khắc phục các tiêu chí chưa đạt điểm tối đa, sau đó được chấm lại)
+  - Dưới 80% → Dừng hoạt động
+- Ngoài 3 kết quả trên, cán bộ có thể chọn "Yêu cầu bổ sung" bất kỳ lúc nào trong quá trình xem xét (không cần chấm hết toàn bộ tiêu chí trước) — dùng khi hồ sơ thiếu thông tin/ảnh minh chứng nên chưa đủ căn cứ để chấm. Hồ sơ chuyển về trạng thái "Chưa đánh giá — chờ bổ sung", gửi thông báo cụ thể cho cơ sở biết cần bổ sung mục nào, mở lại đúng phần đó cho họ chỉnh sửa (không phải nộp lại từ đầu)
+
+- Lưu lịch sử mỗi lần chấm: ai chấm, lúc nào, điểm từng tiêu chí, kết quả cuối, có tham chiếu tới đúng phiên bản bộ tiêu chí đã dùng để chấm hồ sơ đó
+
+YÊU CẦU ĐẦU RA:
+1. Sơ đồ luồng cho cả 3 phần: admin cấu hình tiêu chí → form tự sinh → cơ sở điền → cán bộ chấm điểm → ra kết quả
+2. Mô tả chi tiết các trường/thành phần trên từng màn hình: màn hình cấu hình tiêu chí, form đăng ký động, màn hình chấm điểm 2 phần
+3. Cấu trúc dữ liệu (database schema): bảng nhóm tiêu chí, bảng tiêu chí (kèm loại câu trả lời, điểm, cờ điều kiện tiên quyết, phiên bản, trạng thái active/ẩn), bảng câu trả lời của cơ sở (liên kết tới đúng tiêu chí), bảng kết quả chấm điểm từng tiêu chí của từng hồ sơ, bảng lịch sử thay đổi tiêu chí
+4. Logic tính điểm, xử lý điều kiện tiên quyết, và 4 nhánh kết quả (PASS / cảnh báo / dừng hoạt động / yêu cầu bổ sung)

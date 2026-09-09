@@ -86,10 +86,14 @@ export const GetPublicRecordResponse = zod.object({
  * @summary List submitted applications for the admin workspace
  */
 export const ListApplicationsQueryParams = zod.object({
-  "status": zod.enum(['pending', 'needs-more-info', 'approved', 'rejected']).optional(),
+  "status": zod.enum(['pending', 'needs-more-info', 'approved', 'warning', 'stopped', 'rejected']).optional(),
   "type": zod.enum(['food-supplier', 'meal-provider', 'school']).optional(),
   "search": zod.coerce.string().optional()
 })
+
+export const listApplicationsResponseCriteriaSnapshotItemMaxScoreMin = 0;
+
+
 
 export const ListApplicationsResponseItem = zod.object({
   "id": zod.string(),
@@ -99,7 +103,7 @@ export const ListApplicationsResponseItem = zod.object({
   "address": zod.string(),
   "contact": zod.string(),
   "submittedAt": zod.string(),
-  "status": zod.enum(['pending', 'needs-more-info', 'approved', 'rejected']),
+  "status": zod.enum(['pending', 'needs-more-info', 'approved', 'warning', 'stopped', 'rejected']),
   "score": zod.number().int(),
   "reviewNote": zod.string().nullable(),
   "isThirdParty": zod.boolean(),
@@ -107,8 +111,26 @@ export const ListApplicationsResponseItem = zod.object({
   "attachments": zod.array(zod.object({
   "name": zod.string(),
   "kind": zod.string(),
-  "size": zod.number().int()
-}))
+  "size": zod.number().int(),
+  "fieldKey": zod.string().optional()
+})),
+  "criteriaVersion": zod.string(),
+  "criteriaSnapshot": zod.array(zod.object({
+  "id": zod.string(),
+  "key": zod.string(),
+  "label": zod.string(),
+  "description": zod.string(),
+  "group": zod.string(),
+  "answerType": zod.enum(['text', 'number', 'date', 'yes-no', 'select', 'file']),
+  "options": zod.array(zod.string()),
+  "maxScore": zod.number().int().min(listApplicationsResponseCriteriaSnapshotItemMaxScoreMin),
+  "required": zod.boolean(),
+  "prerequisite": zod.boolean(),
+  "active": zod.boolean(),
+  "order": zod.number().int()
+})),
+  "scoreBreakdown": zod.record(zod.string(), zod.number()),
+  "prerequisiteResults": zod.record(zod.string(), zod.boolean())
 })
 export const ListApplicationsResponse = zod.array(ListApplicationsResponseItem)
 
@@ -130,10 +152,16 @@ export const CreateApplicationBody = zod.object({
   "attachments": zod.array(zod.object({
   "name": zod.string(),
   "kind": zod.string(),
-  "size": zod.number().int()
+  "size": zod.number().int(),
+  "fieldKey": zod.string().optional()
 })),
+  "criteriaVersion": zod.string(),
   "isThirdParty": zod.boolean().default(createApplicationBodyIsThirdPartyDefault)
 })
+
+export const createApplicationResponseCriteriaSnapshotItemMaxScoreMin = 0;
+
+
 
 export const CreateApplicationResponse = zod.object({
   "id": zod.string(),
@@ -143,7 +171,7 @@ export const CreateApplicationResponse = zod.object({
   "address": zod.string(),
   "contact": zod.string(),
   "submittedAt": zod.string(),
-  "status": zod.enum(['pending', 'needs-more-info', 'approved', 'rejected']),
+  "status": zod.enum(['pending', 'needs-more-info', 'approved', 'warning', 'stopped', 'rejected']),
   "score": zod.number().int(),
   "reviewNote": zod.string().nullable(),
   "isThirdParty": zod.boolean(),
@@ -151,8 +179,26 @@ export const CreateApplicationResponse = zod.object({
   "attachments": zod.array(zod.object({
   "name": zod.string(),
   "kind": zod.string(),
-  "size": zod.number().int()
-}))
+  "size": zod.number().int(),
+  "fieldKey": zod.string().optional()
+})),
+  "criteriaVersion": zod.string(),
+  "criteriaSnapshot": zod.array(zod.object({
+  "id": zod.string(),
+  "key": zod.string(),
+  "label": zod.string(),
+  "description": zod.string(),
+  "group": zod.string(),
+  "answerType": zod.enum(['text', 'number', 'date', 'yes-no', 'select', 'file']),
+  "options": zod.array(zod.string()),
+  "maxScore": zod.number().int().min(createApplicationResponseCriteriaSnapshotItemMaxScoreMin),
+  "required": zod.boolean(),
+  "prerequisite": zod.boolean(),
+  "active": zod.boolean(),
+  "order": zod.number().int()
+})),
+  "scoreBreakdown": zod.record(zod.string(), zod.number()),
+  "prerequisiteResults": zod.record(zod.string(), zod.boolean())
 })
 
 
@@ -163,6 +209,10 @@ export const GetApplicationParams = zod.object({
   "id": zod.coerce.string()
 })
 
+export const getApplicationResponseCriteriaSnapshotItemMaxScoreMin = 0;
+
+
+
 export const GetApplicationResponse = zod.object({
   "id": zod.string(),
   "reference": zod.string(),
@@ -171,7 +221,7 @@ export const GetApplicationResponse = zod.object({
   "address": zod.string(),
   "contact": zod.string(),
   "submittedAt": zod.string(),
-  "status": zod.enum(['pending', 'needs-more-info', 'approved', 'rejected']),
+  "status": zod.enum(['pending', 'needs-more-info', 'approved', 'warning', 'stopped', 'rejected']),
   "score": zod.number().int(),
   "reviewNote": zod.string().nullable(),
   "isThirdParty": zod.boolean(),
@@ -179,8 +229,26 @@ export const GetApplicationResponse = zod.object({
   "attachments": zod.array(zod.object({
   "name": zod.string(),
   "kind": zod.string(),
-  "size": zod.number().int()
-}))
+  "size": zod.number().int(),
+  "fieldKey": zod.string().optional()
+})),
+  "criteriaVersion": zod.string(),
+  "criteriaSnapshot": zod.array(zod.object({
+  "id": zod.string(),
+  "key": zod.string(),
+  "label": zod.string(),
+  "description": zod.string(),
+  "group": zod.string(),
+  "answerType": zod.enum(['text', 'number', 'date', 'yes-no', 'select', 'file']),
+  "options": zod.array(zod.string()),
+  "maxScore": zod.number().int().min(getApplicationResponseCriteriaSnapshotItemMaxScoreMin),
+  "required": zod.boolean(),
+  "prerequisite": zod.boolean(),
+  "active": zod.boolean(),
+  "order": zod.number().int()
+})),
+  "scoreBreakdown": zod.record(zod.string(), zod.number()),
+  "prerequisiteResults": zod.record(zod.string(), zod.boolean())
 })
 
 
@@ -199,8 +267,14 @@ export const reviewApplicationBodyScoreMax = 100;
 export const ReviewApplicationBody = zod.object({
   "action": zod.enum(['approve', 'reject', 'needs-more-info']),
   "score": zod.number().int().min(reviewApplicationBodyScoreMin).max(reviewApplicationBodyScoreMax),
-  "note": zod.string()
+  "note": zod.string(),
+  "criteriaScores": zod.record(zod.string(), zod.number()),
+  "prerequisiteResults": zod.record(zod.string(), zod.boolean())
 })
+
+export const reviewApplicationResponseCriteriaSnapshotItemMaxScoreMin = 0;
+
+
 
 export const ReviewApplicationResponse = zod.object({
   "id": zod.string(),
@@ -210,7 +284,7 @@ export const ReviewApplicationResponse = zod.object({
   "address": zod.string(),
   "contact": zod.string(),
   "submittedAt": zod.string(),
-  "status": zod.enum(['pending', 'needs-more-info', 'approved', 'rejected']),
+  "status": zod.enum(['pending', 'needs-more-info', 'approved', 'warning', 'stopped', 'rejected']),
   "score": zod.number().int(),
   "reviewNote": zod.string().nullable(),
   "isThirdParty": zod.boolean(),
@@ -218,9 +292,138 @@ export const ReviewApplicationResponse = zod.object({
   "attachments": zod.array(zod.object({
   "name": zod.string(),
   "kind": zod.string(),
-  "size": zod.number().int()
+  "size": zod.number().int(),
+  "fieldKey": zod.string().optional()
+})),
+  "criteriaVersion": zod.string(),
+  "criteriaSnapshot": zod.array(zod.object({
+  "id": zod.string(),
+  "key": zod.string(),
+  "label": zod.string(),
+  "description": zod.string(),
+  "group": zod.string(),
+  "answerType": zod.enum(['text', 'number', 'date', 'yes-no', 'select', 'file']),
+  "options": zod.array(zod.string()),
+  "maxScore": zod.number().int().min(reviewApplicationResponseCriteriaSnapshotItemMaxScoreMin),
+  "required": zod.boolean(),
+  "prerequisite": zod.boolean(),
+  "active": zod.boolean(),
+  "order": zod.number().int()
+})),
+  "scoreBreakdown": zod.record(zod.string(), zod.number()),
+  "prerequisiteResults": zod.record(zod.string(), zod.boolean())
+})
+
+
+/**
+ * @summary Get the active criteria set for an application type
+ */
+export const GetCriteriaQueryParams = zod.object({
+  "type": zod.enum(['food-supplier', 'meal-provider', 'school']),
+  "version": zod.coerce.string().optional()
+})
+
+export const getCriteriaResponseCriteriaItemMaxScoreMin = 0;
+
+
+
+export const GetCriteriaResponse = zod.object({
+  "type": zod.enum(['food-supplier', 'meal-provider', 'school']),
+  "version": zod.string(),
+  "effectiveFrom": zod.string(),
+  "totalScore": zod.number().int(),
+  "criteria": zod.array(zod.object({
+  "id": zod.string(),
+  "key": zod.string(),
+  "label": zod.string(),
+  "description": zod.string(),
+  "group": zod.string(),
+  "answerType": zod.enum(['text', 'number', 'date', 'yes-no', 'select', 'file']),
+  "options": zod.array(zod.string()),
+  "maxScore": zod.number().int().min(getCriteriaResponseCriteriaItemMaxScoreMin),
+  "required": zod.boolean(),
+  "prerequisite": zod.boolean(),
+  "active": zod.boolean(),
+  "order": zod.number().int()
 }))
 })
+
+
+/**
+ * @summary Create a new version of a criteria set
+ */
+export const UpdateCriteriaParams = zod.object({
+  "type": zod.enum(['food-supplier', 'meal-provider', 'school'])
+})
+
+export const updateCriteriaBodyCriteriaItemMaxScoreMin = 0;
+
+
+
+export const UpdateCriteriaBody = zod.object({
+  "criteria": zod.array(zod.object({
+  "id": zod.string(),
+  "key": zod.string(),
+  "label": zod.string(),
+  "description": zod.string(),
+  "group": zod.string(),
+  "answerType": zod.enum(['text', 'number', 'date', 'yes-no', 'select', 'file']),
+  "options": zod.array(zod.string()),
+  "maxScore": zod.number().int().min(updateCriteriaBodyCriteriaItemMaxScoreMin),
+  "required": zod.boolean(),
+  "prerequisite": zod.boolean(),
+  "active": zod.boolean(),
+  "order": zod.number().int()
+})),
+  "effectiveFrom": zod.string(),
+  "applyMode": zod.enum(['now', 'scheduled'])
+})
+
+export const updateCriteriaResponseCriteriaItemMaxScoreMin = 0;
+
+
+
+export const UpdateCriteriaResponse = zod.object({
+  "type": zod.enum(['food-supplier', 'meal-provider', 'school']),
+  "version": zod.string(),
+  "effectiveFrom": zod.string(),
+  "totalScore": zod.number().int(),
+  "criteria": zod.array(zod.object({
+  "id": zod.string(),
+  "key": zod.string(),
+  "label": zod.string(),
+  "description": zod.string(),
+  "group": zod.string(),
+  "answerType": zod.enum(['text', 'number', 'date', 'yes-no', 'select', 'file']),
+  "options": zod.array(zod.string()),
+  "maxScore": zod.number().int().min(updateCriteriaResponseCriteriaItemMaxScoreMin),
+  "required": zod.boolean(),
+  "prerequisite": zod.boolean(),
+  "active": zod.boolean(),
+  "order": zod.number().int()
+}))
+})
+
+
+/**
+ * @summary List criteria configuration change history
+ */
+export const ListCriteriaHistoryParams = zod.object({
+  "type": zod.enum(['food-supplier', 'meal-provider', 'school'])
+})
+
+export const ListCriteriaHistoryResponseItem = zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['food-supplier', 'meal-provider', 'school']),
+  "version": zod.string(),
+  "changedAt": zod.string(),
+  "changedBy": zod.string(),
+  "changeType": zod.string(),
+  "summary": zod.string(),
+  "oldValue": zod.record(zod.string(), zod.unknown()),
+  "newValue": zod.record(zod.string(), zod.unknown())
+})
+export const ListCriteriaHistoryResponse = zod.array(ListCriteriaHistoryResponseItem)
 
 
 /**
@@ -230,6 +433,8 @@ export const GetAdminSummaryResponse = zod.object({
   "pending": zod.number().int(),
   "needsMoreInfo": zod.number().int(),
   "approved": zod.number().int(),
+  "warning": zod.number().int(),
+  "stopped": zod.number().int(),
   "rejected": zod.number().int(),
   "total": zod.number().int(),
   "byType": zod.record(zod.string(), zod.number().int())

@@ -11,6 +11,8 @@ export interface AdminSummary {
   pending: number;
   needsMoreInfo: number;
   approved: number;
+  warning: number;
+  stopped: number;
   rejected: number;
   total: number;
   byType: AdminSummaryByType;

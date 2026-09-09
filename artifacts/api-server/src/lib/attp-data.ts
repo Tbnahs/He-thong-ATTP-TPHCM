@@ -2,6 +2,8 @@ import {
   CreateApplicationBody,
   ReviewApplicationBody,
 } from "@workspace/api-zod";
+import type { CriteriaDefinition } from "@workspace/api-zod";
+import { getCriteria } from "./criteria-data";
 
 export type Application = {
   id: string;
@@ -11,12 +13,16 @@ export type Application = {
   address: string;
   contact: string;
   submittedAt: string;
-  status: "pending" | "needs-more-info" | "approved" | "rejected";
+  status: "pending" | "needs-more-info" | "approved" | "warning" | "stopped" | "rejected";
   score: number;
   reviewNote: string | null;
   isThirdParty: boolean;
   data: Record<string, unknown>;
   attachments: Array<{ name: string; kind: string; size: number }>;
+  criteriaVersion?: string;
+  criteriaSnapshot?: CriteriaDefinition[];
+  scoreBreakdown?: Record<string, number>;
+  prerequisiteResults?: Record<string, boolean>;
 };
 
 export type PublicRecord = {
@@ -213,7 +219,18 @@ export function getPublicRecords() {
 }
 
 export function getApplications() {
-  return applications;
+  return applications.map(normalizeApplication);
+}
+
+function normalizeApplication(application: Application): Application {
+  const criteria = application.criteriaSnapshot ?? getCriteria(application.type).criteria;
+  return {
+    ...application,
+    criteriaVersion: application.criteriaVersion ?? getCriteria(application.type).version,
+    criteriaSnapshot: criteria,
+    scoreBreakdown: application.scoreBreakdown ?? {},
+    prerequisiteResults: application.prerequisiteResults ?? {},
+  };
 }
 
 export function createApplication(
@@ -234,9 +251,13 @@ export function createApplication(
     isThirdParty: input.isThirdParty,
     data: input.data,
     attachments: input.attachments,
+    criteriaVersion: input.criteriaVersion,
+    criteriaSnapshot: getCriteria(input.type, input.criteriaVersion).criteria,
+    scoreBreakdown: {},
+    prerequisiteResults: {},
   };
   applications.unshift(created);
-  return created;
+  return normalizeApplication(created);
 }
 
 export function reviewApplication(
@@ -245,13 +266,32 @@ export function reviewApplication(
 ) {
   const app = applications.find((item) => item.id === id);
   if (!app) return undefined;
+  const criteria = app.criteriaSnapshot ?? getCriteria(app.type).criteria;
+  const ordinaryCriteria = criteria.filter((item) => item.active && !item.prerequisite);
+  const prerequisiteResults = input.prerequisiteResults ?? {};
+  const scoreBreakdown = input.criteriaScores ?? {};
+  const computedScore = ordinaryCriteria.reduce(
+    (sum, item) => sum + Math.min(item.maxScore, Math.max(0, Number(scoreBreakdown[item.key] ?? 0))),
+    0,
+  );
+  const prerequisiteFailed = criteria.some(
+    (item) => item.prerequisite && prerequisiteResults[item.key] === false,
+  );
   app.status =
-    input.action === "approve"
-      ? "approved"
+    input.action === "needs-more-info"
+      ? "needs-more-info"
       : input.action === "reject"
         ? "rejected"
-        : "needs-more-info";
-  app.score = input.score;
+        : prerequisiteFailed
+          ? "stopped"
+          : computedScore === 100
+            ? "approved"
+            : computedScore >= 80
+              ? "warning"
+              : "stopped";
+  app.score = input.action === "needs-more-info" ? input.score : Math.round(computedScore);
   app.reviewNote = input.note || null;
-  return app;
+  app.scoreBreakdown = scoreBreakdown;
+  app.prerequisiteResults = prerequisiteResults;
+  return normalizeApplication(app);
 }
