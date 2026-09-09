@@ -7,8 +7,10 @@
  */
 import type { CriteriaConfigInputApplyMode } from './criteriaConfigInputApplyMode';
 import type { CriteriaDefinition } from './criteriaDefinition';
+import type { CriteriaGroup } from './criteriaGroup';
 
 export interface CriteriaConfigInput {
+  groups: CriteriaGroup[];
   criteria: CriteriaDefinition[];
   effectiveFrom: string;
   applyMode: CriteriaConfigInputApplyMode;

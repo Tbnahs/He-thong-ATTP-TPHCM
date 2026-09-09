@@ -76,12 +76,26 @@ export const CriteriaAnswerType = {
   file: 'file',
 } as const;
 
+export interface CriteriaSource {
+  id: string;
+  name: string;
+  kind: string;
+  /** @minimum 0 */
+  size: number;
+}
+
+export interface CriteriaGroup {
+  id: string;
+  name: string;
+  order: number;
+}
+
 export interface CriteriaDefinition {
   id: string;
   key: string;
   label: string;
   description: string;
-  group: string;
+  groupId: string;
   answerType: CriteriaAnswerType;
   options: string[];
   /** @minimum 0 */
@@ -90,6 +104,7 @@ export interface CriteriaDefinition {
   prerequisite: boolean;
   active: boolean;
   order: number;
+  sourceMaterials: CriteriaSource[];
 }
 
 export interface CriteriaSet {
@@ -97,6 +112,7 @@ export interface CriteriaSet {
   version: string;
   effectiveFrom: string;
   totalScore: number;
+  groups: CriteriaGroup[];
   criteria: CriteriaDefinition[];
 }
 
@@ -109,6 +125,7 @@ export const CriteriaConfigInputApplyMode = {
 } as const;
 
 export interface CriteriaConfigInput {
+  groups: CriteriaGroup[];
   criteria: CriteriaDefinition[];
   effectiveFrom: string;
   applyMode: CriteriaConfigInputApplyMode;
@@ -174,6 +191,7 @@ export interface Application {
   attachments: Attachment[];
   criteriaVersion: string;
   criteriaSnapshot: CriteriaDefinition[];
+  criteriaGroups: CriteriaGroup[];
   scoreBreakdown: ApplicationScoreBreakdown;
   prerequisiteResults: ApplicationPrerequisiteResults;
 }

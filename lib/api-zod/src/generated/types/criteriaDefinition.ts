@@ -6,13 +6,14 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CriteriaAnswerType } from './criteriaAnswerType';
+import type { CriteriaSource } from './criteriaSource';
 
 export interface CriteriaDefinition {
   id: string;
   key: string;
   label: string;
   description: string;
-  group: string;
+  groupId: string;
   answerType: CriteriaAnswerType;
   options: string[];
   /** @minimum 0 */
@@ -21,4 +22,5 @@ export interface CriteriaDefinition {
   prerequisite: boolean;
   active: boolean;
   order: number;
+  sourceMaterials: CriteriaSource[];
 }

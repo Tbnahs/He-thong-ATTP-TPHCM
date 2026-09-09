@@ -360,6 +360,29 @@ components:
     CriteriaAnswerType:
       type: string
       enum: [text, number, date, yes-no, select, file]
+    CriteriaSource:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        kind:
+          type: string
+        size:
+          type: integer
+          minimum: 0
+      required: [id, name, kind, size]
+    CriteriaGroup:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        order:
+          type: integer
+      required: [id, name, order]
     CriteriaDefinition:
       type: object
       properties:
@@ -371,7 +394,7 @@ components:
           type: string
         description:
           type: string
-        group:
+        groupId:
           type: string
         answerType:
           $ref: "#/components/schemas/CriteriaAnswerType"
@@ -390,7 +413,11 @@ components:
           type: boolean
         order:
           type: integer
-      required: [id, key, label, description, group, answerType, options, maxScore, required, prerequisite, active, order]
+        sourceMaterials:
+          type: array
+          items:
+            $ref: "#/components/schemas/CriteriaSource"
+      required: [id, key, label, description, groupId, answerType, options, maxScore, required, prerequisite, active, order, sourceMaterials]
     CriteriaSet:
       type: object
       properties:
@@ -402,14 +429,22 @@ components:
           type: string
         totalScore:
           type: integer
+        groups:
+          type: array
+          items:
+            $ref: "#/components/schemas/CriteriaGroup"
         criteria:
           type: array
           items:
             $ref: "#/components/schemas/CriteriaDefinition"
-      required: [type, version, effectiveFrom, totalScore, criteria]
+      required: [type, version, effectiveFrom, totalScore, groups, criteria]
     CriteriaConfigInput:
       type: object
       properties:
+        groups:
+          type: array
+          items:
+            $ref: "#/components/schemas/CriteriaGroup"
         criteria:
           type: array
           items:
@@ -419,7 +454,7 @@ components:
         applyMode:
           type: string
           enum: [now, scheduled]
-      required: [criteria, effectiveFrom, applyMode]
+      required: [groups, criteria, effectiveFrom, applyMode]
     CriteriaHistoryEntry:
       type: object
       properties:
@@ -484,6 +519,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/CriteriaDefinition"
+        criteriaGroups:
+          type: array
+          items:
+            $ref: "#/components/schemas/CriteriaGroup"
         scoreBreakdown:
           type: object
           additionalProperties:
@@ -492,7 +531,7 @@ components:
           type: object
           additionalProperties:
             type: boolean
-      required: [id, reference, type, applicantName, address, contact, submittedAt, status, score, reviewNote, isThirdParty, data, attachments, criteriaVersion, criteriaSnapshot, scoreBreakdown, prerequisiteResults]
+      required: [id, reference, type, applicantName, address, contact, submittedAt, status, score, reviewNote, isThirdParty, data, attachments, criteriaVersion, criteriaSnapshot, criteriaGroups, scoreBreakdown, prerequisiteResults]
     ApplicationInput:
       type: object
       properties:

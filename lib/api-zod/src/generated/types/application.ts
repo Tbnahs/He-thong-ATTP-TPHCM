@@ -12,6 +12,7 @@ import type { ApplicationStatus } from './applicationStatus';
 import type { ApplicationTypeProperty } from './applicationTypeProperty';
 import type { Attachment } from './attachment';
 import type { CriteriaDefinition } from './criteriaDefinition';
+import type { CriteriaGroup } from './criteriaGroup';
 
 export interface Application {
   id: string;
@@ -30,6 +31,7 @@ export interface Application {
   attachments: Attachment[];
   criteriaVersion: string;
   criteriaSnapshot: CriteriaDefinition[];
+  criteriaGroups: CriteriaGroup[];
   scoreBreakdown: ApplicationScoreBreakdown;
   prerequisiteResults: ApplicationPrerequisiteResults;
 }

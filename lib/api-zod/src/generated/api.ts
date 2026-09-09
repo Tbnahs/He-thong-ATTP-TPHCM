@@ -93,6 +93,8 @@ export const ListApplicationsQueryParams = zod.object({
 
 export const listApplicationsResponseCriteriaSnapshotItemMaxScoreMin = 0;
 
+export const listApplicationsResponseCriteriaSnapshotItemSourceMaterialsItemSizeMin = 0;
+
 
 
 export const ListApplicationsResponseItem = zod.object({
@@ -120,13 +122,24 @@ export const ListApplicationsResponseItem = zod.object({
   "key": zod.string(),
   "label": zod.string(),
   "description": zod.string(),
-  "group": zod.string(),
+  "groupId": zod.string(),
   "answerType": zod.enum(['text', 'number', 'date', 'yes-no', 'select', 'file']),
   "options": zod.array(zod.string()),
   "maxScore": zod.number().int().min(listApplicationsResponseCriteriaSnapshotItemMaxScoreMin),
   "required": zod.boolean(),
   "prerequisite": zod.boolean(),
   "active": zod.boolean(),
+  "order": zod.number().int(),
+  "sourceMaterials": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.string(),
+  "size": zod.number().int().min(listApplicationsResponseCriteriaSnapshotItemSourceMaterialsItemSizeMin)
+}))
+})),
+  "criteriaGroups": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
   "order": zod.number().int()
 })),
   "scoreBreakdown": zod.record(zod.string(), zod.number()),
@@ -161,6 +174,8 @@ export const CreateApplicationBody = zod.object({
 
 export const createApplicationResponseCriteriaSnapshotItemMaxScoreMin = 0;
 
+export const createApplicationResponseCriteriaSnapshotItemSourceMaterialsItemSizeMin = 0;
+
 
 
 export const CreateApplicationResponse = zod.object({
@@ -188,13 +203,24 @@ export const CreateApplicationResponse = zod.object({
   "key": zod.string(),
   "label": zod.string(),
   "description": zod.string(),
-  "group": zod.string(),
+  "groupId": zod.string(),
   "answerType": zod.enum(['text', 'number', 'date', 'yes-no', 'select', 'file']),
   "options": zod.array(zod.string()),
   "maxScore": zod.number().int().min(createApplicationResponseCriteriaSnapshotItemMaxScoreMin),
   "required": zod.boolean(),
   "prerequisite": zod.boolean(),
   "active": zod.boolean(),
+  "order": zod.number().int(),
+  "sourceMaterials": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.string(),
+  "size": zod.number().int().min(createApplicationResponseCriteriaSnapshotItemSourceMaterialsItemSizeMin)
+}))
+})),
+  "criteriaGroups": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
   "order": zod.number().int()
 })),
   "scoreBreakdown": zod.record(zod.string(), zod.number()),
@@ -210,6 +236,8 @@ export const GetApplicationParams = zod.object({
 })
 
 export const getApplicationResponseCriteriaSnapshotItemMaxScoreMin = 0;
+
+export const getApplicationResponseCriteriaSnapshotItemSourceMaterialsItemSizeMin = 0;
 
 
 
@@ -238,13 +266,24 @@ export const GetApplicationResponse = zod.object({
   "key": zod.string(),
   "label": zod.string(),
   "description": zod.string(),
-  "group": zod.string(),
+  "groupId": zod.string(),
   "answerType": zod.enum(['text', 'number', 'date', 'yes-no', 'select', 'file']),
   "options": zod.array(zod.string()),
   "maxScore": zod.number().int().min(getApplicationResponseCriteriaSnapshotItemMaxScoreMin),
   "required": zod.boolean(),
   "prerequisite": zod.boolean(),
   "active": zod.boolean(),
+  "order": zod.number().int(),
+  "sourceMaterials": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.string(),
+  "size": zod.number().int().min(getApplicationResponseCriteriaSnapshotItemSourceMaterialsItemSizeMin)
+}))
+})),
+  "criteriaGroups": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
   "order": zod.number().int()
 })),
   "scoreBreakdown": zod.record(zod.string(), zod.number()),
@@ -274,6 +313,8 @@ export const ReviewApplicationBody = zod.object({
 
 export const reviewApplicationResponseCriteriaSnapshotItemMaxScoreMin = 0;
 
+export const reviewApplicationResponseCriteriaSnapshotItemSourceMaterialsItemSizeMin = 0;
+
 
 
 export const ReviewApplicationResponse = zod.object({
@@ -301,13 +342,24 @@ export const ReviewApplicationResponse = zod.object({
   "key": zod.string(),
   "label": zod.string(),
   "description": zod.string(),
-  "group": zod.string(),
+  "groupId": zod.string(),
   "answerType": zod.enum(['text', 'number', 'date', 'yes-no', 'select', 'file']),
   "options": zod.array(zod.string()),
   "maxScore": zod.number().int().min(reviewApplicationResponseCriteriaSnapshotItemMaxScoreMin),
   "required": zod.boolean(),
   "prerequisite": zod.boolean(),
   "active": zod.boolean(),
+  "order": zod.number().int(),
+  "sourceMaterials": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.string(),
+  "size": zod.number().int().min(reviewApplicationResponseCriteriaSnapshotItemSourceMaterialsItemSizeMin)
+}))
+})),
+  "criteriaGroups": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
   "order": zod.number().int()
 })),
   "scoreBreakdown": zod.record(zod.string(), zod.number()),
@@ -325,6 +377,8 @@ export const GetCriteriaQueryParams = zod.object({
 
 export const getCriteriaResponseCriteriaItemMaxScoreMin = 0;
 
+export const getCriteriaResponseCriteriaItemSourceMaterialsItemSizeMin = 0;
+
 
 
 export const GetCriteriaResponse = zod.object({
@@ -332,19 +386,30 @@ export const GetCriteriaResponse = zod.object({
   "version": zod.string(),
   "effectiveFrom": zod.string(),
   "totalScore": zod.number().int(),
+  "groups": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "order": zod.number().int()
+})),
   "criteria": zod.array(zod.object({
   "id": zod.string(),
   "key": zod.string(),
   "label": zod.string(),
   "description": zod.string(),
-  "group": zod.string(),
+  "groupId": zod.string(),
   "answerType": zod.enum(['text', 'number', 'date', 'yes-no', 'select', 'file']),
   "options": zod.array(zod.string()),
   "maxScore": zod.number().int().min(getCriteriaResponseCriteriaItemMaxScoreMin),
   "required": zod.boolean(),
   "prerequisite": zod.boolean(),
   "active": zod.boolean(),
-  "order": zod.number().int()
+  "order": zod.number().int(),
+  "sourceMaterials": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.string(),
+  "size": zod.number().int().min(getCriteriaResponseCriteriaItemSourceMaterialsItemSizeMin)
+}))
 }))
 })
 
@@ -358,28 +423,43 @@ export const UpdateCriteriaParams = zod.object({
 
 export const updateCriteriaBodyCriteriaItemMaxScoreMin = 0;
 
+export const updateCriteriaBodyCriteriaItemSourceMaterialsItemSizeMin = 0;
+
 
 
 export const UpdateCriteriaBody = zod.object({
+  "groups": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "order": zod.number().int()
+})),
   "criteria": zod.array(zod.object({
   "id": zod.string(),
   "key": zod.string(),
   "label": zod.string(),
   "description": zod.string(),
-  "group": zod.string(),
+  "groupId": zod.string(),
   "answerType": zod.enum(['text', 'number', 'date', 'yes-no', 'select', 'file']),
   "options": zod.array(zod.string()),
   "maxScore": zod.number().int().min(updateCriteriaBodyCriteriaItemMaxScoreMin),
   "required": zod.boolean(),
   "prerequisite": zod.boolean(),
   "active": zod.boolean(),
-  "order": zod.number().int()
+  "order": zod.number().int(),
+  "sourceMaterials": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.string(),
+  "size": zod.number().int().min(updateCriteriaBodyCriteriaItemSourceMaterialsItemSizeMin)
+}))
 })),
   "effectiveFrom": zod.string(),
   "applyMode": zod.enum(['now', 'scheduled'])
 })
 
 export const updateCriteriaResponseCriteriaItemMaxScoreMin = 0;
+
+export const updateCriteriaResponseCriteriaItemSourceMaterialsItemSizeMin = 0;
 
 
 
@@ -388,19 +468,30 @@ export const UpdateCriteriaResponse = zod.object({
   "version": zod.string(),
   "effectiveFrom": zod.string(),
   "totalScore": zod.number().int(),
+  "groups": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "order": zod.number().int()
+})),
   "criteria": zod.array(zod.object({
   "id": zod.string(),
   "key": zod.string(),
   "label": zod.string(),
   "description": zod.string(),
-  "group": zod.string(),
+  "groupId": zod.string(),
   "answerType": zod.enum(['text', 'number', 'date', 'yes-no', 'select', 'file']),
   "options": zod.array(zod.string()),
   "maxScore": zod.number().int().min(updateCriteriaResponseCriteriaItemMaxScoreMin),
   "required": zod.boolean(),
   "prerequisite": zod.boolean(),
   "active": zod.boolean(),
-  "order": zod.number().int()
+  "order": zod.number().int(),
+  "sourceMaterials": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.string(),
+  "size": zod.number().int().min(updateCriteriaResponseCriteriaItemSourceMaterialsItemSizeMin)
+}))
 }))
 })
 

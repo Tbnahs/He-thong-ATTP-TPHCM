@@ -2,7 +2,7 @@ import {
   CreateApplicationBody,
   ReviewApplicationBody,
 } from "@workspace/api-zod";
-import type { CriteriaDefinition } from "@workspace/api-zod";
+import type { CriteriaDefinition, CriteriaGroup } from "@workspace/api-zod";
 import { getCriteria } from "./criteria-data";
 
 export type Application = {
@@ -21,6 +21,7 @@ export type Application = {
   attachments: Array<{ name: string; kind: string; size: number }>;
   criteriaVersion?: string;
   criteriaSnapshot?: CriteriaDefinition[];
+  criteriaGroups?: CriteriaGroup[];
   scoreBreakdown?: Record<string, number>;
   prerequisiteResults?: Record<string, boolean>;
 };
@@ -228,6 +229,7 @@ function normalizeApplication(application: Application): Application {
     ...application,
     criteriaVersion: application.criteriaVersion ?? getCriteria(application.type).version,
     criteriaSnapshot: criteria,
+    criteriaGroups: application.criteriaGroups ?? getCriteria(application.type).groups,
     scoreBreakdown: application.scoreBreakdown ?? {},
     prerequisiteResults: application.prerequisiteResults ?? {},
   };
@@ -253,6 +255,7 @@ export function createApplication(
     attachments: input.attachments,
     criteriaVersion: input.criteriaVersion,
     criteriaSnapshot: getCriteria(input.type, input.criteriaVersion).criteria,
+    criteriaGroups: getCriteria(input.type, input.criteriaVersion).groups,
     scoreBreakdown: {},
     prerequisiteResults: {},
   };

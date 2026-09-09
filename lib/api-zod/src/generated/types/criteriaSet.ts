@@ -7,11 +7,13 @@
  */
 import type { ApplicationType } from './applicationType';
 import type { CriteriaDefinition } from './criteriaDefinition';
+import type { CriteriaGroup } from './criteriaGroup';
 
 export interface CriteriaSet {
   type: ApplicationType;
   version: string;
   effectiveFrom: string;
   totalScore: number;
+  groups: CriteriaGroup[];
   criteria: CriteriaDefinition[];
 }
