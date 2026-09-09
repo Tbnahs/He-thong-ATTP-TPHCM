@@ -69,7 +69,7 @@ export function PublicHeader() {
 }
 
 export function PublicFooter() {
-  return <footer className="border-t border-border bg-primary py-10 text-primary-foreground"><div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 md:flex-row md:items-end md:justify-between lg:px-8"><div><BrandMark compact /><p className="mt-3 max-w-sm text-sm leading-6 text-primary-foreground/75">Minh bạch hơn trong từng lựa chọn thực phẩm. Kênh thông tin chính thức của Sở An toàn thực phẩm Thành phố Hồ Chí Minh.</p></div><div className="text-sm text-primary-foreground/65"><p>Trụ sở: 18 Cách Mạng Tháng Tám, Quận 3, TP.HCM</p><p className="mt-1">Đường dây nóng: 1900 9095 · Cổng dữ liệu công khai</p></div></div></footer>;
+  return <footer className="border-t border-border bg-primary py-10 text-primary-foreground"><div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 md:flex-row md:items-end md:justify-between lg:px-8"><div><BrandMark compact /><p className="mt-3 max-w-sm text-sm leading-6 text-primary-foreground/75">Minh bạch hơn trong từng lựa chọn thực phẩm. Kênh thông tin chính thức của Sở An toàn thực phẩm Thành phố Hồ Chí Minh.</p></div><div className="text-sm leading-6 text-primary-foreground/75"><p className="font-bold text-primary-foreground">Sở An toàn thực phẩm Thành phố Hồ Chí Minh</p><p>Trụ sở chính: 57 Nguyễn Thị Minh Khai, phường Bến Thành, TP.HCM</p><p>Địa chỉ: 18 Cách Mạng Tháng 8, phường Bến Thành, TP.HCM</p><p>Số điện thoại: 028 3930 6001 · Fax: 028 3930 703</p><p>Đường dây nóng: 028 3930 1714</p></div></div></footer>;
 }
 
 export function PublicShell({ children }: { children: ReactNode }) { return <div className="portal-noise min-h-[100dvh] bg-background"><PublicHeader />{children}<PublicFooter /></div>; }
