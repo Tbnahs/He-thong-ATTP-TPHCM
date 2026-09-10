@@ -1,0 +1,1 @@
+- [Frontend-only workspace cleanup](frontend-only-import.md) — remove backend packages and dangling TypeScript references together.

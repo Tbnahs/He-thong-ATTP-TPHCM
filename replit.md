@@ -4,31 +4,23 @@ Cổng thông tin an toàn thực phẩm TP.HCM với tra cứu công khai, đă
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
 - `pnpm --filter @workspace/attp-portal run dev` — run the React/Vite portal (port 23165)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
-- The managed Replit preview starts the portal and API artifact workflows automatically.
+- `pnpm run typecheck` — typecheck the frontend and scripts
+- `pnpm run build` — typecheck and build the static frontend
+- No API server or database is required. The portal runs entirely from the sample data in `artifacts/attp-portal/src/lib/mock-data.ts`.
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- Frontend: React + Vite
+- Styling: Tailwind CSS
+- Data: typed local sample data
 
 ## Where things live
 
 - `artifacts/attp-portal/src/pages/portal-pages.tsx` — public portal, registration form, admin dashboard and criteria editor
 - `artifacts/attp-portal/src/components/portal-ui.tsx` — shared public/admin shells and UI patterns
-- `artifacts/api-server/src/lib/criteria-data.ts` — criteria groups, fields, answer types and versioning rules
-- `lib/api-spec/openapi.yaml` — API contract source of truth
-- `lib/db/src/schema/` — PostgreSQL/Drizzle schema definitions
+- `artifacts/attp-portal/src/lib/mock-data.ts` — sample records, applications, suppliers and criteria
 
 ## Architecture decisions
 
