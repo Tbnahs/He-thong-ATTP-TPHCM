@@ -106,6 +106,25 @@ const facilityTypeOptions: { value: ApplicationType; label: string }[] = [
   { value: "meal-provider", label: "Cung cấp suất ăn" },
   { value: "school", label: "Cơ sở giáo dục" },
 ];
+const addressProvinceOptions = [
+  "TP. Hồ Chí Minh",
+  "Hà Nội",
+  "Đà Nẵng",
+  "Hải Phòng",
+  "Cần Thơ",
+  "Huế",
+];
+const addressWardOptions = [
+  "Phường Bến Nghé",
+  "Phường Tân Định",
+  "Phường Đa Kao",
+  "Phường Nguyễn Thái Bình",
+  "Phường Cầu Ông Lãnh",
+  "Phường Tân Phong",
+  "Xã Củ Chi",
+  "Xã Hóc Môn",
+  "Khác",
+];
 const formatDate = (value?: string) =>
   value
     ? new Intl.DateTimeFormat("vi-VN", {
@@ -1027,6 +1046,9 @@ export function FacilityProfilePage() {
     name: string;
     taxCode: string;
     address: string;
+    addressProvince: string;
+    addressWard: string;
+    addressDetail: string;
     representative: string;
     phone: string;
     email: string;
@@ -1043,6 +1065,9 @@ export function FacilityProfilePage() {
     name: "Công ty TNHH Nông sản An Phú",
     taxCode: "0312345678",
     address: "184 Nguyễn Văn Linh, Quận 7, TP.HCM",
+    addressProvince: "TP. Hồ Chí Minh",
+    addressWard: "Phường Tân Phong",
+    addressDetail: "184 Nguyễn Văn Linh",
     representative: "Nguyễn Hoàng Anh",
     phone: "0908 123 456",
     email: "",
@@ -1118,7 +1143,9 @@ export function FacilityProfilePage() {
     const required: Array<keyof FacilityProfile> = [
       "name",
       "taxCode",
-      "address",
+      "addressProvince",
+      "addressWard",
+      "addressDetail",
       "representative",
       "phone",
       "licenseNumber",
@@ -1131,8 +1158,19 @@ export function FacilityProfilePage() {
       setNotice("");
       return;
     }
-    sessionStorage.setItem(profileStorageKey, JSON.stringify(profile));
-    sessionStorage.setItem("attp-facility-profile", JSON.stringify(profile));
+    const nextProfile = {
+      ...profile,
+      address: [
+        profile.addressDetail,
+        profile.addressWard,
+        profile.addressProvince,
+      ]
+        .filter(Boolean)
+        .join(", "),
+    };
+    setProfile(nextProfile);
+    sessionStorage.setItem(profileStorageKey, JSON.stringify(nextProfile));
+    sessionStorage.setItem("attp-facility-profile", JSON.stringify(nextProfile));
     sessionStorage.setItem(attachmentStorageKey, JSON.stringify(attachments));
     sessionStorage.setItem(
       "attp-facility-attachments",
@@ -1178,11 +1216,25 @@ export function FacilityProfilePage() {
                 onChange={(value) => update("taxCode", value)}
                 test="input-facility-tax-code"
               />
+              <SelectField
+                label="Chọn Tỉnh / Thành phố *"
+                value={profile.addressProvince}
+                onChange={(value) => update("addressProvince", value)}
+                options={addressProvinceOptions}
+                test="select-facility-address-province"
+              />
+              <SelectField
+                label="Chọn Xã / Phường *"
+                value={profile.addressWard}
+                onChange={(value) => update("addressWard", value)}
+                options={addressWardOptions}
+                test="select-facility-address-ward"
+              />
               <Field
-                label="Địa chỉ đầy đủ *"
-                value={profile.address}
-                onChange={(value) => update("address", value)}
-                test="input-facility-address"
+                label="Địa chỉ chi tiết — số nhà, đường/thôn/ấp *"
+                value={profile.addressDetail}
+                onChange={(value) => update("addressDetail", value)}
+                test="input-facility-address-detail"
                 wide
               />
               <Field
@@ -1498,7 +1550,13 @@ function ApplicationForm() {
     const input: ApplicationInput = {
       type,
       applicantName: asText(fields.applicantName),
-      address: asText(fields.address),
+      address: [
+        asText(fields.addressDetail),
+        asText(fields.addressWard),
+        asText(fields.addressProvince),
+      ]
+        .filter(Boolean)
+        .join(", "),
       contact: asText(fields.contact),
       criteriaVersion: formSet?.version ?? "",
       isThirdParty:
@@ -2119,6 +2177,40 @@ function Field({
     </label>
   );
 }
+function SelectField({
+  label,
+  value = "",
+  onChange,
+  options,
+  test,
+  wide = false,
+}: {
+  label: string;
+  value?: string;
+  onChange: (value: string) => void;
+  options: string[];
+  test: string;
+  wide?: boolean;
+}) {
+  return (
+    <label className={wide ? "md:col-span-2" : ""}>
+      <span className="mb-2 block text-sm font-semibold">{label}</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="focus-ring h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
+        data-testid={test}
+      >
+        <option value="">Chọn một phương án</option>
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
 function FilePicker({
   label,
   files,
@@ -2427,39 +2519,6 @@ function SchoolFields({
     </>
   );
 }
-function SelectField({
-  label,
-  value = "",
-  onChange,
-  test,
-  options,
-}: {
-  label: string;
-  value?: string;
-  onChange: (value: string) => void;
-  test: string;
-  options: string[];
-}) {
-  return (
-    <label>
-      <span className="mb-2 block text-sm font-semibold">{label}</span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="focus-ring h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
-        data-testid={test}
-      >
-        <option value="">Chọn một phương án</option>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
 function CriteriaAnswerTypeDropdown({
   item,
   labels,
