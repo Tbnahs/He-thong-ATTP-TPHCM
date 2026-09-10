@@ -59,6 +59,27 @@ const formatDate = (value?: string) => value ? new Intl.DateTimeFormat('vi-VN', 
 const formatNumber = (value?: number) => typeof value === 'number' ? new Intl.NumberFormat('vi-VN').format(value) : '—';
 type AccountRole = 'admin' | 'facility';
 const inferAccountRole = (username: string): AccountRole => /^(admin|canbo|reviewer|xetduyet)/i.test(username.trim()) ? 'admin' : 'facility';
+type CriteriaValue = string | string[] | Record<string, string | string[]>;
+const answerTypeLabels: Record<CriteriaAnswerType, string> = {
+  text: 'Nhập văn bản',
+  number: 'Nhập số',
+  date: 'Ngày tháng',
+  'yes-no': 'Có / Không',
+  select: 'Chọn phương án',
+  'multi-select': 'Chọn phương án',
+  file: 'Tải tệp / ảnh',
+};
+const getAnswerTypes = (item: CriteriaDefinition): CriteriaAnswerType[] => Array.from(new Set(item.answerTypes?.length ? item.answerTypes : [item.answerType]));
+const getCriteriaValue = (value: CriteriaValue, answerType: CriteriaAnswerType, multiple: boolean): string | string[] => {
+  if (!multiple) return value as string | string[];
+  if (typeof value === 'object' && !Array.isArray(value)) return value[answerType] ?? '';
+  return '';
+};
+const setCriteriaValue = (value: CriteriaValue, answerType: CriteriaAnswerType, next: string | string[], multiple: boolean): CriteriaValue => {
+  if (!multiple) return next;
+  const previous = typeof value === 'object' && !Array.isArray(value) ? value : {};
+  return { ...previous, [answerType]: next };
+};
 
 function Notice({ message, onClose }: { message: string; onClose: () => void }) {
   return <div className="fixed bottom-5 right-5 z-50 flex max-w-sm items-start gap-3 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-xl" role="status" data-testid="status-notice"><Check size={18} className="mt-0.5 shrink-0 text-accent" /><span>{message}</span><button onClick={onClose} aria-label="Đóng thông báo" data-testid="button-close-notice"><X size={16} /></button></div>;
@@ -227,7 +248,7 @@ export function FacilityProfilePage() {
 
 function ApplicationForm() {
   const [type, setType] = useState<ApplicationType>('food-supplier');
-  const [fields, setFields] = useState<Record<string, string | string[]>>({});
+  const [fields, setFields] = useState<Record<string, CriteriaValue>>({});
   const [files, setFiles] = useState<Attachment[]>([]);
   const [notice, setNotice] = useState('');
   const [submitted, setSubmitted] = useState(false);
@@ -235,7 +256,7 @@ function ApplicationForm() {
   const create = useCreateApplication();
   const { data: suppliers } = useListApprovedSuppliers({ query: { queryKey: getListApprovedSuppliersQueryKey() } });
   const { data: criteriaSet, isLoading: loadingCriteria, isError: criteriaError } = useGetCriteria({ type });
-   const update = (key: string, value: string | string[]) => setFields(prev => ({ ...prev, [key]: value }));
+   const update = (key: string, value: CriteriaValue) => setFields(prev => ({ ...prev, [key]: value }));
   const changeType = (nextType: ApplicationType) => {
     setType(nextType);
     setFields({});
@@ -262,16 +283,25 @@ function ApplicationForm() {
      const criteria = criteriaSet?.criteria.filter(item => item.active).sort((a, b) => a.order - b.order) ?? [];
       const missing = criteria.filter(item => {
         if (!item.required) return false;
-        if (item.answerType === 'file') return !files.some(file => file.fieldKey === item.key);
+         const answerTypes = getAnswerTypes(item);
+         if (answerTypes.includes('file') && !files.some(file => file.fieldKey === item.key)) return true;
         const value = fields[item.key];
-        return Array.isArray(value) ? value.length === 0 : !value?.trim();
+         return answerTypes.some(answerType => {
+           if (answerType === 'file') return false;
+           const answer = getCriteriaValue(value ?? '', answerType, answerTypes.length > 1);
+           return Array.isArray(answer) ? answer.length === 0 : !answer?.trim();
+         });
       });
      if (missing.length) { setNotice(`Vui lòng hoàn thiện: ${missing.slice(0, 3).map(item => item.label).join(', ')}${missing.length > 3 ? '…' : ''}.`); return; }
      const data = { ...fields } as Record<string, unknown>;
-     criteria.filter(item => item.answerType === 'file').forEach(item => {
-       data[item.key] = files.filter(file => file.fieldKey === item.key).map(file => file.name);
+      criteria.filter(item => getAnswerTypes(item).includes('file')).forEach(item => {
+        const answerTypes = getAnswerTypes(item);
+        const fileValue = files.filter(file => file.fieldKey === item.key).map(file => file.name);
+        data[item.key] = answerTypes.length > 1
+          ? setCriteriaValue(fields[item.key] ?? {}, 'file', fileValue, true)
+          : fileValue;
      });
-      const asText = (value: string | string[] | undefined) => Array.isArray(value) ? value[0] ?? '' : value ?? '';
+       const asText = (value: CriteriaValue | undefined) => typeof value === 'object' && !Array.isArray(value) ? String(value.text ?? '') : Array.isArray(value) ? value[0] ?? '' : value ?? '';
       const input: ApplicationInput = { type, applicantName: asText(fields.applicantName), address: asText(fields.address), contact: asText(fields.contact), criteriaVersion: criteriaSet?.version ?? '', isThirdParty: type === 'school' && fields.mealModel !== 'Tự nấu' && fields.supplierSource === 'manual', data, attachments: files };
     create.mutate({ data: input }, { onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListApplicationsQueryKey() }); queryClient.invalidateQueries({ queryKey: getGetAdminSummaryQueryKey() }); setSubmitted(true); setNotice('Hồ sơ đã được tiếp nhận và chuyển sang trạng thái chờ duyệt.'); }, onError: () => setNotice('Không thể nộp hồ sơ lúc này. Vui lòng thử lại.') });
   };
@@ -287,7 +317,16 @@ function ApplicationForm() {
   </form>{notice && <Notice message={notice} onClose={() => setNotice('')} />}</div>;
 }
 
-function DynamicQuestion({ item, value, files, suppliers, onChange, onFiles, onRemoveFile }: { item: CriteriaDefinition; value: string | string[]; files: Attachment[]; suppliers: { id: string; name: string; taxCode: string }[]; onChange: (value: string | string[]) => void; onFiles: (event: ChangeEvent<HTMLInputElement>) => void; onRemoveFile: (name: string) => void }) {
+ function DynamicQuestion({ item, value, files, suppliers, onChange, onFiles, onRemoveFile }: { item: CriteriaDefinition; value: CriteriaValue; files: Attachment[]; suppliers: { id: string; name: string; taxCode: string }[]; onChange: (value: CriteriaValue) => void; onFiles: (event: ChangeEvent<HTMLInputElement>) => void; onRemoveFile: (name: string) => void }) {
+   const answerTypes = getAnswerTypes(item);
+   const multiple = answerTypes.length > 1;
+   return <div className={multiple ? 'space-y-2' : undefined}>{answerTypes.map(answerType => {
+     const renderedItem = multiple ? { ...item, answerType, answerTypes: [answerType], label: `${item.label} · ${answerTypeLabels[answerType]}` } : item;
+     return <DynamicQuestionControl key={answerType} item={renderedItem} value={getCriteriaValue(value, answerType, multiple)} files={files} suppliers={suppliers} onChange={next => onChange(setCriteriaValue(value, answerType, next, multiple))} onFiles={onFiles} onRemoveFile={onRemoveFile} />;
+   })}</div>;
+ }
+
+ function DynamicQuestionControl({ item, value, files, suppliers, onChange, onFiles, onRemoveFile }: { item: CriteriaDefinition; value: string | string[]; files: Attachment[]; suppliers: { id: string; name: string; taxCode: string }[]; onChange: (value: string | string[]) => void; onFiles: (event: ChangeEvent<HTMLInputElement>) => void; onRemoveFile: (name: string) => void }) {
   const options = item.key === 'supplierId' ? suppliers.map(supplier => `${supplier.id} · ${supplier.name} · ${supplier.taxCode}`) : item.options;
   const requiredMark = item.required ? <span className="text-destructive"> *</span> : null;
   const sourceNote = item.sourceMaterials.length > 0 ? <div className="mt-2 rounded-lg border border-primary/10 bg-secondary/50 px-3 py-2 text-xs text-muted-foreground"><span className="font-bold text-primary">Căn cứ:</span> {item.sourceMaterials.map(source => source.name).join(', ')}</div> : null;

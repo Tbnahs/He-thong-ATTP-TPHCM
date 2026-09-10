@@ -98,6 +98,7 @@ export interface CriteriaDefinition {
   description: string;
   groupId: string;
   answerType: CriteriaAnswerType;
+  answerTypes?: CriteriaAnswerType[];
   options: string[];
   /** @minimum 0 */
   maxScore: number;

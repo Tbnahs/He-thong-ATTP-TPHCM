@@ -398,6 +398,10 @@ components:
           type: string
         answerType:
           $ref: "#/components/schemas/CriteriaAnswerType"
+        answerTypes:
+          type: array
+          items:
+            $ref: "#/components/schemas/CriteriaAnswerType"
         options:
           type: array
           items:
