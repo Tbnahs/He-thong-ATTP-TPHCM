@@ -24,11 +24,13 @@ Cổng thông tin an toàn thực phẩm TP.HCM với tra cứu công khai, đă
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- The inspection module is a frontend-only workflow backed by typed sample data and browser localStorage, matching the current no-API demo architecture.
+- Inspection criteria use a single 100-point score and classify results at 100% (PASS), 80–99% (warning / temporary suspension), and below 80% (stop operation).
+- The admin navigation keeps incident management as a reserved submenu entry while schedule, minutes, and criteria configuration have dedicated screens.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+The portal supports public ATTP lookup and registration, admin review of facility applications, and an inspection workflow for scheduling visits, creating scored inspection minutes, configuring weighted criteria, and exposing automatic result classifications.
 
 ## User preferences
 

@@ -15,6 +15,11 @@ import {
   NewsPage,
   RegisterPage,
 } from "@/pages/portal-pages";
+import {
+  InspectionCriteriaPage,
+  InspectionMinutesPage,
+  InspectionSchedulePage,
+} from "@/pages/inspection-pages";
 import { Route, Switch, useLocation, Router as WouterRouter } from "wouter";
 
 function Router() {
@@ -57,6 +62,26 @@ function Router() {
         <Route path="/admin/reports">
           <AdminGuard>
             <AdminPlaceholder kind="reports" />
+          </AdminGuard>
+        </Route>
+        <Route path="/admin/inspections/schedule">
+          <AdminGuard>
+            <InspectionSchedulePage />
+          </AdminGuard>
+        </Route>
+        <Route path="/admin/inspections/minutes">
+          <AdminGuard>
+            <InspectionMinutesPage />
+          </AdminGuard>
+        </Route>
+        <Route path="/admin/inspections/criteria">
+          <AdminGuard>
+            <InspectionCriteriaPage />
+          </AdminGuard>
+        </Route>
+        <Route path="/admin/inspections/incidents">
+          <AdminGuard>
+            <AdminPlaceholder kind="incidents" />
           </AdminGuard>
         </Route>
         <Route path="/facility/profile">

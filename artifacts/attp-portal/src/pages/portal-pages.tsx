@@ -42,6 +42,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Store,
+  TriangleAlert,
   Trash2,
   UserRound,
   Users,
@@ -4944,30 +4945,53 @@ function AttachmentPanel({ attachments }: { attachments: Attachment[] }) {
   );
 }
 
-export function AdminPlaceholder({ kind }: { kind: "accounts" | "reports" }) {
+export function AdminPlaceholder({
+  kind,
+}: {
+  kind: "accounts" | "reports" | "incidents";
+}) {
   const isAccounts = kind === "accounts";
+  const isIncidents = kind === "incidents";
   return (
     <AdminShell>
       <div className="mx-auto max-w-5xl px-5 py-12 lg:px-10">
         <SectionHeading
           eyebrow="Khu vực quản trị"
-          title={isAccounts ? "Quản lý tài khoản" : "Báo cáo thống kê"}
+          title={
+            isAccounts
+              ? "Quản lý tài khoản"
+              : isIncidents
+                ? "Quản lý và xử lý sự cố ATTP"
+                : "Báo cáo thống kê"
+          }
           description={
             isAccounts
               ? "Quản lý tài khoản cán bộ và phân quyền truy cập hệ thống."
-              : "Tổng hợp số liệu tiếp nhận, xét duyệt và công khai hồ sơ."
+              : isIncidents
+                ? "Theo dõi và xử lý sự cố an toàn thực phẩm."
+                : "Tổng hợp số liệu tiếp nhận, xét duyệt và công khai hồ sơ."
           }
         />
         <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary text-primary">
-            {isAccounts ? <Users size={25} /> : <BarChart3Icon size={25} />}
+            {isAccounts ? (
+              <Users size={25} />
+            ) : isIncidents ? (
+              <TriangleAlertIcon size={25} />
+            ) : (
+              <BarChart3Icon size={25} />
+            )}
           </div>
           <h2 className="mt-5 text-xl font-extrabold">
             Khu vực đang được hoàn thiện
           </h2>
           <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
             Mục menu đã sẵn sàng để kết nối với phân hệ{" "}
-            {isAccounts ? "tài khoản và phân quyền" : "báo cáo, xuất dữ liệu"}{" "}
+            {isAccounts
+              ? "tài khoản và phân quyền"
+              : isIncidents
+                ? "xử lý sự cố ATTP"
+                : "báo cáo, xuất dữ liệu"}{" "}
             trong phiên bản tiếp theo.
           </p>
         </div>
@@ -4977,4 +5001,7 @@ export function AdminPlaceholder({ kind }: { kind: "accounts" | "reports" }) {
 }
 function BarChart3Icon({ size }: { size: number }) {
   return <BarChart3 size={size} />;
+}
+function TriangleAlertIcon({ size }: { size: number }) {
+  return <TriangleAlert size={size} />;
 }

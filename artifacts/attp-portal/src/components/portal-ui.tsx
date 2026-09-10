@@ -4,7 +4,9 @@ import {
   ArrowRight,
   BarChart3,
   Bell,
+  CalendarDays,
   ClipboardCheck,
+  ClipboardList,
   FileSearch,
   Home,
   LogIn,
@@ -12,6 +14,8 @@ import {
   Menu,
   Search,
   ShieldCheck,
+  SlidersHorizontal,
+  TriangleAlert,
   X,
 } from "lucide-react";
 import emblemPath from "../../../../.conversation/attached_assets/Emblem_of_Vietnam.svg_1788926527100.webp";
@@ -322,6 +326,20 @@ export function AdminShell({ children }: { children: ReactNode }) {
     ["/admin/accounts", "Quản lý tài khoản", ShieldCheck],
     ["/admin/reports", "Báo cáo thống kê", BarChart3],
   ];
+  const inspectionItems = [
+    ["/admin/inspections/schedule", "Lịch kiểm tra", CalendarDays],
+    ["/admin/inspections/minutes", "Biên bản kiểm tra", ClipboardList],
+    [
+      "/admin/inspections/criteria",
+      "Cấu hình tiêu chí đánh giá",
+      SlidersHorizontal,
+    ],
+    [
+      "/admin/inspections/incidents",
+      "Quản lý và xử lý sự cố ATTP",
+      TriangleAlert,
+    ],
+  ];
   const logout = () => {
     sessionStorage.removeItem("attp-reviewer-session");
     sessionStorage.removeItem("attp-session-role");
@@ -371,6 +389,24 @@ export function AdminShell({ children }: { children: ReactNode }) {
                 <Icon size={17} />
               </span>
               <span>{label as string}</span>
+            </Link>
+          ))}
+          <div className="px-3.5 pb-1 pt-5 text-[10px] font-extrabold uppercase tracking-[.16em] text-[#f4c95d]">
+            Thanh tra, kiểm tra
+          </div>
+          {inspectionItems.map(([href, label, Icon]) => (
+            <Link
+              key={href as string}
+              href={href as string}
+              className={`focus-ring group flex items-start gap-3 rounded-2xl px-3.5 py-2.5 text-[13px] font-semibold transition-all ${location.startsWith(href as string) ? "bg-[#f4c95d] text-[#123d36] shadow-lg shadow-black/10" : "text-white/65 hover:bg-white/[.08] hover:text-white"}`}
+              data-testid={`link-admin-${label}`}
+            >
+              <span
+                className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors ${location.startsWith(href as string) ? "bg-[#123d36]/10" : "bg-white/[.06] group-hover:bg-white/10"}`}
+              >
+                <Icon size={15} />
+              </span>
+              <span className="leading-5">{label as string}</span>
             </Link>
           ))}
         </nav>
