@@ -23,7 +23,6 @@ export type Application = {
   criteriaSnapshot?: CriteriaDefinition[];
   criteriaGroups?: CriteriaGroup[];
   scoreBreakdown?: Record<string, number>;
-  prerequisiteResults?: Record<string, boolean>;
 };
 
 export type PublicRecord = {
@@ -231,7 +230,6 @@ function normalizeApplication(application: Application): Application {
     criteriaSnapshot: criteria,
     criteriaGroups: application.criteriaGroups ?? getCriteria(application.type).groups,
     scoreBreakdown: application.scoreBreakdown ?? {},
-    prerequisiteResults: application.prerequisiteResults ?? {},
   };
 }
 
@@ -257,7 +255,6 @@ export function createApplication(
     criteriaSnapshot: getCriteria(input.type, input.criteriaVersion).criteria,
     criteriaGroups: getCriteria(input.type, input.criteriaVersion).groups,
     scoreBreakdown: {},
-    prerequisiteResults: {},
   };
   applications.unshift(created);
   return normalizeApplication(created);
@@ -271,7 +268,6 @@ export function reviewApplication(
   if (!app) return undefined;
   const criteria = app.criteriaSnapshot ?? getCriteria(app.type).criteria;
   const ordinaryCriteria = criteria.filter((item) => item.active);
-  const prerequisiteResults = {};
   const scoreBreakdown = input.criteriaScores ?? {};
   const computedScore = ordinaryCriteria.reduce(
     (sum, item) => sum + Math.min(item.maxScore, Math.max(0, Number(scoreBreakdown[item.key] ?? 0))),
@@ -290,6 +286,5 @@ export function reviewApplication(
   app.score = input.action === "needs-more-info" ? input.score : Math.round(computedScore);
   app.reviewNote = input.note || null;
   app.scoreBreakdown = scoreBreakdown;
-  app.prerequisiteResults = prerequisiteResults;
   return normalizeApplication(app);
 }

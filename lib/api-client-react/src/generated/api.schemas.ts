@@ -98,12 +98,10 @@ export interface CriteriaDefinition {
   description: string;
   groupId: string;
   answerType: CriteriaAnswerType;
-  answerTypes?: CriteriaAnswerType[];
   options: string[];
   /** @minimum 0 */
   maxScore: number;
   required: boolean;
-  prerequisite: boolean;
   active: boolean;
   order: number;
   sourceMaterials: CriteriaSource[];
@@ -174,8 +172,6 @@ export type ApplicationData = { [key: string]: unknown };
 
 export type ApplicationScoreBreakdown = {[key: string]: number};
 
-export type ApplicationPrerequisiteResults = {[key: string]: boolean};
-
 export interface Application {
   id: string;
   reference: string;
@@ -195,7 +191,6 @@ export interface Application {
   criteriaSnapshot: CriteriaDefinition[];
   criteriaGroups: CriteriaGroup[];
   scoreBreakdown: ApplicationScoreBreakdown;
-  prerequisiteResults: ApplicationPrerequisiteResults;
 }
 
 export type ApplicationInputType = typeof ApplicationInputType[keyof typeof ApplicationInputType];
@@ -234,8 +229,6 @@ export const ReviewInputAction = {
 
 export type ReviewInputCriteriaScores = {[key: string]: number};
 
-export type ReviewInputPrerequisiteResults = {[key: string]: boolean};
-
 export interface ReviewInput {
   action: ReviewInputAction;
   /**
@@ -245,7 +238,6 @@ export interface ReviewInput {
   score: number;
   note: string;
   criteriaScores: ReviewInputCriteriaScores;
-  prerequisiteResults: ReviewInputPrerequisiteResults;
 }
 
 export type AdminSummaryByType = {[key: string]: number};

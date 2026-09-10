@@ -7,7 +7,6 @@
  */
 import type { ReviewInputAction } from './reviewInputAction';
 import type { ReviewInputCriteriaScores } from './reviewInputCriteriaScores';
-import type { ReviewInputPrerequisiteResults } from './reviewInputPrerequisiteResults';
 
 export interface ReviewInput {
   action: ReviewInputAction;
@@ -18,5 +17,4 @@ export interface ReviewInput {
   score: number;
   note: string;
   criteriaScores: ReviewInputCriteriaScores;
-  prerequisiteResults: ReviewInputPrerequisiteResults;
 }

@@ -398,10 +398,6 @@ components:
           type: string
         answerType:
           $ref: "#/components/schemas/CriteriaAnswerType"
-        answerTypes:
-          type: array
-          items:
-            $ref: "#/components/schemas/CriteriaAnswerType"
         options:
           type: array
           items:
@@ -411,8 +407,6 @@ components:
           minimum: 0
         required:
           type: boolean
-        prerequisite:
-          type: boolean
         active:
           type: boolean
         order:
@@ -421,7 +415,7 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/CriteriaSource"
-      required: [id, key, label, description, groupId, answerType, options, maxScore, required, prerequisite, active, order, sourceMaterials]
+      required: [id, key, label, description, groupId, answerType, options, maxScore, required, active, order, sourceMaterials]
     CriteriaSet:
       type: object
       properties:
@@ -531,11 +525,7 @@ components:
           type: object
           additionalProperties:
             type: number
-        prerequisiteResults:
-          type: object
-          additionalProperties:
-            type: boolean
-      required: [id, reference, type, applicantName, address, contact, submittedAt, status, score, reviewNote, isThirdParty, data, attachments, criteriaVersion, criteriaSnapshot, criteriaGroups, scoreBreakdown, prerequisiteResults]
+      required: [id, reference, type, applicantName, address, contact, submittedAt, status, score, reviewNote, isThirdParty, data, attachments, criteriaVersion, criteriaSnapshot, criteriaGroups, scoreBreakdown]
     ApplicationInput:
       type: object
       properties:
@@ -580,11 +570,7 @@ components:
           type: object
           additionalProperties:
             type: number
-        prerequisiteResults:
-          type: object
-          additionalProperties:
-            type: boolean
-      required: [action, score, note, criteriaScores, prerequisiteResults]
+      required: [action, score, note, criteriaScores]
     AdminSummary:
       type: object
       properties:

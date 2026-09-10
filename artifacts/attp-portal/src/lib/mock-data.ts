@@ -9,8 +9,8 @@ export interface CriteriaSource { id: string; name: string; kind: string; size: 
 export interface CriteriaGroup { id: string; name: string; order: number }
 export interface CriteriaDefinition {
   id: string; key: string; label: string; description: string; groupId: string;
-  answerType: CriteriaAnswerType; answerTypes?: CriteriaAnswerType[]; options: string[];
-  maxScore: number; required: boolean; prerequisite: boolean; active: boolean; order: number;
+  answerType: CriteriaAnswerType; options: string[];
+  maxScore: number; required: boolean; active: boolean; order: number;
   sourceMaterials: CriteriaSource[];
 }
 export interface CriteriaSet { type: ApplicationType; version: string; effectiveFrom: string; totalScore: number; groups: CriteriaGroup[]; criteria: CriteriaDefinition[] }
@@ -21,15 +21,15 @@ export interface Application {
   id: string; reference: string; type: ApplicationType; applicantName: string; address: string; contact: string;
   submittedAt: string; status: ApplicationStatus; score: number; reviewNote: string | null; isThirdParty: boolean;
   data: Record<string, unknown>; attachments: Attachment[]; criteriaVersion: string; criteriaSnapshot: CriteriaDefinition[];
-  criteriaGroups: CriteriaGroup[]; scoreBreakdown: Record<string, number>; prerequisiteResults: Record<string, boolean>;
+  criteriaGroups: CriteriaGroup[]; scoreBreakdown: Record<string, number>;
 }
 export interface ListApplicationsParams { status?: ApplicationStatus; search?: string }
 export interface CriteriaConfigInput { applyMode: 'now' | 'scheduled' }
 
 const source = (id: string, name: string): CriteriaSource => ({ id, name, kind: 'text/plain', size: 0 });
 const criterion = (type: ApplicationType, key: string, label: string, groupId: string, answerType: CriteriaAnswerType, maxScore: number, options: string[] = [], extra: Partial<CriteriaDefinition> = {}): CriteriaDefinition => ({
-  id: `${type}-${key}`, key, label, description: '', groupId, answerType, answerTypes: [answerType], options,
-  maxScore, required: true, prerequisite: false, active: true, order: 0, sourceMaterials: [], ...extra,
+  id: `${type}-${key}`, key, label, description: '', groupId, answerType, options,
+  maxScore, required: true, active: true, order: 0, sourceMaterials: [], ...extra,
 });
 const groupList = (type: ApplicationType, names: string[]) => names.map((name, index) => ({ id: `${type}-group-${index + 1}`, name, order: index + 1 }));
 
@@ -118,7 +118,7 @@ export const applications: Application[] = [
     criteriaSnapshot: applicationCriteria.criteria, criteriaGroups: applicationCriteria.groups,
     data: { applicantName: 'Công ty TNHH Nông sản An Phú', taxCode: '0312345678', address: '184 Nguyễn Văn Linh, Quận 7, TP.HCM', contact: '0908 123 456', licenseNumber: 'ATTP-2026-088', productGroups: ['Rau củ quả', 'Thịt gia súc'], origin: 'Hợp tác xã rau sạch Củ Chi', safetyProcess: 'Có' },
     attachments: [{ name: 'giay-phep-attp.pdf', kind: 'application/pdf', size: 420000, fieldKey: 'businessLicense' }, { name: 'kho-bao-quan-01.jpg', kind: 'image/jpeg', size: 1800000, fieldKey: 'storageEvidence' }],
-    scoreBreakdown: { productGroups: 16, origin: 8, storageEvidence: 20, safetyProcess: 25 }, prerequisiteResults: {},
+    scoreBreakdown: { productGroups: 16, origin: 8, storageEvidence: 20, safetyProcess: 25 },
   },
   {
     id: 'app-002', reference: 'HS-2026-0037', type: 'school', applicantName: 'Trường Mầm non Hoa Sen',
@@ -126,6 +126,6 @@ export const applications: Application[] = [
     status: 'needs-more-info', score: 82, reviewNote: 'Cần bổ sung ảnh khu lưu mẫu thức ăn.', isThirdParty: true,
     criteriaVersion: 'SC-2026.1', criteriaSnapshot: getCriteriaSet('school').criteria, criteriaGroups: getCriteriaSet('school').groups,
     data: { applicantName: 'Trường Mầm non Hoa Sen', schoolLevel: 'Mầm non', address: '35 Nguyễn Du, Quận 1, TP.HCM', contact: '028 3822 4567', hasFoodSafetyLead: 'Có', mealModel: 'Liên kết đơn vị suất ăn', kitchenOneWay: 'Có', sampleStorage: 'Có' },
-    attachments: [{ name: 'quyet-dinh-thanh-lap.pdf', kind: 'application/pdf', size: 510000, fieldKey: 'schoolDecision' }], scoreBreakdown: { hasFoodSafetyLead: 15, mealModel: 18, kitchenOneWay: 24, sampleStorage: 25 }, prerequisiteResults: {},
+    attachments: [{ name: 'quyet-dinh-thanh-lap.pdf', kind: 'application/pdf', size: 510000, fieldKey: 'schoolDecision' }], scoreBreakdown: { hasFoodSafetyLead: 15, mealModel: 18, kitchenOneWay: 24, sampleStorage: 25 },
   },
 ];

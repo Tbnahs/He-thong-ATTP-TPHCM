@@ -31,7 +31,6 @@ export const criteriaDefinitions = pgTable("attp_criteria_definitions", {
   options: jsonb("options").$type<string[]>().notNull().default([]),
   maxScore: integer("max_score").notNull().default(0),
   required: boolean("required").notNull().default(true),
-  prerequisite: boolean("prerequisite").notNull().default(false),
   active: boolean("active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
 });

@@ -6,7 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ApplicationData } from './applicationData';
-import type { ApplicationPrerequisiteResults } from './applicationPrerequisiteResults';
 import type { ApplicationScoreBreakdown } from './applicationScoreBreakdown';
 import type { ApplicationStatus } from './applicationStatus';
 import type { ApplicationTypeProperty } from './applicationTypeProperty';
@@ -33,5 +32,4 @@ export interface Application {
   criteriaSnapshot: CriteriaDefinition[];
   criteriaGroups: CriteriaGroup[];
   scoreBreakdown: ApplicationScoreBreakdown;
-  prerequisiteResults: ApplicationPrerequisiteResults;
 }

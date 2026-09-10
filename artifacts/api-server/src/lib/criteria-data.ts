@@ -25,11 +25,9 @@ const criterion = (
   description: "",
   groupId,
   answerType,
-  answerTypes: [answerType],
   options,
   maxScore,
   required: true,
-  prerequisite: false,
   active: true,
   order: 0,
   sourceMaterials: [],
@@ -155,8 +153,7 @@ export function updateCriteria(
     totalScore: score,
     groups: input.groups.map((group, index) => ({ ...group, order: group.order || index + 1 })),
      criteria: input.criteria.map((item, index) => {
-       const answerTypes = item.answerTypes?.length ? Array.from(new Set(item.answerTypes)) : [item.answerType];
-       return { ...item, answerType: answerTypes[0], answerTypes, prerequisite: false, order: item.order || index + 1 };
+       return { ...item, answerType: item.answerType, order: item.order || index + 1 };
      }),
   };
   defaults[type] = next;
