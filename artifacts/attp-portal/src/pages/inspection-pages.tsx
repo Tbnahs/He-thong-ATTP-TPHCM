@@ -433,6 +433,8 @@ export function InspectionSchedulePage() {
     readStored("attp-inspection-schedules", initialSchedules),
   );
   const [createOpen, setCreateOpen] = useState(false);
+  const [selectedSchedule, setSelectedSchedule] =
+    useState<InspectionSchedule | null>(null);
   useEffect(() => {
     window.localStorage.setItem(
       "attp-inspection-schedules",
@@ -581,19 +583,30 @@ export function InspectionSchedulePage() {
                     <CalendarDays size={14} className="mt-0.5 shrink-0" />{" "}
                     {item.time} · {item.address}
                   </p>
-                  <div className="mt-3 flex items-center justify-between text-xs">
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs">
                     <span className="font-semibold text-muted-foreground">
                       {item.team}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setSchedules((items) => items.filter((x) => x.id !== item.id))
-                      }
-                      className="font-bold text-red-700 hover:underline"
-                    >
-                      Xóa
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSchedules((items) =>
+                            items.filter((x) => x.id !== item.id),
+                          )
+                        }
+                        className="rounded-lg border border-border px-3 py-2 font-bold text-foreground hover:bg-secondary"
+                      >
+                        Xóa
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSchedule(item)}
+                        className="rounded-lg bg-primary px-3 py-2 font-bold text-primary-foreground hover:bg-primary/90"
+                      >
+                        Chi tiết
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -609,6 +622,87 @@ export function InspectionSchedulePage() {
             setCreateOpen(false);
           }}
         />
+      )}
+      {selectedSchedule && (
+        <Dialog
+          title="Chi tiết lịch kiểm tra"
+          onClose={() => setSelectedSchedule(null)}
+        >
+          <div className="rounded-2xl border border-border bg-secondary/30 p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="mono-label text-primary">LỊCH CÔNG TÁC</p>
+                <h3 className="mt-2 text-xl font-extrabold">
+                  {selectedSchedule.facility}
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {selectedSchedule.purpose}
+                </p>
+              </div>
+              <span
+                className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${
+                  selectedSchedule.kind === "Đột xuất"
+                    ? "bg-orange-100 text-orange-900"
+                    : "bg-emerald-100 text-emerald-900"
+                }`}
+              >
+                {selectedSchedule.kind}
+              </span>
+            </div>
+          </div>
+          <dl className="mt-6 grid gap-x-6 gap-y-5 sm:grid-cols-2">
+            <div>
+              <dt className="text-sm font-extrabold">Ngày kiểm tra</dt>
+              <dd className="mt-1 text-sm text-muted-foreground">
+                {formatDate(selectedSchedule.date)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm font-extrabold">Thời gian</dt>
+              <dd className="mt-1 text-sm text-muted-foreground">
+                {selectedSchedule.time}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm font-extrabold">Tổ kiểm tra</dt>
+              <dd className="mt-1 text-sm text-muted-foreground">
+                {selectedSchedule.team}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm font-extrabold">Trạng thái</dt>
+              <dd className="mt-1 text-sm text-muted-foreground">Đã lên lịch</dd>
+            </div>
+            <div>
+              <dt className="text-sm font-extrabold">Địa điểm</dt>
+              <dd className="mt-1 text-sm text-muted-foreground">
+                {selectedSchedule.address || "Chưa cập nhật"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm font-extrabold">Ghi chú</dt>
+              <dd className="mt-1 text-sm text-muted-foreground">
+                {selectedSchedule.note || "Không có ghi chú"}
+              </dd>
+            </div>
+          </dl>
+          <div className="mt-6 flex flex-wrap justify-end gap-3 border-t border-border pt-5">
+            <Button
+              variant="outline"
+              onClick={() => setSelectedSchedule(null)}
+              className="rounded-xl"
+            >
+              Đóng
+            </Button>
+            <Link
+              href="/admin/inspections/minutes"
+              onClick={() => setSelectedSchedule(null)}
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground hover:bg-primary/90"
+            >
+              <ClipboardCheck size={16} /> Biên bản kiểm tra
+            </Link>
+          </div>
+        </Dialog>
       )}
     </AdminShell>
   );
