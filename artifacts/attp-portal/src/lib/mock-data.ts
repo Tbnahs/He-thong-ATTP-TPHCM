@@ -79,6 +79,20 @@ export interface PublicRecord {
   publishedAt: string;
   metadata: Record<string, string | number>;
 }
+export type NewsCategory = "activity" | "event";
+export interface NewsItem {
+  id: string;
+  slug: string;
+  category: NewsCategory;
+  title: string;
+  excerpt: string;
+  content: string;
+  publishedAt: string;
+  views: number;
+  image: string;
+  readTime: string;
+  location?: string;
+}
 export interface SupplierOption {
   id: string;
   name: string;
@@ -645,6 +659,73 @@ export const publicRecords: PublicRecord[] = [
       "Phạm vi": "Thực phẩm và nước uống",
       "Mã công nhận": "VILAS 1420",
     },
+  },
+];
+
+export const newsItems: NewsItem[] = [
+  {
+    id: "news-001",
+    slug: "huong-dan-chuyen-mon-chi-thi-33",
+    category: "activity",
+    title:
+      "Sở An toàn thực phẩm tổ chức lớp hướng dẫn chuyên môn triển khai Chỉ thị số 33/CT-TTg",
+    excerpt:
+      "Cập nhật cách triển khai các nhiệm vụ tăng cường bảo đảm an toàn thực phẩm trong cơ sở giáo dục trên địa bàn Thành phố.",
+    content:
+      "Sáng ngày 08/9/2026, Sở An toàn thực phẩm Thành phố Hồ Chí Minh tổ chức lớp hướng dẫn chuyên môn nhằm triển khai thực hiện Chỉ thị số 33/CT-TTg ngày 14/8/2026 của Thủ tướng Chính phủ và Công văn số 7916/UBND-VX ngày 26/8/2026 của Ủy ban nhân dân Thành phố về việc tăng cường bảo đảm an toàn thực phẩm trong cơ sở giáo dục. Chương trình tập trung vào việc rà soát điều kiện bếp ăn, kiểm soát nguồn nguyên liệu và nâng cao trách nhiệm phối hợp giữa nhà trường, đơn vị cung cấp suất ăn và cơ quan quản lý.",
+    publishedAt: "2026-09-09",
+    views: 86,
+    image: "/generated_images/news-training-workshop.jpg",
+    readTime: "4 phút đọc",
+    location: "Hội trường Sở An toàn thực phẩm",
+  },
+  {
+    id: "news-002",
+    slug: "doan-cong-tac-khao-sat-an-toan-thuc-pham",
+    category: "activity",
+    title:
+      "Đoàn công tác Ủy ban Khoa học, Công nghệ và Môi trường khảo sát thực tế tại Thành phố",
+    excerpt:
+      "Đoàn công tác khảo sát trực tiếp tại doanh nghiệp sản xuất, hệ thống phân phối và chợ đầu mối trên địa bàn Thành phố.",
+    content:
+      "Ngày 27/8/2026, Đoàn công tác của Thường trực Ủy ban Khoa học, Công nghệ và Môi trường do đồng chí Nguyễn Phương Tuấn, Phó Chủ nhiệm Ủy ban làm Trưởng đoàn đã tiến hành khảo sát thực tế tại các doanh nghiệp sản xuất, hệ thống phân phối lớn cũng như chợ đầu mối trên địa bàn Thành phố Hồ Chí Minh. Hoạt động góp phần ghi nhận thực tiễn quản lý, sản xuất và phân phối thực phẩm để phục vụ công tác thẩm tra dự án Luật An toàn thực phẩm (sửa đổi).",
+    publishedAt: "2026-08-28",
+    views: 140,
+    image: "/generated_images/news-market-inspection.jpg",
+    readTime: "5 phút đọc",
+    location: "Chợ đầu mối và cơ sở sản xuất",
+  },
+  {
+    id: "news-003",
+    slug: "tap-huan-an-toan-thuc-pham-banh-trung-thu",
+    category: "event",
+    title:
+      "Lớp tập huấn an toàn thực phẩm cho cơ sở sản xuất, kinh doanh bánh Trung thu năm 2026",
+    excerpt:
+      "Chương trình giúp các cơ sở chủ động phòng ngừa ngộ độc thực phẩm và bảo vệ sức khỏe người tiêu dùng dịp Tết Trung thu.",
+    content:
+      "Sáng ngày 27/8/2026, Sở An toàn thực phẩm Thành phố Hồ Chí Minh tổ chức lớp tập huấn kiến thức an toàn thực phẩm cho các cơ sở sản xuất, kinh doanh bánh Trung thu trên địa bàn Thành phố theo hình thức trực tiếp và trực tuyến. Nội dung tập huấn bám sát chỉ đạo của Cục An toàn thực phẩm, tập trung vào kiểm soát nguyên liệu, điều kiện sản xuất, ghi nhãn và lưu mẫu sản phẩm.",
+    publishedAt: "2026-08-28",
+    views: 204,
+    image: "/generated_images/news-food-service-training.jpg",
+    readTime: "3 phút đọc",
+    location: "Trực tiếp và trực tuyến",
+  },
+  {
+    id: "news-004",
+    slug: "tap-huan-co-so-kinh-doanh-dich-vu-an-uong",
+    category: "event",
+    title:
+      "Tăng cường kiến thức an toàn thực phẩm cho cơ sở kinh doanh dịch vụ ăn uống",
+    excerpt:
+      "Gần 1.600 cơ sở kinh doanh dịch vụ ăn uống, thức ăn đường phố và bếp ăn từ thiện cùng tham gia chương trình.",
+    content:
+      "Sáng ngày 20/8/2026, tại Hội trường Sở An toàn thực phẩm Thành phố Hồ Chí Minh đã tổ chức lớp tập huấn kiến thức an toàn thực phẩm cho các cơ sở kinh doanh dịch vụ ăn uống trên địa bàn Thành phố. Lớp tập huấn được tổ chức trực tiếp tại Sở và kết nối trực tuyến đến 168 phường, xã, đặc khu, với sự tham dự của 350 cán bộ phụ trách công tác an toàn thực phẩm, thành viên Ban Chỉ đạo liên ngành về an toàn thực phẩm và gần 1.600 cơ sở kinh doanh.",
+    publishedAt: "2026-08-24",
+    views: 200,
+    image: "/generated_images/news-training-workshop.jpg",
+    readTime: "4 phút đọc",
+    location: "168 phường, xã, đặc khu",
   },
 ];
 

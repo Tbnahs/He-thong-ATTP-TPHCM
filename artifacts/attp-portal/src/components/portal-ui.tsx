@@ -83,11 +83,13 @@ export function PublicHeader() {
     ? [
         ["/", "Tổng quan"],
         ["/lookup", "Tra cứu"],
+        ["/news", "Tin tức & sự kiện"],
         ["/facility/profile", "Hồ sơ cơ sở"],
       ]
     : [
         ["/", "Tổng quan"],
         ["/lookup", "Tra cứu"],
+        ["/news", "Tin tức & sự kiện"],
         ["/register", "Đăng ký hồ sơ"],
       ];
   useEffect(() => {

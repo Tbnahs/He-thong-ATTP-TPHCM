@@ -32,6 +32,9 @@ import {
   LockKeyhole,
   LogIn,
   MapPin,
+  CalendarDays,
+  Clock3,
+  Newspaper,
   Plus,
   RotateCcw,
   Search,
@@ -47,6 +50,7 @@ import {
   ZoomIn,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import NotFound from "@/pages/not-found";
 import {
   AdminShell,
   ButtonLink,
@@ -61,6 +65,7 @@ import {
   criteriaHistory,
   getCriteriaSet,
   getPublicRecords,
+  newsItems,
   suppliers,
   type Application,
   type ApplicationType,
@@ -72,10 +77,15 @@ import {
   type CriteriaSet,
   type ListApplicationsParams,
   type ListPublicRecordsCategory,
+  type NewsCategory,
+  type NewsItem,
   type PublicRecord,
   type ReviewAction,
 } from "@/lib/mock-data";
 import heroFoodImage from "@assets/1788940094256_5613377993845818882_5613377993845818882_1e47059ddc5db7e9cbacbeb3495b9f36.jpg";
+import newsTrainingImage from "@assets/generated_images/news-training-workshop.jpg";
+import newsMarketImage from "@assets/generated_images/news-market-inspection.jpg";
+import newsFoodServiceImage from "@assets/generated_images/news-food-service-training.jpg";
 
 const categoryNames: Record<string, string> = {
   "eligible-facilities": "Cơ sở đủ điều kiện",
@@ -106,6 +116,12 @@ const formatNumber = (value?: number) =>
   typeof value === "number"
     ? new Intl.NumberFormat("vi-VN").format(value)
     : "—";
+const newsImageMap: Record<string, string> = {
+  "/generated_images/news-training-workshop.jpg": newsTrainingImage,
+  "/generated_images/news-market-inspection.jpg": newsMarketImage,
+  "/generated_images/news-food-service-training.jpg": newsFoodServiceImage,
+};
+const getNewsImage = (image: string) => newsImageMap[image] ?? image;
 type AccountRole = "admin" | "facility";
 const inferAccountRole = (username: string): AccountRole =>
   /^(admin|canbo|reviewer|xetduyet)/i.test(username.trim())
@@ -488,6 +504,282 @@ export function LookupPage() {
     </PublicShell>
   );
 }
+
+const newsCategoryNames: Record<NewsCategory | "all", string> = {
+  all: "Tất cả",
+  activity: "Tin hoạt động",
+  event: "Sự kiện",
+};
+
+export function NewsPage() {
+  const [category, setCategory] = useState<NewsCategory | "all">("all");
+  const [search, setSearch] = useState("");
+  const featured = newsItems[0];
+  const filtered = newsItems.filter((item) => {
+    const matchesCategory = category === "all" || item.category === category;
+    const matchesSearch =
+      !search ||
+      `${item.title} ${item.excerpt}`
+        .toLowerCase()
+        .includes(search.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  return (
+    <PublicShell>
+      <main>
+        <section className="portal-grid border-b border-border">
+          <div className="mx-auto max-w-7xl px-5 py-14 lg:px-8 lg:py-20">
+            <div className="max-w-3xl rise-in">
+              <p className="mono-label font-semibold text-primary">
+                Cập nhật từ Sở
+              </p>
+              <h1 className="display-tight mt-4 text-4xl font-extrabold leading-tight md:text-6xl">
+                Tin tức & <span className="text-primary">sự kiện.</span>
+              </h1>
+              <p className="mt-6 max-w-2xl text-base leading-8 text-muted-foreground md:text-lg">
+                Những hoạt động mới nhất về quản lý, tập huấn và phối hợp bảo
+                đảm an toàn thực phẩm trên địa bàn Thành phố Hồ Chí Minh.
+              </p>
+            </div>
+            <div className="mt-10 grid gap-5 overflow-hidden rounded-[1.75rem] border border-primary/10 bg-card shadow-xl shadow-primary/5 lg:grid-cols-[1.08fr_.92fr]">
+              <div className="relative min-h-[19rem] overflow-hidden lg:min-h-[23rem]">
+                <img
+                  src={getNewsImage(featured.image)}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#123d36]/90 via-[#123d36]/15 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-6 text-white md:p-8">
+                  <span className="inline-flex rounded-full bg-[#f4c95d] px-3 py-1.5 text-xs font-extrabold text-[#123d36]">
+                    Tin mới nhất
+                  </span>
+                  <h2 className="mt-4 max-w-2xl text-2xl font-extrabold leading-tight md:text-3xl">
+                    {featured.title}
+                  </h2>
+                  <Link
+                    href={`/news/${featured.slug}`}
+                    className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#f4c95d] hover:text-white"
+                    data-testid="link-featured-news"
+                  >
+                    Đọc bài viết <ArrowUpRight size={16} />
+                  </Link>
+                </div>
+              </div>
+              <div className="flex flex-col justify-center p-6 md:p-8">
+                <div className="flex items-center gap-2 text-sm font-bold text-primary">
+                  <Newspaper size={18} /> Đáng chú ý
+                </div>
+                <p className="mt-5 text-lg font-bold leading-8">
+                  Kết nối thông tin chính thức với cộng đồng cơ sở, nhà trường
+                  và người dân.
+                </p>
+                <p className="mt-4 text-sm leading-7 text-muted-foreground">
+                  Theo dõi các chương trình tập huấn, khảo sát thực tế và hoạt
+                  động phối hợp để chủ động thực hiện đúng quy định.
+                </p>
+                <div className="mt-7 grid grid-cols-2 gap-3 border-t border-border pt-5">
+                  <div>
+                    <p className="text-2xl font-extrabold text-primary">
+                      {newsItems.length}
+                    </p>
+                    <p className="mt-1 text-xs font-semibold text-muted-foreground">
+                      bài viết mẫu
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-extrabold text-primary">09/2026</p>
+                    <p className="mt-1 text-xs font-semibold text-muted-foreground">
+                      cập nhật gần nhất
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section className="mx-auto max-w-7xl px-5 py-14 lg:px-8 lg:py-20">
+          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="mono-label font-semibold text-primary">Thư viện nội dung</p>
+              <h2 className="display-tight mt-3 text-3xl font-extrabold md:text-4xl">
+                Mới đây tại Sở.
+              </h2>
+            </div>
+            <label className="relative block w-full md:w-80">
+              <Search
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+                size={17}
+              />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Tìm trong tin tức..."
+                className="focus-ring h-11 w-full rounded-xl border border-input bg-card pl-10 pr-4 text-sm"
+                data-testid="input-news-search"
+              />
+            </label>
+          </div>
+          <div className="mt-8 flex flex-wrap gap-2" role="tablist" aria-label="Lọc tin tức">
+            {(Object.keys(newsCategoryNames) as Array<NewsCategory | "all">).map(
+              (item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => setCategory(item)}
+                  className={`focus-ring rounded-full px-4 py-2.5 text-sm font-bold transition-all ${
+                    category === item
+                      ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                      : "border border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-primary"
+                  }`}
+                  role="tab"
+                  aria-selected={category === item}
+                  data-testid={`button-news-filter-${item}`}
+                >
+                  {newsCategoryNames[item]}
+                </button>
+              ),
+            )}
+          </div>
+          {filtered.length ? (
+            <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {filtered.map((item) => (
+                <NewsCard key={item.id} item={item} />
+              ))}
+            </div>
+          ) : (
+            <div className="mt-8">
+              <EmptyState
+                title="Chưa có tin phù hợp"
+                description="Thử một từ khóa khác hoặc chọn lại nhóm nội dung."
+              />
+            </div>
+          )}
+        </section>
+      </main>
+    </PublicShell>
+  );
+}
+
+function NewsCard({ item }: { item: NewsItem }) {
+  return (
+    <article className="lift group overflow-hidden rounded-[1.5rem] border border-border bg-card">
+      <Link href={`/news/${item.slug}`} data-testid={`link-news-${item.id}`}>
+        <div className="relative aspect-[1.65] overflow-hidden bg-secondary">
+          <img
+            src={getNewsImage(item.image)}
+            alt=""
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+          <span className="absolute left-4 top-4 rounded-full bg-background/90 px-3 py-1.5 text-[11px] font-extrabold text-primary shadow-sm backdrop-blur">
+            {newsCategoryNames[item.category]}
+          </span>
+        </div>
+        <div className="p-5">
+          <div className="flex items-center gap-3 text-xs font-semibold text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <CalendarDays size={14} className="text-primary" />
+              {formatDate(item.publishedAt)}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Eye size={14} /> {formatNumber(item.views)}
+            </span>
+          </div>
+          <h3 className="mt-4 line-clamp-3 text-lg font-extrabold leading-7 group-hover:text-primary">
+            {item.title}
+          </h3>
+          <p className="mt-3 line-clamp-3 text-sm leading-6 text-muted-foreground">
+            {item.excerpt}
+          </p>
+          <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-primary">
+            Đọc tiếp <ArrowUpRight size={15} />
+          </span>
+        </div>
+      </Link>
+    </article>
+  );
+}
+
+export function NewsDetailPage() {
+  const { slug } = useParams<{ slug: string }>();
+  const item = newsItems.find((news) => news.slug === slug);
+
+  if (!item) {
+    return <NotFound />;
+  }
+
+  return (
+    <PublicShell>
+      <main className="mx-auto max-w-5xl px-5 py-12 lg:px-8 lg:py-16">
+        <Link
+          href="/news"
+          className="focus-ring inline-flex items-center gap-2 text-sm font-bold text-primary"
+          data-testid="link-back-news"
+        >
+          <ArrowLeft size={16} /> Tất cả tin tức
+        </Link>
+        <article className="mt-8">
+          <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-primary">
+            <span className="rounded-full bg-secondary px-3 py-1.5">
+              {newsCategoryNames[item.category]}
+            </span>
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              <CalendarDays size={14} /> {formatDate(item.publishedAt)}
+            </span>
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              <Eye size={14} /> {formatNumber(item.views)} lượt xem
+            </span>
+          </div>
+          <h1 className="display-tight mt-6 max-w-4xl text-4xl font-extrabold leading-tight md:text-6xl">
+            {item.title}
+          </h1>
+          <p className="mt-6 max-w-3xl text-lg leading-8 text-muted-foreground">
+            {item.excerpt}
+          </p>
+          <div className="mt-8 overflow-hidden rounded-[1.75rem] border border-border bg-secondary">
+            <img
+              src={getNewsImage(item.image)}
+              alt=""
+              className="aspect-[2/1] w-full object-cover md:aspect-[2.2/1]"
+            />
+          </div>
+          <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_18rem]">
+            <div className="prose prose-lg max-w-none text-foreground">
+              {item.content.split(". ").map((paragraph, index) => (
+                <p key={`${item.id}-paragraph-${index}`}>
+                  {paragraph}
+                  {index < item.content.split(". ").length - 1 ? "." : ""}
+                </p>
+              ))}
+            </div>
+            <aside className="h-fit rounded-2xl border border-primary/10 bg-secondary/60 p-5">
+              <p className="mono-label font-semibold text-primary">Thông tin bài viết</p>
+              <div className="mt-5 space-y-4 text-sm">
+                <div className="flex items-start gap-3">
+                  <Clock3 size={17} className="mt-0.5 shrink-0 text-primary" />
+                  <span>
+                    <strong className="block">Thời gian đọc</strong>
+                    <span className="text-muted-foreground">{item.readTime}</span>
+                  </span>
+                </div>
+                {item.location && (
+                  <div className="flex items-start gap-3">
+                    <MapPin size={17} className="mt-0.5 shrink-0 text-primary" />
+                    <span>
+                      <strong className="block">Địa điểm</strong>
+                      <span className="text-muted-foreground">{item.location}</span>
+                    </span>
+                  </div>
+                )}
+              </div>
+            </aside>
+          </div>
+        </article>
+      </main>
+    </PublicShell>
+  );
+}
+
 function LoadingRows() {
   return (
     <div className="space-y-3">

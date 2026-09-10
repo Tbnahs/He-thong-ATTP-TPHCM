@@ -12,6 +12,8 @@ import {
   FacilityProfilePage,
   HomePage,
   LookupPage,
+  NewsDetailPage,
+  NewsPage,
   RegisterPage,
 } from "@/pages/portal-pages";
 import { Route, Switch, useLocation, Router as WouterRouter } from "wouter";
@@ -24,6 +26,8 @@ function Router() {
       <Switch>
         <Route path="/" component={HomePage} />
         <Route path="/lookup" component={LookupPage} />
+        <Route path="/news" component={NewsPage} />
+        <Route path="/news/:slug" component={NewsDetailPage} />
         <Route path="/register" component={RegisterPage} />
         <Route path="/admin/login" component={AdminLoginPage} />
         <Route path="/admin">
