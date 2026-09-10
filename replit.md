@@ -30,7 +30,7 @@ Cổng thông tin an toàn thực phẩm TP.HCM với tra cứu công khai, đă
 
 ## Product
 
-The portal supports public ATTP lookup and registration, admin review of facility applications, and an inspection workflow for scheduling visits, creating scored inspection minutes, configuring weighted criteria, and exposing automatic result classifications.
+The portal supports public ATTP lookup and registration, an admin monitoring dashboard, facility management grouped by school / food supplier / meal provider, meal management for three-step checks, menus, and recipes, admin review of facility applications, and an inspection workflow for scheduling visits, creating scored inspection minutes, configuring weighted criteria, and exposing automatic result classifications.
 
 ## User preferences
 

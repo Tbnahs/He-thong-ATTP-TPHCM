@@ -20,6 +20,11 @@ import {
   InspectionMinutesPage,
   InspectionSchedulePage,
 } from "@/pages/inspection-pages";
+import {
+  AdminFacilitiesPage,
+  AdminMealManagementPage,
+  AdminMonitoringDashboard,
+} from "@/pages/admin-module-pages";
 import { Route, Switch, useLocation, Router as WouterRouter } from "wouter";
 
 function Router() {
@@ -36,7 +41,7 @@ function Router() {
         <Route path="/admin/login" component={AdminLoginPage} />
         <Route path="/admin">
           <AdminGuard>
-            <AdminDashboard />
+            <AdminMonitoringDashboard />
           </AdminGuard>
         </Route>
         <Route path="/admin/applications">
@@ -52,6 +57,26 @@ function Router() {
         <Route path="/admin/applications/:id">
           <AdminGuard>
             <AdminApplicationPage />
+          </AdminGuard>
+        </Route>
+        <Route path="/admin/facilities">
+          <AdminGuard>
+            <AdminFacilitiesPage />
+          </AdminGuard>
+        </Route>
+        <Route path="/admin/meals/three-step">
+          <AdminGuard>
+            <AdminMealManagementPage page="three-step" />
+          </AdminGuard>
+        </Route>
+        <Route path="/admin/meals/menus">
+          <AdminGuard>
+            <AdminMealManagementPage page="menus" />
+          </AdminGuard>
+        </Route>
+        <Route path="/admin/meals/recipes">
+          <AdminGuard>
+            <AdminMealManagementPage page="recipes" />
           </AdminGuard>
         </Route>
         <Route path="/admin/accounts">

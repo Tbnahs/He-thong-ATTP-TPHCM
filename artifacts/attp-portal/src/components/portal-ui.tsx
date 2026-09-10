@@ -4,11 +4,13 @@ import {
   ArrowRight,
   BarChart3,
   Bell,
+  Building2,
   CalendarDays,
   ClipboardCheck,
   ClipboardList,
   FileSearch,
   Home,
+  LayoutDashboard,
   LogIn,
   LogOut,
   Menu,
@@ -16,6 +18,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   TriangleAlert,
+  Utensils,
   X,
 } from "lucide-react";
 import emblemPath from "../../../../.conversation/attached_assets/Emblem_of_Vietnam.svg_1788926527100.webp";
@@ -321,8 +324,17 @@ export function PublicShell({ children }: { children: ReactNode }) {
 export function AdminShell({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const [, navigate] = useLocation();
-  const items = [
+  const overviewItems = [
+    ["/admin", "Dashboard giám sát", LayoutDashboard],
     ["/admin/applications/pending", "Hồ sơ đăng ký", ClipboardCheck],
+    ["/admin/facilities", "Quản lý cơ sở", Building2],
+  ];
+  const mealItems = [
+    ["/admin/meals/three-step", "Kiểm thực 3 bước", ClipboardCheck],
+    ["/admin/meals/menus", "Thực đơn và suất ăn", Utensils],
+    ["/admin/meals/recipes", "Món ăn và quy trình chế biến", FileSearch],
+  ];
+  const systemItems = [
     ["/admin/accounts", "Quản lý tài khoản", ShieldCheck],
     ["/admin/reports", "Báo cáo thống kê", BarChart3],
   ];
@@ -376,7 +388,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
           className="flex-1 space-y-1.5 p-4"
           aria-label="Điều hướng quản trị"
         >
-          {items.map(([href, label, Icon]) => (
+          <div className="px-3.5 pb-1 text-[10px] font-extrabold uppercase tracking-[.16em] text-[#f4c95d]">
+            Tổng quan
+          </div>
+          {overviewItems.map(([href, label, Icon]) => (
             <Link
               key={href as string}
               href={href as string}
@@ -386,6 +401,38 @@ export function AdminShell({ children }: { children: ReactNode }) {
               <span
                 className={`flex h-8 w-8 items-center justify-center rounded-xl transition-colors ${location.startsWith(href as string) ? "bg-[#123d36]/10" : "bg-white/[.06] group-hover:bg-white/10"}`}
               >
+                <Icon size={17} />
+              </span>
+              <span>{label as string}</span>
+            </Link>
+          ))}
+          <div className="px-3.5 pb-1 pt-5 text-[10px] font-extrabold uppercase tracking-[.16em] text-[#f4c95d]">
+            Quản lý bữa ăn
+          </div>
+          {mealItems.map(([href, label, Icon]) => (
+            <Link
+              key={href as string}
+              href={href as string}
+              className={`focus-ring group flex items-start gap-3 rounded-2xl px-3.5 py-2.5 text-[13px] font-semibold transition-all ${location.startsWith(href as string) ? "bg-[#f4c95d] text-[#123d36] shadow-lg shadow-black/10" : "text-white/65 hover:bg-white/[.08] hover:text-white"}`}
+              data-testid={`link-admin-${label}`}
+            >
+              <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${location.startsWith(href as string) ? "bg-[#123d36]/10" : "bg-white/[.06] group-hover:bg-white/10"}`}>
+                <Icon size={15} />
+              </span>
+              <span className="leading-5">{label as string}</span>
+            </Link>
+          ))}
+          <div className="px-3.5 pb-1 pt-5 text-[10px] font-extrabold uppercase tracking-[.16em] text-[#f4c95d]">
+            Hệ thống
+          </div>
+          {systemItems.map(([href, label, Icon]) => (
+            <Link
+              key={href as string}
+              href={href as string}
+              className={`focus-ring group flex items-center gap-3 rounded-2xl px-3.5 py-3 text-sm font-semibold transition-all ${location.startsWith(href as string) ? "bg-[#f4c95d] text-[#123d36] shadow-lg shadow-black/10" : "text-white/65 hover:bg-white/[.08] hover:text-white"}`}
+              data-testid={`link-admin-${label}`}
+            >
+              <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${location.startsWith(href as string) ? "bg-[#123d36]/10" : "bg-white/[.06] group-hover:bg-white/10"}`}>
                 <Icon size={17} />
               </span>
               <span>{label as string}</span>
