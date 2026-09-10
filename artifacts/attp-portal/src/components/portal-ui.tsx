@@ -435,11 +435,7 @@ export function SectionHeading({
         <h1 className="display-tight mt-3 max-w-4xl text-3xl font-extrabold leading-tight text-foreground md:text-5xl">
           {title}
         </h1>
-        {description && (
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground md:text-base">
-            {description}
-          </p>
-        )}
+       
       </div>
       {action}
     </div>

@@ -1236,10 +1236,6 @@ function ApplicationForm() {
             <option value="meal-provider">Đơn vị cung cấp suất ăn</option>
             <option value="school">Cơ sở giáo dục</option>
           </select>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            Bộ câu hỏi hiện có {criteria.length} tiêu chí active, phiên bản{" "}
-            {criteriaSet.version}. Trường có dấu * là bắt buộc.
-          </p>
         </div>
         {groups.map((group) => (
           <FormSection
