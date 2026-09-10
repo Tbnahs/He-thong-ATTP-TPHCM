@@ -84,6 +84,8 @@ type InspectionMinute = {
   findings: number;
   facilityType?: FacilityType;
   inspectionCount?: number;
+  answers?: Record<string, InspectionAnswer>;
+  signature?: string;
 };
 
 type InspectionCriterion = {
@@ -93,6 +95,12 @@ type InspectionCriterion = {
   description: string;
   weight: number;
   required: boolean;
+};
+
+type InspectionAnswer = {
+  detail: string;
+  score: number;
+  evidence: string[];
 };
 
 const defaultCriteria: InspectionCriterion[] = [
@@ -282,6 +290,27 @@ function readCriteriaForType(type: FacilityType) {
   return (
     byType[type] ??
     readStored<InspectionCriterion[]>("attp-inspection-criteria", defaultCriteria)
+  );
+}
+
+function createAnswerMap(
+  criteria: InspectionCriterion[],
+  minute?: InspectionMinute,
+): Record<string, InspectionAnswer> {
+  if (minute?.answers) return minute.answers;
+  let remaining = minute
+    ? Math.round(
+        (criteria.reduce((total, item) => total + item.weight, 0) *
+          minute.score) /
+          100,
+      )
+    : criteria.reduce((total, item) => total + item.weight, 0);
+  return Object.fromEntries(
+    criteria.map((item) => {
+      const score = Math.min(item.weight, Math.max(0, remaining));
+      remaining -= score;
+      return [item.id, { detail: "", score, evidence: [] }];
+    }),
   );
 }
 
@@ -792,30 +821,33 @@ export function InspectionSchedulePage() {
 function InspectionMinuteForm({
   onClose,
   onSave,
+  initialMinute,
+  readOnly = false,
 }: {
   onClose: () => void;
   onSave: (minute: InspectionMinute) => void;
+  initialMinute?: InspectionMinute;
+  readOnly?: boolean;
 }) {
-  const [facilityType, setFacilityType] = useState<FacilityType>("Cơ sở giáo dục");
-  const [facility, setFacility] = useState("");
-  const [date, setDate] = useState("2026-09-30");
-  const [team, setTeam] = useState("Tổ ATTP số 01");
-  const [inspectionCount, setInspectionCount] = useState(1);
+  const initialFacilityType =
+    initialMinute?.facilityType ??
+    facilityTypeForName(initialMinute?.facility ?? "");
+  const [facilityType, setFacilityType] =
+    useState<FacilityType>(initialFacilityType);
+  const [facility, setFacility] = useState(initialMinute?.facility ?? "");
+  const [date, setDate] = useState(initialMinute?.date ?? "2026-09-30");
+  const [team, setTeam] = useState(initialMinute?.team ?? "Tổ ATTP số 01");
+  const [inspectionCount, setInspectionCount] = useState(
+    initialMinute?.inspectionCount ?? 1,
+  );
   const [criteria, setCriteria] = useState<InspectionCriterion[]>(() =>
     readCriteriaForType(facilityType),
   );
-  const [answers, setAnswers] = useState<
-    Record<string, { detail: string; score: number; evidence: string[] }>
-  >(() =>
-    Object.fromEntries(
-      criteria.map((item) => [
-        item.id,
-        { detail: "", score: item.weight, evidence: [] },
-      ]),
-    ),
+  const [answers, setAnswers] = useState<Record<string, InspectionAnswer>>(() =>
+    createAnswerMap(criteria, initialMinute),
   );
-  const [note, setNote] = useState("");
-  const [signature, setSignature] = useState("");
+  const [note, setNote] = useState(initialMinute?.note ?? "");
+  const [signature, setSignature] = useState(initialMinute?.signature ?? "");
   const totalMax = criteria.reduce((total, item) => total + item.weight, 0);
   const totalScore = criteria.reduce(
     (total, item) => total + Math.min(answers[item.id]?.score ?? 0, item.weight),
@@ -832,20 +864,23 @@ function InspectionMinuteForm({
       ...current,
       [id]: { ...current[id], ...patch },
     }));
-  useEffect(() => {
-    const nextCriteria = readCriteriaForType(facilityType);
+  const changeFacilityType = (nextType: FacilityType) => {
+    setFacilityType(nextType);
+    setFacility("");
+    const nextCriteria = readCriteriaForType(nextType);
     setCriteria(nextCriteria);
-    setAnswers(
-      Object.fromEntries(
-        nextCriteria.map((item) => [
-          item.id,
-          { detail: "", score: item.weight, evidence: [] },
-        ]),
-      ),
-    );
-  }, [facilityType]);
+    setAnswers(createAnswerMap(nextCriteria));
+  };
   return (
-    <Dialog title="Tạo biên bản kiểm tra" onClose={onClose} wide>
+    <Dialog
+      title={
+        initialMinute
+          ? `Chi tiết ${initialMinute.reference}`
+          : "Tạo biên bản kiểm tra"
+      }
+      onClose={onClose}
+      wide
+    >
       <div className="mb-6 rounded-2xl border border-border bg-secondary/20 p-4">
         <p className="mono-label text-primary">BƯỚC 1 · XÁC ĐỊNH HỒ SƠ</p>
         <p className="mt-1 text-xs text-muted-foreground">
@@ -856,10 +891,10 @@ function InspectionMinuteForm({
             Loại cơ sở <span className="text-destructive">*</span>
             <select
               value={facilityType}
-              onChange={(event) => {
-                setFacilityType(event.target.value as FacilityType);
-                setFacility("");
-              }}
+              onChange={(event) =>
+                changeFacilityType(event.target.value as FacilityType)
+              }
+              disabled={readOnly}
               className="focus-ring mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 font-normal"
             >
               {facilityTypes.map((type) => (
@@ -872,6 +907,7 @@ function InspectionMinuteForm({
             <select
               value={facility}
               onChange={(event) => setFacility(event.target.value)}
+              disabled={readOnly}
               className="focus-ring mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 font-normal"
             >
               <option value="">Chọn tên đơn vị / cơ sở</option>
@@ -886,26 +922,28 @@ function InspectionMinuteForm({
               type="date"
               value={date}
               onChange={(event) => setDate(event.target.value)}
+              disabled={readOnly}
               className="focus-ring mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 font-normal"
             />
           </label>
           <label className="text-sm font-semibold">
-            Lượt kiểm tra
-            <input
-              type="number"
-              min="1"
-              value={inspectionCount}
-              onChange={(event) =>
-                setInspectionCount(Math.max(1, Number(event.target.value) || 1))
-              }
+            Loại kiểm tra
+            <select
+              name="inspectionType"
+              defaultValue="DINH_KY"
+              disabled={readOnly}
               className="focus-ring mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 font-normal"
-            />
+            >
+              <option value="DINH_KY">Định kỳ</option>
+              <option value="DOT_XUAT">Đột xuất</option>
+            </select>
           </label>
           <label className="text-sm font-semibold sm:col-span-2">
             Tổ kiểm tra <span className="text-destructive">*</span>
             <input
               value={team}
               onChange={(event) => setTeam(event.target.value)}
+              disabled={readOnly}
               placeholder="Nhập tên tổ kiểm tra"
             className="focus-ring mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 font-normal"
             />
@@ -958,6 +996,7 @@ function InspectionMinuteForm({
                     onChange={(event) =>
                       updateAnswer(item.id, { detail: event.target.value })
                     }
+                    disabled={readOnly}
                     placeholder="Nhập nhận xét, kết quả kiểm tra thực tế..."
                     className="focus-ring mt-2 min-h-20 w-full rounded-xl border border-input bg-background p-3 text-sm font-normal"
                   />
@@ -978,6 +1017,7 @@ function InspectionMinuteForm({
                           ),
                         })
                       }
+                      disabled={readOnly}
                       className="focus-ring h-11 w-full rounded-xl border border-input bg-background px-3 font-mono text-sm font-bold"
                     />
                     <span className="shrink-0 text-muted-foreground">
@@ -986,13 +1026,14 @@ function InspectionMinuteForm({
                   </div>
                 </label>
               </div>
-              <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-primary/40 bg-primary/5 px-3 py-2 text-xs font-bold text-primary hover:bg-primary/10">
+              <label className={`mt-3 inline-flex items-center gap-2 rounded-xl border border-dashed border-primary/40 bg-primary/5 px-3 py-2 text-xs font-bold text-primary ${readOnly ? "opacity-60" : "cursor-pointer hover:bg-primary/10"}`}>
                 <Upload size={15} /> Upload hình ảnh, tài liệu minh chứng
                 <input
                   type="file"
                   multiple
                   accept="image/*,.pdf,.doc,.docx"
                   className="sr-only"
+                  disabled={readOnly}
                   onChange={(event) =>
                     updateAnswer(item.id, {
                       evidence: Array.from(event.target.files ?? []).map(
@@ -1030,6 +1071,7 @@ function InspectionMinuteForm({
           <textarea
             value={note}
             onChange={(event) => setNote(event.target.value)}
+            disabled={readOnly}
             placeholder="Nội dung chưa đạt, thời hạn khắc phục..."
             className="focus-ring mt-2 min-h-24 w-full rounded-xl border border-input bg-background p-3 font-normal"
           />
@@ -1039,6 +1081,7 @@ function InspectionMinuteForm({
           <textarea
             value={signature}
             onChange={(event) => setSignature(event.target.value)}
+            disabled={readOnly}
             placeholder="Ký tên tại đây"
             className="focus-ring mt-2 min-h-24 w-full rounded-xl border border-input bg-background p-3 font-[cursive] text-lg font-normal"
           />
@@ -1049,14 +1092,16 @@ function InspectionMinuteForm({
       </div>
       <div className="mt-6 flex justify-end gap-3 border-t border-border pt-5">
         <Button variant="outline" onClick={onClose} className="rounded-xl">
-          Hủy bỏ
+          {readOnly ? "Đóng" : "Hủy bỏ"}
         </Button>
-        <Button
+        {!readOnly && <Button
           onClick={() => {
             if (!facility.trim()) return;
             onSave({
-              id: `minute-${Date.now()}`,
-              reference: `BB-2026-${String(initialMinutes.length + 20).padStart(3, "0")}`,
+              id: initialMinute?.id ?? `minute-${Date.now()}`,
+              reference:
+                initialMinute?.reference ??
+                `BB-2026-${String(initialMinutes.length + 20).padStart(3, "0")}`,
               facility,
               date,
               team,
@@ -1068,13 +1113,16 @@ function InspectionMinuteForm({
               ).length,
               facilityType,
               inspectionCount,
+              answers,
+              signature,
             });
           }}
           disabled={!facility.trim() || !team.trim()}
           className="rounded-xl"
         >
-          <Save size={16} /> Lưu & hoàn tất biên bản
-        </Button>
+          <Save size={16} />{" "}
+          {initialMinute ? "Lưu cập nhật biên bản" : "Lưu & hoàn tất biên bản"}
+        </Button>}
       </div>
     </Dialog>
   );
@@ -1219,39 +1267,19 @@ export function InspectionMinutesPage() {
         />
       )}
       {selected && (
-        <Dialog
-          title={`Chi tiết ${selected.reference}`}
+        <InspectionMinuteForm
+          initialMinute={selected}
+          readOnly={selected.result === "approved"}
           onClose={() => setSelected(null)}
-        >
-          <div className="rounded-2xl bg-secondary/50 p-5">
-            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Cơ sở kiểm tra
-            </p>
-            <h3 className="mt-2 text-xl font-extrabold">{selected.facility}</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {formatDate(selected.date)} · {selected.team}
-            </p>
-          </div>
-          <div className="mt-5 flex items-center justify-between rounded-2xl border border-border p-5">
-            <div>
-              <p className="text-xs font-bold uppercase text-muted-foreground">
-                Kết luận
-              </p>
-              <div className="mt-2">
-                <ResultBadge result={selected.result} />
-              </div>
-            </div>
-            <p className="font-mono text-4xl font-extrabold text-primary">
-              {selected.score}%
-            </p>
-          </div>
-          <div className="mt-5 rounded-2xl border border-border p-5">
-            <p className="text-sm font-extrabold">Ghi nhận / kiến nghị</p>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              {selected.note}
-            </p>
-          </div>
-        </Dialog>
+          onSave={(updatedMinute) => {
+            setMinutes((items) =>
+              items.map((item) =>
+                item.id === updatedMinute.id ? updatedMinute : item,
+              ),
+            );
+            setSelected(null);
+          }}
+        />
       )}
     </AdminShell>
   );
