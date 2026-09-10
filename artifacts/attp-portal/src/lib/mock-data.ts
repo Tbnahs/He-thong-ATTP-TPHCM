@@ -186,7 +186,6 @@ const criteria: Record<ApplicationType, CriteriaSet> = {
       "Hồ sơ pháp lý",
       "Nguồn gốc sản phẩm",
       "Cơ sở vật chất",
-      "Quy trình vận hành",
     ]),
     criteria: [
       criterion(
@@ -322,16 +321,6 @@ const criteria: Record<ApplicationType, CriteriaSet> = {
         10,
         [],
         { order: 11, required: false },
-      ),
-      criterion(
-        "food-supplier",
-        "safetyProcess",
-        "Có quy trình kiểm soát an toàn thực phẩm",
-        "food-supplier-group-5",
-        "yes-no",
-        25,
-        ["Có", "Không"],
-        { order: 12 },
       ),
     ],
   },
