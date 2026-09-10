@@ -441,8 +441,8 @@
 
 .portal-grid {
   background-color: hsl(var(--background));
-  background-image: radial-gradient(circle at 82% 18%, hsl(var(--accent) / .16), transparent 20rem), linear-gradient(hsl(var(--primary) / .055) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary) / .055) 1px, transparent 1px);
-  background-size: auto, 30px 30px, 30px 30px;
+  background-image: linear-gradient(hsl(var(--primary) / .055) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary) / .055) 1px, transparent 1px);
+  background-size: 30px 30px, 30px 30px;
 }
 .portal-noise::after {
   content: '';
