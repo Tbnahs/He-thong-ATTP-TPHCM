@@ -11,7 +11,6 @@ import {
   LogOut,
   Menu,
   Search,
-  Settings2,
   ShieldCheck,
   X,
 } from "lucide-react";
@@ -320,7 +319,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const [, navigate] = useLocation();
   const items = [
     ["/admin/applications/pending", "Hồ sơ đăng ký", ClipboardCheck],
-    ["/admin/criteria", "Cấu hình tiêu chí", Settings2],
     ["/admin/accounts", "Quản lý tài khoản", ShieldCheck],
     ["/admin/reports", "Báo cáo thống kê", BarChart3],
   ];

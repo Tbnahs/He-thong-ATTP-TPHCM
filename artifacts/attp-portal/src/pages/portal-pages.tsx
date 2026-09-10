@@ -68,6 +68,7 @@ import {
   newsItems,
   suppliers,
   type Application,
+  type ApplicationStatus,
   type ApplicationType,
   type Attachment,
   type CriteriaAnswerType,
@@ -267,7 +268,7 @@ export function HomePage() {
               icon={ClipboardCheck}
               number="03"
               title="Quy trình có trách nhiệm"
-              text="Mỗi hồ sơ được chấm điểm, ghi nhận ý kiến và lưu dấu quyết định của cán bộ chuyên môn."
+              text="Mỗi hồ sơ được đối chiếu thông tin, minh chứng và lưu dấu quyết định của cán bộ chuyên môn."
               href="/admin"
             />
           </div>
@@ -1344,7 +1345,7 @@ function ApplicationForm() {
   const [files, setFiles] = useState<Attachment[]>([]);
   const [notice, setNotice] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const criteriaSet = getCriteriaSet(type);
+  const formSet = getCriteriaSet(type);
   const update = (key: string, value: CriteriaValue) =>
     setFields((prev) => ({ ...prev, [key]: value }));
   const changeType = (nextType: ApplicationType) => {
@@ -1409,11 +1410,11 @@ function ApplicationForm() {
     );
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    const criteria =
-      criteriaSet?.criteria
+    const formFields =
+      formSet?.criteria
         .filter((item) => item.active)
         .sort((a, b) => a.order - b.order) ?? [];
-    const missing = criteria.filter((item) => {
+    const missing = formFields.filter((item) => {
       if (!item.required) return false;
       if (item.answerType === "file")
         return !files.some((file) => file.fieldKey === item.key);
@@ -1432,7 +1433,7 @@ function ApplicationForm() {
       return;
     }
     const data = { ...fields } as Record<string, unknown>;
-    criteria
+    formFields
       .filter((item) => item.answerType === "file")
       .forEach((item) => {
         data[item.key] = files
@@ -1450,7 +1451,7 @@ function ApplicationForm() {
       applicantName: asText(fields.applicantName),
       address: asText(fields.address),
       contact: asText(fields.contact),
-      criteriaVersion: criteriaSet?.version ?? "",
+      criteriaVersion: formSet?.version ?? "",
       isThirdParty:
         type === "school" &&
         fields.mealModel !== "Tự nấu" &&
@@ -1493,19 +1494,19 @@ function ApplicationForm() {
         {notice && <Notice message={notice} onClose={() => setNotice("")} />}
       </div>
     );
-  const criteria = criteriaSet.criteria
+  const formFields = formSet.criteria
     .filter((item) => item.active)
     .sort((a, b) => a.order - b.order);
-  const groups = criteriaSet.groups
+  const groups = formSet.groups
     .slice()
     .sort((a, b) => a.order - b.order)
-    .filter((group) => criteria.some((item) => item.groupId === group.id));
+    .filter((group) => formFields.some((item) => item.groupId === group.id));
   return (
     <div className="mx-auto max-w-4xl">
       <SectionHeading
-        eyebrow="Đăng ký trực tuyến · Form tự sinh"
+        eyebrow="Đăng ký trực tuyến · Biểu mẫu cố định"
         title="Thông tin đăng ký"
-        description={`Các câu hỏi được sinh từ bộ tiêu chí ${criteriaSet.version}. Khi bộ tiêu chí thay đổi, form mới sẽ tự cập nhật mà không ảnh hưởng hồ sơ đã nộp.`}
+        description="Chọn đúng loại cơ sở để điền biểu mẫu tương ứng. Mỗi loại cơ sở có bộ câu hỏi cố định riêng."
       />
       <form onSubmit={submit} className="space-y-6">
         <div className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
@@ -1541,7 +1542,7 @@ function ApplicationForm() {
                   : UserRound
             }
           >
-            {criteria
+            {formFields
               .filter((item) => item.groupId === group.id)
               .map((item) => (
                 <DynamicQuestion
