@@ -326,7 +326,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const [, navigate] = useLocation();
   const overviewItems = [
     ["/admin", "Dashboard giám sát", LayoutDashboard],
-    ["/admin/applications/pending", "Hồ sơ đăng ký", ClipboardCheck],
+    ["/admin/applications", "Hồ sơ đăng ký", ClipboardCheck],
     ["/admin/facilities", "Quản lý cơ sở", Building2],
   ];
   const mealItems = [
@@ -357,6 +357,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
     sessionStorage.removeItem("attp-session-role");
     navigate("/admin/login");
   };
+  const isActive = (href: string) =>
+    href === "/admin"
+      ? location === href
+      : location === href || location.startsWith(`${href}/`);
   return (
     <div className="portal-noise min-h-[100dvh] bg-[#f5f7f8] lg:grid lg:grid-cols-[252px_1fr]">
       <aside className="hidden min-h-[100dvh] bg-[#123d36] text-sidebar-foreground lg:flex lg:flex-col">
@@ -395,11 +399,11 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <Link
               key={href as string}
               href={href as string}
-              className={`focus-ring group flex items-center gap-3 rounded-2xl px-3.5 py-3 text-sm font-semibold transition-all ${location.startsWith(href as string) ? "bg-[#f4c95d] text-[#123d36] shadow-lg shadow-black/10" : "text-white/65 hover:bg-white/[.08] hover:text-white"}`}
+              className={`focus-ring group flex items-center gap-3 rounded-2xl px-3.5 py-3 text-sm font-semibold transition-all ${isActive(href as string) ? "bg-[#f4c95d] text-[#123d36] shadow-lg shadow-black/10" : "text-white/65 hover:bg-white/[.08] hover:text-white"}`}
               data-testid={`link-admin-${label}`}
             >
               <span
-                className={`flex h-8 w-8 items-center justify-center rounded-xl transition-colors ${location.startsWith(href as string) ? "bg-[#123d36]/10" : "bg-white/[.06] group-hover:bg-white/10"}`}
+                className={`flex h-8 w-8 items-center justify-center rounded-xl transition-colors ${isActive(href as string) ? "bg-[#123d36]/10" : "bg-white/[.06] group-hover:bg-white/10"}`}
               >
                 <Icon size={17} />
               </span>
@@ -413,10 +417,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <Link
               key={href as string}
               href={href as string}
-              className={`focus-ring group flex items-start gap-3 rounded-2xl px-3.5 py-2.5 text-[13px] font-semibold transition-all ${location.startsWith(href as string) ? "bg-[#f4c95d] text-[#123d36] shadow-lg shadow-black/10" : "text-white/65 hover:bg-white/[.08] hover:text-white"}`}
+              className={`focus-ring group flex items-start gap-3 rounded-2xl px-3.5 py-2.5 text-[13px] font-semibold transition-all ${isActive(href as string) ? "bg-[#f4c95d] text-[#123d36] shadow-lg shadow-black/10" : "text-white/65 hover:bg-white/[.08] hover:text-white"}`}
               data-testid={`link-admin-${label}`}
             >
-              <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${location.startsWith(href as string) ? "bg-[#123d36]/10" : "bg-white/[.06] group-hover:bg-white/10"}`}>
+              <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${isActive(href as string) ? "bg-[#123d36]/10" : "bg-white/[.06] group-hover:bg-white/10"}`}>
                 <Icon size={15} />
               </span>
               <span className="leading-5">{label as string}</span>
@@ -429,10 +433,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <Link
               key={href as string}
               href={href as string}
-              className={`focus-ring group flex items-center gap-3 rounded-2xl px-3.5 py-3 text-sm font-semibold transition-all ${location.startsWith(href as string) ? "bg-[#f4c95d] text-[#123d36] shadow-lg shadow-black/10" : "text-white/65 hover:bg-white/[.08] hover:text-white"}`}
+              className={`focus-ring group flex items-center gap-3 rounded-2xl px-3.5 py-3 text-sm font-semibold transition-all ${isActive(href as string) ? "bg-[#f4c95d] text-[#123d36] shadow-lg shadow-black/10" : "text-white/65 hover:bg-white/[.08] hover:text-white"}`}
               data-testid={`link-admin-${label}`}
             >
-              <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${location.startsWith(href as string) ? "bg-[#123d36]/10" : "bg-white/[.06] group-hover:bg-white/10"}`}>
+              <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${isActive(href as string) ? "bg-[#123d36]/10" : "bg-white/[.06] group-hover:bg-white/10"}`}>
                 <Icon size={17} />
               </span>
               <span>{label as string}</span>
@@ -445,11 +449,11 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <Link
               key={href as string}
               href={href as string}
-              className={`focus-ring group flex items-start gap-3 rounded-2xl px-3.5 py-2.5 text-[13px] font-semibold transition-all ${location.startsWith(href as string) ? "bg-[#f4c95d] text-[#123d36] shadow-lg shadow-black/10" : "text-white/65 hover:bg-white/[.08] hover:text-white"}`}
+              className={`focus-ring group flex items-start gap-3 rounded-2xl px-3.5 py-2.5 text-[13px] font-semibold transition-all ${isActive(href as string) ? "bg-[#f4c95d] text-[#123d36] shadow-lg shadow-black/10" : "text-white/65 hover:bg-white/[.08] hover:text-white"}`}
               data-testid={`link-admin-${label}`}
             >
               <span
-                className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors ${location.startsWith(href as string) ? "bg-[#123d36]/10" : "bg-white/[.06] group-hover:bg-white/10"}`}
+                className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors ${isActive(href as string) ? "bg-[#123d36]/10" : "bg-white/[.06] group-hover:bg-white/10"}`}
               >
                 <Icon size={15} />
               </span>
