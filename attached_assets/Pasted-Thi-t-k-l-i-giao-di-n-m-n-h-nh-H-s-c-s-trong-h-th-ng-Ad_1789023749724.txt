@@ -1,0 +1,36 @@
+Thiết kế lại giao diện màn hình "Hồ sơ cơ sở" trong hệ thống Admin của Sở An toàn thực phẩm TP.HCM — đây là màn hình cán bộ dùng để xem và chấm điểm 1 hồ sơ cụ thể, cùng với chức năng xuất Excel liên quan.
+
+====================================
+BỐ CỤC MÀN HÌNH CHI TIẾT HỒ SƠ
+====================================
+Chia làm 2 phần theo chiều dọc:
+
+PHẦN TRÊN — Thông tin ban đầu cơ sở đã khai báo:
+- Hiển thị toàn bộ thông tin pháp nhân, giấy phép, các câu trả lời trong form đăng ký
+- Ảnh/file minh chứng đã upload — xem dạng thư viện, phóng to được
+- Có nút "Xuất Excel" ngay tại màn hình chi tiết này, để tải về toàn bộ thông tin + kết quả chấm điểm của riêng hồ sơ đang xem (dùng để lưu trữ, in ấn, hoặc gửi cho cơ sở/đơn vị liên quan khi cần)
+
+PHẦN DƯỚI — Bảng chấm điểm theo tiêu chí:
+Bảng gồm các cột: Tên tiêu chí | Điểm tối đa | Minh chứng | Đạt (nút) | Điểm chấm | Ghi chú
+
+- Cột "Minh chứng": hiển thị dữ liệu cơ sở đã khai tương ứng với tiêu chí đó — nếu là ảnh/file, hiển thị dạng thumbnail nhỏ ngay trong bảng, bấm vào thumbnail mở popup phóng to (nếu tiêu chí có nhiều ảnh, popup cho lướt qua từng ảnh); nếu là dữ liệu số/text, hiển thị thẳng giá trị đó (ví dụ "Tổng số nhân viên: 45")
+- Cột "Đạt": bấm nút để nhận trọn điểm tối đa của tiêu chí đó
+- Cột "Điểm chấm": cho phép tự nhập một số điểm khác thay vì chỉ đạt/không đạt (chấm một phần)
+- Cột "Ghi chú": cán bộ ghi lý do, đặc biệt khi không chấm điểm tối đa
+- Tiêu chí thuộc nhóm "điều kiện tiên quyết" hiển thị tách riêng ở đầu bảng, chỉ có 2 lựa chọn Đạt/Không đạt (không nhập điểm)
+
+TỰ ĐỘNG TÍNH KẾT QUẢ (hiển thị theo thời gian thực khi cán bộ đang chấm):
+- Nếu có bất kỳ tiêu chí điều kiện tiên quyết nào bị đánh "Không đạt" → hồ sơ tự động chuyển "Dừng hoạt động"
+- Nếu qua hết điều kiện tiên quyết, hệ thống cộng dồn điểm các tiêu chí còn lại, ra tổng %:
+  - 100% → PASS
+  - 80–99% → Cảnh báo/tạm dừng (có thời hạn khắc phục, chấm lại sau)
+  - Dưới 80% → Dừng hoạt động
+- Cán bộ có thể chọn "Yêu cầu bổ sung" bất kỳ lúc nào (không cần chấm hết toàn bộ tiêu chí trước) nếu hồ sơ chưa đủ căn cứ để đánh giá — hồ sơ chuyển về trạng thái "Chưa đánh giá — chờ bổ sung", ghi rõ mục nào cần bổ sung để gửi thông báo cho cơ sở
+
+====================================
+MÀN HÌNH DANH SÁCH HỒ SƠ (BÊN NGOÀI, TRƯỚC KHI VÀO CHI TIẾT)
+====================================
+- Hiển thị danh sách toàn bộ hồ sơ theo loại hình, kèm trạng thái (Chờ duyệt / PASS / Cảnh báo-tạm dừng / Dừng hoạt động / Chưa đánh giá-chờ bổ sung)
+- Có nút "Xuất Excel" ở màn hình danh sách này để tải về toàn bộ hoặc danh sách đã lọc (theo trạng thái, theo loại hình, theo khoảng thời gian...) — dùng cho mục đích thống kê, báo cáo tổng hợp nhiều hồ sơ cùng lúc, khác với việc xuất Excel của riêng 1 hồ sơ ở màn hình chi tiết
+
+Hãy tự đề xuất bố cục cụ thể, cách hiển thị điểm/tổng % theo thời gian thực, cách thể hiện rõ ràng 4 trạng thái kết quả, trải nghiệm khi chọn "yêu cầu bổ sung", và nội dung/cấu trúc cụ thể của 2 loại file Excel xuất ra (1 hồ sơ chi tiết vs. danh sách nhiều hồ sơ).

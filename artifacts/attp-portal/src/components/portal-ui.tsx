@@ -99,7 +99,7 @@ export function MetricCard({ label, value, tone = 'green', icon: Icon }: { label
 }
 
 export function StatusPill({ status }: { status: string }) {
-  const map: Record<string, { label: string; cls: string }> = { pending: { label: 'Chờ duyệt', cls: 'bg-amber-100 text-amber-900' }, 'needs-more-info': { label: 'Chờ bổ sung', cls: 'bg-orange-100 text-orange-900' }, approved: { label: 'PASS', cls: 'bg-emerald-100 text-emerald-900' }, warning: { label: 'Cảnh báo / tạm dừng', cls: 'bg-yellow-100 text-yellow-900' }, stopped: { label: 'Dừng hoạt động', cls: 'bg-red-100 text-red-900' }, rejected: { label: 'Từ chối', cls: 'bg-red-100 text-red-900' }, active: { label: 'Đang hiệu lực', cls: 'bg-emerald-100 text-emerald-900' } };
+  const map: Record<string, { label: string; cls: string }> = { pending: { label: 'Chờ duyệt', cls: 'bg-amber-100 text-amber-900' }, 'needs-more-info': { label: 'Chưa đánh giá · chờ bổ sung', cls: 'bg-orange-100 text-orange-900' }, approved: { label: 'PASS', cls: 'bg-emerald-100 text-emerald-900' }, warning: { label: 'Cảnh báo / tạm dừng', cls: 'bg-yellow-100 text-yellow-900' }, stopped: { label: 'Dừng hoạt động', cls: 'bg-red-100 text-red-900' }, rejected: { label: 'Từ chối', cls: 'bg-red-100 text-red-900' }, active: { label: 'Đang hiệu lực', cls: 'bg-emerald-100 text-emerald-900' } };
   const item = map[status] ?? { label: status, cls: 'bg-muted text-muted-foreground' };
   return <span className={`inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-bold ${item.cls}`} data-testid={`status-${status}`}><span className="status-dot bg-current" />{item.label}</span>;
 }
