@@ -11,6 +11,7 @@ import {
   Eye,
   FileText,
   Plus,
+  Upload,
   Save,
   Search,
   Settings2,
@@ -31,6 +32,32 @@ import {
 import { Button } from "@/components/ui/button";
 
 type InspectionResult = "approved" | "warning" | "stopped";
+type FacilityType =
+  | "Đơn vị cung cấp thực phẩm"
+  | "Đơn vị cung cấp thức ăn"
+  | "Cơ sở giáo dục";
+
+const facilityTypes: FacilityType[] = [
+  "Đơn vị cung cấp thực phẩm",
+  "Đơn vị cung cấp thức ăn",
+  "Cơ sở giáo dục",
+];
+
+const facilitiesByType: Record<FacilityType, string[]> = {
+  "Đơn vị cung cấp thực phẩm": [
+    "Công ty TNHH Nông sản An Phú",
+    "Hợp tác xã Rau sạch Củ Chi",
+  ],
+  "Đơn vị cung cấp thức ăn": [
+    "Công ty Suất ăn Minh Tâm",
+    "Bếp ăn tập thể An Phú",
+  ],
+  "Cơ sở giáo dục": [
+    "Trường Tiểu học Lê Lợi",
+    "Trường Tiểu học Thái Sơn",
+    "Trường Mầm non Hoa Sen",
+  ],
+};
 
 type InspectionSchedule = {
   id: string;
@@ -42,6 +69,7 @@ type InspectionSchedule = {
   kind: "Định kỳ" | "Đột xuất";
   purpose: string;
   note?: string;
+  facilityType?: FacilityType;
 };
 
 type InspectionMinute = {
@@ -54,6 +82,8 @@ type InspectionMinute = {
   result: InspectionResult;
   note: string;
   findings: number;
+  facilityType?: FacilityType;
+  inspectionCount?: number;
 };
 
 type InspectionCriterion = {
@@ -244,6 +274,17 @@ function readStored<T>(key: string, fallback: T): T {
   }
 }
 
+function readCriteriaForType(type: FacilityType) {
+  const byType = readStored<Partial<Record<FacilityType, InspectionCriterion[]>>>(
+    "attp-inspection-criteria-by-type",
+    {},
+  );
+  return (
+    byType[type] ??
+    readStored<InspectionCriterion[]>("attp-inspection-criteria", defaultCriteria)
+  );
+}
+
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("vi-VN", {
     day: "2-digit",
@@ -254,6 +295,16 @@ function formatDate(value: string) {
 
 function classifyScore(score: number): InspectionResult {
   return score === 100 ? "approved" : score >= 80 ? "warning" : "stopped";
+}
+
+function facilityTypeForName(name: string): FacilityType {
+  if (facilitiesByType["Đơn vị cung cấp thực phẩm"].includes(name)) {
+    return "Đơn vị cung cấp thực phẩm";
+  }
+  if (facilitiesByType["Đơn vị cung cấp thức ăn"].includes(name)) {
+    return "Đơn vị cung cấp thức ăn";
+  }
+  return "Cơ sở giáo dục";
 }
 
 function ResultBadge({ result }: { result: InspectionResult }) {
@@ -315,6 +366,7 @@ function ScheduleForm({
   onSave: (schedule: InspectionSchedule) => void;
 }) {
   const [form, setForm] = useState({
+    facilityType: "Cơ sở giáo dục" as FacilityType,
     facility: "",
     date: "2026-09-30",
     time: "08:30",
@@ -343,13 +395,35 @@ function ScheduleForm({
           </select>
         </label>
         <label className="text-sm font-semibold">
-          Trường / điểm trường
-          <input
+          Loại cơ sở <span className="text-destructive">*</span>
+          <select
+            value={form.facilityType}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                facilityType: event.target.value as FacilityType,
+                facility: "",
+              }))
+            }
+            className="focus-ring mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 font-normal"
+          >
+            {facilityTypes.map((type) => (
+              <option key={type}>{type}</option>
+            ))}
+          </select>
+        </label>
+        <label className="text-sm font-semibold">
+          Tên cơ sở <span className="text-destructive">*</span>
+          <select
             value={form.facility}
             onChange={(event) => update("facility", event.target.value)}
-            placeholder="Nhập tên cơ sở"
             className="focus-ring mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 font-normal"
-          />
+          >
+            <option value="">Chọn tên cơ sở</option>
+            {facilitiesByType[form.facilityType].map((facility) => (
+              <option key={facility}>{facility}</option>
+            ))}
+          </select>
         </label>
         <label className="text-sm font-semibold">
           Ngày kiểm tra
@@ -673,6 +747,13 @@ export function InspectionSchedulePage() {
               <dt className="text-sm font-extrabold">Trạng thái</dt>
               <dd className="mt-1 text-sm text-muted-foreground">Đã lên lịch</dd>
             </div>
+          <div>
+            <dt className="text-sm font-extrabold">Loại cơ sở</dt>
+            <dd className="mt-1 text-sm text-muted-foreground">
+              {selectedSchedule.facilityType ??
+                facilityTypeForName(selectedSchedule.facility)}
+            </dd>
+          </div>
             <div>
               <dt className="text-sm font-extrabold">Địa điểm</dt>
               <dd className="mt-1 text-sm text-muted-foreground">
@@ -715,127 +796,260 @@ function InspectionMinuteForm({
   onClose: () => void;
   onSave: (minute: InspectionMinute) => void;
 }) {
+  const [facilityType, setFacilityType] = useState<FacilityType>("Cơ sở giáo dục");
   const [facility, setFacility] = useState("");
   const [date, setDate] = useState("2026-09-30");
   const [team, setTeam] = useState("Tổ ATTP số 01");
-  const [passed, setPassed] = useState<Record<string, boolean>>(
-    Object.fromEntries(defaultCriteria.map((item) => [item.id, true])),
+  const [inspectionCount, setInspectionCount] = useState(1);
+  const [criteria, setCriteria] = useState<InspectionCriterion[]>(() =>
+    readCriteriaForType(facilityType),
+  );
+  const [answers, setAnswers] = useState<
+    Record<string, { detail: string; score: number; evidence: string[] }>
+  >(() =>
+    Object.fromEntries(
+      criteria.map((item) => [
+        item.id,
+        { detail: "", score: item.weight, evidence: [] },
+      ]),
+    ),
   );
   const [note, setNote] = useState("");
-  const score = defaultCriteria.reduce(
-    (total, item) => total + (passed[item.id] ? item.weight : 0),
+  const [signature, setSignature] = useState("");
+  const totalMax = criteria.reduce((total, item) => total + item.weight, 0);
+  const totalScore = criteria.reduce(
+    (total, item) => total + Math.min(answers[item.id]?.score ?? 0, item.weight),
     0,
   );
+  const score =
+    totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
   const result = classifyScore(score);
+  const updateAnswer = (
+    id: string,
+    patch: Partial<{ detail: string; score: number; evidence: string[] }>,
+  ) =>
+    setAnswers((current) => ({
+      ...current,
+      [id]: { ...current[id], ...patch },
+    }));
+  useEffect(() => {
+    const nextCriteria = readCriteriaForType(facilityType);
+    setCriteria(nextCriteria);
+    setAnswers(
+      Object.fromEntries(
+        nextCriteria.map((item) => [
+          item.id,
+          { detail: "", score: item.weight, evidence: [] },
+        ]),
+      ),
+    );
+  }, [facilityType]);
   return (
     <Dialog title="Tạo biên bản kiểm tra" onClose={onClose} wide>
-      <div className="grid gap-4 sm:grid-cols-3">
-        <label className="text-sm font-semibold sm:col-span-2">
-          Cơ sở kiểm tra
-          <input
-            value={facility}
-            onChange={(event) => setFacility(event.target.value)}
-            placeholder="Nhập tên trường / cơ sở"
+      <div className="mb-6 rounded-2xl border border-border bg-secondary/20 p-4">
+        <p className="mono-label text-primary">BƯỚC 1 · XÁC ĐỊNH HỒ SƠ</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Chọn loại cơ sở để hiển thị đúng danh sách và bộ nội dung kiểm tra.
+        </p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <label className="text-sm font-semibold">
+            Loại cơ sở <span className="text-destructive">*</span>
+            <select
+              value={facilityType}
+              onChange={(event) => {
+                setFacilityType(event.target.value as FacilityType);
+                setFacility("");
+              }}
+              className="focus-ring mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 font-normal"
+            >
+              {facilityTypes.map((type) => (
+                <option key={type}>{type}</option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm font-semibold">
+            Tên đơn vị / cơ sở <span className="text-destructive">*</span>
+            <select
+              value={facility}
+              onChange={(event) => setFacility(event.target.value)}
+              className="focus-ring mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 font-normal"
+            >
+              <option value="">Chọn tên đơn vị / cơ sở</option>
+              {facilitiesByType[facilityType].map((name) => (
+                <option key={name}>{name}</option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm font-semibold">
+            Ngày lập <span className="text-destructive">*</span>
+            <input
+              type="date"
+              value={date}
+              onChange={(event) => setDate(event.target.value)}
+              className="focus-ring mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 font-normal"
+            />
+          </label>
+          <label className="text-sm font-semibold">
+            Lượt kiểm tra
+            <input
+              type="number"
+              min="1"
+              value={inspectionCount}
+              onChange={(event) =>
+                setInspectionCount(Math.max(1, Number(event.target.value) || 1))
+              }
+              className="focus-ring mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 font-normal"
+            />
+          </label>
+          <label className="text-sm font-semibold sm:col-span-2">
+            Tổ kiểm tra <span className="text-destructive">*</span>
+            <input
+              value={team}
+              onChange={(event) => setTeam(event.target.value)}
+              placeholder="Nhập tên tổ kiểm tra"
             className="focus-ring mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 font-normal"
-          />
-        </label>
-        <label className="text-sm font-semibold">
-          Ngày lập
-          <input
-            type="date"
-            value={date}
-            onChange={(event) => setDate(event.target.value)}
-            className="focus-ring mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 font-normal"
-          />
-        </label>
-        <label className="text-sm font-semibold sm:col-span-3">
-          Tổ kiểm tra
-          <select
-            value={team}
-            onChange={(event) => setTeam(event.target.value)}
-            className="focus-ring mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 font-normal"
-          >
-            <option>Tổ ATTP số 01</option>
-            <option>Tổ ATTP số 02</option>
-            <option>Tổ ATTP số 03</option>
-          </select>
-        </label>
+            />
+          </label>
+        </div>
       </div>
-      <div className="mt-6 rounded-2xl border border-border">
-        <div className="flex items-center justify-between border-b border-border bg-secondary/40 px-4 py-3">
+      <div className="rounded-2xl border border-border">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-secondary/40 px-4 py-4">
           <div>
-            <p className="text-sm font-extrabold">Nội dung đánh giá</p>
+            <p className="mono-label text-primary">BƯỚC 2 · NỘI DUNG KIỂM TRA</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Bật tiêu chí đạt để hệ thống cộng đúng trọng số.
+              Nội dung lấy từ bộ tiêu chí đã cấu hình cho hệ thống.
             </p>
           </div>
-          <span className="font-mono text-xl font-extrabold text-primary">
-            {score}%
+          <span className="rounded-xl bg-primary px-3 py-2 font-mono text-xl font-extrabold text-primary-foreground">
+            {totalScore}/{totalMax} điểm
           </span>
         </div>
-        <div className="divide-y divide-border">
-          {defaultCriteria.map((item) => (
-            <label
+        <div className="space-y-3 bg-secondary/20 p-3">
+          {criteria.map((item, index) => {
+            const answer = answers[item.id] ?? {
+              detail: "",
+              score: 0,
+              evidence: [],
+            };
+            return (
+            <div
               key={item.id}
-              className="flex cursor-pointer items-start gap-3 px-4 py-4 hover:bg-secondary/20"
+              className="rounded-2xl border border-border bg-card p-4"
             >
-              <input
-                type="checkbox"
-                checked={passed[item.id]}
-                onChange={(event) =>
-                  setPassed((current) => ({
-                    ...current,
-                    [item.id]: event.target.checked,
-                  }))
-                }
-                className="mt-1 h-4 w-4 accent-primary"
-              />
-              <span className="min-w-0 flex-1">
-                <span className="flex flex-wrap items-center gap-2 text-sm font-bold">
-                  {item.name}
-                  {item.required && (
-                    <span className="text-[10px] font-extrabold uppercase text-red-600">
-                      Bắt buộc
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-extrabold uppercase tracking-wide text-primary">
+                    {index + 1}. {item.category}
+                  </p>
+                  <h3 className="mt-1 text-sm font-extrabold">{item.name}</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {item.description}
+                  </p>
+                </div>
+                <span className="rounded-lg bg-primary/10 px-2.5 py-1 font-mono text-xs font-extrabold text-primary">
+                  Tối đa {item.weight} điểm
+                </span>
+              </div>
+              <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_150px]">
+                <label className="text-xs font-bold">
+                  Chi tiết nội dung kiểm tra
+                  <textarea
+                    value={answer.detail}
+                    onChange={(event) =>
+                      updateAnswer(item.id, { detail: event.target.value })
+                    }
+                    placeholder="Nhập nhận xét, kết quả kiểm tra thực tế..."
+                    className="focus-ring mt-2 min-h-20 w-full rounded-xl border border-input bg-background p-3 text-sm font-normal"
+                  />
+                </label>
+                <label className="text-xs font-bold">
+                  Điểm đánh giá
+                  <div className="mt-2 flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      max={item.weight}
+                      value={answer.score}
+                      onChange={(event) =>
+                        updateAnswer(item.id, {
+                          score: Math.max(
+                            0,
+                            Math.min(item.weight, Number(event.target.value) || 0),
+                          ),
+                        })
+                      }
+                      className="focus-ring h-11 w-full rounded-xl border border-input bg-background px-3 font-mono text-sm font-bold"
+                    />
+                    <span className="shrink-0 text-muted-foreground">
+                      / {item.weight}
                     </span>
-                  )}
-                </span>
-                <span className="mt-1 block text-xs text-muted-foreground">
-                  {item.category} · {item.description}
-                </span>
-              </span>
-              <span className="rounded-lg bg-primary/10 px-2.5 py-1 font-mono text-xs font-extrabold text-primary">
-                {item.weight}%
-              </span>
-            </label>
-          ))}
+                  </div>
+                </label>
+              </div>
+              <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-primary/40 bg-primary/5 px-3 py-2 text-xs font-bold text-primary hover:bg-primary/10">
+                <Upload size={15} /> Upload hình ảnh, tài liệu minh chứng
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*,.pdf,.doc,.docx"
+                  className="sr-only"
+                  onChange={(event) =>
+                    updateAnswer(item.id, {
+                      evidence: Array.from(event.target.files ?? []).map(
+                        (file) => file.name,
+                      ),
+                    })
+                  }
+                />
+              </label>
+              {answer.evidence.length > 0 && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Minh chứng: {answer.evidence.join(", ")}
+                </p>
+              )}
+            </div>
+            );
+          })}
         </div>
       </div>
       <div className={`mt-5 rounded-2xl p-4 ${resultMeta[result].className}`}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-extrabold uppercase tracking-wider">
-              Kết luận tự động
-            </p>
+            <p className="text-xs font-extrabold uppercase tracking-wider">KẾT LUẬN</p>
             <p className="mt-1 text-lg font-extrabold">
               {resultMeta[result].label}
             </p>
-            <p className="mt-1 text-xs">{resultMeta[result].description}</p>
+            <p className="mt-1 max-w-2xl text-xs">{resultMeta[result].description}</p>
           </div>
           <p className="font-mono text-3xl font-extrabold">{score}/100</p>
         </div>
       </div>
-      <label className="mt-5 block text-sm font-semibold">
-        Ghi nhận / kiến nghị khắc phục
-        <textarea
-          value={note}
-          onChange={(event) => setNote(event.target.value)}
-          placeholder="Nội dung chưa đạt, thời hạn khắc phục..."
-          className="focus-ring mt-2 min-h-24 w-full rounded-xl border border-input bg-background p-3 font-normal"
-        />
-      </label>
+      <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        <label className="block text-sm font-semibold">
+          Ghi nhận / kiến nghị khắc phục
+          <textarea
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+            placeholder="Nội dung chưa đạt, thời hạn khắc phục..."
+            className="focus-ring mt-2 min-h-24 w-full rounded-xl border border-input bg-background p-3 font-normal"
+          />
+        </label>
+        <label className="block text-sm font-semibold">
+          Chữ ký tay
+          <textarea
+            value={signature}
+            onChange={(event) => setSignature(event.target.value)}
+            placeholder="Ký tên tại đây"
+            className="focus-ring mt-2 min-h-24 w-full rounded-xl border border-input bg-background p-3 font-[cursive] text-lg font-normal"
+          />
+          <span className="mt-1 block text-xs font-normal text-muted-foreground">
+            Có thể ký trực tiếp hoặc nhập tên người lập biên bản.
+          </span>
+        </label>
+      </div>
       <div className="mt-6 flex justify-end gap-3 border-t border-border pt-5">
         <Button variant="outline" onClick={onClose} className="rounded-xl">
-          Hủy
+          Hủy bỏ
         </Button>
         <Button
           onClick={() => {
@@ -849,10 +1063,14 @@ function InspectionMinuteForm({
               score,
               result,
               note: note || resultMeta[result].description,
-              findings: defaultCriteria.filter((item) => !passed[item.id]).length,
+              findings: criteria.filter(
+                (item) => (answers[item.id]?.score ?? 0) < item.weight,
+              ).length,
+              facilityType,
+              inspectionCount,
             });
           }}
-          disabled={!facility.trim()}
+          disabled={!facility.trim() || !team.trim()}
           className="rounded-xl"
         >
           <Save size={16} /> Lưu & hoàn tất biên bản
@@ -1121,35 +1339,56 @@ function CriteriaEditor({
 }
 
 export function InspectionCriteriaPage() {
-  const [facilityType, setFacilityType] = useState("Cơ sở giáo dục");
-  const [items, setItems] = useState(() =>
-    readStored("attp-inspection-criteria", defaultCriteria),
-  );
+  const [facilityType, setFacilityType] =
+    useState<FacilityType>("Cơ sở giáo dục");
+  const [criteriaByType, setCriteriaByType] = useState<
+    Partial<Record<FacilityType, InspectionCriterion[]>>
+  >(() => {
+    const shared = readStored<InspectionCriterion[]>(
+      "attp-inspection-criteria",
+      defaultCriteria,
+    );
+    return readStored("attp-inspection-criteria-by-type", {
+      "Đơn vị cung cấp thực phẩm": shared,
+      "Đơn vị cung cấp thức ăn": shared,
+      "Cơ sở giáo dục": shared,
+    });
+  });
+  const items = criteriaByType[facilityType] ?? defaultCriteria;
   const [saved, setSaved] = useState(false);
   useEffect(() => {
-    window.localStorage.setItem("attp-inspection-criteria", JSON.stringify(items));
-  }, [items]);
+    window.localStorage.setItem(
+      "attp-inspection-criteria-by-type",
+      JSON.stringify(criteriaByType),
+    );
+  }, [criteriaByType]);
   const total = items.reduce((sum, item) => sum + (Number(item.weight) || 0), 0);
   const groups = Array.from(new Set(items.map((item) => item.category)));
   const update = (id: string, patch: Partial<InspectionCriterion>) => {
     setSaved(false);
-    setItems((current) =>
-      current.map((item) => (item.id === id ? { ...item, ...patch } : item)),
-    );
+    setCriteriaByType((current) => ({
+      ...current,
+      [facilityType]: items.map((item) =>
+        item.id === id ? { ...item, ...patch } : item,
+      ),
+    }));
   };
   const add = () => {
     setSaved(false);
-    setItems((current) => [
+    setCriteriaByType((current) => ({
       ...current,
-      {
-        id: `criterion-${Date.now()}`,
-        category: "Nhóm mới",
-        name: "Tiêu chí mới",
-        description: "Mô tả tiêu chí cần kiểm tra.",
-        weight: 0,
-        required: false,
-      },
-    ]);
+      [facilityType]: [
+        ...items,
+        {
+          id: `criterion-${Date.now()}`,
+          category: "Nhóm mới",
+          name: "Tiêu chí mới",
+          description: "Mô tả tiêu chí cần kiểm tra.",
+          weight: 0,
+          required: false,
+        },
+      ],
+    }));
   };
   return (
     <AdminShell>
@@ -1157,7 +1396,7 @@ export function InspectionCriteriaPage() {
         <SectionHeading
           eyebrow="Thanh tra, kiểm tra"
           title="Cấu hình tiêu chí đánh giá"
-          description="Thiết lập trọng số dùng chung cho biểu mẫu kiểm tra và quy tắc phân loại kết quả tự động."
+           description="Thiết lập bộ nội dung và trọng số riêng cho từng loại cơ sở."
           action={
             <Button onClick={add} variant="outline" className="rounded-xl">
               <Plus size={17} /> Thêm tiêu chí
@@ -1175,12 +1414,15 @@ export function InspectionCriteriaPage() {
               </div>
               <select
                 value={facilityType}
-                onChange={(event) => setFacilityType(event.target.value)}
+                 onChange={(event) => {
+                   setFacilityType(event.target.value as FacilityType);
+                   setSaved(false);
+                 }}
                 className="focus-ring h-10 rounded-xl border border-input bg-background px-3 text-sm font-semibold"
               >
                 <option>Cơ sở giáo dục</option>
-                <option>Đơn vị cung cấp suất ăn</option>
                 <option>Đơn vị cung cấp thực phẩm</option>
+                 <option>Đơn vị cung cấp thức ăn</option>
               </select>
             </div>
             <CriteriaEditor
@@ -1188,7 +1430,10 @@ export function InspectionCriteriaPage() {
               onChange={update}
               onDelete={(id) => {
                 setSaved(false);
-                setItems((current) => current.filter((item) => item.id !== id));
+                 setCriteriaByType((current) => ({
+                   ...current,
+                   [facilityType]: items.filter((item) => item.id !== id),
+                 }));
               }}
             />
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4">
