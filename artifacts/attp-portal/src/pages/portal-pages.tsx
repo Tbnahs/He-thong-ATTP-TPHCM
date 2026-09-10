@@ -129,7 +129,12 @@ const inferAccountRole = (username: string): AccountRole =>
   /^(admin|canbo|reviewer|xetduyet)/i.test(username.trim())
     ? "admin"
     : "facility";
-type CriteriaValue = string | string[] | Record<string, string | string[]>;
+type RepeatableValue = Record<string, string | string[]>[];
+type CriteriaValue =
+  | string
+  | string[]
+  | Record<string, string | string[]>
+  | RepeatableValue;
 type ApplicationInput = {
   type: ApplicationType;
   applicantName: string;
@@ -148,6 +153,7 @@ const answerTypeLabels: Record<CriteriaAnswerType, string> = {
   select: "Chọn phương án",
   "multi-select": "Chọn phương án",
   file: "Tải tệp / ảnh",
+  repeatable: "Danh sách có thể thêm nhiều dòng",
 };
 const getCriteriaValue = (
   value: CriteriaValue,
@@ -1402,6 +1408,26 @@ function ApplicationForm() {
     event.target.value = "";
     setNotice("");
   };
+  const isVisible = (item: CriteriaDefinition) => {
+    if (!item.dependsOn) return true;
+    const dependency = fields[item.dependsOn.key];
+    const current = Array.isArray(dependency)
+      ? dependency[0] ?? ""
+      : typeof dependency === "string"
+        ? dependency
+        : "";
+    if (
+      item.dependsOn.equals !== undefined &&
+      current !== item.dependsOn.equals
+    )
+      return false;
+    if (
+      item.dependsOn.notEquals !== undefined &&
+      current === item.dependsOn.notEquals
+    )
+      return false;
+    return true;
+  };
   const removeFile = (name: string, fieldKey?: string) =>
     setFiles((prev) =>
       prev.filter(
@@ -1413,10 +1439,30 @@ function ApplicationForm() {
     event.preventDefault();
     const formFields =
       formSet?.criteria
-        .filter((item) => item.active)
+        .filter((item) => item.active && isVisible(item))
         .sort((a, b) => a.order - b.order) ?? [];
     const missing = formFields.filter((item) => {
       if (!item.required) return false;
+      if (item.answerType === "repeatable") {
+        const rows = Array.isArray(fields[item.key])
+          ? (fields[item.key] as RepeatableValue)
+          : [];
+        if (rows.length === 0) return true;
+        return rows.some((row, index) =>
+          (item.repeatableFields ?? []).some((field) => {
+            if (!field.required) return false;
+            if (field.answerType === "file")
+              return !files.some(
+                (file) =>
+                  file.fieldKey === `${item.key}.${index}.${field.key}`,
+              );
+            const answer = row[field.key];
+            return Array.isArray(answer)
+              ? answer.length === 0
+              : !String(answer ?? "").trim();
+          }),
+        );
+      }
       if (item.answerType === "file")
         return !files.some((file) => file.fieldKey === item.key);
       const answer = fields[item.key] ?? "";
@@ -1441,12 +1487,14 @@ function ApplicationForm() {
           .filter((file) => file.fieldKey === item.key)
           .map((file) => file.name);
       });
-    const asText = (value: CriteriaValue | undefined) =>
-      typeof value === "object" && !Array.isArray(value)
-        ? String(value.text ?? "")
-        : Array.isArray(value)
-          ? (value[0] ?? "")
-          : (value ?? "");
+    const asText = (value: CriteriaValue | undefined) => {
+      if (typeof value === "string") return value;
+      if (Array.isArray(value)) {
+        const first = value[0];
+        return typeof first === "string" ? first : "";
+      }
+      return "";
+    };
     const input: ApplicationInput = {
       type,
       applicantName: asText(fields.applicantName),
@@ -1455,8 +1503,7 @@ function ApplicationForm() {
       criteriaVersion: formSet?.version ?? "",
       isThirdParty:
         type === "school" &&
-        fields.mealModel !== "Tự nấu" &&
-        fields.supplierSource === "manual",
+        fields.mealModel !== "Tự nấu",
       data,
       attachments: files,
     };
@@ -1496,7 +1543,7 @@ function ApplicationForm() {
       </div>
     );
   const formFields = formSet.criteria
-    .filter((item) => item.active)
+    .filter((item) => item.active && isVisible(item))
     .sort((a, b) => a.order - b.order);
   const groups = formSet.groups
     .slice()
@@ -1550,11 +1597,18 @@ function ApplicationForm() {
                   key={item.id}
                   item={item}
                   value={fields[item.key] ?? ""}
-                  files={files.filter((file) => file.fieldKey === item.key)}
+                  files={files.filter(
+                    (file) =>
+                      file.fieldKey === item.key ||
+                      file.fieldKey?.startsWith(`${item.key}.`),
+                  )}
                   suppliers={suppliers ?? []}
                   onChange={(value) => update(item.key, value)}
                   onFiles={(event) => addFilesFor(item.key, event)}
-                  onRemoveFile={(name) => removeFile(name, item.key)}
+                  onFilesFor={addFilesFor}
+                  onRemoveFile={(name, fieldKey) =>
+                    removeFile(name, fieldKey ?? item.key)
+                  }
                 />
               ))}
           </FormSection>
@@ -1592,6 +1646,7 @@ function DynamicQuestion({
   suppliers,
   onChange,
   onFiles,
+  onFilesFor,
   onRemoveFile,
 }: {
   item: CriteriaDefinition;
@@ -1600,16 +1655,21 @@ function DynamicQuestion({
   suppliers: { id: string; name: string; taxCode: string }[];
   onChange: (value: CriteriaValue) => void;
   onFiles: (event: ChangeEvent<HTMLInputElement>) => void;
-  onRemoveFile: (name: string) => void;
+  onFilesFor: (
+    fieldKey: string,
+    event: ChangeEvent<HTMLInputElement>,
+  ) => void;
+  onRemoveFile: (name: string, fieldKey?: string) => void;
 }) {
   return (
     <DynamicQuestionControl
       item={item}
-      value={getCriteriaValue(value, item.answerType, false)}
+      value={value}
       files={files}
       suppliers={suppliers}
       onChange={onChange}
       onFiles={onFiles}
+      onFilesFor={onFilesFor}
       onRemoveFile={onRemoveFile}
     />
   );
@@ -1622,15 +1682,20 @@ function DynamicQuestionControl({
   suppliers,
   onChange,
   onFiles,
+  onFilesFor,
   onRemoveFile,
 }: {
   item: CriteriaDefinition;
-  value: string | string[];
+  value: CriteriaValue;
   files: Attachment[];
   suppliers: { id: string; name: string; taxCode: string }[];
-  onChange: (value: string | string[]) => void;
+  onChange: (value: CriteriaValue) => void;
   onFiles: (event: ChangeEvent<HTMLInputElement>) => void;
-  onRemoveFile: (name: string) => void;
+  onFilesFor: (
+    fieldKey: string,
+    event: ChangeEvent<HTMLInputElement>,
+  ) => void;
+  onRemoveFile: (name: string, fieldKey?: string) => void;
 }) {
   const options =
     item.key === "supplierId"
@@ -1649,6 +1714,17 @@ function DynamicQuestionControl({
         {item.sourceMaterials.map((source) => source.name).join(", ")}
       </div>
     ) : null;
+  if (item.answerType === "repeatable")
+    return (
+      <RepeatableQuestion
+        item={item}
+        value={value}
+        files={files}
+        onChange={onChange}
+        onFilesFor={onFilesFor}
+        onRemoveFile={onRemoveFile}
+      />
+    );
   if (item.answerType === "file")
     return (
       <div className="mt-5 first:mt-0">
@@ -1703,7 +1779,11 @@ function DynamicQuestionControl({
       </div>
     );
   if (item.answerType === "multi-select") {
-    const selected = Array.isArray(value) ? value : value ? [value] : [];
+    const selected: string[] = Array.isArray(value)
+      ? value.filter((entry): entry is string => typeof entry === "string")
+      : typeof value === "string" && value
+        ? [value]
+        : [];
     return (
       <fieldset className="mt-5 first:mt-0">
         <legend className="mb-2 block text-sm font-semibold">
@@ -1750,7 +1830,13 @@ function DynamicQuestionControl({
           {requiredMark}
         </span>
         <select
-          value={Array.isArray(value) ? (value[0] ?? "") : value}
+          value={
+            typeof value === "string"
+              ? value
+              : Array.isArray(value) && typeof value[0] === "string"
+                ? value[0]
+                : ""
+          }
           onChange={(event) => onChange(event.target.value)}
           className="focus-ring h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
           data-testid={`input-criteria-${item.key}`}
@@ -1784,7 +1870,15 @@ function DynamicQuestionControl({
               ? "date"
               : "text"
         }
-        value={Array.isArray(value) ? value.join(", ") : value}
+        value={
+          typeof value === "string"
+            ? value
+            : Array.isArray(value)
+              ? value
+                  .filter((entry): entry is string => typeof entry === "string")
+                  .join(", ")
+              : ""
+        }
         onChange={(event) => onChange(event.target.value)}
         className="focus-ring h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
         data-testid={`input-criteria-${item.key}`}
@@ -1796,6 +1890,177 @@ function DynamicQuestionControl({
       )}
       {sourceNote}
     </label>
+  );
+}
+
+function RepeatableQuestion({
+  item,
+  value,
+  files,
+  onChange,
+  onFilesFor,
+  onRemoveFile,
+}: {
+  item: CriteriaDefinition;
+  value: CriteriaValue;
+  files: Attachment[];
+  onChange: (value: CriteriaValue) => void;
+  onFilesFor: (
+    fieldKey: string,
+    event: ChangeEvent<HTMLInputElement>,
+  ) => void;
+  onRemoveFile: (name: string, fieldKey?: string) => void;
+}) {
+  const rows: Record<string, string | string[]>[] =
+    Array.isArray(value) &&
+    value.every((row) => typeof row === "object" && !Array.isArray(row))
+      ? (value as Record<string, string | string[]>[])
+      : [];
+  const fields = item.repeatableFields ?? [];
+  const updateRow = (
+    rowIndex: number,
+    key: string,
+    nextValue: string | string[],
+  ) => {
+    const nextRows = rows.map((row, index) =>
+      index === rowIndex ? { ...row, [key]: nextValue } : row,
+    );
+    onChange(nextRows);
+  };
+  const addRow = () => onChange([...rows, {}]);
+  const removeRow = (rowIndex: number) => onChange(rows.filter((_, index) => index !== rowIndex));
+
+  return (
+    <div className="mt-5 first:mt-0">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="text-sm font-semibold">
+            {item.label}
+            {item.required && <span className="text-destructive"> *</span>}
+          </p>
+          {item.description && (
+            <p className="mt-1 text-xs text-muted-foreground">{item.description}</p>
+          )}
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-9 rounded-lg px-3 text-xs"
+          onClick={addRow}
+          data-testid={`button-add-${item.key}`}
+        >
+          <Plus size={14} /> Thêm {item.key === "products" ? "sản phẩm" : "nhà cung cấp"}
+        </Button>
+      </div>
+      {rows.length === 0 && (
+        <div className="rounded-xl border border-dashed border-primary/25 bg-secondary/20 px-4 py-4 text-sm text-muted-foreground">
+          Chưa có dòng nào. Nhấn “Thêm” để khai báo.
+        </div>
+      )}
+      <div className="space-y-4">
+        {rows.map((row, rowIndex) => (
+          <div
+            key={`${item.key}-${rowIndex}`}
+            className="rounded-xl border border-border bg-secondary/20 p-4"
+          >
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <p className="text-sm font-bold">
+                {item.key === "products" ? "Sản phẩm" : "Nhà cung cấp"} {rowIndex + 1}
+              </p>
+              <button
+                type="button"
+                className="text-xs font-bold text-muted-foreground hover:text-destructive"
+                onClick={() => removeRow(rowIndex)}
+              >
+                Xóa dòng
+              </button>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              {fields.map((field) => {
+                const fieldKey = `${item.key}.${rowIndex}.${field.key}`;
+                const fieldValue = row[field.key] ?? "";
+                if (field.answerType === "file") {
+                  const rowFiles = files.filter((file) => file.fieldKey === fieldKey);
+                  return (
+                    <div key={field.key} className="md:col-span-2">
+                      <p className="mb-2 block text-sm font-semibold">
+                        {field.label}
+                        {field.required && <span className="text-destructive"> *</span>}
+                      </p>
+                      <label className="focus-ring flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-dashed border-primary/35 bg-background px-4 text-sm font-semibold text-primary hover:bg-secondary">
+                        <Plus size={16} /> Chọn tệp
+                        <input
+                          type="file"
+                          accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                          multiple
+                          className="sr-only"
+                          onChange={(event) => onFilesFor(fieldKey, event)}
+                          data-testid={`input-criteria-${fieldKey}`}
+                        />
+                      </label>
+                      {rowFiles.map((file) => (
+                        <div
+                          key={file.name}
+                          className="mt-2 flex items-center justify-between rounded-lg bg-muted px-3 py-2 text-sm"
+                        >
+                          <span className="flex min-w-0 items-center gap-2 truncate">
+                            <FileText size={15} className="shrink-0 text-primary" />
+                            {file.name}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => onRemoveFile(file.name, fieldKey)}
+                            className="ml-3 shrink-0 text-muted-foreground hover:text-destructive"
+                            aria-label={`Xóa ${file.name}`}
+                          >
+                            <X size={15} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
+                if (field.answerType === "select" || field.answerType === "yes-no")
+                  return (
+                    <label key={field.key} className="block">
+                      <span className="mb-2 block text-sm font-semibold">
+                        {field.label}
+                        {field.required && <span className="text-destructive"> *</span>}
+                      </span>
+                      <select
+                        value={Array.isArray(fieldValue) ? fieldValue[0] ?? "" : fieldValue}
+                        onChange={(event) => updateRow(rowIndex, field.key, event.target.value)}
+                        className="focus-ring h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                        data-testid={`input-criteria-${fieldKey}`}
+                      >
+                        <option value="">Chọn một phương án</option>
+                        {(field.options ?? []).map((option) => (
+                          <option key={option} value={option}>{option}</option>
+                        ))}
+                      </select>
+                    </label>
+                  );
+                return (
+                  <label key={field.key} className="block">
+                    <span className="mb-2 block text-sm font-semibold">
+                      {field.label}
+                      {field.required && <span className="text-destructive"> *</span>}
+                    </span>
+                    <input
+                      type={field.answerType === "number" ? "number" : "text"}
+                      value={Array.isArray(fieldValue) ? fieldValue.join(", ") : fieldValue}
+                      onChange={(event) => updateRow(rowIndex, field.key, event.target.value)}
+                      className="focus-ring h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                      data-testid={`input-criteria-${fieldKey}`}
+                    />
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -2451,6 +2716,7 @@ export function AdminCriteriaPage() {
     select: "Chọn phương án",
     "multi-select": "Chọn phương án",
     file: "Tải tệp / ảnh",
+    repeatable: "Danh sách có thể thêm nhiều dòng",
   };
 
   useEffect(() => {

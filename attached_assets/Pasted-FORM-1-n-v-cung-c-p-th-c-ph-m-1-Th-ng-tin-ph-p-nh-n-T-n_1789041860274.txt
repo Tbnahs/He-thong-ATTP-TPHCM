@@ -1,0 +1,107 @@
+FORM 1 — Đơn vị cung cấp thực phẩm
+1. Thông tin pháp nhân
+Tên đơn vị *
+Mã số thuế *
+Địa chỉ đầy đủ *
+Số điện thoại liên hệ *
+2. Hồ sơ pháp lý
+Số giấy phép ATTP *
+Ngày cấp giấy phép *
+Ngày hết hạn giấy phép *
+Giấy đăng ký kinh doanh * — upload (PDF/JPG/PNG, ≤5MB/tệp, nhiều tệp)
+3. Nguồn gốc sản phẩm
+Sản phẩm * — cho phép thêm nhiều sản phẩm, mỗi sản phẩm gồm:
+Danh mục sản phẩm * — chọn: Rau củ quả / Thịt gia súc / Thủy sản / Thực phẩm chế biến
+Tên sản phẩm *
+Mã GTIN
+Vùng trồng / nuôi / khai thác — text
+Chứng nhận chất lượng — upload
+Hợp đồng cung cấp — upload
+Có thực hiện truy xuất nguồn gốc (TXNG) * — Có / Không
+4. Cơ sở vật chất
+Ảnh khu vực bảo quản / kho chứa * — upload
+Ảnh phương tiện vận chuyển — upload
+5. Quy trình vận hành
+Có quy trình kiểm soát an toàn thực phẩm * — Có / Không
+
+(Nhóm này không phát sinh trường mới — đơn vị chỉ cung ứng nguyên liệu, không tổ chức bữa ăn nên không cần khai tủ lưu mẫu/phương tiện giao suất ăn.)
+
+FORM 2 — Đơn vị cung cấp suất ăn (bếp ăn công nghiệp)
+1. Thông tin pháp nhân
+Tên đơn vị *
+Mã số thuế *
+Địa chỉ đầy đủ *
+Số điện thoại liên hệ *
+2. Hồ sơ pháp lý
+Số giấy phép ATTP *
+Ngày cấp giấy phép *
+Ngày hết hạn giấy phép *
+Giấy đăng ký kinh doanh * — upload (PDF/JPG/PNG, ≤5MB/tệp, nhiều tệp)
+3. Nhân lực
+Tổng số nhân viên chế biến *
+Nhân viên có chứng chỉ tập huấn ATTP *
+Nhân viên có khám sức khỏe còn hiệu lực *
+[MỚI] Người phụ trách quản lý ATTP *
+Họ tên *
+Chức vụ *
+Số điện thoại *
+Chứng chỉ/xác nhận tập huấn ATTP — upload
+4. Nguồn nhập
+Nhà cung cấp thực phẩm * — cho phép thêm nhiều nhà cung cấp, mỗi nhà cung cấp gồm:
+Tên nhà cung cấp *
+Mã số thuế *
+Hợp đồng cung cấp — upload
+5. Năng lực cung ứng & vận chuyển
+Công suất suất ăn mỗi ngày *
+[MỚI] Phương tiện giao suất ăn *
+Loại phương tiện — chọn: Xe tải bảo ôn / Xe máy có thùng chuyên dụng / Xe chuyên dụng khác
+Số lượng phương tiện *
+Ảnh phương tiện giao suất ăn * — upload
+[MỚI] Tủ lưu mẫu thức ăn *
+Có / Không tủ lưu mẫu *
+Số lượng tủ lưu mẫu
+Ảnh tủ lưu mẫu — upload
+6. Minh chứng
+Ảnh khu chế biến, thiết bị và bảo hộ * — upload
+FORM 3 — Cơ sở giáo dục
+1. Thông tin cơ bản
+Tên trường *
+Cấp học * — Mầm non / Tiểu học / THCS / THPT
+Địa chỉ *
+Số điện thoại liên hệ *
+2. Hồ sơ pháp lý
+Số giấy phép ATTP *
+Ngày cấp giấy phép *
+Ngày hết hạn giấy phép *
+Quyết định thành lập / giấy tờ pháp lý * — upload (PDF/JPG/PNG, ≤5MB/tệp, nhiều tệp)
+3. Trách nhiệm ATTP
+Có cán bộ phụ trách ATTP * — Có / Không
+[MỚI] Nếu "Có" → thông tin người phụ trách ATTP *
+Họ tên *
+Chức vụ *
+Số điện thoại *
+Chứng chỉ tập huấn ATTP — upload
+4. Tổ chức bữa ăn
+Hình thức tổ chức bữa ăn * — Tự nấu / Thuê đơn vị nấu tại bếp trường / Liên kết đơn vị suất ăn
+[MỚI] Nếu "Tự nấu" *
+Tổng số nhân viên chế biến *
+Nhân viên có chứng chỉ tập huấn ATTP *
+Nhân viên có khám sức khỏe còn hiệu lực *
+[MỚI] Nếu "Thuê đơn vị nấu tại bếp trường" *
+Tên đơn vị *
+Mã số thuế *
+Số lượng nhân sự *
+Hợp đồng — upload
+[MỚI] Nếu "Liên kết đơn vị suất ăn" *
+Tên đơn vị cung cấp suất ăn *
+Mã số thuế *
+Hợp đồng — upload
+Phương tiện giao/nhận suất ăn tại trường — loại phương tiện, khung giờ giao nhận
+5. Cơ sở vật chất
+Bếp ăn theo nguyên tắc một chiều * — Có / Không
+Có khu lưu mẫu thức ăn * — Có / Không
+[MỚI] Tủ lưu mẫu thức ăn *
+Số lượng tủ lưu mẫu
+Ảnh tủ lưu mẫu — upload
+6. Minh chứng
+Ảnh bếp ăn / căn tin và khu lưu mẫu * — upload
