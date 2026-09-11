@@ -21,6 +21,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardCheck,
+  Copy,
   Download,
   Eye,
   FileSpreadsheet,
@@ -32,6 +33,7 @@ import {
   ListChecks,
   LockKeyhole,
   LogIn,
+  Mail,
   MapPin,
   CalendarDays,
   Clock3,
@@ -248,6 +250,35 @@ type ApplicationInput = {
   isThirdParty?: boolean;
   data: Record<string, unknown>;
   attachments: Attachment[];
+};
+type RegistrationSnapshot = {
+  type: ApplicationType;
+  fields: Record<string, CriteriaValue>;
+  files: Attachment[];
+  submittedAt: string;
+};
+type FacilityAccount = {
+  email: string;
+  password: string;
+  username: string;
+  registration: RegistrationSnapshot;
+};
+const facilityAccountsStorageKey = "attp-facility-accounts";
+const readFacilityAccounts = (): FacilityAccount[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    return JSON.parse(
+      window.localStorage.getItem(facilityAccountsStorageKey) || "[]",
+    ) as FacilityAccount[];
+  } catch {
+    return [];
+  }
+};
+const saveFacilityAccounts = (accounts: FacilityAccount[]) => {
+  window.localStorage.setItem(
+    facilityAccountsStorageKey,
+    JSON.stringify(accounts),
+  );
 };
 const answerTypeLabels: Record<CriteriaAnswerType, string> = {
   text: "Nhập văn bản",
@@ -1296,13 +1327,30 @@ export function AdminLoginPage() {
       return;
     }
     const role = inferAccountRole(username);
+    const normalizedUsername = username.trim().toLowerCase();
+    const facilityAccount = readFacilityAccounts().find(
+      (account) =>
+        account.email.toLowerCase() === normalizedUsername ||
+        account.username.toLowerCase() === normalizedUsername,
+    );
+    if (
+      role === "facility" &&
+      normalizedUsername !== "coso.demo" &&
+      (!facilityAccount || facilityAccount.password !== password)
+    ) {
+      setNotice("Email/tài khoản hoặc mật khẩu cơ sở chưa đúng.");
+      return;
+    }
     sessionStorage.setItem("attp-session-role", role);
     if (role === "admin") {
       sessionStorage.setItem("attp-reviewer-session", "active");
       navigate("/admin");
     } else {
       sessionStorage.removeItem("attp-reviewer-session");
-      sessionStorage.setItem("attp-session-username", username.trim());
+      sessionStorage.setItem(
+        "attp-session-username",
+        facilityAccount?.username || username.trim(),
+      );
       navigate("/facility/profile");
     }
   };
@@ -1384,7 +1432,7 @@ export function AdminLoginPage() {
   );
 }
 
-export function FacilityProfilePage() {
+function LegacyFacilityProfilePage() {
   type FacilityProfile = {
     name: string;
     taxCode: string;
@@ -1741,12 +1789,71 @@ export function FacilityProfilePage() {
   );
 }
 
-function ApplicationForm() {
-  const [type, setType] = useState<ApplicationType>("food-supplier");
-  const [fields, setFields] = useState<Record<string, CriteriaValue>>({});
-  const [files, setFiles] = useState<Attachment[]>([]);
+function FacilityProfileEditor() {
+  const accountName =
+    sessionStorage.getItem("attp-session-username") || "coso.demo";
+  const account = readFacilityAccounts().find(
+    (item) =>
+      item.username.toLowerCase() === accountName.toLowerCase() ||
+      item.email.toLowerCase() === accountName.toLowerCase(),
+  );
+  const fallbackApplication = applications[0];
+  const initialSnapshot: RegistrationSnapshot =
+    account?.registration || {
+      type: fallbackApplication?.type || "food-supplier",
+      fields: (fallbackApplication?.data || {}) as Record<
+        string,
+        CriteriaValue
+      >,
+      files: fallbackApplication?.attachments || [],
+      submittedAt: "",
+    };
+
+  return (
+    <PublicShell>
+      <main className="mx-auto max-w-7xl px-5 py-9 lg:px-8 lg:py-12">
+        <ApplicationForm
+          mode="edit"
+          account={account}
+          initialSnapshot={initialSnapshot}
+        />
+      </main>
+    </PublicShell>
+  );
+}
+
+export function FacilityProfilePage() {
+  return <FacilityProfileEditor />;
+}
+
+function ApplicationForm({
+  mode = "register",
+  account,
+  initialSnapshot,
+}: {
+  mode?: "register" | "edit";
+  account?: FacilityAccount | null;
+  initialSnapshot?: RegistrationSnapshot;
+}) {
+  const [type, setType] = useState<ApplicationType>(
+    initialSnapshot?.type || "food-supplier",
+  );
+  const [fields, setFields] = useState<Record<string, CriteriaValue>>(
+    initialSnapshot?.fields || {},
+  );
+  const [files, setFiles] = useState<Attachment[]>(
+    initialSnapshot?.files || [],
+  );
+  const [accountEmail, setAccountEmail] = useState(account?.email || "");
+  const [accountPassword, setAccountPassword] = useState("");
+  const [accountPasswordConfirm, setAccountPasswordConfirm] = useState("");
   const [notice, setNotice] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [credentials, setCredentials] = useState<{
+    email: string;
+    password: string;
+  } | null>(null);
+  const [copied, setCopied] = useState(false);
   const formSet = getCriteriaSet(type);
   const update = (key: string, value: CriteriaValue) =>
     setFields((prev) => ({ ...prev, [key]: value }));
@@ -1832,6 +1939,27 @@ function ApplicationForm() {
     );
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    if (mode === "register") {
+      if (!accountEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(accountEmail.trim())) {
+        setNotice("Vui lòng nhập email hợp lệ để tạo tài khoản cơ sở.");
+        return;
+      }
+      if (accountPassword.length < 6) {
+        setNotice("Mật khẩu phải có ít nhất 6 ký tự.");
+        return;
+      }
+      if (accountPassword !== accountPasswordConfirm) {
+        setNotice("Mật khẩu xác nhận chưa khớp.");
+        return;
+      }
+      const existingAccount = readFacilityAccounts().some(
+        (account) => account.email.toLowerCase() === accountEmail.trim().toLowerCase(),
+      );
+      if (existingAccount) {
+        setNotice("Email này đã được đăng ký. Vui lòng dùng email khác hoặc đăng nhập.");
+        return;
+      }
+    }
     const formFields =
       formSet?.criteria
         .filter((item) => item.active && isVisible(item))
@@ -1908,8 +2036,38 @@ function ApplicationForm() {
       data,
       attachments: files,
     };
+    const snapshot: RegistrationSnapshot = {
+      type,
+      fields: data as Record<string, CriteriaValue>,
+      files,
+      submittedAt: new Date().toISOString().slice(0, 10),
+    };
+    if (mode === "register") {
+      const email = accountEmail.trim().toLowerCase();
+      const accountRecord: FacilityAccount = {
+        email,
+        password: accountPassword,
+        username: email,
+        registration: snapshot,
+      };
+      saveFacilityAccounts([...readFacilityAccounts(), accountRecord]);
+      setCredentials({ email, password: accountPassword });
+    } else if (account) {
+      saveFacilityAccounts(
+        readFacilityAccounts().map((item) =>
+          item.username === account.username
+            ? { ...item, registration: snapshot }
+            : item,
+        ),
+      );
+    }
+    void input;
     setSubmitted(true);
-    setNotice("Hồ sơ đã được tiếp nhận và chuyển sang trạng thái chờ duyệt.");
+    setNotice(
+      mode === "register"
+        ? "Đăng ký thành công. Hãy lưu lại tài khoản và mật khẩu bên dưới."
+        : "Hồ sơ đã được cập nhật và chuyển tới cán bộ chuyên môn rà soát.",
+    );
   };
   if (submitted)
     return (
@@ -1917,28 +2075,77 @@ function ApplicationForm() {
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-secondary text-primary">
           <Check size={30} />
         </div>
-        <p className="mono-label mt-7 text-primary">ĐÃ TIẾP NHẬN HỒ SƠ</p>
+        <p className="mono-label mt-7 text-primary">
+          {mode === "register" ? "TẠO TÀI KHOẢN THÀNH CÔNG" : "ĐÃ CẬP NHẬT HỒ SƠ"}
+        </p>
         <h1 className="display-tight mt-3 text-4xl font-extrabold">
-          Hồ sơ đang chờ xét duyệt.
+          {mode === "register"
+            ? "Đã tiếp nhận hồ sơ đăng ký."
+            : "Thông tin đã được lưu."}
         </h1>
         <p className="mx-auto mt-4 max-w-lg text-sm leading-6 text-muted-foreground">
-          Thông tin đã được khóa để bảo đảm tính toàn vẹn. Cán bộ chuyên môn sẽ
-          liên hệ qua thông tin bạn cung cấp nếu cần bổ sung.
+          {mode === "register"
+            ? "Hãy sao chép thông tin đăng nhập dưới đây. Cán bộ chuyên môn sẽ liên hệ qua email nếu cần bổ sung hồ sơ."
+            : "Bạn có thể tiếp tục chỉnh sửa hồ sơ khi nhận yêu cầu bổ sung từ cán bộ chuyên môn."}
         </p>
+        {mode === "register" && credentials && (
+          <div className="mt-7 rounded-2xl border border-primary/20 bg-secondary/50 p-5 text-left">
+            <div className="flex items-center gap-2 text-sm font-bold text-primary">
+              <ShieldCheck size={17} /> Tài khoản cơ sở của bạn
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-border bg-card p-3">
+                <p className="text-xs text-muted-foreground">Email / tên đăng nhập</p>
+                <p className="mt-1 break-all font-mono text-sm font-bold">{credentials.email}</p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-3">
+                <p className="text-xs text-muted-foreground">Mật khẩu</p>
+                <p className="mt-1 font-mono text-sm font-bold">{credentials.password}</p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-4 w-full rounded-xl"
+              onClick={async () => {
+                const value = `Email: ${credentials.email}\nMật khẩu: ${credentials.password}`;
+                try {
+                  await navigator.clipboard.writeText(value);
+                } catch {
+                  const helper = document.createElement("textarea");
+                  helper.value = value;
+                  helper.style.position = "fixed";
+                  helper.style.opacity = "0";
+                  document.body.appendChild(helper);
+                  helper.select();
+                  document.execCommand("copy");
+                  helper.remove();
+                }
+                setCopied(true);
+              }}
+            >
+              <Copy size={16} /> {copied ? "Đã sao chép tài khoản và mật khẩu" : "Sao chép tài khoản và mật khẩu"}
+            </Button>
+          </div>
+        )}
         <div className="mt-8 flex justify-center gap-3">
-          <ButtonLink href="/">Về trang chủ</ButtonLink>
-          <Button
-            onClick={() => {
-              setSubmitted(false);
-              setFields({});
-              setFiles([]);
-              setNotice("");
-            }}
-            variant="outline"
-            className="rounded-xl"
-          >
-            Nộp hồ sơ khác
-          </Button>
+          {mode === "register" ? (
+            <>
+              <ButtonLink href="/admin/login">Đăng nhập ngay</ButtonLink>
+              <ButtonLink href="/" variant="outline">Về trang chủ</ButtonLink>
+            </>
+          ) : (
+            <Button
+              type="button"
+              onClick={() => {
+                setSubmitted(false);
+                setNotice("");
+              }}
+              className="rounded-xl"
+            >
+              Tiếp tục chỉnh sửa
+            </Button>
+          )}
         </div>
         {notice && <Notice message={notice} onClose={() => setNotice("")} />}
       </div>
@@ -1953,11 +2160,78 @@ function ApplicationForm() {
   return (
     <div className="mx-auto max-w-4xl">
       <SectionHeading
-        eyebrow="Đăng ký trực tuyến · Biểu mẫu cố định"
-        title="Thông tin đăng ký"
-        description="Chọn đúng loại cơ sở để điền biểu mẫu tương ứng. Mỗi loại cơ sở có bộ câu hỏi cố định riêng."
+        eyebrow={
+          mode === "register"
+            ? "Đăng ký trực tuyến · Tạo tài khoản cơ sở"
+            : `Chỉnh sửa hồ sơ · ${account?.email || "coso.demo"}`
+        }
+        title={mode === "register" ? "Thông tin đăng ký" : "Hồ sơ cơ sở của bạn"}
+        description={
+          mode === "register"
+            ? "Chọn đúng loại cơ sở để điền biểu mẫu tương ứng. Mỗi loại cơ sở có bộ câu hỏi cố định riêng."
+            : "Biểu mẫu dưới đây được nạp lại từ đúng thông tin bạn đã điền khi đăng ký."
+        }
       />
       <form onSubmit={submit} className="space-y-6">
+        <div className="rounded-2xl border border-primary/15 bg-secondary/40 p-5 shadow-sm sm:p-6">
+          <div className="flex items-start gap-3">
+            <Mail className="mt-0.5 shrink-0 text-primary" size={19} />
+            <div className="w-full">
+              <p className="text-sm font-bold">Tài khoản đăng nhập</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                {mode === "register"
+                  ? "Thông tin này dùng để đăng nhập vào khu vực hồ sơ cơ sở."
+                  : "Email đăng ký được dùng làm tên đăng nhập và không thể đổi trong bản prototype."}
+              </p>
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <label>
+                  <span className="mb-2 block text-sm font-semibold">Email *</span>
+                  <input
+                    type="email"
+                    value={accountEmail}
+                    onChange={(event) => setAccountEmail(event.target.value)}
+                    readOnly={mode === "edit"}
+                    autoComplete="email"
+                    className={`focus-ring h-11 w-full rounded-xl border border-input px-3 text-sm ${mode === "edit" ? "bg-muted" : "bg-background"}`}
+                    data-testid="input-registration-email"
+                  />
+                </label>
+                {mode === "register" ? (
+                  <>
+                    <label>
+                      <span className="mb-2 block text-sm font-semibold">Mật khẩu *</span>
+                      <input
+                        type="password"
+                        value={accountPassword}
+                        onChange={(event) => setAccountPassword(event.target.value)}
+                        autoComplete="new-password"
+                        placeholder="Ít nhất 6 ký tự"
+                        className="focus-ring h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                        data-testid="input-registration-password"
+                      />
+                    </label>
+                    <label className="md:col-start-2">
+                      <span className="mb-2 block text-sm font-semibold">Nhập lại mật khẩu *</span>
+                      <input
+                        type="password"
+                        value={accountPasswordConfirm}
+                        onChange={(event) => setAccountPasswordConfirm(event.target.value)}
+                        autoComplete="new-password"
+                        className="focus-ring h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                        data-testid="input-registration-password-confirm"
+                      />
+                    </label>
+                  </>
+                ) : (
+                  <div className="rounded-xl border border-border bg-card px-3 py-3 text-sm">
+                    <p className="text-xs text-muted-foreground">Mật khẩu</p>
+                    <p className="mt-1 font-semibold">•••••••• · Đã thiết lập</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
         <div className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
           <label
             htmlFor="registration-type"
@@ -2026,12 +2300,12 @@ function ApplicationForm() {
               </span>
             </p>
           </div>
-          <Button
+             <Button
             type="submit"
             className="h-12 rounded-xl px-6"
             data-testid="button-submit-application"
           >
-            Nộp hồ sơ <Send size={16} />
+              {mode === "register" ? "Tạo tài khoản & nộp hồ sơ" : "Lưu thay đổi hồ sơ"} <Send size={16} />
           </Button>
         </div>
       </form>
