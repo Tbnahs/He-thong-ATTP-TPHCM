@@ -1,1 +1,2 @@
 - [Frontend-only workspace cleanup](frontend-only-import.md) — remove backend packages and dangling TypeScript references together.
+- [Artifact verification](artifact-verification.md) — hydrate pnpm workspaces from the lockfile; manual Vite builds need the artifact PORT.

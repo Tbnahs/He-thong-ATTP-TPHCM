@@ -575,11 +575,11 @@ export function HomePage() {
                 <span className="status-dot bg-primary" /> CỔNG THÔNG TIN CHÍNH
                 THỨC
               </div>
-              <h1 className="display-tight max-w-3xl text-5xl font-extrabold leading-[.98] tracking-tight md:text-7xl lg:text-[5.35rem]">
+              <h2 className="display-tight text-4xl font-extrabold leading-[1.05] tracking-tight md:text-6xl lg:text-[4.8rem]">
                 Sở An Toàn Thực Phẩm.
                 <br />
                 <span className="text-primary">Thành Phố Hồ Chí Minh.</span>
-              </h1>
+              </h2>
               <p className="mt-8 max-w-xl text-base leading-8 text-muted-foreground md:text-lg">
                 Tra cứu nhanh các cơ sở, sản phẩm và hoạt động quảng cáo đã được
                 Sở An toàn thực phẩm Thành phố Hồ Chí Minh công khai.
@@ -687,9 +687,8 @@ function HomeFeature({
 
 function HomeLookupSection() {
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("");
   const [selected, setSelected] = useState<PublicRecord | null>(null);
-  const data = getPublicRecords(search, category).slice(0, 3);
+  const data = getPublicRecords(search).slice(0, 3);
 
   return (
     <section className="border-y border-border bg-secondary/30">
@@ -697,7 +696,7 @@ function HomeLookupSection() {
         <SectionHeading
           eyebrow="Tra cứu nhanh"
           title="Tìm thông tin công khai ngay trên trang tổng quan."
-          description="Nhập tên cơ sở, sản phẩm hoặc chọn nhóm dữ liệu để xem nhanh các kết quả mới nhất."
+          description="Nhập tên cơ sở hoặc sản phẩm để xem nhanh các kết quả mới nhất."
           action={
             <Link
               href="/lookup"
@@ -722,19 +721,6 @@ function HomeLookupSection() {
                 data-testid="input-home-public-search"
               />
             </label>
-            <select
-              value={category}
-              onChange={(event) => setCategory(event.target.value)}
-              className="focus-ring h-12 rounded-xl border border-input bg-background px-4 text-sm font-semibold lg:w-80"
-              data-testid="select-home-public-category"
-            >
-              <option value="">Tất cả danh mục</option>
-              {Object.entries(categoryNames).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
           </div>
         </div>
         <div className="mt-6">
@@ -751,7 +737,7 @@ function HomeLookupSection() {
           ) : (
             <EmptyState
               title="Chưa có kết quả phù hợp"
-              description="Thử một từ khóa khác hoặc chọn lại danh mục."
+              description="Thử một từ khóa khác."
             />
           )}
         </div>
