@@ -2,6 +2,7 @@ import {
   Fragment,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ChangeEvent,
   type FormEvent,
@@ -296,6 +297,9 @@ function Notice({
 
 function HomeRegionalDirectory() {
   const [selectedId, setSelectedId] = useState("all");
+  const [manualZoom, setManualZoom] = useState(1);
+  const [mapOffset, setMapOffset] = useState({ x: 0, y: 0 });
+  const dragStart = useRef<{ x: number; y: number } | null>(null);
   const selectedFeature =
     selectedId === "all"
       ? null
@@ -303,10 +307,18 @@ function HomeRegionalDirectory() {
   const selectedFacilities = selectedId === "all"
     ? regionalFacilities
     : regionalFacilities.filter((facility) => facility.province === selectedId);
-  const mapScale = selectedFeature ? 2.65 : 1;
+  const mapScale = (selectedFeature ? 2.65 : 1) * manualZoom;
   const mapTranslate = selectedFeature
-    ? `translate(${600 - selectedFeature.labelX * mapScale} ${620 - selectedFeature.labelY * mapScale}) scale(${mapScale})`
-    : undefined;
+    ? `translate(${600 - selectedFeature.labelX * mapScale + mapOffset.x} ${620 - selectedFeature.labelY * mapScale + mapOffset.y}) scale(${mapScale})`
+    : `translate(${mapOffset.x} ${mapOffset.y}) scale(${mapScale})`;
+  const chooseRegion = (id: string) => {
+    setSelectedId(id);
+    setManualZoom(1);
+    setMapOffset({ x: 0, y: 0 });
+  };
+  const changeZoom = (amount: number) => {
+    setManualZoom((value) => Math.min(2.4, Math.max(0.7, value + amount)));
+  };
 
   return (
     <section className="border-y border-border bg-[#edf8f8]">
@@ -329,7 +341,7 @@ function HomeRegionalDirectory() {
             </span>
             <select
               value={selectedId}
-              onChange={(event) => setSelectedId(event.target.value)}
+              onChange={(event) => chooseRegion(event.target.value)}
               className="focus-ring h-12 w-full rounded-xl border border-primary/15 bg-white px-4 text-sm font-bold text-foreground shadow-sm"
               data-testid="select-home-region"
             >
@@ -343,15 +355,73 @@ function HomeRegionalDirectory() {
           </label>
         </div>
 
-        <div className="mt-10 grid overflow-hidden rounded-[1.75rem] border border-[#b8dddd] bg-white shadow-xl shadow-primary/10 lg:grid-cols-[1.15fr_.85fr]">
-          <div className="relative min-h-[34rem] overflow-hidden border-b border-[#dceeee] bg-[#effbfc] lg:min-h-[43rem] lg:border-b-0 lg:border-r">
+        <div className="mt-8 grid items-start overflow-hidden rounded-[1.75rem] border border-[#b8dddd] bg-white shadow-xl shadow-primary/10 lg:grid-cols-[1.15fr_.85fr]">
+          <div
+            className="relative h-[28rem] overflow-hidden border-b border-[#dceeee] bg-[#effbfc] lg:h-[34rem] lg:border-b-0 lg:border-r"
+            onWheel={(event) => {
+              event.preventDefault();
+              changeZoom(event.deltaY < 0 ? 0.12 : -0.12);
+            }}
+            onPointerDown={(event) => {
+              dragStart.current = { x: event.clientX, y: event.clientY };
+              event.currentTarget.setPointerCapture(event.pointerId);
+            }}
+            onPointerMove={(event) => {
+              if (!dragStart.current) return;
+              const dx = event.clientX - dragStart.current.x;
+              const dy = event.clientY - dragStart.current.y;
+              dragStart.current = { x: event.clientX, y: event.clientY };
+              setMapOffset((offset) => ({
+                x: offset.x + dx * 1.35,
+                y: offset.y + dy * 1.35,
+              }));
+            }}
+            onPointerUp={() => {
+              dragStart.current = null;
+            }}
+            onPointerCancel={() => {
+              dragStart.current = null;
+            }}
+            style={{ touchAction: "none", cursor: dragStart.current ? "grabbing" : "grab" }}
+          >
             <div className="absolute left-5 top-5 z-10 rounded-xl border border-white/80 bg-white/90 px-3 py-2 text-[11px] font-bold text-primary shadow-sm backdrop-blur">
               <span className="mr-2 inline-block h-2 w-2 rounded-full bg-primary align-middle" />
-              Ranh giới hành chính thực tế
+              Kéo để di chuyển · cuộn để zoom
+            </div>
+            <div className="absolute bottom-5 right-5 z-10 flex overflow-hidden rounded-xl border border-white/80 bg-white/95 shadow-sm backdrop-blur">
+              <button
+                type="button"
+                className="flex h-9 w-9 items-center justify-center text-lg font-bold text-primary transition-colors hover:bg-secondary"
+                onClick={() => changeZoom(0.18)}
+                aria-label="Phóng to bản đồ"
+                data-testid="button-map-zoom-in"
+              >
+                +
+              </button>
+              <button
+                type="button"
+                className="flex h-9 w-9 items-center justify-center border-l border-border text-lg font-bold text-primary transition-colors hover:bg-secondary"
+                onClick={() => changeZoom(-0.18)}
+                aria-label="Thu nhỏ bản đồ"
+                data-testid="button-map-zoom-out"
+              >
+                −
+              </button>
+              <button
+                type="button"
+                className="border-l border-border px-3 text-[11px] font-bold text-muted-foreground transition-colors hover:bg-secondary"
+                onClick={() => {
+                  setManualZoom(1);
+                  setMapOffset({ x: 0, y: 0 });
+                }}
+                aria-label="Đặt lại bản đồ"
+              >
+                Đặt lại
+              </button>
             </div>
             <svg
               viewBox={vietnamMapViewBox}
-              className="h-full min-h-[34rem] w-full p-5 transition-all duration-500 lg:min-h-[43rem]"
+              className="h-full w-full p-5"
               role="img"
               aria-label="Bản đồ Việt Nam theo ranh giới tỉnh thành"
             >
@@ -374,7 +444,7 @@ function HomeRegionalDirectory() {
                       strokeWidth={isSelected ? 2.8 : 1.35}
                       vectorEffect="non-scaling-stroke"
                       className="cursor-pointer transition-[fill-opacity,stroke] duration-300 hover:brightness-105"
-                      onClick={() => setSelectedId(feature.id)}
+                      onClick={() => chooseRegion(feature.id)}
                       onKeyDown={(event) => {
                         if (event.key === "Enter" || event.key === " ") {
                           setSelectedId(feature.id);
@@ -406,7 +476,7 @@ function HomeRegionalDirectory() {
             </div>
           </div>
 
-          <div className="flex min-h-[34rem] flex-col bg-white lg:min-h-[43rem]">
+          <div className="flex max-h-[28rem] min-h-[28rem] flex-col bg-white lg:max-h-[34rem] lg:min-h-[34rem]">
             <div className="border-b border-border px-6 py-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
