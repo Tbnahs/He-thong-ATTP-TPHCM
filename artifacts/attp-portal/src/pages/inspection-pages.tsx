@@ -10,6 +10,7 @@ import {
   Clock3,
   Eye,
   FileText,
+  Info,
   Plus,
   Upload,
   Save,
@@ -961,6 +962,33 @@ function InspectionMinuteForm({
           <span className="rounded-xl bg-primary px-3 py-2 font-mono text-xl font-extrabold text-primary-foreground">
             {totalScore}/{totalMax} điểm
           </span>
+        </div>
+        <div className="border-b border-border bg-primary/5 px-4 py-4 text-sm">
+          <div className="flex items-start gap-2">
+            <Info className="mt-0.5 shrink-0 text-primary" size={17} />
+            <div>
+              <p className="font-extrabold text-primary">Cách tính điểm (%)</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                Mỗi tiêu chí có một mức điểm tối đa theo trọng số. Điểm nhập
+                thực tế của tiêu chí nằm trong khoảng từ 0 đến mức tối đa đó.
+              </p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                <strong className="text-foreground">Tỷ lệ đạt</strong> = Tổng
+                điểm thực tế ÷ Tổng điểm tối đa × 100.
+              </p>
+              <div className="mt-3 grid gap-2 text-xs sm:grid-cols-3">
+                <span className="rounded-lg bg-emerald-50 px-3 py-2 text-emerald-800">
+                  <strong>100%</strong> · Đạt
+                </span>
+                <span className="rounded-lg bg-amber-50 px-3 py-2 text-amber-800">
+                  <strong>80–99%</strong> · Cần xem xét
+                </span>
+                <span className="rounded-lg bg-red-50 px-3 py-2 text-red-800">
+                  <strong>Dưới 80%</strong> · Không đạt
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
         <div className="space-y-3 bg-secondary/20 p-3">
           {criteria.map((item, index) => {
