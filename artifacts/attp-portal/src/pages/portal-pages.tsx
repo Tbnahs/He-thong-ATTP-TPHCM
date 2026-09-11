@@ -1062,22 +1062,6 @@ export function NewsPage() {
                   Theo dõi các chương trình tập huấn, khảo sát thực tế và hoạt
                   động phối hợp để chủ động thực hiện đúng quy định.
                 </p>
-                <div className="mt-7 grid grid-cols-2 gap-3 border-t border-border pt-5">
-                  <div>
-                    <p className="text-2xl font-extrabold text-primary">
-                      {newsItems.length}
-                    </p>
-                    <p className="mt-1 text-xs font-semibold text-muted-foreground">
-                      bài viết mẫu
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-extrabold text-primary">09/2026</p>
-                    <p className="mt-1 text-xs font-semibold text-muted-foreground">
-                      cập nhật gần nhất
-                    </p>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
