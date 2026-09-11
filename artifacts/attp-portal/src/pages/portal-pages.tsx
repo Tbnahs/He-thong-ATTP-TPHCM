@@ -349,11 +349,6 @@ function HomeRegionalDirectory() {
               <span className="mr-2 inline-block h-2 w-2 rounded-full bg-primary align-middle" />
               Ranh giới hành chính thực tế
             </div>
-            <div className="absolute bottom-5 left-5 z-10 max-w-[13rem] rounded-xl border border-white/80 bg-white/90 px-3 py-2 text-[11px] leading-5 text-muted-foreground shadow-sm backdrop-blur">
-              <strong className="text-foreground">Biển Đông</strong>
-              <br />
-              Hoàng Sa · Trường Sa được giữ theo dữ liệu địa lý ngoài khơi.
-            </div>
             <svg
               viewBox={vietnamMapViewBox}
               className="h-full min-h-[34rem] w-full p-5 transition-all duration-500 lg:min-h-[43rem]"
