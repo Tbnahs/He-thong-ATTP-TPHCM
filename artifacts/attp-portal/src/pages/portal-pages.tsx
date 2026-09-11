@@ -1336,11 +1336,49 @@ function RecordDialog({
       (item) => [item.key, item.label],
     ),
   );
+  const hiddenFacilityDetailKeys = new Set([
+    "applicantName",
+    "taxCode",
+    "address",
+    "contact",
+    "licenseNumber",
+    "productGroups",
+    "origin",
+    "safetyProcess",
+    "operatingHours",
+  ]);
+  const hiddenFacilityDetailLabels = new Set([
+    "Giờ hoạt động",
+    "Tên đơn vị",
+    "Mã số thuế",
+    "Số điện thoại liên hệ",
+    "Số giấy phép ATTP",
+  ]);
+  const shouldHideFacilityDetail =
+    record.category === "eligible-facilities";
+  const metadataEntries = Object.entries(record.metadata ?? {}).filter(
+    ([key]) =>
+      !(
+        shouldHideFacilityDetail &&
+        hiddenFacilityDetailLabels.has(key)
+      ),
+  );
   const detailEntries = Object.entries(registration.data).filter(
-    ([, value]) =>
-      value !== undefined &&
-      value !== null &&
-      (Array.isArray(value) ? value.length > 0 : String(value).trim() !== ""),
+    ([key, value]) => {
+      const label = criteriaLabels.get(key);
+      return (
+        !(
+          shouldHideFacilityDetail &&
+          (hiddenFacilityDetailKeys.has(key) ||
+            (label ? hiddenFacilityDetailLabels.has(label) : false))
+        ) &&
+        value !== undefined &&
+        value !== null &&
+        (Array.isArray(value)
+          ? value.length > 0
+          : String(value).trim() !== "")
+      );
+    },
   );
   const imageAttachments = registration.attachments.filter((file) =>
     file.kind.startsWith("image/"),
@@ -1400,7 +1438,7 @@ function RecordDialog({
               : "Thông tin hồ sơ"}
           </h3>
           <dl className="mt-3 divide-y divide-border">
-            {Object.entries(record.metadata ?? {}).map(([key, value]) => (
+            {metadataEntries.map(([key, value]) => (
               <div
                 key={key}
                 className="flex justify-between gap-5 py-3 text-sm"
