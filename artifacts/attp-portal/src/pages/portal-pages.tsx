@@ -425,13 +425,7 @@ function HomeRegionalDirectory() {
               role="img"
               aria-label="Bản đồ Việt Nam theo ranh giới tỉnh thành"
             >
-              <g
-                style={{
-                  transform: mapTranslate,
-                  transformOrigin: "center",
-                  transition: "transform 500ms ease",
-                }}
-              >
+              <g transform={mapTranslate}>
                 {vietnamMapFeatures.map((feature) => {
                   const isSelected = selectedId === feature.id;
                   return (
@@ -444,6 +438,10 @@ function HomeRegionalDirectory() {
                       strokeWidth={isSelected ? 2.8 : 1.35}
                       vectorEffect="non-scaling-stroke"
                       className="cursor-pointer transition-[fill-opacity,stroke] duration-300 hover:brightness-105"
+                      onPointerDown={(event) => {
+                        event.stopPropagation();
+                        chooseRegion(feature.id);
+                      }}
                       onClick={() => chooseRegion(feature.id)}
                       onKeyDown={(event) => {
                         if (event.key === "Enter" || event.key === " ") {
