@@ -1059,6 +1059,177 @@ export const publicRecords: PublicRecord[] = [
   },
 ];
 
+export const regionalPublicRecords: PublicRecord[] = [
+  {
+    id: "regional-001",
+    category: "eligible-facilities",
+    title: "Công ty TNHH Nông sản An Phú",
+    subtitle: "Đơn vị cung cấp thực phẩm",
+    location: "184 Nguyễn Văn Linh, Quận 7, TP.HCM",
+    status: "active",
+    publishedAt: "2026-08-18",
+    metadata: {
+      "Loại hình": "Đơn vị cung cấp thực phẩm",
+      "Tỉnh / thành phố": "Thành phố Hồ Chí Minh",
+      "Trạng thái": "Đang hoạt động",
+    },
+  },
+  {
+    id: "regional-002",
+    category: "eligible-facilities",
+    title: "Bếp ăn Trường Tiểu học Nguyễn Bỉnh Khiêm",
+    subtitle: "Cơ sở giáo dục",
+    location: "25 Nguyễn Bỉnh Khiêm, Quận 1, TP.HCM",
+    status: "active",
+    publishedAt: "2026-08-12",
+    metadata: {
+      "Loại hình": "Cơ sở giáo dục",
+      "Tỉnh / thành phố": "Thành phố Hồ Chí Minh",
+      "Trạng thái": "Đã công bố",
+    },
+  },
+  {
+    id: "regional-003",
+    category: "testing-facilities",
+    title: "Trung tâm Kiểm nghiệm Nam Sài Gòn",
+    subtitle: "Cơ sở kiểm nghiệm",
+    location: "56 Hoàng Diệu, Quận 4, TP.HCM",
+    status: "active",
+    publishedAt: "2026-08-08",
+    metadata: {
+      "Loại hình": "Cơ sở kiểm nghiệm",
+      "Tỉnh / thành phố": "Thành phố Hồ Chí Minh",
+      "Trạng thái": "Đang hoạt động",
+    },
+  },
+  {
+    id: "regional-004",
+    category: "eligible-facilities",
+    title: "Công ty CP Nông sản Hưng Thịnh",
+    subtitle: "Đơn vị cung cấp thực phẩm",
+    location: "Khu công nghiệp Amata, Biên Hòa, Đồng Nai",
+    status: "active",
+    publishedAt: "2026-08-07",
+    metadata: {
+      "Loại hình": "Đơn vị cung cấp thực phẩm",
+      "Tỉnh / thành phố": "Đồng Nai",
+      "Trạng thái": "Đã công bố",
+    },
+  },
+  {
+    id: "regional-005",
+    category: "eligible-facilities",
+    title: "HTX Cây ăn trái Long Hà",
+    subtitle: "Hợp tác xã",
+    location: "Long Khánh, Đồng Nai",
+    status: "active",
+    publishedAt: "2026-08-04",
+    metadata: {
+      "Loại hình": "Hợp tác xã",
+      "Tỉnh / thành phố": "Đồng Nai",
+      "Trạng thái": "Đang hoạt động",
+    },
+  },
+  {
+    id: "regional-006",
+    category: "eligible-facilities",
+    title: "Công ty Thực phẩm sạch Thủ Đô",
+    subtitle: "Đơn vị cung cấp thực phẩm",
+    location: "Cầu Giấy, Hà Nội",
+    status: "active",
+    publishedAt: "2026-07-28",
+    metadata: {
+      "Loại hình": "Đơn vị cung cấp thực phẩm",
+      "Tỉnh / thành phố": "Hà Nội",
+      "Trạng thái": "Đang hoạt động",
+    },
+  },
+  {
+    id: "regional-007",
+    category: "eligible-facilities",
+    title: "Bếp ăn Trường Tiểu học Ba Đình",
+    subtitle: "Cơ sở giáo dục",
+    location: "Ba Đình, Hà Nội",
+    status: "active",
+    publishedAt: "2026-07-22",
+    metadata: {
+      "Loại hình": "Cơ sở giáo dục",
+      "Tỉnh / thành phố": "Hà Nội",
+      "Trạng thái": "Đã công bố",
+    },
+  },
+  {
+    id: "regional-008",
+    category: "eligible-facilities",
+    title: "Cơ sở sản xuất Đặc sản Miền Trung",
+    subtitle: "Cơ sở sản xuất",
+    location: "Hải Châu, Đà Nẵng",
+    status: "active",
+    publishedAt: "2026-07-18",
+    metadata: {
+      "Loại hình": "Cơ sở sản xuất",
+      "Tỉnh / thành phố": "Đà Nẵng",
+      "Trạng thái": "Đang hoạt động",
+    },
+  },
+  {
+    id: "regional-009",
+    category: "eligible-facilities",
+    title: "Nhà hàng Biển Xanh",
+    subtitle: "Dịch vụ ăn uống",
+    location: "Sơn Trà, Đà Nẵng",
+    status: "active",
+    publishedAt: "2026-07-15",
+    metadata: {
+      "Loại hình": "Dịch vụ ăn uống",
+      "Tỉnh / thành phố": "Đà Nẵng",
+      "Trạng thái": "Đã công bố",
+    },
+  },
+  {
+    id: "regional-010",
+    category: "eligible-facilities",
+    title: "HTX Nông nghiệp Cát Hải",
+    subtitle: "Đơn vị cung cấp thực phẩm",
+    location: "Cát Hải, Hải Phòng",
+    status: "active",
+    publishedAt: "2026-07-12",
+    metadata: {
+      "Loại hình": "Đơn vị cung cấp thực phẩm",
+      "Tỉnh / thành phố": "Hải Phòng",
+      "Trạng thái": "Đang hoạt động",
+    },
+  },
+  {
+    id: "regional-011",
+    category: "eligible-facilities",
+    title: "Cơ sở chế biến Mekong Farm",
+    subtitle: "Cơ sở sản xuất",
+    location: "Ninh Kiều, Cần Thơ",
+    status: "active",
+    publishedAt: "2026-07-08",
+    metadata: {
+      "Loại hình": "Cơ sở sản xuất",
+      "Tỉnh / thành phố": "Cần Thơ",
+      "Trạng thái": "Đã công bố",
+    },
+  },
+  {
+    id: "regional-012",
+    category: "eligible-facilities",
+    title: "Công ty TNHH Nông sản Xứ Nghệ",
+    subtitle: "Đơn vị cung cấp thực phẩm",
+    location: "Vinh, Nghệ An",
+    status: "active",
+    publishedAt: "2026-07-04",
+    metadata: {
+      "Loại hình": "Đơn vị cung cấp thực phẩm",
+      "Tỉnh / thành phố": "Nghệ An",
+      "Trạng thái": "Đang hoạt động",
+    },
+  },
+];
+
 export const newsItems: NewsItem[] = [
   {
     id: "news-001",
@@ -1144,7 +1315,7 @@ export const criteriaHistory: Record<ApplicationType, CriteriaHistoryEntry[]> =
 export const getCriteriaSet = (type: ApplicationType): CriteriaSet =>
   structuredClone(criteria[type]);
 export const getPublicRecords = (search = "", category = "") =>
-  publicRecords.filter(
+  [...publicRecords, ...regionalPublicRecords].filter(
     (item) =>
       (!category || item.category === category) &&
       (!search ||

@@ -68,6 +68,7 @@ import {
   getCriteriaSet,
   getPublicRecords,
   newsItems,
+  regionalPublicRecords,
   suppliers,
   type Application,
   type ApplicationStatus,
@@ -296,6 +297,7 @@ function Notice({
 }
 
 function HomeRegionalDirectory() {
+  const [, navigate] = useLocation();
   const [selectedId, setSelectedId] = useState("all");
   const [manualZoom, setManualZoom] = useState(1);
   const [mapOffset, setMapOffset] = useState({ x: 0, y: 0 });
@@ -499,9 +501,14 @@ function HomeRegionalDirectory() {
               {selectedFacilities.length ? (
                 <div className="divide-y divide-border">
                   {selectedFacilities.map((facility) => (
-                    <article
+                    <button
+                      type="button"
                       key={facility.id}
-                      className="group px-6 py-5 transition-colors hover:bg-secondary/45"
+                      className="group block w-full px-6 py-5 text-left transition-colors hover:bg-secondary/45"
+                      onClick={() =>
+                        navigate(`/lookup?record=${encodeURIComponent(facility.id)}`)
+                      }
+                      data-testid={`button-regional-facility-${facility.id}`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <h4 className="text-sm font-extrabold leading-6">
@@ -522,7 +529,7 @@ function HomeRegionalDirectory() {
                         <span className={`h-1.5 w-1.5 rounded-full ${facility.status === "Đang hoạt động" ? "bg-emerald-500" : "bg-primary"}`} />
                         {facility.status}
                       </span>
-                    </article>
+                    </button>
                   ))}
                 </div>
               ) : (
@@ -758,9 +765,15 @@ function HomeLookupSection() {
 }
 
 export function LookupPage() {
+  const [location] = useLocation();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(() => {
+    const recordId = new URLSearchParams(window.location.search).get("record");
+    return recordId && regionalPublicRecords.some((item) => item.id === recordId)
+      ? recordId
+      : null;
+  });
   const filtered = getPublicRecords(search);
   const pageSize = 8;
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -768,6 +781,16 @@ export function LookupPage() {
   const record = selected
     ? filtered.find((item) => item.id === selected)
     : undefined;
+  useEffect(() => {
+    const recordId = new URLSearchParams(location.split("?")[1] ?? "").get(
+      "record",
+    );
+    setSelected(
+      recordId && regionalPublicRecords.some((item) => item.id === recordId)
+        ? recordId
+        : null,
+    );
+  }, [location]);
   return (
     <PublicShell>
       <main className="mx-auto max-w-7xl px-5 py-12 lg:px-8 lg:py-16">
