@@ -551,10 +551,25 @@ function HomeRegionalDirectory() {
                       <p className="mt-2 text-xs font-semibold text-primary">
                         {facility.type}
                       </p>
-                      <p className="mt-2 flex items-start gap-2 text-xs leading-5 text-muted-foreground">
-                        <MapPin size={14} className="mt-0.5 shrink-0" />
-                        {facility.address}
-                      </p>
+                      {(() => {
+                        const record = regionalPublicRecords.find(
+                          (item) => item.id === facility.id,
+                        );
+                        const owner = record?.metadata["Chủ cơ sở"];
+                        const certificateNumber = record?.metadata["Số GCN"];
+                        const certificateIssued = record?.metadata["Ngày cấp"];
+                        return (
+                          <div className="mt-2 space-y-1.5 text-xs leading-5 text-muted-foreground">
+                            <p><strong className="text-foreground">Tên cơ sở:</strong> {facility.name}</p>
+                            <p><strong className="text-foreground">Chủ cơ sở:</strong> {owner ?? "—"}</p>
+                            <p><strong className="text-foreground">Số GCN:</strong> {certificateNumber ?? "—"} <span className="mx-1">·</span> <strong className="text-foreground">Ngày cấp:</strong> {certificateIssued ?? "—"}</p>
+                            <p className="flex items-start gap-2">
+                              <MapPin size={14} className="mt-0.5 shrink-0" />
+                              <span><strong className="text-foreground">Địa chỉ:</strong> {record?.metadata["Địa chỉ"] ?? facility.address}</span>
+                            </p>
+                          </div>
+                        );
+                      })()}
                       <span className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground">
                         <span className={`h-1.5 w-1.5 rounded-full ${facility.status === "Đang hoạt động" ? "bg-emerald-500" : "bg-primary"}`} />
                         {facility.status}
@@ -612,7 +627,7 @@ export function HomePage() {
                 <span className="text-primary">Thành Phố Hồ Chí Minh.</span>
               </h2>
               <p className="mt-8 max-w-xl text-base leading-8 text-muted-foreground md:text-lg">
-                Tra cứu nhanh các cơ sở, sản phẩm và hoạt động quảng cáo đã được
+                Tra cứu nhanh các cơ sở đã được
                 Sở An toàn thực phẩm Thành phố Hồ Chí Minh công khai.
               </p>
               <div className="mt-10 flex flex-wrap gap-3">
@@ -719,7 +734,7 @@ function HomeFeature({
 function HomeLookupSection() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<PublicRecord | null>(null);
-  const data = getPublicRecords(search).slice(0, 3);
+  const data = getPublicRecords(search, "eligible-facilities").slice(0, 3);
 
   return (
     <section className="border-y border-border bg-secondary/30">
@@ -727,7 +742,7 @@ function HomeLookupSection() {
         <SectionHeading
           eyebrow="Tra cứu nhanh"
           title="Tìm thông tin công khai ngay trên trang tổng quan."
-          description="Nhập tên cơ sở hoặc sản phẩm để xem nhanh các kết quả mới nhất."
+          description="Nhập tên cơ sở để xem nhanh các kết quả mới nhất."
           action={
             <Link
               href="/lookup"
@@ -790,7 +805,7 @@ export function LookupPage() {
       ? recordId
       : null;
   });
-  const filtered = getPublicRecords(search);
+  const filtered = getPublicRecords(search, "eligible-facilities");
   const pageSize = 8;
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const data = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -798,9 +813,9 @@ export function LookupPage() {
     ? filtered.find((item) => item.id === selected)
     : undefined;
   useEffect(() => {
-    const recordId = new URLSearchParams(location.split("?")[1] ?? "").get(
-      "record",
-    );
+    const recordId =
+      new URLSearchParams(window.location.search).get("record") ??
+      new URLSearchParams(location.split("?")[1] ?? "").get("record");
     setSelected(
       recordId && regionalPublicRecords.some((item) => item.id === recordId)
         ? recordId
@@ -1214,10 +1229,20 @@ function RecordRow({
             </span>
             <StatusPill status={item.status} />
           </div>
-          <h3 className="mt-2 truncate text-base font-bold">{item.title}</h3>
-          <p className="mt-1 truncate text-sm text-muted-foreground">
-            {item.subtitle}
-          </p>
+          <h3 className="mt-2 truncate text-base font-bold">
+            Tên cơ sở: {item.title}
+          </h3>
+           {item.category === "eligible-facilities" ? (
+             <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+               <p><strong className="text-foreground">Chủ cơ sở:</strong> {item.metadata["Chủ cơ sở"] ?? "—"}</p>
+               <p><strong className="text-foreground">Số GCN:</strong> {item.metadata["Số GCN"] ?? "—"} <span className="mx-1">·</span> <strong className="text-foreground">Ngày cấp:</strong> {item.metadata["Ngày cấp"] ?? "—"}</p>
+               <p><strong className="text-foreground">Địa chỉ:</strong> {item.metadata["Địa chỉ"] ?? item.location}</p>
+             </div>
+           ) : (
+             <p className="mt-1 truncate text-sm text-muted-foreground">
+               {item.subtitle}
+             </p>
+           )}
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-3 text-sm text-muted-foreground">
@@ -1251,9 +1276,11 @@ function RecordDialog({
       >
         <div className="flex items-start justify-between">
           <div>
-            <p className="mono-label text-primary">
-              {categoryNames[record.category]}
-            </p>
+             <p className="mono-label text-primary">
+               {record.category === "eligible-facilities"
+                 ? "Hồ sơ cơ sở"
+                 : categoryNames[record.category]}
+             </p>
             <h2 className="mt-2 text-2xl font-extrabold">{record.title}</h2>
           </div>
           <button
@@ -1284,7 +1311,11 @@ function RecordDialog({
           </p>
         </div>
         <div className="mt-6">
-          <h3 className="font-bold">Thông tin hồ sơ</h3>
+          <h3 className="font-bold">
+            {record.category === "eligible-facilities"
+              ? "Thông tin hồ sơ cơ sở"
+              : "Thông tin hồ sơ"}
+          </h3>
           <dl className="mt-3 divide-y divide-border">
             {Object.entries(record.metadata ?? {}).map(([key, value]) => (
               <div
