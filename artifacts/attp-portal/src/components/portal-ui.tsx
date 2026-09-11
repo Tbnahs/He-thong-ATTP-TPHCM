@@ -14,6 +14,7 @@ import {
   LogIn,
   LogOut,
   Menu,
+  PackageCheck,
   Search,
   ShieldCheck,
   SlidersHorizontal,
@@ -91,6 +92,7 @@ export function PublicHeader() {
         ["/lookup", "Tra cứu"],
         ["/news", "Tin tức & sự kiện"],
         ["/facility/profile", "Hồ sơ cơ sở"],
+        ["/facility/products", "Hồ sơ sản phẩm"],
       ]
     : [
         ["/", "Tổng quan"],
@@ -327,6 +329,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const overviewItems = [
     ["/admin", "Dashboard giám sát", LayoutDashboard],
     ["/admin/applications", "Hồ sơ đăng ký", ClipboardCheck],
+    ["/admin/products", "Hồ sơ sản phẩm", PackageCheck],
     ["/admin/facilities", "Quản lý cơ sở", Building2],
   ];
   const mealItems = [
