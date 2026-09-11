@@ -329,12 +329,11 @@ function HomeRegionalDirectory() {
           <div className="max-w-2xl">
             <p className="mono-label font-semibold text-primary">Mạng lưới cơ sở</p>
             <h2 className="display-tight mt-3 text-4xl font-extrabold leading-tight md:text-5xl">
-              Tra cứu theo <span className="text-primary">tỉnh, thành phố.</span>
+              <span className="text-primary">Bản đồ</span>
             </h2>
             <p className="mt-5 text-base leading-7 text-muted-foreground">
-              Bản đồ được dựng từ dữ liệu ranh giới hành chính thực tế. Chọn một
-              tỉnh/thành để bản đồ tự phóng to và danh sách cơ sở bên cạnh được lọc
-              theo khu vực đó.
+              Chọn một tỉnh/thành để bản đồ tự phóng to và danh sách cơ sở bên cạnh
+              được lọc theo khu vực đó.
             </p>
           </div>
           <label className="w-full max-w-sm">
@@ -5136,108 +5135,74 @@ function SupplementDialog({
 export function AdminApplicationPage() {
   const { id = "" } = useParams<{ id: string }>();
   const application = applications.find((item) => item.id === id);
-  const [scores, setScores] = useState<Record<string, number>>({});
-  const [criteriaNotes, setCriteriaNotes] = useState<Record<string, string>>(
-    {},
-  );
-  const [note, setNote] = useState("");
-  const [notice, setNotice] = useState("");
-  const [galleryFile, setGalleryFile] = useState<Attachment | null>(null);
-  const [supplementOpen, setSupplementOpen] = useState(false);
+  const [evaluation, setEvaluation] = useState<"" | "passed" | "failed">("");
   const [supplementNote, setSupplementNote] = useState("");
+  const [notice, setNotice] = useState("");
   useEffect(() => {
     if (!application) return;
-    setScores(application.scoreBreakdown ?? {});
-    setNote(application.reviewNote ?? "");
-  }, [application?.id, application?.criteriaVersion]);
+    setEvaluation(
+      application.status === "approved"
+        ? "passed"
+        : application.status === "needs-more-info"
+          ? "failed"
+          : "",
+    );
+    setSupplementNote(application.reviewNote ?? "");
+  }, [application?.id, application?.status, application?.reviewNote]);
   const criteria =
     application?.criteriaSnapshot
       ?.filter((item) => item.active)
       .sort((a, b) => a.order - b.order) ?? [];
-  const scoringCriteria = criteria.filter((item) => item.maxScore > 0);
-  const maxScore = scoringCriteria.reduce(
-    (sum, item) => sum + item.maxScore,
-    0,
-  );
-  const computedScore = Math.round(
-    scoringCriteria.reduce(
-      (sum, item) =>
-        sum +
-        Math.min(item.maxScore, Math.max(0, Number(scores[item.key] ?? 0))),
-      0,
-    ),
-  );
-  const percentage = maxScore
-    ? Math.round((computedScore / maxScore) * 100)
-    : 0;
-  const saveDecision = () => {
-    if (!application) return;
-    const nextStatus =
-      percentage >= 100 ? "approved" : percentage >= 80 ? "warning" : "stopped";
-    application.score = computedScore;
-    application.scoreBreakdown = scores;
-    application.status = nextStatus;
-    application.reviewNote = note || null;
-    setNotice(
-      nextStatus === "approved"
-        ? "Đã lưu kết quả PASS cho hồ sơ."
-        : nextStatus === "warning"
-          ? "Đã lưu hồ sơ ở trạng thái cảnh báo / tạm dừng."
-          : "Đã lưu hồ sơ ở trạng thái dừng hoạt động.",
+  const formGroups = (application?.criteriaGroups ?? [])
+    .slice()
+    .sort((a, b) => a.order - b.order);
+  const publish = () => {
+    if (!application || evaluation !== "passed") return;
+    const publishedRecord: PublicRecord = {
+      id: `application-${application.id}`,
+      category: "eligible-facilities",
+      title: application.applicantName,
+      subtitle: typeNames[application.type],
+      location: application.address,
+      status: "active",
+      publishedAt: new Date().toISOString().slice(0, 10),
+      metadata: {
+        "Mã hồ sơ": application.reference,
+        "Loại hình": typeNames[application.type],
+        "Liên hệ": application.contact,
+        "Kết quả": "Đạt",
+      },
+    };
+    const existingIndex = regionalPublicRecords.findIndex(
+      (record) => record.id === publishedRecord.id,
     );
+    if (existingIndex >= 0) regionalPublicRecords[existingIndex] = publishedRecord;
+    else regionalPublicRecords.unshift(publishedRecord);
+    const savedRecords = JSON.parse(
+      sessionStorage.getItem("attp-published-records") || "[]",
+    ) as PublicRecord[];
+    sessionStorage.setItem(
+      "attp-published-records",
+      JSON.stringify([
+        ...savedRecords.filter((record) => record.id !== publishedRecord.id),
+        publishedRecord,
+      ]),
+    );
+    application.status = "approved";
+    application.reviewNote = null;
+    application.published = true;
+    setNotice("Đã lưu hồ sơ đạt và công bố trên cổng thông tin.");
   };
-  const submitSupplement = () => {
-    if (!application || !supplementNote.trim()) return;
+  const requestSupplement = () => {
+    if (!application || !supplementNote.trim()) {
+      setNotice("Vui lòng nhập nội dung yêu cầu bổ sung.");
+      return;
+    }
     application.status = "needs-more-info";
     application.reviewNote = supplementNote.trim();
-    setSupplementOpen(false);
-    setSupplementNote("");
-    setNotice(
-      "Đã ghi nhận yêu cầu bổ sung và chuyển hồ sơ về trạng thái chờ bổ sung.",
-    );
-  };
-  const exportDetail = () => {
-    if (!application) return;
-    const rows: Array<[string, unknown]> = [
-      ["Mã hồ sơ", application.reference],
-      ["Tên cơ sở", application.applicantName],
-      ["Loại hình", typeNames[application.type]],
-      ["Địa chỉ", application.address],
-      ["Liên hệ", application.contact],
-      ["Ngày nộp", formatDate(application.submittedAt)],
-      [
-        "Trạng thái",
-        percentage >= 100
-          ? "PASS"
-          : percentage >= 80
-            ? "Cảnh báo / tạm dừng"
-            : "Dừng hoạt động",
-      ],
-      ["Tổng điểm", `${computedScore}/${maxScore}`],
-      ["Tổng %", `${percentage}%`],
-    ];
-    criteria.forEach((item) =>
-      rows.push([
-        item.label,
-        item.answerType === "file"
-          ? application.attachments
-              .filter((file) => file.fieldKey === item.key)
-              .map((file) => file.name)
-              .join(", ") || "—"
-          : formatAnswer(application.data?.[item.key]),
-      ]),
-    );
-    scoringCriteria.forEach((item) =>
-      rows.push([
-        `Điểm · ${item.label}`,
-        `${scores[item.key] ?? 0}/${item.maxScore}`,
-      ]),
-    );
-    downloadExcel(
-      `${application.reference}-chi-tiet.xls`,
-      `Chi tiết hồ sơ ${application.reference}`,
-      rows,
-    );
+    application.published = false;
+    setEvaluation("failed");
+    setNotice("Đã lưu yêu cầu bổ sung và chuyển hồ sơ về trạng thái cần bổ sung.");
   };
   if (!application)
     return (
@@ -5261,17 +5226,7 @@ export function AdminApplicationPage() {
           >
             <ArrowLeft size={16} /> Quay lại danh sách hồ sơ
           </Link>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={exportDetail}
-              className="inline-flex items-center gap-2 rounded-xl border border-[#16604f]/20 bg-white px-3.5 py-2.5 text-sm font-bold text-[#16604f] shadow-sm hover:bg-[#e7f2ef]"
-              data-testid="button-export-application-excel"
-            >
-              <FileSpreadsheet size={16} /> Xuất Excel hồ sơ
-            </button>
-            <StatusPill status={application.status} />
-          </div>
+          <StatusPill status={application.status} />
         </div>
         <section className="mt-5 overflow-hidden rounded-[1.5rem] bg-[#123d36] text-white shadow-xl shadow-[#123d36]/10">
           <div className="flex flex-col gap-6 px-5 py-6 sm:px-7 lg:flex-row lg:items-center lg:justify-between lg:px-9 lg:py-8">
@@ -5285,7 +5240,7 @@ export function AdminApplicationPage() {
                   <span className="text-white/35">•</span>
                   <span>{typeNames[application.type]}</span>
                   <span className="text-white/35">•</span>
-                  <span>Snapshot {application.criteriaVersion}</span>
+                   <span>{application.published ? "Đã công bố" : "Chưa công bố"}</span>
                 </div>
                 <h1 className="mt-2 max-w-3xl text-2xl font-extrabold tracking-tight sm:text-4xl">
                   {application.applicantName}
@@ -5297,7 +5252,7 @@ export function AdminApplicationPage() {
                 </p>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:w-auto sm:min-w-[270px]">
+             <div className="grid grid-cols-2 gap-3 sm:w-auto sm:min-w-[270px]">
               <div className="rounded-xl bg-white/10 p-3">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-white/55">
                   Ngày nộp
@@ -5306,14 +5261,18 @@ export function AdminApplicationPage() {
                   {formatDate(application.submittedAt)}
                 </p>
               </div>
-              <div className="rounded-xl bg-white/10 p-3">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-white/55">
-                  Điểm hiện tại
-                </p>
-                <p className="mt-1 font-mono text-lg font-bold text-[#f4c95d]">
-                  {computedScore}/{maxScore}
-                </p>
-              </div>
+               <div className="rounded-xl bg-white/10 p-3">
+                 <p className="text-[11px] font-bold uppercase tracking-wider text-white/55">
+                   Đánh giá
+                 </p>
+                 <p className="mt-1 text-sm font-bold text-[#f4c95d]">
+                   {application.status === "approved"
+                     ? "Đạt"
+                     : application.status === "needs-more-info"
+                       ? "Không đạt"
+                       : "Chưa đánh giá"}
+                 </p>
+               </div>
             </div>
           </div>
         </section>
@@ -5326,10 +5285,9 @@ export function AdminApplicationPage() {
               <h2 className="mt-2 text-2xl font-extrabold text-slate-900">
                 Thông tin cơ sở đã khai báo
               </h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Đối chiếu toàn bộ thông tin pháp nhân, giấy phép và dữ liệu
-                trong form đăng ký.
-              </p>
+               <p className="mt-1 text-sm text-slate-500">
+                 Nội dung được giữ nguyên theo form mà cơ sở đã điền khi đăng ký.
+               </p>
             </div>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">
               <CheckCircle2 size={14} className="text-emerald-600" /> Đã tiếp
@@ -5337,20 +5295,38 @@ export function AdminApplicationPage() {
             </span>
           </div>
           <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-            <div className="grid gap-x-7 gap-y-5 sm:grid-cols-2 lg:grid-cols-4">
-              {criteria
-                .filter((item) => item.answerType !== "file")
-                .map((item) => (
-                  <div key={item.key} className="min-w-0">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                      {item.label}
-                    </p>
-                    <p className="mt-1.5 break-words text-sm font-bold text-slate-800">
-                      {formatAnswer(application.data?.[item.key])}
-                    </p>
-                  </div>
-                ))}
-            </div>
+             <div className="space-y-7">
+               {formGroups.map((group) => {
+                 const groupCriteria = criteria.filter(
+                   (item) => item.groupId === group.id,
+                 );
+                 if (!groupCriteria.length) return null;
+                 return (
+                   <div key={group.id}>
+                     <h3 className="border-b border-slate-200 pb-2 text-sm font-extrabold text-[#16604f]">
+                       {group.name}
+                     </h3>
+                     <dl className="mt-3 grid gap-x-7 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
+                       {groupCriteria.map((item) => (
+                         <div key={item.key} className="min-w-0">
+                           <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                             {item.label}
+                           </dt>
+                           <dd className="mt-1.5 break-words text-sm font-bold text-slate-800">
+                             {item.answerType === "file"
+                               ? application.attachments
+                                   .filter((file) => file.fieldKey === item.key)
+                                   .map((file) => file.name)
+                                   .join(", ") || "—"
+                               : formatAnswer(application.data?.[item.key])}
+                           </dd>
+                         </div>
+                       ))}
+                     </dl>
+                   </div>
+                 );
+               })}
+             </div>
             {application.reviewNote && (
               <div className="mt-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
                 <Info size={17} className="mt-0.5 shrink-0" />
@@ -5361,7 +5337,7 @@ export function AdminApplicationPage() {
             )}
           </div>
         </section>
-        <section className="mt-6 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+         <section className="mt-6 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#e7f2ef] text-[#16604f]">
@@ -5381,11 +5357,11 @@ export function AdminApplicationPage() {
             </span>
           </div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {application.attachments.map((file) => (
+             {application.attachments.map((file) => (
               <button
                 type="button"
                 key={file.name}
-                onClick={() => setGalleryFile(file)}
+                 onClick={() => setNotice(`Tệp minh chứng: ${file.name}`)}
                 className="group flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-left transition hover:border-[#16604f]/30 hover:bg-[#f7faf9]"
                 data-testid={`button-preview-attachment-${file.name}`}
               >
@@ -5415,139 +5391,85 @@ export function AdminApplicationPage() {
             ))}
           </div>
         </section>
-        <div className="mt-8">
-          <AdminCriteriaReviewTable
-            criteria={criteria}
-            groups={application.criteriaGroups ?? []}
-            data={application.data}
-            attachments={application.attachments}
-            scores={scores}
-            notes={criteriaNotes}
-            setScore={(key, value) =>
-              setScores((prev) => ({ ...prev, [key]: value }))
-            }
-            setNote={(key, value) =>
-              setCriteriaNotes((prev) => ({ ...prev, [key]: value }))
-            }
-            onOpenAttachment={setGalleryFile}
-          />
-        </div>
         <section className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_350px]">
-          <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-            <div className="flex items-center gap-3">
-              <ClipboardCheck size={19} className="text-[#16604f]" />
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-[#16604f]">
-                  KẾT QUẢ TỰ ĐỘNG
-                </p>
-                <h2 className="mt-1 text-xl font-extrabold text-slate-900">
-                  Tổng hợp đánh giá
-                </h2>
-              </div>
-            </div>
-            <div className="mt-5 grid gap-4 sm:grid-cols-3">
-              <ScoreResult
-                percentage={percentage}
-                computedScore={computedScore}
-                maxScore={maxScore}
-                hasAnyScore={scoringCriteria.some((item) =>
-                  Object.prototype.hasOwnProperty.call(scores, item.key),
-                )}
-              />
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 sm:col-span-2">
-                <p className="text-sm font-extrabold text-slate-900">
-                  Tổng hợp điểm tiêu chí
-                </p>
-                <p className="mt-1 text-sm leading-6 text-slate-500">
-                  Kết quả được tính trực tiếp từ điểm của các tiêu chí đang hoạt
-                  động.
-                </p>
-                <div className="mt-5 grid gap-2 sm:grid-cols-3">
-                  <div className="rounded-xl bg-white p-3">
-                    <p className="text-xs text-slate-500">Tối đa</p>
-                    <p className="mt-1 font-mono text-lg font-bold text-slate-900">
-                      {maxScore} điểm
-                    </p>
-                  </div>
-                  <div className="rounded-xl bg-white p-3">
-                    <p className="text-xs text-slate-500">Đang chấm</p>
-                    <p className="mt-1 font-mono text-lg font-bold text-[#16604f]">
-                      {computedScore} điểm
-                    </p>
-                  </div>
-                  <div className="rounded-xl bg-white p-3">
-                    <p className="text-xs text-slate-500">Ngưỡng PASS</p>
-                    <p className="mt-1 font-mono text-lg font-bold text-slate-900">
-                      100%
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+           <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+             <p className="text-xs font-bold uppercase tracking-[.16em] text-[#16604f]">
+               PHẦN 03 · ĐÁNH GIÁ
+             </p>
+             <h2 className="mt-2 text-xl font-extrabold text-slate-900">
+               Kết quả xử lý hồ sơ
+             </h2>
+             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+               Cán bộ chọn kết quả đánh giá dựa trên nội dung form và minh chứng
+               cơ sở đã cung cấp.
+             </p>
+             <div className="mt-6 rounded-2xl border border-[#16604f]/15 bg-[#f7faf9] p-5">
+               <label className="block">
+                 <span className="mb-2 block text-sm font-bold text-slate-700">
+                   Đánh giá
+                 </span>
+                 <select
+                   value={evaluation}
+                   onChange={(event) =>
+                     setEvaluation(event.target.value as "" | "passed" | "failed")
+                   }
+                   className="focus-ring h-12 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold"
+                   data-testid="select-application-evaluation"
+                 >
+                   <option value="">Chọn kết quả đánh giá</option>
+                   <option value="passed">Đạt</option>
+                   <option value="failed">Không đạt</option>
+                 </select>
+               </label>
+             </div>
+           </div>
           <aside className="h-fit rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm lg:sticky lg:top-6">
             <p className="text-xs font-bold uppercase tracking-[.16em] text-[#16604f]">
-              QUYẾT ĐỊNH CHUYÊN MÔN
+               THAO TÁC CÁN BỘ
             </p>
             <h2 className="mt-2 text-xl font-extrabold text-slate-900">
-              Lưu kết quả xử lý
+               Lưu và công bố
             </h2>
-            <label className="mt-5 block">
-              <span className="mb-2 block text-sm font-bold text-slate-700">
-                Ý kiến xử lý chung
-              </span>
-              <textarea
-                value={note}
-                onChange={(event) => setNote(event.target.value)}
-                placeholder="Ghi rõ căn cứ và nội dung cần lưu vết..."
-                className="focus-ring min-h-28 w-full rounded-xl border border-slate-200 p-3 text-sm"
-                data-testid="textarea-review-note"
-              />
-            </label>
-            <div className="mt-5 space-y-2">
+             {evaluation === "failed" && (
+               <label className="mt-5 block">
+                 <span className="mb-2 block text-sm font-bold text-slate-700">
+                   Nội dung yêu cầu bổ sung
+                 </span>
+                 <textarea
+                   value={supplementNote}
+                   onChange={(event) => setSupplementNote(event.target.value)}
+                   placeholder="Nhập rõ giấy tờ hoặc thông tin cơ sở cần bổ sung..."
+                   className="focus-ring min-h-32 w-full rounded-xl border border-slate-200 p-3 text-sm"
+                   data-testid="textarea-supplement-request"
+                 />
+               </label>
+             )}
+             <div className="mt-5 space-y-2">
               <button
                 type="button"
-                onClick={saveDecision}
+                 onClick={() => {
+                   if (!evaluation) {
+                     setNotice("Vui lòng chọn kết quả trong trường Đánh giá.");
+                     return;
+                   }
+                   if (evaluation === "passed") publish();
+                   else requestSupplement();
+                 }}
                 className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#16604f] px-4 text-sm font-bold text-white shadow-sm hover:bg-[#123d36]"
-                data-testid="button-review-save"
+                 data-testid="button-review-save-and-publish"
               >
-                <Check size={16} /> Lưu kết quả tự động
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setSupplementNote("");
-                  setSupplementOpen(true);
-                }}
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-bold text-amber-800 hover:bg-amber-100"
-                data-testid="button-review-more-info"
-              >
-                <Info size={16} /> Yêu cầu bổ sung
+                 <Check size={16} />{" "}
+                 {evaluation === "passed" ? "Lưu hồ sơ và công bố" : "Lưu yêu cầu bổ sung"}
               </button>
             </div>
             <p className="mt-4 text-xs leading-5 text-slate-500">
-              Yêu cầu bổ sung có thể gửi bất kỳ lúc nào, không cần chấm hết tiêu
-              chí. Trạng thái sẽ chuyển về “Chưa đánh giá — chờ bổ sung”.
+               Nếu chọn “Đạt”, hồ sơ được lưu và xuất hiện trong danh sách công
+               khai. Nếu chọn “Không đạt”, cán bộ phải nhập nội dung yêu cầu bổ
+               sung.
             </p>
           </aside>
         </section>
       </div>
-      {galleryFile && (
-        <AttachmentGalleryDialog
-          file={galleryFile}
-          attachments={application.attachments}
-          onClose={() => setGalleryFile(null)}
-          onSelect={setGalleryFile}
-        />
-      )}
-      {supplementOpen && (
-        <SupplementDialog
-          note={supplementNote}
-          setNote={setSupplementNote}
-          onClose={() => setSupplementOpen(false)}
-          onSubmit={submitSupplement}
-        />
-      )}
       {notice && <Notice message={notice} onClose={() => setNotice("")} />}
     </AdminShell>
   );

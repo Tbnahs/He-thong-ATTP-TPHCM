@@ -129,6 +129,7 @@ export interface Application {
   criteriaSnapshot: CriteriaDefinition[];
   criteriaGroups: CriteriaGroup[];
   scoreBreakdown: Record<string, number>;
+  published?: boolean;
 }
 export interface ListApplicationsParams {
   status?: ApplicationStatus;
@@ -1314,15 +1315,30 @@ export const criteriaHistory: Record<ApplicationType, CriteriaHistoryEntry[]> =
   { "food-supplier": [], "meal-provider": [], school: [] };
 export const getCriteriaSet = (type: ApplicationType): CriteriaSet =>
   structuredClone(criteria[type]);
+const getPublishedRecords = (): PublicRecord[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    return JSON.parse(
+      sessionStorage.getItem("attp-published-records") || "[]",
+    ) as PublicRecord[];
+  } catch {
+    return [];
+  }
+};
 export const getPublicRecords = (search = "", category = "") =>
-  [...publicRecords, ...regionalPublicRecords].filter(
+  [...publicRecords, ...regionalPublicRecords, ...getPublishedRecords()]
+    .filter(
     (item) =>
       (!category || item.category === category) &&
       (!search ||
         `${item.title} ${item.subtitle} ${item.location}`
           .toLowerCase()
           .includes(search.toLowerCase())),
-  );
+    )
+    .filter(
+      (item, index, records) =>
+        records.findIndex((record) => record.id === item.id) === index,
+    );
 
 const applicationCriteria = getCriteriaSet("food-supplier");
 export const applications: Application[] = [

@@ -251,6 +251,10 @@ export function AdminMonitoringDashboard() {
   );
 }
 
+export function AdminBlankPage() {
+  return <AdminShell><div aria-hidden="true" /></AdminShell>;
+}
+
 export function AdminFacilitiesPage() {
   const [category, setCategory] = useState<(typeof categoryOptions)[number]>("Tất cả");
   const [search, setSearch] = useState("");
