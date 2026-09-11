@@ -301,6 +301,74 @@ const getCriteriaValue = (
   return "";
 };
 
+const readFilePreview = (file: File): Promise<string | undefined> =>
+  file.type.startsWith("image/")
+    ? new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () =>
+          resolve(typeof reader.result === "string" ? reader.result : undefined);
+        reader.onerror = () => resolve(undefined);
+        reader.readAsDataURL(file);
+      })
+    : Promise.resolve(undefined);
+
+const formatDetailValue = (value: unknown): string => {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (typeof item === "object" && item !== null) {
+          return Object.entries(item)
+            .map(([key, entry]) => `${key}: ${formatDetailValue(entry)}`)
+            .join(" · ");
+        }
+        return String(item);
+      })
+      .join(", ");
+  }
+  if (typeof value === "object" && value !== null) {
+    return Object.entries(value)
+      .map(([key, entry]) => `${key}: ${formatDetailValue(entry)}`)
+      .join(" · ");
+  }
+  return String(value ?? "—");
+};
+
+type RecordRegistrationDetail = {
+  data: Record<string, unknown>;
+  attachments: Attachment[];
+  type?: ApplicationType;
+};
+
+const getRecordRegistrationDetail = (
+  record: PublicRecord,
+): RecordRegistrationDetail => {
+  const application = applications.find(
+    (item) => item.applicantName === record.title,
+  );
+  const account = readFacilityAccounts().find((item) => {
+    const fields = item.registration.fields;
+    return (
+      typeof fields.applicantName === "string" &&
+      fields.applicantName === record.title
+    );
+  });
+  const registration = account?.registration;
+  return {
+    data:
+      record.applicationData ??
+      application?.data ??
+      (registration?.fields as Record<string, unknown> | undefined) ??
+      {},
+    attachments:
+      record.attachments ?? application?.attachments ?? registration?.files ?? [],
+    type: application?.type ?? registration?.type,
+  };
+};
+
+const getAttachmentPreview = (file: Attachment) =>
+  file.previewUrl ??
+  (file.name === "kho-bao-quan-01.jpg" ? heroFoodImage : undefined);
+
 function Notice({
   message,
   onClose,
@@ -1262,6 +1330,21 @@ function RecordDialog({
   record: PublicRecord;
   onClose: () => void;
 }) {
+  const registration = getRecordRegistrationDetail(record);
+  const criteriaLabels = new Map(
+    (registration.type ? getCriteriaSet(registration.type).criteria : []).map(
+      (item) => [item.key, item.label],
+    ),
+  );
+  const detailEntries = Object.entries(registration.data).filter(
+    ([, value]) =>
+      value !== undefined &&
+      value !== null &&
+      (Array.isArray(value) ? value.length > 0 : String(value).trim() !== ""),
+  );
+  const imageAttachments = registration.attachments.filter((file) =>
+    file.kind.startsWith("image/"),
+  );
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-primary/30 p-0 backdrop-blur-sm sm:items-center sm:p-5"
@@ -1326,8 +1409,64 @@ function RecordDialog({
                 <dd className="text-right font-semibold">{value}</dd>
               </div>
             ))}
+            {detailEntries.map(([key, value]) => (
+              <div
+                key={`registration-${key}`}
+                className="flex justify-between gap-5 py-3 text-sm"
+              >
+                <dt className="text-muted-foreground">
+                  {criteriaLabels.get(key) ?? key}
+                </dt>
+                <dd className="max-w-[68%] whitespace-pre-wrap text-right font-semibold">
+                  {formatDetailValue(value)}
+                </dd>
+              </div>
+            ))}
           </dl>
         </div>
+        {registration.attachments.length > 0 && (
+          <div className="mt-6">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="font-bold">Tệp và hình ảnh trong hồ sơ</h3>
+              <span className="text-xs font-semibold text-muted-foreground">
+                {registration.attachments.length} tệp
+              </span>
+            </div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              {registration.attachments.map((file) => (
+                <div
+                  key={`${file.fieldKey ?? "attachment"}-${file.name}`}
+                  className="overflow-hidden rounded-xl border border-border bg-secondary/30"
+                >
+                  {file.kind.startsWith("image/") && getAttachmentPreview(file) ? (
+                    <img
+                      src={getAttachmentPreview(file)}
+                      alt={`Hình ảnh ${file.name}`}
+                      className="aspect-[4/3] w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex aspect-[4/3] items-center justify-center bg-secondary/60 text-primary">
+                      <FileText size={30} />
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 px-3 py-2.5 text-xs">
+                    {file.kind.startsWith("image/") ? (
+                      <ImagePlus size={14} className="shrink-0 text-primary" />
+                    ) : (
+                      <FileText size={14} className="shrink-0 text-primary" />
+                    )}
+                    <span className="min-w-0 truncate font-semibold">{file.name}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {imageAttachments.some((file) => !getAttachmentPreview(file)) && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Một số ảnh cũ chỉ còn tên tệp vì được đăng ký trước khi hệ thống lưu bản xem trước.
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1894,7 +2033,7 @@ function ApplicationForm({
     setFiles([]);
     setNotice("");
   };
-  const addFiles = (event: ChangeEvent<HTMLInputElement>) => {
+  const addFiles = async (event: ChangeEvent<HTMLInputElement>) => {
     const chosen = Array.from(event.target.files ?? []);
     const invalid = chosen.find(
       (file) =>
@@ -1905,14 +2044,17 @@ function ApplicationForm({
       setNotice("Chỉ nhận PDF, JPG, PNG và mỗi tệp không quá 5MB.");
       return;
     }
+    const previews = await Promise.all(chosen.map(readFilePreview));
     setFiles((prev) => [
       ...prev,
-      ...chosen.map((file) => ({
+      ...chosen.map((file, index) => ({
         name: file.name,
         kind: file.type,
         size: file.size,
+        previewUrl: previews[index],
       })),
     ]);
+    event.target.value = "";
   };
   const addFilesFor = (
     fieldKey: string,
@@ -1929,15 +2071,18 @@ function ApplicationForm({
       event.target.value = "";
       return;
     }
-    setFiles((prev) => [
-      ...prev,
-      ...chosen.map((file) => ({
-        name: file.name,
-        kind: file.type,
-        size: file.size,
-        fieldKey,
-      })),
-    ]);
+    void Promise.all(chosen.map(readFilePreview)).then((previews) => {
+      setFiles((prev) => [
+        ...prev,
+        ...chosen.map((file, index) => ({
+          name: file.name,
+          kind: file.type,
+          size: file.size,
+          fieldKey,
+          previewUrl: previews[index],
+        })),
+      ]);
+    });
     event.target.value = "";
     setNotice("");
   };
@@ -2188,6 +2333,24 @@ function ApplicationForm({
     .slice()
     .sort((a, b) => a.order - b.order)
     .filter((group) => formFields.some((item) => item.groupId === group.id));
+  const renderQuestion = (item: CriteriaDefinition) => (
+    <DynamicQuestion
+      item={item}
+      value={fields[item.key] ?? ""}
+      files={files.filter(
+        (file) =>
+          file.fieldKey === item.key ||
+          file.fieldKey?.startsWith(`${item.key}.`),
+      )}
+      suppliers={suppliers ?? []}
+      onChange={(value) => update(item.key, value)}
+      onFiles={(event) => addFilesFor(item.key, event)}
+      onFilesFor={addFilesFor}
+      onRemoveFile={(name, fieldKey) =>
+        removeFile(name, fieldKey ?? item.key)
+      }
+    />
+  );
   return (
     <div className="mx-auto max-w-4xl">
       <SectionHeading
@@ -2298,25 +2461,26 @@ function ApplicationForm({
           >
             {formFields
               .filter((item) => item.groupId === group.id)
-              .map((item) => (
-                <DynamicQuestion
-                  key={item.id}
-                  item={item}
-                  value={fields[item.key] ?? ""}
-                  files={files.filter(
-                    (file) =>
-                      file.fieldKey === item.key ||
-                      file.fieldKey?.startsWith(`${item.key}.`),
-                  )}
-                  suppliers={suppliers ?? []}
-                  onChange={(value) => update(item.key, value)}
-                  onFiles={(event) => addFilesFor(item.key, event)}
-                  onFilesFor={addFilesFor}
-                  onRemoveFile={(name, fieldKey) =>
-                    removeFile(name, fieldKey ?? item.key)
-                  }
-                />
-              ))}
+              .map((item, index, groupFields) => {
+                if (item.key === "certificateIssued") return null;
+                if (item.key === "certificateNumber") {
+                  const issued = groupFields.find(
+                    (field) => field.key === "certificateIssued",
+                  );
+                  return issued ? (
+                    <div
+                      key={`${item.id}-certificate-row`}
+                      className="grid gap-4 md:grid-cols-2"
+                    >
+                      {renderQuestion(item)}
+                      {renderQuestion(issued)}
+                    </div>
+                  ) : (
+                    <Fragment key={item.id}>{renderQuestion(item)}</Fragment>
+                  );
+                }
+                return <Fragment key={`${item.id}-${index}`}>{renderQuestion(item)}</Fragment>;
+              })}
           </FormSection>
         ))}
         <div className="flex flex-col gap-4 rounded-2xl border border-border bg-secondary/50 p-5 sm:flex-row sm:items-center sm:justify-between">
@@ -5463,6 +5627,8 @@ export function AdminApplicationPage() {
         "Liên hệ": application.contact,
         "Kết quả": "Đạt",
       },
+      applicationData: application.data,
+      attachments: application.attachments,
     };
     const existingIndex = regionalPublicRecords.findIndex(
       (record) => record.id === publishedRecord.id,

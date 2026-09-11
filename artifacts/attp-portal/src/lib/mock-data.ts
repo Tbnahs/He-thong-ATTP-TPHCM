@@ -28,6 +28,7 @@ export interface Attachment {
   kind: string;
   size: number;
   fieldKey?: string;
+  previewUrl?: string;
 }
 export interface CriteriaSource {
   id: string;
@@ -91,6 +92,8 @@ export interface PublicRecord {
   status: string;
   publishedAt: string;
   metadata: Record<string, string | number>;
+  applicationData?: Record<string, unknown>;
+  attachments?: Attachment[];
 }
 export type NewsCategory = "activity" | "event";
 export interface NewsItem {
