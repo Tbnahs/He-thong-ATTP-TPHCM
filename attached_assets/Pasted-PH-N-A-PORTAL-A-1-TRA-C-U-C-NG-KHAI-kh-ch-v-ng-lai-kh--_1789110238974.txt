@@ -1,0 +1,69 @@
+PHẦN A — PORTAL
+====================================
+
+A.1. TRA CỨU CÔNG KHAI (khách vãng lai, không cần đăng nhập)
+Gồm 2 loại hồ sơ tra cứu được, phản ánh đúng 2 tầng phê duyệt nối tiếp nhau:
+
+- HỒ SƠ CƠ SỞ (đã được duyệt): "Danh sách cơ sở đủ điều kiện" — chỉ hiển thị các cơ sở (đơn vị cung cấp thực phẩm / đơn vị cung cấp suất ăn / cơ sở giáo dục) đã được Admin chấm điểm và đạt PASS
+- HỒ SƠ SẢN PHẨM (chỉ tạo được sau khi Hồ sơ cơ sở đã PASS): chia theo đúng 2 thủ tục pháp lý khác nhau theo Nghị định 15/2018/NĐ-CP:
+  + "Danh sách sản phẩm doanh nghiệp tự công bố" — sản phẩm thông thường, hiển thị ngay khi cơ sở nộp (không cần Sở duyệt trước, chỉ hậu kiểm)
+  + "Danh sách sản phẩm đã được cấp giấy tiếp nhận đăng ký bản công bố sản phẩm" — sản phẩm nguy cơ cao hơn, chỉ hiển thị sau khi Sở thẩm định và cấp giấy tiếp nhận
+- Ngoài ra giữ nguyên các mục tra cứu công khai đã có: "Danh sách sản phẩm quảng cáo được cấp phép", "Danh sách cơ sở kiểm nghiệm được chỉ định"
+- Nút "Đăng ký hồ sơ cơ sở" và "Đăng nhập" dẫn sang mục A.2
+
+A.2. ĐĂNG KÝ & QUẢN LÝ HỒ SƠ (cơ sở đăng nhập)
+
+A.2.1 — Đăng ký tài khoản: cơ sở chọn loại hình (đơn vị cung cấp thực phẩm / đơn vị cung cấp suất ăn / cơ sở giáo dục), điền thông tin cơ bản, tài khoản ở trạng thái chờ kích hoạt.
+
+A.2.2 — Form đăng ký Hồ sơ cơ sở là FORM ĐỘNG, không cố định trong code: form tự sinh ra từ chính bộ tiêu chí đánh giá mà Admin đã cấu hình cho loại hình đó (xem mục B.1). Mỗi loại hình có bộ tiêu chí và form riêng, độc lập với nhau, tổng điểm mỗi loại hình luôn = 100%. Với câu hỏi dạng hình ảnh, cho phép đính kèm nhiều ảnh minh chứng (kho chứa, khu chế biến, trang thiết bị, bếp ăn, khu lưu mẫu, đồ bảo hộ...). Trường hợp trường học chọn liên kết/thuê đơn vị suất ăn ngoài: nếu đơn vị đó đã có trong hệ thống thì chọn từ dropdown, nếu chưa có thì trường tự nhập thông tin cơ bản (tên, mã số thuế, SĐT, ảnh hóa đơn/hợp đồng nếu có) — thông tin loại này gắn nhãn "do bên thứ ba cung cấp, chưa xác minh trực tiếp". Sau khi nộp, hồ sơ ở trạng thái "Chờ duyệt", khóa sửa cho đến khi Admin phản hồi hoặc yêu cầu bổ sung.
+
+A.2.3 — Sau khi Hồ sơ cơ sở đạt PASS, cơ sở mới được mở chức năng tạo Hồ sơ sản phẩm: khai báo danh sách từng sản phẩm cụ thể mình cung cấp, theo 2 luồng:
+  + Nếu là sản phẩm thuộc diện tự công bố: điền bản tự công bố (tên sản phẩm, thành phần, phiếu kết quả kiểm nghiệm ATTP trong 12 tháng, mẫu nhãn sản phẩm) → nộp xong hiển thị NGAY lên portal tra cứu, không chờ duyệt, cơ sở tự chịu trách nhiệm, Sở hậu kiểm sau
+  + Nếu là sản phẩm thuộc diện phải đăng ký bản công bố (thực phẩm bảo vệ sức khỏe, dinh dưỡng y học, dùng cho chế độ ăn đặc biệt, sản phẩm cho trẻ dưới 36 tháng): điền bản công bố sản phẩm kèm hồ sơ theo quy định → gửi Admin thẩm định → Admin duyệt/từ chối/yêu cầu bổ sung → nếu duyệt thì cấp "Giấy tiếp nhận đăng ký bản công bố sản phẩm" và mới đăng công khai lên portal
+- Cơ sở đăng được nhiều sản phẩm tùy ý, không giới hạn số lượng, mỗi sản phẩm là một hồ sơ riêng
+
+A.2.4 — Dashboard cá nhân của cơ sở: xem trạng thái Hồ sơ cơ sở (Chờ duyệt / PASS / Cảnh báo-tạm dừng / Dừng hoạt động / Chờ bổ sung), danh sách Hồ sơ sản phẩm đã đăng và trạng thái từng cái, lịch sử kiểm tra liên quan, chỉnh sửa/bổ sung hồ sơ khi được yêu cầu.
+
+====================================
+PHẦN B — ADMIN (nội bộ Sở, trường học, sở ngành — theo phân quyền)
+====================================
+
+Giữ nguyên toàn bộ menu/tính năng cũ, không cần vẽ chi tiết, chỉ hiển thị tên trong sidebar đúng vị trí: Tổng quan (Dashboard, Danh sách trường học), Nguồn cung ứng (Nhà cung cấp địa bàn — mở rộng thêm quản lý đơn vị cung cấp suất ăn), Quản lý bữa ăn (Kiểm thực 3 bước, Vệ sinh khu vực, Camera/IoT, Món ăn & quy trình chế biến, Thực đơn & suất ăn), Thanh tra & sự cố (Lịch kiểm tra, Quản lý xử lý sự cố ATTP), Quản lý tài khoản, Báo cáo thống kê (mở rộng thêm báo cáo tỷ lệ PASS theo nhóm đối tượng, theo quận/huyện).
+
+Phân quyền tài khoản cơ sở: tận dụng khung tạo đơn vị có sẵn (Thông tin đơn vị / Tài khoản đăng nhập tự sinh / Phân quyền chức năng dạng checkbox), chỉ bổ sung 2 giá trị "Loại đơn vị" mới (Đơn vị cung cấp thực phẩm, Đơn vị cung cấp suất ăn) và 1 checkbox tính năng mới "Khai báo hồ sơ năng lực".
+
+Các mục cần thiết kế CHI TIẾT (mới hoàn toàn hoặc nâng cấp lớn):
+
+B.1 — QUẢN LÝ BỘ TIÊU CHÍ ĐÁNH GIÁ (cấu hình gốc sinh ra form đăng ký Hồ sơ cơ sở)
+- Riêng cho từng loại hình (3 loại), chia theo nhóm (nhân lực, cơ sở vật chất, trang thiết bị, hồ sơ pháp lý...)
+- Mỗi tiêu chí có: tên, nhóm, điểm, loại câu trả lời tương ứng trên form (Có/Không, số, text, upload ảnh...), có bắt buộc không, có phải "điều kiện tiên quyết" không (loại này không tính vào thang 100%, chỉ cần không đạt là hồ sơ bị loại thẳng)
+- Thêm/sửa/ẩn tiêu chí (không xóa cứng, giữ lịch sử). Ràng buộc: tổng điểm mỗi loại hình luôn = 100%, cảnh báo real-time nếu lệch, không cho lưu khi chưa cân bằng
+- Lưu lịch sử mọi thay đổi (ai, lúc nào, giá trị cũ → mới), có màn hình xem lại lịch sử
+- Quản lý phiên bản: chọn "áp dụng ngay" hoặc "từ ngày X"; hồ sơ đã chấm trước đó giữ nguyên kết quả theo đúng phiên bản tiêu chí tại thời điểm chấm
+
+B.2 — QUẢN LÝ HỒ SƠ CƠ SỞ (danh sách + chi tiết từng hồ sơ)
+
+Màn hình danh sách: hiển thị hồ sơ theo loại hình, trạng thái (Chờ duyệt / PASS / Cảnh báo-tạm dừng / Dừng hoạt động / Chưa đánh giá-chờ bổ sung), có nút xuất Excel cho danh sách đã lọc (theo trạng thái/loại hình/thời gian) phục vụ thống kê.
+
+Màn hình chi tiết 1 hồ sơ, chia 2 phần theo chiều dọc:
+- PHẦN TRÊN: toàn bộ thông tin cơ sở đã khai báo (đúng theo form động ở A.2.2), ảnh/file minh chứng xem dạng thư viện, phóng to được. Có nút xuất Excel riêng cho hồ sơ này.
+- PHẦN DƯỚI: bảng chấm điểm, các cột: Tên tiêu chí | Điểm tối đa | Minh chứng | Đạt (nút) | Điểm chấm | Ghi chú.
+  + Cột "Minh chứng": nếu là ảnh/file thì hiện thumbnail nhỏ ngay trong bảng, bấm vào mở popup phóng to (lướt được nếu nhiều ảnh); nếu là số/text thì hiện thẳng giá trị cơ sở đã khai
+  + Cột "Đạt": bấm nhận trọn điểm tối đa; cột "Điểm chấm": cho nhập số điểm khác (chấm một phần)
+  + Tiêu chí điều kiện tiên quyết hiển thị riêng ở đầu bảng, chỉ có Đạt/Không đạt, không nhập điểm
+- Tự động tính kết quả theo thời gian thực: điều kiện tiên quyết fail → Dừng hoạt động ngay; ngược lại cộng dồn điểm ra %: 100% → PASS, 80–99% → Cảnh báo/tạm dừng (có hạn khắc phục, chấm lại sau), dưới 80% → Dừng hoạt động
+- Cán bộ có thể bấm "Yêu cầu bổ sung" bất kỳ lúc nào (không cần chấm hết) nếu hồ sơ thiếu căn cứ đánh giá → hồ sơ chuyển "Chưa đánh giá — chờ bổ sung", ghi rõ mục cần bổ sung, mở lại đúng phần đó cho cơ sở sửa
+- Lưu lịch sử mỗi lần chấm (ai, lúc nào, điểm từng tiêu chí, kết quả, tham chiếu đúng phiên bản tiêu chí đã dùng)
+
+B.3 — QUẢN LÝ HỒ SƠ SẢN PHẨM
+- Danh sách hồ sơ sản phẩm, lọc theo loại (Tự công bố / Đăng ký bản công bố) và trạng thái
+- Loại "Tự công bố": chỉ cần xem để hậu kiểm, không có bước duyệt trước khi hiển thị công khai (đã tự động lên portal ngay khi cơ sở nộp)
+- Loại "Đăng ký bản công bố": màn hình thẩm định hồ sơ — xem thông tin sản phẩm, các giấy tờ đính kèm theo quy định, Duyệt (cấp Giấy tiếp nhận, tự động đăng lên portal) / Từ chối (nêu lý do) / Yêu cầu bổ sung
+
+YÊU CẦU ĐẦU RA:
+1. Sơ đồ luồng người dùng cho: khách vãng lai, cơ sở (đăng ký → hồ sơ cơ sở được duyệt → tạo hồ sơ sản phẩm), Admin (cấu hình tiêu chí → chấm điểm hồ sơ cơ sở → duyệt hồ sơ sản phẩm)
+2. Mô tả các trường/thành phần trên từng màn hình chính đã liệt kê ở trên
+3. Cấu trúc dữ liệu (database schema): bảng loại hình, bảng nhóm tiêu chí, bảng tiêu chí (kèm điểm, loại câu trả lời, cờ điều kiện tiên quyết, phiên bản, trạng thái), bảng hồ sơ cơ sở, bảng câu trả lời của cơ sở, bảng kết quả chấm điểm từng tiêu chí, bảng lịch sử thay đổi tiêu chí, bảng hồ sơ sản phẩm (kèm loại tự công bố/đăng ký, trạng thái, liên kết tới hồ sơ cơ sở đã PASS)
+4. Logic tính điểm, xử lý điều kiện tiên quyết, 4 nhánh kết quả của hồ sơ cơ sở, và luồng xử lý riêng biệt của 2 loại hồ sơ sản phẩm
+
+Chỉ tập trung vào luồng và cấu trúc chức năng, không cần quy định phong cách giao diện chi tiết ngoài việc dùng tông xanh lá chủ đạo và logo Sở cung cấp.
