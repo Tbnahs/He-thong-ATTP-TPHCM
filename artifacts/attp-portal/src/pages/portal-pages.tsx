@@ -88,6 +88,10 @@ import heroFoodImage from "@assets/1788940094256_5613377993845818882_56133779938
 import newsTrainingImage from "@assets/generated_images/news-training-workshop.jpg";
 import newsMarketImage from "@assets/generated_images/news-market-inspection.jpg";
 import newsFoodServiceImage from "@assets/generated_images/news-food-service-training.jpg";
+import {
+  vietnamMapFeatures,
+  vietnamMapViewBox,
+} from "@/lib/vietnam-map-data";
 
 const categoryNames: Record<string, string> = {
   "eligible-facilities": "Cơ sở đủ điều kiện",
@@ -96,6 +100,85 @@ const categoryNames: Record<string, string> = {
   "licensed-advertising": "Quảng cáo được cấp phép",
   "testing-facilities": "Cơ sở kiểm nghiệm",
 };
+type ProvinceRegion = {
+  id: string;
+  name: string;
+  focus: { x: number; y: number };
+  color: string;
+};
+
+type RegionalFacility = {
+  id: string;
+  province: string;
+  name: string;
+  type: string;
+  address: string;
+  status: "Đang hoạt động" | "Đã công bố";
+};
+
+const provinceRegions: ProvinceRegion[] = [
+  { id: "ha-giang", name: "Hà Giang", focus: { x: 18, y: 34 }, color: "#F2B86B" },
+  { id: "cao-bang", name: "Cao Bằng", focus: { x: 20, y: 32 }, color: "#F28F8F" },
+  { id: "lao-cai", name: "Lào Cai", focus: { x: 14, y: 35 }, color: "#75C9B4" },
+  { id: "yen-bai", name: "Yên Bái", focus: { x: 14, y: 27 }, color: "#8E9FDC" },
+  { id: "tuyen-quang", name: "Tuyên Quang", focus: { x: 15, y: 23 }, color: "#F6D779" },
+  { id: "thai-nguyen", name: "Thái Nguyên", focus: { x: 9, y: 20 }, color: "#EB9C75" },
+  { id: "bac-kan", name: "Bắc Kạn", focus: { x: 8, y: 28 }, color: "#A8C985" },
+  { id: "phu-tho", name: "Phú Thọ", focus: { x: 8, y: 14 }, color: "#EFA3B7" },
+  { id: "ha-noi", name: "Hà Nội", focus: { x: 1, y: 9 }, color: "#8DBFE2" },
+  { id: "hai-phong", name: "Hải Phòng", focus: { x: -3, y: 6 }, color: "#F0B4CF" },
+  { id: "quang-ninh", name: "Quảng Ninh", focus: { x: -5, y: 10 }, color: "#F5C85B" },
+  { id: "ninh-binh", name: "Ninh Bình", focus: { x: 3, y: 1 }, color: "#9FD1A5" },
+  { id: "thanh-hoa", name: "Thanh Hóa", focus: { x: 8, y: -2 }, color: "#F29F83" },
+  { id: "nghe-an", name: "Nghệ An", focus: { x: 10, y: -7 }, color: "#F3A38D" },
+  { id: "ha-tinh", name: "Hà Tĩnh", focus: { x: 9, y: -12 }, color: "#F4D36A" },
+  { id: "quang-binh", name: "Quảng Bình", focus: { x: 10, y: -18 }, color: "#D6C1E9" },
+  { id: "quang-tri", name: "Quảng Trị", focus: { x: 9, y: -24 }, color: "#AFCBE0" },
+  { id: "hue", name: "Thừa Thiên Huế", focus: { x: 7, y: -30 }, color: "#A9CFAF" },
+  { id: "da-nang", name: "Đà Nẵng", focus: { x: 3, y: -34 }, color: "#F4C678" },
+  { id: "quang-nam", name: "Quảng Nam", focus: { x: 6, y: -37 }, color: "#86C6B8" },
+  { id: "quang-ngai", name: "Quảng Ngãi", focus: { x: 7, y: -41 }, color: "#F59A83" },
+  { id: "kon-tum", name: "Kon Tum", focus: { x: 14, y: -42 }, color: "#A7C2E5" },
+  { id: "gia-lai", name: "Gia Lai", focus: { x: 14, y: -46 }, color: "#F3B38A" },
+  { id: "binh-dinh", name: "Bình Định", focus: { x: 7, y: -47 }, color: "#EE8B8C" },
+  { id: "phu-yen", name: "Phú Yên", focus: { x: 7, y: -52 }, color: "#F6D779" },
+  { id: "dak-lak", name: "Đắk Lắk", focus: { x: 15, y: -53 }, color: "#E9A48A" },
+  { id: "khanh-hoa", name: "Khánh Hòa", focus: { x: 2, y: -58 }, color: "#8BB7D8" },
+  { id: "lam-dong", name: "Lâm Đồng", focus: { x: 11, y: -62 }, color: "#A6D0A7" },
+  { id: "binh-thuan", name: "Bình Thuận", focus: { x: 4, y: -66 }, color: "#F4C578" },
+  { id: "tay-ninh", name: "Tây Ninh", focus: { x: 13, y: -71 }, color: "#F19D8C" },
+  { id: "binh-duong", name: "Bình Dương", focus: { x: 5, y: -73 }, color: "#9CC6D9" },
+  { id: "dong-nai", name: "Đồng Nai", focus: { x: -3, y: -70 }, color: "#88C4A7" },
+  { id: "tp-hcm", name: "TP. Hồ Chí Minh", focus: { x: 5, y: -78 }, color: "#E98E88" },
+  { id: "long-an", name: "Long An", focus: { x: 15, y: -76 }, color: "#F2CA67" },
+  { id: "tien-giang", name: "Tiền Giang", focus: { x: 7, y: -81 }, color: "#A9C6E2" },
+  { id: "ben-tre", name: "Bến Tre", focus: { x: 0, y: -82 }, color: "#F1AD83" },
+  { id: "vinh-long", name: "Vĩnh Long", focus: { x: 4, y: -86 }, color: "#A9D0A8" },
+  { id: "tra-vinh", name: "Trà Vinh", focus: { x: -2, y: -86 }, color: "#C1A7D9" },
+  { id: "dong-thap", name: "Đồng Tháp", focus: { x: 13, y: -82 }, color: "#8BC7BB" },
+  { id: "an-giang", name: "An Giang", focus: { x: 16, y: -86 }, color: "#F39A87" },
+  { id: "kien-giang", name: "Kiên Giang", focus: { x: 16, y: -91 }, color: "#F1D06B" },
+  { id: "can-tho", name: "Cần Thơ", focus: { x: 9, y: -87 }, color: "#98B8DE" },
+  { id: "hau-giang", name: "Hậu Giang", focus: { x: 8, y: -91 }, color: "#E89AB0" },
+  { id: "soc-trang", name: "Sóc Trăng", focus: { x: 3, y: -91 }, color: "#F1B56A" },
+  { id: "bac-lieu", name: "Bạc Liêu", focus: { x: -2, y: -94 }, color: "#A8CEA9" },
+  { id: "ca-mau", name: "Cà Mau", focus: { x: 5, y: -96 }, color: "#F4B08A" },
+];
+
+const regionalFacilities: RegionalFacility[] = [
+  { id: "regional-001", province: "ho_chi_minh", name: "Công ty TNHH Nông sản An Phú", type: "Đơn vị cung cấp thực phẩm", address: "184 Nguyễn Văn Linh, Quận 7", status: "Đang hoạt động" },
+  { id: "regional-002", province: "ho_chi_minh", name: "Bếp ăn Trường Tiểu học Nguyễn Bỉnh Khiêm", type: "Cơ sở giáo dục", address: "25 Nguyễn Bỉnh Khiêm, Quận 1", status: "Đã công bố" },
+  { id: "regional-003", province: "ho_chi_minh", name: "Trung tâm Kiểm nghiệm Nam Sài Gòn", type: "Cơ sở kiểm nghiệm", address: "56 Hoàng Diệu, Quận 4", status: "Đang hoạt động" },
+  { id: "regional-004", province: "dong_nai", name: "Công ty CP Nông sản Hưng Thịnh", type: "Đơn vị cung cấp thực phẩm", address: "Khu công nghiệp Amata, Biên Hòa", status: "Đã công bố" },
+  { id: "regional-005", province: "dong_nai", name: "HTX Cây ăn trái Long Hà", type: "Hợp tác xã", address: "Long Khánh, Đồng Nai", status: "Đang hoạt động" },
+  { id: "regional-006", province: "ha_noi", name: "Công ty Thực phẩm sạch Thủ Đô", type: "Đơn vị cung cấp thực phẩm", address: "Cầu Giấy, Hà Nội", status: "Đang hoạt động" },
+  { id: "regional-007", province: "ha_noi", name: "Bếp ăn Trường Tiểu học Ba Đình", type: "Cơ sở giáo dục", address: "Ba Đình, Hà Nội", status: "Đã công bố" },
+  { id: "regional-008", province: "da_nang", name: "Cơ sở sản xuất Đặc sản Miền Trung", type: "Cơ sở sản xuất", address: "Hải Châu, Đà Nẵng", status: "Đang hoạt động" },
+  { id: "regional-009", province: "da_nang", name: "Nhà hàng Biển Xanh", type: "Dịch vụ ăn uống", address: "Sơn Trà, Đà Nẵng", status: "Đã công bố" },
+  { id: "regional-010", province: "hai_phong", name: "HTX Nông nghiệp Cát Hải", type: "Đơn vị cung cấp thực phẩm", address: "Cát Hải, Hải Phòng", status: "Đang hoạt động" },
+  { id: "regional-011", province: "can_tho", name: "Cơ sở chế biến Mekong Farm", type: "Cơ sở sản xuất", address: "Ninh Kiều, Cần Thơ", status: "Đã công bố" },
+  { id: "regional-012", province: "nghe_an", name: "Công ty TNHH Nông sản Xứ Nghệ", type: "Đơn vị cung cấp thực phẩm", address: "Vinh, Nghệ An", status: "Đang hoạt động" },
+];
 const typeNames: Record<string, string> = {
   "food-supplier": "Đơn vị cung cấp thực phẩm",
   "meal-provider": "Đơn vị cung cấp suất ăn",
@@ -211,6 +294,194 @@ function Notice({
   );
 }
 
+function HomeRegionalDirectory() {
+  const [selectedId, setSelectedId] = useState("all");
+  const selectedFeature =
+    selectedId === "all"
+      ? null
+      : vietnamMapFeatures.find((feature) => feature.id === selectedId) ?? null;
+  const selectedFacilities = selectedId === "all"
+    ? regionalFacilities
+    : regionalFacilities.filter((facility) => facility.province === selectedId);
+  const mapScale = selectedFeature ? 2.65 : 1;
+  const mapTranslate = selectedFeature
+    ? `translate(${600 - selectedFeature.labelX * mapScale} ${620 - selectedFeature.labelY * mapScale}) scale(${mapScale})`
+    : undefined;
+
+  return (
+    <section className="border-y border-border bg-[#edf8f8]">
+      <div className="mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-24">
+        <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+          <div className="max-w-2xl">
+            <p className="mono-label font-semibold text-primary">Mạng lưới cơ sở</p>
+            <h2 className="display-tight mt-3 text-4xl font-extrabold leading-tight md:text-5xl">
+              Tra cứu theo <span className="text-primary">tỉnh, thành phố.</span>
+            </h2>
+            <p className="mt-5 text-base leading-7 text-muted-foreground">
+              Bản đồ được dựng từ dữ liệu ranh giới hành chính thực tế. Chọn một
+              tỉnh/thành để bản đồ tự phóng to và danh sách cơ sở bên cạnh được lọc
+              theo khu vực đó.
+            </p>
+          </div>
+          <label className="w-full max-w-sm">
+            <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">
+              Chọn tỉnh / thành phố
+            </span>
+            <select
+              value={selectedId}
+              onChange={(event) => setSelectedId(event.target.value)}
+              className="focus-ring h-12 w-full rounded-xl border border-primary/15 bg-white px-4 text-sm font-bold text-foreground shadow-sm"
+              data-testid="select-home-region"
+            >
+              <option value="all">Tất cả tỉnh / thành phố</option>
+              {vietnamMapFeatures.map((feature) => (
+                <option key={feature.id} value={feature.id}>
+                  {feature.fullName}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <div className="mt-10 grid overflow-hidden rounded-[1.75rem] border border-[#b8dddd] bg-white shadow-xl shadow-primary/10 lg:grid-cols-[1.15fr_.85fr]">
+          <div className="relative min-h-[34rem] overflow-hidden border-b border-[#dceeee] bg-[#effbfc] lg:min-h-[43rem] lg:border-b-0 lg:border-r">
+            <div className="absolute left-5 top-5 z-10 rounded-xl border border-white/80 bg-white/90 px-3 py-2 text-[11px] font-bold text-primary shadow-sm backdrop-blur">
+              <span className="mr-2 inline-block h-2 w-2 rounded-full bg-primary align-middle" />
+              Ranh giới hành chính thực tế
+            </div>
+            <div className="absolute bottom-5 left-5 z-10 max-w-[13rem] rounded-xl border border-white/80 bg-white/90 px-3 py-2 text-[11px] leading-5 text-muted-foreground shadow-sm backdrop-blur">
+              <strong className="text-foreground">Biển Đông</strong>
+              <br />
+              Hoàng Sa · Trường Sa được giữ theo dữ liệu địa lý ngoài khơi.
+            </div>
+            <svg
+              viewBox={vietnamMapViewBox}
+              className="h-full min-h-[34rem] w-full p-5 transition-all duration-500 lg:min-h-[43rem]"
+              role="img"
+              aria-label="Bản đồ Việt Nam theo ranh giới tỉnh thành"
+            >
+              <g
+                style={{
+                  transform: mapTranslate,
+                  transformOrigin: "center",
+                  transition: "transform 500ms ease",
+                }}
+              >
+                {vietnamMapFeatures.map((feature) => {
+                  const isSelected = selectedId === feature.id;
+                  return (
+                    <path
+                      key={feature.id}
+                      d={feature.path}
+                      fill={feature.color}
+                      fillOpacity={selectedId === "all" || isSelected ? 0.9 : 0.25}
+                      stroke={isSelected ? "#123d36" : "#ffffff"}
+                      strokeWidth={isSelected ? 2.8 : 1.35}
+                      vectorEffect="non-scaling-stroke"
+                      className="cursor-pointer transition-[fill-opacity,stroke] duration-300 hover:brightness-105"
+                      onClick={() => setSelectedId(feature.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          setSelectedId(feature.id);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Chọn ${feature.fullName}`}
+                    >
+                      <title>{feature.fullName}</title>
+                    </path>
+                  );
+                })}
+                {selectedFeature && (
+                  <text
+                    x={selectedFeature.labelX}
+                    y={selectedFeature.labelY}
+                    textAnchor="middle"
+                    className="fill-[#123d36] text-[12px] font-extrabold"
+                    style={{ paintOrder: "stroke", stroke: "white", strokeWidth: 3 }}
+                  >
+                    {selectedFeature.name}
+                  </text>
+                )}
+              </g>
+            </svg>
+            <div className="absolute right-5 top-5 rounded-xl border border-white/80 bg-white/90 px-3 py-2 text-xs font-bold text-muted-foreground shadow-sm backdrop-blur">
+              {selectedFeature ? "Đã phóng to khu vực" : "Bản đồ tổng quan"}
+            </div>
+          </div>
+
+          <div className="flex min-h-[34rem] flex-col bg-white lg:min-h-[43rem]">
+            <div className="border-b border-border px-6 py-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                    Danh sách cơ sở
+                  </p>
+                  <h3 className="mt-2 text-xl font-extrabold">
+                    {selectedFeature?.name ?? "Toàn quốc"}
+                  </h3>
+                </div>
+                <span className="rounded-full bg-secondary px-3 py-1.5 text-xs font-extrabold text-primary">
+                  {selectedFacilities.length} cơ sở
+                </span>
+              </div>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                {selectedFeature
+                  ? `Các cơ sở đang được công khai tại ${selectedFeature.fullName}.`
+                  : "Các cơ sở mẫu đang được công khai trên cổng thông tin."}
+              </p>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {selectedFacilities.length ? (
+                <div className="divide-y divide-border">
+                  {selectedFacilities.map((facility) => (
+                    <article
+                      key={facility.id}
+                      className="group px-6 py-5 transition-colors hover:bg-secondary/45"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <h4 className="text-sm font-extrabold leading-6">
+                          {facility.name}
+                        </h4>
+                        <span className="mt-1 shrink-0 text-primary transition-transform group-hover:translate-x-1">
+                          <ArrowUpRight size={16} />
+                        </span>
+                      </div>
+                      <p className="mt-2 text-xs font-semibold text-primary">
+                        {facility.type}
+                      </p>
+                      <p className="mt-2 flex items-start gap-2 text-xs leading-5 text-muted-foreground">
+                        <MapPin size={14} className="mt-0.5 shrink-0" />
+                        {facility.address}
+                      </p>
+                      <span className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground">
+                        <span className={`h-1.5 w-1.5 rounded-full ${facility.status === "Đang hoạt động" ? "bg-emerald-500" : "bg-primary"}`} />
+                        {facility.status}
+                      </span>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex h-full min-h-[18rem] items-center justify-center px-8 text-center">
+                  <div>
+                    <MapPin className="mx-auto text-primary/50" size={30} />
+                    <p className="mt-4 text-sm font-bold">Chưa có dữ liệu mẫu</p>
+                    <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                      Khu vực này đã có trên bản đồ. Danh sách sẽ hiển thị khi
+                      dữ liệu cơ sở được cập nhật.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function HomePage() {
   const facilityAccount =
     sessionStorage.getItem("attp-session-role") === "facility";
@@ -269,6 +540,7 @@ export function HomePage() {
             </div>
           </div>
         </section>
+        <HomeRegionalDirectory />
         <section className="mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-24">
           <SectionHeading
             eyebrow="Ba thao tác, một điểm đến"
