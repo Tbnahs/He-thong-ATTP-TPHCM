@@ -324,6 +324,7 @@ export function PublicShell({ children }: { children: ReactNode }) {
 export function AdminShell({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const [, navigate] = useLocation();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const overviewItems = [
     ["/admin", "Dashboard giám sát", LayoutDashboard],
     ["/admin/applications", "Hồ sơ đăng ký", ClipboardCheck],
@@ -352,6 +353,12 @@ export function AdminShell({ children }: { children: ReactNode }) {
       TriangleAlert,
     ],
   ];
+  const mobileNavSections = [
+    { title: "Tổng quan", items: overviewItems },
+    { title: "Quản lý bữa ăn", items: mealItems },
+    { title: "Hệ thống", items: systemItems },
+    { title: "Thanh tra, kiểm tra", items: inspectionItems },
+  ];
   const logout = () => {
     sessionStorage.removeItem("attp-reviewer-session");
     sessionStorage.removeItem("attp-session-role");
@@ -361,6 +368,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
     href === "/admin"
       ? location === href
       : location === href || location.startsWith(`${href}/`);
+  const closeMobileNav = () => setMobileNavOpen(false);
   return (
     <div className="portal-noise min-h-[100dvh] bg-[#f5f7f8] lg:grid lg:grid-cols-[252px_1fr]">
       <aside className="hidden min-h-[100dvh] bg-[#123d36] text-sidebar-foreground lg:flex lg:flex-col">
@@ -472,9 +480,21 @@ export function AdminShell({ children }: { children: ReactNode }) {
       <main className="min-w-0">
         <div className="border-b border-slate-200/80 bg-white/90 px-5 py-4 shadow-[0_1px_0_rgba(15,23,42,.03)] backdrop-blur lg:px-10">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 lg:hidden">
+            <div className="flex min-w-0 items-center gap-3 lg:hidden">
               <BrandMark compact />
-              <span className="text-sm font-bold">Bàn xét duyệt</span>
+              <span className="truncate text-sm font-bold">Bàn xét duyệt</span>
+              <button
+                type="button"
+                onClick={() => setMobileNavOpen((open) => !open)}
+                className="focus-ring ml-1 rounded-xl border border-slate-200 p-2 text-slate-600"
+                aria-label={
+                  mobileNavOpen ? "Đóng menu cán bộ" : "Mở menu cán bộ"
+                }
+                aria-expanded={mobileNavOpen}
+                data-testid="button-mobile-admin-menu"
+              >
+                {mobileNavOpen ? <X size={18} /> : <Menu size={18} />}
+              </button>
             </div>
             <div className="hidden text-xs font-bold uppercase tracking-[.18em] text-slate-400 lg:block">
               SỞ ATTP TP.HCM <span className="mx-2 text-slate-300">/</span>{" "}
@@ -498,6 +518,45 @@ export function AdminShell({ children }: { children: ReactNode }) {
             </div>
           </div>
         </div>
+        {mobileNavOpen && (
+          <nav
+            className="border-b border-slate-200 bg-white px-4 py-3 shadow-sm lg:hidden"
+            aria-label="Điều hướng cán bộ trên điện thoại"
+          >
+            <div className="max-h-[calc(100dvh-5rem)] overflow-y-auto">
+              {mobileNavSections.map((section) => (
+                <div
+                  key={section.title}
+                  className="border-b border-slate-100 py-2 last:border-b-0"
+                >
+                  <p className="px-2 pb-1 pt-1 text-[10px] font-extrabold uppercase tracking-[.16em] text-primary">
+                    {section.title}
+                  </p>
+                  <div className="grid gap-1 sm:grid-cols-2">
+                    {section.items.map(([href, label, Icon]) => (
+                      <Link
+                        key={href as string}
+                        href={href as string}
+                        onClick={closeMobileNav}
+                        className={`focus-ring flex min-w-0 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold ${
+                          isActive(href as string)
+                            ? "bg-primary text-primary-foreground"
+                            : "text-slate-600 hover:bg-slate-50 hover:text-primary"
+                        }`}
+                        data-testid={`link-mobile-admin-${label}`}
+                      >
+                        <Icon size={16} className="shrink-0" />
+                        <span className="min-w-0 break-words">
+                          {label as string}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </nav>
+        )}
         {children}
       </main>
     </div>

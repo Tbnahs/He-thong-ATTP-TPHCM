@@ -22,7 +22,6 @@ import {
 } from "@/pages/inspection-pages";
 import {
   AdminFacilitiesPage,
-  AdminBlankPage,
   AdminMealManagementPage,
   AdminMonitoringDashboard,
 } from "@/pages/admin-module-pages";
@@ -42,7 +41,7 @@ function Router() {
         <Route path="/admin/login" component={AdminLoginPage} />
         <Route path="/admin">
           <AdminGuard>
-            <AdminBlankPage />
+            <AdminMonitoringDashboard />
           </AdminGuard>
         </Route>
         <Route path="/admin/applications">
@@ -62,32 +61,32 @@ function Router() {
         </Route>
         <Route path="/admin/facilities">
           <AdminGuard>
-            <AdminBlankPage />
+            <AdminFacilitiesPage />
           </AdminGuard>
         </Route>
         <Route path="/admin/meals/three-step">
           <AdminGuard>
-            <AdminBlankPage />
+            <AdminMealManagementPage page="three-step" />
           </AdminGuard>
         </Route>
         <Route path="/admin/meals/menus">
           <AdminGuard>
-            <AdminBlankPage />
+            <AdminMealManagementPage page="menus" />
           </AdminGuard>
         </Route>
         <Route path="/admin/meals/recipes">
           <AdminGuard>
-            <AdminBlankPage />
+            <AdminMealManagementPage page="recipes" />
           </AdminGuard>
         </Route>
         <Route path="/admin/accounts">
           <AdminGuard>
-            <AdminBlankPage />
+            <AdminPlaceholder kind="accounts" />
           </AdminGuard>
         </Route>
         <Route path="/admin/reports">
           <AdminGuard>
-            <AdminBlankPage />
+            <AdminPlaceholder kind="reports" />
           </AdminGuard>
         </Route>
         <Route path="/admin/inspections/schedule">
