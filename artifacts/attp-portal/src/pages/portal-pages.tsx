@@ -1281,28 +1281,40 @@ function RecordRow({
             </span>
             <StatusPill status={item.status} />
           </div>
-          <h3 className="mt-2 truncate text-base font-bold">
+          <h3 className="mt-2 break-words text-base font-bold sm:truncate">
             Tên cơ sở: {item.title}
           </h3>
-           {item.category === "eligible-facilities" ? (
-             <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-               <p><strong className="text-foreground">Chủ cơ sở:</strong> {item.metadata["Chủ cơ sở"] ?? "—"}</p>
-               <p><strong className="text-foreground">Số GCN:</strong> {item.metadata["Số GCN"] ?? "—"} <span className="mx-1">·</span> <strong className="text-foreground">Ngày cấp:</strong> {item.metadata["Ngày cấp"] ?? "—"}</p>
-               <p><strong className="text-foreground">Địa chỉ:</strong> {item.metadata["Địa chỉ"] ?? item.location}</p>
-             </div>
-           ) : (
-             <p className="mt-1 truncate text-sm text-muted-foreground">
-               {item.subtitle}
-             </p>
-           )}
+          {item.category === "eligible-facilities" ? (
+            <div className="mt-2 space-y-1 break-words text-sm text-muted-foreground">
+              <p>
+                <strong className="text-foreground">Chủ cơ sở:</strong>{" "}
+                {item.metadata["Chủ cơ sở"] ?? "—"}
+              </p>
+              <p>
+                <strong className="text-foreground">Số GCN:</strong>{" "}
+                {item.metadata["Số GCN"] ?? "—"}
+                <span className="mx-1">·</span>
+                <strong className="text-foreground">Ngày cấp:</strong>{" "}
+                {item.metadata["Ngày cấp"] ?? "—"}
+              </p>
+              <p>
+                <strong className="text-foreground">Địa chỉ:</strong>{" "}
+                {item.metadata["Địa chỉ"] ?? item.location}
+              </p>
+            </div>
+          ) : (
+            <p className="mt-1 break-words text-sm text-muted-foreground sm:truncate">
+              {item.subtitle}
+            </p>
+          )}
         </div>
       </div>
-      <div className="flex shrink-0 items-center gap-3 text-sm text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <MapPin size={14} />
-          {item.location}
+      <div className="flex min-w-0 items-start gap-3 text-sm text-muted-foreground sm:shrink-0 sm:items-center">
+        <span className="flex min-w-0 items-start gap-1">
+          <MapPin className="mt-0.5 shrink-0" size={14} />
+          <span className="break-words">{item.location}</span>
         </span>
-        <ArrowUpRight size={17} className="text-primary" />
+        <ArrowUpRight className="mt-0.5 shrink-0 text-primary sm:mt-0" size={17} />
       </div>
     </button>
   );
