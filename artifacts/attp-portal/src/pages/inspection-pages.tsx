@@ -35,12 +35,12 @@ import { Button } from "@/components/ui/button";
 type InspectionResult = "approved" | "warning" | "stopped";
 type FacilityType =
   | "Đơn vị cung cấp thực phẩm"
-  | "Đơn vị cung cấp thức ăn"
+  | "Đơn vị cung cấp suất ăn"
   | "Cơ sở giáo dục";
 
 const facilityTypes: FacilityType[] = [
   "Đơn vị cung cấp thực phẩm",
-  "Đơn vị cung cấp thức ăn",
+  "Đơn vị cung cấp suất ăn",
   "Cơ sở giáo dục",
 ];
 
@@ -49,7 +49,7 @@ const facilitiesByType: Record<FacilityType, string[]> = {
     "Công ty TNHH Nông sản An Phú",
     "Hợp tác xã Rau sạch Củ Chi",
   ],
-  "Đơn vị cung cấp thức ăn": [
+  "Đơn vị cung cấp suất ăn": [
     "Công ty Suất ăn Minh Tâm",
     "Bếp ăn tập thể An Phú",
   ],
@@ -331,8 +331,8 @@ function facilityTypeForName(name: string): FacilityType {
   if (facilitiesByType["Đơn vị cung cấp thực phẩm"].includes(name)) {
     return "Đơn vị cung cấp thực phẩm";
   }
-  if (facilitiesByType["Đơn vị cung cấp thức ăn"].includes(name)) {
-    return "Đơn vị cung cấp thức ăn";
+  if (facilitiesByType["Đơn vị cung cấp suất ăn"].includes(name)) {
+    return "Đơn vị cung cấp suất ăn";
   }
   return "Cơ sở giáo dục";
 }
@@ -1406,7 +1406,7 @@ export function InspectionCriteriaPage() {
     );
     return readStored("attp-inspection-criteria-by-type", {
       "Đơn vị cung cấp thực phẩm": shared,
-      "Đơn vị cung cấp thức ăn": shared,
+      "Đơn vị cung cấp suất ăn": shared,
       "Cơ sở giáo dục": shared,
     });
   });
@@ -1478,7 +1478,7 @@ export function InspectionCriteriaPage() {
               >
                 <option>Cơ sở giáo dục</option>
                 <option>Đơn vị cung cấp thực phẩm</option>
-                 <option>Đơn vị cung cấp thức ăn</option>
+                 <option>Đơn vị cung cấp suất ăn</option>
               </select>
             </div>
             <CriteriaEditor
