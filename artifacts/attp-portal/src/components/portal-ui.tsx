@@ -353,11 +353,11 @@ export function AdminShell({ children }: { children: ReactNode }) {
       TriangleAlert,
     ],
   ];
-  const mobileNavSections = [
+  const adminNavSections = [
+    { title: "Thanh tra, kiểm tra", items: inspectionItems },
     { title: "Tổng quan", items: overviewItems },
     { title: "Quản lý bữa ăn", items: mealItems },
     { title: "Hệ thống", items: systemItems },
-    { title: "Thanh tra, kiểm tra", items: inspectionItems },
   ];
   const logout = () => {
     sessionStorage.removeItem("attp-reviewer-session");
@@ -397,17 +397,17 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </Link>
         </div>
         <nav
-          className="flex-1 space-y-1.5 p-4"
+          className="flex flex-1 flex-col gap-1.5 overflow-y-auto p-4"
           aria-label="Điều hướng quản trị"
         >
-          <div className="px-3.5 pb-1 text-[10px] font-extrabold uppercase tracking-[.16em] text-[#f4c95d]">
+          <div className="order-2 px-3.5 pb-1 text-[10px] font-extrabold uppercase tracking-[.16em] text-[#f4c95d]">
             Tổng quan
           </div>
           {overviewItems.map(([href, label, Icon]) => (
             <Link
               key={href as string}
               href={href as string}
-              className={`focus-ring group flex items-center gap-3 rounded-2xl px-3.5 py-3 text-sm font-semibold transition-all ${isActive(href as string) ? "bg-[#f4c95d] text-[#123d36] shadow-lg shadow-black/10" : "text-white/65 hover:bg-white/[.08] hover:text-white"}`}
+              className={`order-2 focus-ring group flex items-center gap-3 rounded-2xl px-3.5 py-3 text-sm font-semibold transition-all ${isActive(href as string) ? "bg-[#f4c95d] text-[#123d36] shadow-lg shadow-black/10" : "text-white/65 hover:bg-white/[.08] hover:text-white"}`}
               data-testid={`link-admin-${label}`}
             >
               <span
@@ -418,14 +418,14 @@ export function AdminShell({ children }: { children: ReactNode }) {
               <span>{label as string}</span>
             </Link>
           ))}
-          <div className="px-3.5 pb-1 pt-5 text-[10px] font-extrabold uppercase tracking-[.16em] text-[#f4c95d]">
+          <div className="order-3 px-3.5 pb-1 pt-5 text-[10px] font-extrabold uppercase tracking-[.16em] text-[#f4c95d]">
             Quản lý bữa ăn
           </div>
           {mealItems.map(([href, label, Icon]) => (
             <Link
               key={href as string}
               href={href as string}
-              className={`focus-ring group flex items-start gap-3 rounded-2xl px-3.5 py-2.5 text-[13px] font-semibold transition-all ${isActive(href as string) ? "bg-[#f4c95d] text-[#123d36] shadow-lg shadow-black/10" : "text-white/65 hover:bg-white/[.08] hover:text-white"}`}
+              className={`order-3 focus-ring group flex items-start gap-3 rounded-2xl px-3.5 py-2.5 text-[13px] font-semibold transition-all ${isActive(href as string) ? "bg-[#f4c95d] text-[#123d36] shadow-lg shadow-black/10" : "text-white/65 hover:bg-white/[.08] hover:text-white"}`}
               data-testid={`link-admin-${label}`}
             >
               <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${isActive(href as string) ? "bg-[#123d36]/10" : "bg-white/[.06] group-hover:bg-white/10"}`}>
@@ -434,14 +434,14 @@ export function AdminShell({ children }: { children: ReactNode }) {
               <span className="leading-5">{label as string}</span>
             </Link>
           ))}
-          <div className="px-3.5 pb-1 pt-5 text-[10px] font-extrabold uppercase tracking-[.16em] text-[#f4c95d]">
+          <div className="order-4 px-3.5 pb-1 pt-5 text-[10px] font-extrabold uppercase tracking-[.16em] text-[#f4c95d]">
             Hệ thống
           </div>
           {systemItems.map(([href, label, Icon]) => (
             <Link
               key={href as string}
               href={href as string}
-              className={`focus-ring group flex items-center gap-3 rounded-2xl px-3.5 py-3 text-sm font-semibold transition-all ${isActive(href as string) ? "bg-[#f4c95d] text-[#123d36] shadow-lg shadow-black/10" : "text-white/65 hover:bg-white/[.08] hover:text-white"}`}
+              className={`order-4 focus-ring group flex items-center gap-3 rounded-2xl px-3.5 py-3 text-sm font-semibold transition-all ${isActive(href as string) ? "bg-[#f4c95d] text-[#123d36] shadow-lg shadow-black/10" : "text-white/65 hover:bg-white/[.08] hover:text-white"}`}
               data-testid={`link-admin-${label}`}
             >
               <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${isActive(href as string) ? "bg-[#123d36]/10" : "bg-white/[.06] group-hover:bg-white/10"}`}>
@@ -450,14 +450,14 @@ export function AdminShell({ children }: { children: ReactNode }) {
               <span>{label as string}</span>
             </Link>
           ))}
-          <div className="px-3.5 pb-1 pt-5 text-[10px] font-extrabold uppercase tracking-[.16em] text-[#f4c95d]">
+          <div className="order-1 px-3.5 pb-1 pt-0 text-[10px] font-extrabold uppercase tracking-[.16em] text-[#f4c95d]">
             Thanh tra, kiểm tra
           </div>
           {inspectionItems.map(([href, label, Icon]) => (
             <Link
               key={href as string}
               href={href as string}
-              className={`focus-ring group flex items-start gap-3 rounded-2xl px-3.5 py-2.5 text-[13px] font-semibold transition-all ${isActive(href as string) ? "bg-[#f4c95d] text-[#123d36] shadow-lg shadow-black/10" : "text-white/65 hover:bg-white/[.08] hover:text-white"}`}
+              className={`order-1 focus-ring group flex items-start gap-3 rounded-2xl px-3.5 py-2.5 text-[13px] font-semibold transition-all ${isActive(href as string) ? "bg-[#f4c95d] text-[#123d36] shadow-lg shadow-black/10" : "text-white/65 hover:bg-white/[.08] hover:text-white"}`}
               data-testid={`link-admin-${label}`}
             >
               <span
@@ -524,7 +524,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             aria-label="Điều hướng cán bộ trên điện thoại"
           >
             <div className="max-h-[calc(100dvh-5rem)] overflow-y-auto">
-              {mobileNavSections.map((section) => (
+              {adminNavSections.map((section) => (
                 <div
                   key={section.title}
                   className="border-b border-slate-100 py-2 last:border-b-0"
