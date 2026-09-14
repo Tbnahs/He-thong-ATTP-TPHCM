@@ -25,6 +25,11 @@ import {
   AdminMealManagementPage,
   AdminMonitoringDashboard,
 } from "@/pages/admin-module-pages";
+import {
+  IncidentCreatePage,
+  IncidentDetailPage,
+  IncidentListPage,
+} from "@/pages/incident-pages";
 import { Route, Switch, useLocation, Router as WouterRouter } from "wouter";
 
 function Router() {
@@ -104,9 +109,19 @@ function Router() {
             <InspectionCriteriaPage />
           </AdminGuard>
         </Route>
+        <Route path="/admin/inspections/incidents/new">
+          <AdminGuard>
+            <IncidentCreatePage />
+          </AdminGuard>
+        </Route>
+        <Route path="/admin/inspections/incidents/:id">
+          <AdminGuard>
+            <IncidentDetailPage />
+          </AdminGuard>
+        </Route>
         <Route path="/admin/inspections/incidents">
           <AdminGuard>
-            <AdminPlaceholder kind="incidents" />
+            <IncidentListPage />
           </AdminGuard>
         </Route>
         <Route path="/facility/profile">
