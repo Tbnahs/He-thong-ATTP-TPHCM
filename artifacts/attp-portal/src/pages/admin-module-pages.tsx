@@ -3,9 +3,11 @@ import {
   ArrowUpRight,
   BarChart3,
   Building2,
+  CalendarDays,
   CalendarRange,
   CheckCircle2,
   ChevronDown,
+  ChevronRight,
   CircleDollarSign,
   ClipboardCheck,
   Download,
@@ -14,6 +16,7 @@ import {
   MapPin,
   PieChart,
   Search,
+  SlidersHorizontal,
   TriangleAlert,
   Utensils,
   X,
@@ -903,6 +906,11 @@ function MealLine({
   );
 }
 
+function formatSchoolName(value: string) {
+  const normalized = value.toLocaleLowerCase("vi-VN");
+  return normalized.replace(/^trường/, "Trường");
+}
+
 function MenuCard({
   menu,
   onDetails,
@@ -911,82 +919,68 @@ function MenuCard({
   onDetails: () => void;
 }) {
   return (
-    <article className="group overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-[0_10px_30px_rgba(15,23,42,.06)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_38px_rgba(15,23,42,.1)]">
-      <div className="grid min-h-[340px] lg:grid-cols-[136px_minmax(270px,.86fr)_minmax(360px,1.2fr)]">
-        <div className="flex flex-col justify-center bg-gradient-to-b from-[#f4511e] to-[#f36b2c] px-6 py-8 text-center text-white">
-          <p className="text-[11px] font-extrabold tracking-[0.1em]">{menu.weekday}</p>
-          <p className="mt-1 text-5xl font-black leading-none tracking-tight">{menu.day}</p>
-          <span className="mx-auto my-4 h-px w-10 bg-white/30" />
-          <p className="text-xs font-medium">{menu.month}</p>
-          <p className="mt-1 text-base font-extrabold">{menu.year}</p>
-        </div>
-
-        <div className="border-b border-slate-100 px-6 py-7 lg:border-b-0 lg:border-r">
-          <p className="text-[10px] font-extrabold tracking-[0.12em] text-blue-600">{menu.school}</p>
-          <h2 className="mt-2 text-[27px] font-black tracking-tight text-slate-900">{menu.menuName}</h2>
-          <span className="mt-3 inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-[10px] font-extrabold text-blue-600">
-            <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-            {menu.ageGroup}
-          </span>
-
-          <dl className="mt-7 space-y-3 text-xs">
-            <div className="flex items-center justify-between gap-3">
-              <dt className="font-semibold text-slate-400">Tổng suất báo ăn:</dt>
-              <dd className="font-black text-slate-700">{menu.servingCount} suất</dd>
+    <article className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,.04)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(15,23,42,.09)]">
+      <div className="grid lg:grid-cols-[270px_minmax(0,1fr)]">
+        <div className="border-b border-slate-100 p-5 lg:border-b-0 lg:border-r">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-[10px] font-extrabold uppercase tracking-[.12em] text-orange-600">{menu.weekday}</p>
+              <p className="mt-1 text-4xl font-black tracking-tight text-slate-900">
+                {menu.day}<span className="ml-1 text-sm font-bold text-slate-400">/ 01</span>
+              </p>
             </div>
-            <div className="flex items-center justify-between gap-3">
-              <dt className="font-semibold text-slate-400">Tổng suất ăn:</dt>
-              <dd className="font-black text-slate-700">{menu.servedCount} suất</dd>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <dt className="font-semibold text-slate-400">Tiền thu 1 suất:</dt>
-              <dd className="font-black text-slate-700">{menu.price}</dd>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <dt className="font-semibold text-slate-400">Chi khác 1 suất:</dt>
-              <dd className="font-black text-slate-700">{menu.otherCost}</dd>
-            </div>
-            <div className="my-1 border-t border-dashed border-slate-200" />
-            <div className="flex items-center justify-between gap-3">
-              <dt className="font-extrabold text-slate-800">Tổng thu:</dt>
-              <dd className="text-lg font-black text-orange-600">{menu.menuIncome}</dd>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <dt className="font-extrabold text-slate-800">Tổng chi:</dt>
-              <dd className="text-lg font-black text-orange-600">{menu.menuExpense}</dd>
-            </div>
-          </dl>
-        </div>
-
-        <div className="flex flex-col justify-between px-6 py-7">
-          <div className="space-y-4">
-            <MealLine label="BỮA TRƯA" value={menu.lunch} tone="lunch" />
-            <MealLine label="BỮA PHỤ" value={menu.snack} tone="snack" />
-            <MealLine label="BỮA CHIỀU" value={menu.afternoon} tone="afternoon" />
+            <span className="rounded-lg bg-orange-50 p-2.5 text-orange-600"><CalendarDays size={18} /></span>
           </div>
-          <div className="mt-6 border-t border-dashed border-slate-200 pt-5">
-            <div className="flex flex-wrap items-center gap-7">
-              <div className="flex items-center gap-2.5">
-                <span className="rounded-lg bg-orange-50 p-2 text-orange-500"><Flame size={17} /></span>
-                <div>
-                  <p className="text-[9px] font-extrabold uppercase tracking-wide text-slate-400">Tỷ lệ Calo</p>
-                  <p className="text-sm font-black text-slate-800">{menu.calories} <span className="text-[9px] font-semibold text-slate-400">[{menu.caloriesRange}]</span></p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2.5">
-                <span className="rounded-lg bg-blue-50 p-2 text-blue-500"><PieChart size={17} /></span>
-                <div>
-                  <p className="text-[9px] font-extrabold uppercase tracking-wide text-slate-400">Tỷ lệ PLG</p>
-                  <p className="text-sm font-black text-slate-800">{menu.macros} <span className="text-[9px] font-semibold text-slate-400">[{menu.macroRange}]</span></p>
-                </div>
-              </div>
+          <div className="mt-5">
+            <p className="text-sm font-black text-slate-900 normal-case">{formatSchoolName(menu.school)}</p>
+            <p className="mt-1 text-[11px] font-semibold text-slate-400">{menu.ward}</p>
+            <span className="mt-3 inline-flex rounded-full bg-blue-50 px-2.5 py-1.5 text-[10px] font-extrabold text-blue-700">{menu.ageGroup}</span>
+          </div>
+          <div className="mt-5 grid grid-cols-2 gap-2">
+            <div className="rounded-lg bg-slate-50 p-3">
+              <p className="text-[9px] font-extrabold uppercase text-slate-400">Suất ăn</p>
+              <p className="mt-1 text-base font-black text-slate-800">{menu.servedCount}</p>
             </div>
-            <button
-              type="button"
-              onClick={onDetails}
-              className="mt-5 inline-flex items-center gap-2 text-xs font-extrabold text-orange-600 transition hover:text-orange-700"
-            >
-              Xem chi tiết <ArrowUpRight size={14} />
+            <div className="rounded-lg bg-slate-50 p-3">
+              <p className="text-[9px] font-extrabold uppercase text-slate-400">Calo</p>
+              <p className="mt-1 text-base font-black text-slate-800">{menu.calories}<span className="text-[9px] font-bold text-slate-400"> kcal</span></p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-extrabold uppercase tracking-[.12em] text-slate-400">Thực đơn trong ngày</p>
+              <h2 className="mt-1 text-xl font-black tracking-tight text-slate-900">{menu.menuName}</h2>
+            </div>
+            <button type="button" onClick={onDetails} className="hidden items-center gap-1 text-xs font-extrabold text-orange-600 sm:inline-flex">
+              Chi tiết <ChevronRight size={15} />
+            </button>
+          </div>
+          <div className="mt-5 grid gap-3">
+            {[
+              { label: "BỮA TRƯA", value: menu.lunch, rowClass: "border-emerald-100 bg-emerald-50/60", labelClass: "text-emerald-700" },
+              { label: "BỮA PHỤ", value: menu.snack, rowClass: "border-amber-100 bg-amber-50/60", labelClass: "text-amber-700" },
+              { label: "BỮA CHIỀU", value: menu.afternoon, rowClass: "border-indigo-100 bg-indigo-50/60", labelClass: "text-indigo-700" },
+            ].map(({ label, value, rowClass, labelClass }) => (
+              <div key={label} className={`flex items-start gap-3 rounded-xl border p-3 ${rowClass}`}>
+                <span className={`min-w-[72px] rounded-md bg-white px-2 py-1 text-center text-[9px] font-extrabold ${labelClass}`}>{label}</span>
+                <p className="text-xs font-semibold leading-5 text-slate-700">{value}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-dashed border-slate-200 pt-4">
+            <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500">
+              <span className="rounded-md bg-orange-50 p-1.5 text-orange-500"><Flame size={14} /></span>
+              Năng lượng trong ngưỡng
+            </div>
+            <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500">
+              <span className="rounded-md bg-blue-50 p-1.5 text-blue-500"><PieChart size={14} /></span>
+              PLG <b className="text-slate-800">{menu.macros}</b>
+            </div>
+            <button type="button" onClick={onDetails} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-[11px] font-extrabold text-white transition hover:bg-orange-600 sm:w-auto">
+              Xem chi tiết <ChevronRight size={14} />
             </button>
           </div>
         </div>
@@ -1088,27 +1082,59 @@ export function AdminMealManagementPage({ page }: { page: MealPageKey }) {
       (menu) =>
         (ward === "Tất cả Xã/Phường" || menu.ward === ward) &&
         (school === "Tất cả các trường" || menu.school === school) &&
-        (time === "Chọn thời gian" || `${menu.month} ${menu.year}` === time),
+        (time === "Chọn thời gian" || `${menu.month} ${menu.year}` === time) &&
+        (!search || `${menu.school} ${menu.menuName} ${menu.ageGroup}`.toLowerCase().includes(search.toLowerCase())),
     );
+    const clearFilters = () => {
+      setWard("Tất cả Xã/Phường");
+      setSchool("Tất cả các trường");
+      setTime("Chọn thời gian");
+      setSearch("");
+    };
     return (
       <AdminShell>
         <div className="min-h-[calc(100dvh-65px)] bg-[#f6f8fa]">
           <div className="border-b border-slate-200/80 bg-white px-5 py-5 lg:px-10">
-            <div className="mx-auto max-w-[1440px]">
-              <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-orange-600">Quản lý bữa ăn</p>
-              <h1 className="mt-1 text-[24px] font-black tracking-tight text-slate-900">Danh sách thực đơn</h1>
-              <p className="mt-1 text-xs font-medium text-slate-500">Theo dõi thực đơn, suất ăn và cân đối dinh dưỡng tại các trường học.</p>
+            <div className="mx-auto flex max-w-[1180px] items-end justify-between gap-4">
+              <div>
+                <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold text-slate-400">
+                  <span>Quản lý bữa ăn</span><ChevronRight size={13} /><span className="text-slate-600">Danh sách thực đơn</span>
+                </div>
+                <h1 className="text-[24px] font-black tracking-tight text-slate-900">Danh sách thực đơn</h1>
+                <p className="mt-1 text-xs font-medium text-slate-500">Chọn đúng trường và ngày để xem khẩu phần, suất ăn và dinh dưỡng.</p>
+              </div>
+              <div className="hidden items-center gap-2 rounded-xl bg-orange-50 px-3 py-2 text-xs font-extrabold text-orange-700 sm:flex">
+                <Utensils size={15} /> {filteredMenus.length} thực đơn đang theo dõi
+              </div>
             </div>
           </div>
-          <div className="mx-auto max-w-[1440px] px-4 py-7 sm:px-7 lg:px-10">
-            <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-[0_6px_24px_rgba(15,23,42,.04)] sm:p-6">
-              <div className="grid gap-4 md:grid-cols-3">
+          <div className="mx-auto max-w-[1180px] px-4 py-6 sm:px-7 lg:px-10">
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_5px_20px_rgba(15,23,42,.035)]">
+              <div className="mb-4 flex items-center gap-2 text-xs font-extrabold text-slate-800">
+                <SlidersHorizontal size={15} className="text-orange-600" /> Bộ lọc thực đơn
+                <span className="ml-auto text-[10px] font-semibold text-slate-400">Cập nhật hôm nay</span>
+              </div>
+              <div className="grid gap-3 md:grid-cols-[1fr_1fr_1fr_1.2fr]">
                 <MenuFilterSelect label="Xã / phường" value={ward} onChange={setWard} options={["Tất cả Xã/Phường", ...Array.from(new Set(menuRecords.map((menu) => menu.ward)))]} />
                 <MenuFilterSelect label="Trường học" value={school} onChange={setSchool} options={["Tất cả các trường", ...Array.from(new Set(menuRecords.map((menu) => menu.school)))]} />
                 <MenuFilterSelect label="Thời gian" value={time} onChange={setTime} options={["Chọn thời gian", "Tháng 01 2026"]} />
+                <label className="block">
+                  <span className="mb-2 block text-[10px] font-extrabold uppercase tracking-[0.08em] text-slate-500">Tìm kiếm</span>
+                  <span className="relative block">
+                    <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tên trường hoặc thực đơn..." className="h-11 w-full rounded-lg border border-slate-200 bg-[#fbfcfd] pl-9 pr-3 text-xs font-semibold text-slate-700 outline-none placeholder:text-slate-400 focus:border-orange-400 focus:ring-2 focus:ring-orange-100" />
+                  </span>
+                </label>
               </div>
             </section>
-            <div className="mt-7 space-y-5">
+            <div className="mb-3 mt-7 flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-black text-slate-800">Thực đơn theo ngày</h2>
+                <p className="mt-1 text-[11px] font-medium text-slate-400">{filteredMenus.length} kết quả · Sắp xếp theo ngày áp dụng</p>
+              </div>
+              <button type="button" onClick={clearFilters} className="text-xs font-extrabold text-orange-600 transition hover:text-orange-700">Xóa bộ lọc</button>
+            </div>
+            <div className="space-y-4">
               {filteredMenus.length ? filteredMenus.map((menu) => <MenuCard key={menu.id} menu={menu} onDetails={() => setSelectedMenu(menu)} />) : (
                 <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
                   <Utensils size={28} className="mx-auto text-slate-300" />
