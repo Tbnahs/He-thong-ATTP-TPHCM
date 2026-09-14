@@ -5,13 +5,18 @@ import {
   Building2,
   CalendarRange,
   CheckCircle2,
+  ChevronDown,
+  CircleDollarSign,
   ClipboardCheck,
   Download,
+  Flame,
   FileText,
   MapPin,
+  PieChart,
   Search,
   TriangleAlert,
   Utensils,
+  X,
 } from "lucide-react";
 import { Link } from "wouter";
 import {
@@ -737,13 +742,388 @@ export function AdminFacilitiesPage() {
 
 type MealPageKey = keyof typeof mealData;
 
+type MenuRecord = {
+  id: string;
+  weekday: string;
+  day: string;
+  month: string;
+  year: string;
+  school: string;
+  ward: string;
+  ageGroup: string;
+  menuName: string;
+  servingCount: number;
+  servedCount: number;
+  price: string;
+  otherCost: string;
+  menuIncome: string;
+  menuExpense: string;
+  lunch: string;
+  snack: string;
+  afternoon: string;
+  calories: string;
+  caloriesRange: string;
+  macros: string;
+  macroRange: string;
+};
+
+const menuRecords: MenuRecord[] = [
+  {
+    id: "menu-2026-01-02-nha-tre",
+    weekday: "THỨ 2",
+    day: "02",
+    month: "Tháng 01",
+    year: "2026",
+    school: "TRƯỜNG MẦM NON HOA HỒNG",
+    ward: "Phường Bến Nghé",
+    ageGroup: "NHÀ TRẺ 18–36 THÁNG",
+    menuName: "Thực đơn A",
+    servingCount: 150,
+    servedCount: 150,
+    price: "24.000đ",
+    otherCost: "0đ",
+    menuIncome: "24.000đ",
+    menuExpense: "24.000đ",
+    lunch: "Cơm; Canh thịt gà nấu bí xanh; Thịt lợn, trứng vịt đảo bông (Tráng miệng quả cam)",
+    snack: "Sữa chua nuti",
+    afternoon: "Phở bò nấu cà chua, hành lá",
+    calories: "641",
+    caloriesRange: "600 – 651",
+    macros: "14 : 48 : 38",
+    macroRange: "13-20 : 30-40 : 47-50",
+  },
+  {
+    id: "menu-2026-01-02-mam-non",
+    weekday: "THỨ 2",
+    day: "02",
+    month: "Tháng 01",
+    year: "2026",
+    school: "TRƯỜNG MẦM NON HOA HỒNG",
+    ward: "Phường Bến Nghé",
+    ageGroup: "MẦM NON 2–3 TUỔI",
+    menuName: "Thực đơn A",
+    servingCount: 150,
+    servedCount: 150,
+    price: "24.000đ",
+    otherCost: "0đ",
+    menuIncome: "24.000đ",
+    menuExpense: "24.000đ",
+    lunch: "Cơm; Canh thịt gà nấu bí xanh; Thịt lợn, trứng vịt đảo bông (Tráng miệng quả cam)",
+    snack: "Sữa chua nuti",
+    afternoon: "Phở bò nấu cà chua, hành lá",
+    calories: "641",
+    caloriesRange: "600 – 651",
+    macros: "14 : 48 : 38",
+    macroRange: "13-20 : 30-40 : 47-50",
+  },
+  {
+    id: "menu-2026-01-03-tieu-hoc",
+    weekday: "THỨ 3",
+    day: "03",
+    month: "Tháng 01",
+    year: "2026",
+    school: "TRƯỜNG TIỂU HỌC LÊ LỢI",
+    ward: "Phường Bến Nghé",
+    ageGroup: "TIỂU HỌC 6–10 TUỔI",
+    menuName: "Thực đơn B",
+    servingCount: 320,
+    servedCount: 318,
+    price: "28.000đ",
+    otherCost: "500đ",
+    menuIncome: "28.000đ",
+    menuExpense: "26.500đ",
+    lunch: "Cơm gạo lứt; Cá basa sốt cà; Canh rau củ thịt bằm (Tráng miệng chuối)",
+    snack: "Bánh mì phô mai",
+    afternoon: "Cháo gà rau củ",
+    calories: "702",
+    caloriesRange: "650 – 750",
+    macros: "16 : 46 : 38",
+    macroRange: "15-20 : 30-40 : 40-50",
+  },
+];
+
+function MenuFilterSelect({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block min-w-0">
+      <span className="mb-2 block text-[10px] font-extrabold uppercase tracking-[0.08em] text-slate-500">
+        {label}
+      </span>
+      <span className="relative block">
+        <select
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="h-11 w-full appearance-none rounded-lg border border-slate-200 bg-[#fbfcfd] px-3 pr-9 text-xs font-semibold text-slate-600 outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+        >
+          {options.map((option) => (
+            <option key={option}>{option}</option>
+          ))}
+        </select>
+        <ChevronDown
+          size={15}
+          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+        />
+      </span>
+    </label>
+  );
+}
+
+function MealLine({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: "lunch" | "snack" | "afternoon";
+}) {
+  const toneClasses = {
+    lunch: "border-emerald-100 bg-emerald-50 text-emerald-700",
+    snack: "border-amber-100 bg-amber-50 text-amber-700",
+    afternoon: "border-indigo-100 bg-indigo-50 text-indigo-700",
+  };
+  return (
+    <div className="flex items-start gap-3">
+      <span
+        className={`mt-0.5 inline-flex shrink-0 items-center rounded-full border px-3 py-1.5 text-[10px] font-extrabold ${toneClasses[tone]}`}
+      >
+        {label}
+      </span>
+      <p className="pt-1 text-xs font-semibold leading-5 text-slate-700">{value}</p>
+    </div>
+  );
+}
+
+function MenuCard({
+  menu,
+  onDetails,
+}: {
+  menu: MenuRecord;
+  onDetails: () => void;
+}) {
+  return (
+    <article className="group overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-[0_10px_30px_rgba(15,23,42,.06)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_38px_rgba(15,23,42,.1)]">
+      <div className="grid min-h-[340px] lg:grid-cols-[136px_minmax(270px,.86fr)_minmax(360px,1.2fr)]">
+        <div className="flex flex-col justify-center bg-gradient-to-b from-[#f4511e] to-[#f36b2c] px-6 py-8 text-center text-white">
+          <p className="text-[11px] font-extrabold tracking-[0.1em]">{menu.weekday}</p>
+          <p className="mt-1 text-5xl font-black leading-none tracking-tight">{menu.day}</p>
+          <span className="mx-auto my-4 h-px w-10 bg-white/30" />
+          <p className="text-xs font-medium">{menu.month}</p>
+          <p className="mt-1 text-base font-extrabold">{menu.year}</p>
+        </div>
+
+        <div className="border-b border-slate-100 px-6 py-7 lg:border-b-0 lg:border-r">
+          <p className="text-[10px] font-extrabold tracking-[0.12em] text-blue-600">{menu.school}</p>
+          <h2 className="mt-2 text-[27px] font-black tracking-tight text-slate-900">{menu.menuName}</h2>
+          <span className="mt-3 inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-[10px] font-extrabold text-blue-600">
+            <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+            {menu.ageGroup}
+          </span>
+
+          <dl className="mt-7 space-y-3 text-xs">
+            <div className="flex items-center justify-between gap-3">
+              <dt className="font-semibold text-slate-400">Tổng suất báo ăn:</dt>
+              <dd className="font-black text-slate-700">{menu.servingCount} suất</dd>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <dt className="font-semibold text-slate-400">Tổng suất ăn:</dt>
+              <dd className="font-black text-slate-700">{menu.servedCount} suất</dd>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <dt className="font-semibold text-slate-400">Tiền thu 1 suất:</dt>
+              <dd className="font-black text-slate-700">{menu.price}</dd>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <dt className="font-semibold text-slate-400">Chi khác 1 suất:</dt>
+              <dd className="font-black text-slate-700">{menu.otherCost}</dd>
+            </div>
+            <div className="my-1 border-t border-dashed border-slate-200" />
+            <div className="flex items-center justify-between gap-3">
+              <dt className="font-extrabold text-slate-800">Tổng thu:</dt>
+              <dd className="text-lg font-black text-orange-600">{menu.menuIncome}</dd>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <dt className="font-extrabold text-slate-800">Tổng chi:</dt>
+              <dd className="text-lg font-black text-orange-600">{menu.menuExpense}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div className="flex flex-col justify-between px-6 py-7">
+          <div className="space-y-4">
+            <MealLine label="BỮA TRƯA" value={menu.lunch} tone="lunch" />
+            <MealLine label="BỮA PHỤ" value={menu.snack} tone="snack" />
+            <MealLine label="BỮA CHIỀU" value={menu.afternoon} tone="afternoon" />
+          </div>
+          <div className="mt-6 border-t border-dashed border-slate-200 pt-5">
+            <div className="flex flex-wrap items-center gap-7">
+              <div className="flex items-center gap-2.5">
+                <span className="rounded-lg bg-orange-50 p-2 text-orange-500"><Flame size={17} /></span>
+                <div>
+                  <p className="text-[9px] font-extrabold uppercase tracking-wide text-slate-400">Tỷ lệ Calo</p>
+                  <p className="text-sm font-black text-slate-800">{menu.calories} <span className="text-[9px] font-semibold text-slate-400">[{menu.caloriesRange}]</span></p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <span className="rounded-lg bg-blue-50 p-2 text-blue-500"><PieChart size={17} /></span>
+                <div>
+                  <p className="text-[9px] font-extrabold uppercase tracking-wide text-slate-400">Tỷ lệ PLG</p>
+                  <p className="text-sm font-black text-slate-800">{menu.macros} <span className="text-[9px] font-semibold text-slate-400">[{menu.macroRange}]</span></p>
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onDetails}
+              className="mt-5 inline-flex items-center gap-2 text-xs font-extrabold text-orange-600 transition hover:text-orange-700"
+            >
+              Xem chi tiết <ArrowUpRight size={14} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function MenuDetailDialog({
+  menu,
+  onClose,
+}: {
+  menu: MenuRecord;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="menu-detail-title">
+      <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-[#f6f8fa] shadow-2xl">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4 sm:px-7">
+          <div>
+            <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-orange-600">Chi tiết thực đơn</p>
+            <h2 id="menu-detail-title" className="mt-1 text-lg font-black text-slate-900">{menu.menuName} · {menu.school}</h2>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-lg border border-slate-200 p-2 text-slate-500 transition hover:border-orange-300 hover:text-orange-600" aria-label="Đóng chi tiết thực đơn"><X size={18} /></button>
+        </div>
+        <div className="space-y-4 p-4 sm:p-7">
+          <section className="rounded-xl border border-slate-200 bg-white p-5">
+            <div className="grid gap-4 sm:grid-cols-4">
+              {[
+                ["Ngày áp dụng", `${menu.day} ${menu.month} ${menu.year}`],
+                ["Lứa tuổi", menu.ageGroup],
+                ["Tổng suất ăn", `${menu.servedCount} suất`],
+                ["Tiền thu 1 suất", menu.price],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <p className="text-[10px] font-extrabold uppercase tracking-wide text-slate-400">{label}</p>
+                  <p className="mt-1.5 text-sm font-black text-slate-800">{value}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+          <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <div className="border-b border-slate-100 px-5 py-4">
+              <h3 className="text-sm font-black text-slate-800">Khẩu phần trong ngày</h3>
+              <p className="mt-1 text-xs text-slate-400">Các món ăn được phê duyệt cho ngày áp dụng.</p>
+            </div>
+            <div className="space-y-1 p-5">
+              <MealLine label="BỮA TRƯA" value={menu.lunch} tone="lunch" />
+              <MealLine label="BỮA PHỤ" value={menu.snack} tone="snack" />
+              <MealLine label="BỮA CHIỀU" value={menu.afternoon} tone="afternoon" />
+            </div>
+          </section>
+          <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <div className="border-b border-slate-100 px-5 py-4">
+              <h3 className="text-sm font-black text-slate-800">Tổng hợp dinh dưỡng</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[620px] text-left text-xs">
+                <thead className="bg-slate-50 text-[10px] font-extrabold uppercase tracking-wide text-slate-500">
+                  <tr><th className="px-5 py-3">Chỉ tiêu</th><th className="px-5 py-3">Tổng cộng</th><th className="px-5 py-3">Khoảng khuyến nghị</th><th className="px-5 py-3">Đánh giá</th></tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {[
+                    ["Calo (kcal)", menu.calories, menu.caloriesRange],
+                    ["Đạm (%)", "14", "13–20"],
+                    ["Lipit (%)", "48", "30–40"],
+                    ["Gluxit (%)", "38", "40–50"],
+                  ].map(([label, total, range]) => (
+                    <tr key={label}><td className="px-5 py-3 font-bold text-slate-700">{label}</td><td className="px-5 py-3 font-black text-slate-800">{total}</td><td className="px-5 py-3 text-slate-500">{range}</td><td className="px-5 py-3"><span className="font-extrabold text-emerald-600">Đạt</span></td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+          <section className="flex items-center justify-between rounded-xl border border-orange-100 bg-orange-50 px-5 py-4">
+            <div className="flex items-center gap-3"><CircleDollarSign size={19} className="text-orange-600" /><div><p className="text-xs font-extrabold text-orange-900">Cân đối chi phí</p><p className="mt-1 text-[11px] text-orange-700/75">Tổng thu {menu.menuIncome} · Tổng chi {menu.menuExpense}</p></div></div>
+            <p className="text-lg font-black text-orange-700">{menu.menuIncome}</p>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function AdminMealManagementPage({ page }: { page: MealPageKey }) {
   const config = mealData[page];
   const Icon = config.icon;
   const [search, setSearch] = useState("");
+  const [ward, setWard] = useState("Tất cả Xã/Phường");
+  const [school, setSchool] = useState("Tất cả các trường");
+  const [time, setTime] = useState("Chọn thời gian");
+  const [selectedMenu, setSelectedMenu] = useState<MenuRecord | null>(null);
   const rows = config.rows.filter((row) =>
     row.join(" ").toLowerCase().includes(search.toLowerCase()),
   );
+
+  if (page === "menus") {
+    const filteredMenus = menuRecords.filter(
+      (menu) =>
+        (ward === "Tất cả Xã/Phường" || menu.ward === ward) &&
+        (school === "Tất cả các trường" || menu.school === school) &&
+        (time === "Chọn thời gian" || `${menu.month} ${menu.year}` === time),
+    );
+    return (
+      <AdminShell>
+        <div className="min-h-[calc(100dvh-65px)] bg-[#f6f8fa]">
+          <div className="border-b border-slate-200/80 bg-white px-5 py-5 lg:px-10">
+            <div className="mx-auto max-w-[1440px]">
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-orange-600">Quản lý bữa ăn</p>
+              <h1 className="mt-1 text-[24px] font-black tracking-tight text-slate-900">Danh sách thực đơn</h1>
+              <p className="mt-1 text-xs font-medium text-slate-500">Theo dõi thực đơn, suất ăn và cân đối dinh dưỡng tại các trường học.</p>
+            </div>
+          </div>
+          <div className="mx-auto max-w-[1440px] px-4 py-7 sm:px-7 lg:px-10">
+            <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-[0_6px_24px_rgba(15,23,42,.04)] sm:p-6">
+              <div className="grid gap-4 md:grid-cols-3">
+                <MenuFilterSelect label="Xã / phường" value={ward} onChange={setWard} options={["Tất cả Xã/Phường", ...Array.from(new Set(menuRecords.map((menu) => menu.ward)))]} />
+                <MenuFilterSelect label="Trường học" value={school} onChange={setSchool} options={["Tất cả các trường", ...Array.from(new Set(menuRecords.map((menu) => menu.school)))]} />
+                <MenuFilterSelect label="Thời gian" value={time} onChange={setTime} options={["Chọn thời gian", "Tháng 01 2026"]} />
+              </div>
+            </section>
+            <div className="mt-7 space-y-5">
+              {filteredMenus.length ? filteredMenus.map((menu) => <MenuCard key={menu.id} menu={menu} onDetails={() => setSelectedMenu(menu)} />) : (
+                <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
+                  <Utensils size={28} className="mx-auto text-slate-300" />
+                  <p className="mt-3 text-sm font-extrabold text-slate-700">Không có thực đơn phù hợp</p>
+                  <p className="mt-1 text-xs text-slate-400">Thử thay đổi phường, trường hoặc thời gian lọc.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        {selectedMenu && <MenuDetailDialog menu={selectedMenu} onClose={() => setSelectedMenu(null)} />}
+      </AdminShell>
+    );
+  }
+
   return (
     <AdminShell>
       <div className="mx-auto max-w-7xl px-5 py-9 lg:px-10">
