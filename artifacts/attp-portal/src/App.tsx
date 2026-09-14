@@ -30,6 +30,11 @@ import {
   IncidentDetailPage,
   IncidentListPage,
 } from "@/pages/incident-pages";
+import {
+  ThreeStepInspectionDashboard,
+  ThreeStepInspectionDetail,
+  ThreeStepInspectionForm,
+} from "@/pages/meal-inspection-pages";
 import { Route, Switch, useLocation, Router as WouterRouter } from "wouter";
 
 function Router() {
@@ -71,7 +76,17 @@ function Router() {
         </Route>
         <Route path="/admin/meals/three-step">
           <AdminGuard>
-            <AdminMealManagementPage page="three-step" />
+            <ThreeStepInspectionDashboard />
+          </AdminGuard>
+        </Route>
+        <Route path="/admin/meals/three-step/:schoolId/form/:formId">
+          <AdminGuard>
+            <ThreeStepInspectionForm />
+          </AdminGuard>
+        </Route>
+        <Route path="/admin/meals/three-step/:schoolId">
+          <AdminGuard>
+            <ThreeStepInspectionDetail />
           </AdminGuard>
         </Route>
         <Route path="/admin/meals/menus">
