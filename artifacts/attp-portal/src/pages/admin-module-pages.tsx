@@ -366,6 +366,8 @@ export function AdminMonitoringDashboard() {
   const [selectedSchool, setSelectedSchool] = useState<SchoolRecord | null>(
     null,
   );
+  const [selectedFoodSupplier, setSelectedFoodSupplier] =
+    useState<FoodSupplierRecord | null>(null);
 
   const supplierRows: SupplierRecord[] = [
     {
@@ -700,12 +702,12 @@ export function AdminMonitoringDashboard() {
   const matchesCommonFilters = (item: {
     name: string;
     ward: string;
-    address: string;
+    address?: string;
     status: MonitoringStatus;
   }) =>
     matchesLocation(item.ward) &&
     (status === "Tất cả trạng thái" || item.status === status) &&
-    `${item.name} ${item.address}`
+    `${item.name} ${item.address ?? ""}`
       .toLowerCase()
       .includes(search.toLowerCase());
   const visibleSuppliers = supplierRows.filter((item) => {
@@ -782,6 +784,7 @@ export function AdminMonitoringDashboard() {
   const closeDetail = () => {
     setSelectedSupplier(null);
     setSelectedSchool(null);
+    setSelectedFoodSupplier(null);
   };
   const statusTone = (value: MonitoringStatus) =>
     value === "Đạt" ? "approved" : value === "Cảnh báo" ? "warning" : "stopped";
@@ -809,6 +812,40 @@ export function AdminMonitoringDashboard() {
                 <Clock3 size={14} />
                 Cập nhật dữ liệu: 08/09/2026
               </div>
+            </div>
+          </div>
+          <div className="border-b border-border bg-background px-4 pt-4 sm:px-6">
+            <div
+              className="flex w-full overflow-x-auto rounded-xl bg-secondary p-1"
+              role="tablist"
+              aria-label="Đối tượng giám sát"
+            >
+              {(
+                [
+                  ["suppliers", "Cơ sở cung cấp suất ăn"],
+                  ["schools", "Cơ sở giáo dục"],
+                  ["food", "Cơ sở cung cấp thực phẩm"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === value}
+                  onClick={() => setActiveTab(value)}
+                  className={`min-w-max flex-1 rounded-lg px-3 py-2.5 text-left text-xs font-bold transition-colors sm:px-5 ${activeTab === value ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                  data-testid={`tab-dashboard-${value}`}
+                >
+                  <span className="flex items-center justify-center gap-2">
+                    {label}
+                    <span
+                      className={`rounded-full px-1.5 py-0.5 text-[10px] leading-none ${activeTab === value ? "bg-white/15 text-white" : "bg-background text-foreground"}`}
+                    >
+                      {tabCounts[value]}
+                    </span>
+                  </span>
+                </button>
+              ))}
             </div>
           </div>
           <div className="grid gap-3 border-b border-border bg-background p-4 sm:grid-cols-2 lg:grid-cols-6">
@@ -968,38 +1005,6 @@ export function AdminMonitoringDashboard() {
           <div>
             <p className="mono-label text-primary">TỔNG QUAN THEO ĐỊA BÀN</p>
             <h2 className="mt-1 text-2xl font-extrabold">{area}</h2>
-          </div>
-          <div
-            className="grid grid-cols-3 rounded-xl bg-secondary p-1 sm:w-auto"
-            role="tablist"
-            aria-label="Đối tượng giám sát"
-          >
-            {(
-              [
-                ["suppliers", "Cơ sở cung cấp suất ăn"],
-                ["schools", "Cơ sở giáo dục"],
-                ["food", "Cơ sở cung cấp thực phẩm"],
-              ] as const
-            ).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                role="tab"
-                aria-selected={activeTab === value}
-                onClick={() => setActiveTab(value)}
-                className={`rounded-lg px-3 py-2.5 text-left text-xs font-bold transition-colors sm:px-5 ${activeTab === value ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-                data-testid={`tab-dashboard-${value}`}
-              >
-                <span className="flex items-center gap-2">
-                  {label}
-                  <span
-                    className={`rounded-full px-1.5 py-0.5 text-[10px] leading-none ${activeTab === value ? "bg-white/15 text-white" : "bg-background text-foreground"}`}
-                  >
-                    {tabCounts[value]}
-                  </span>
-                </span>
-              </button>
-            ))}
           </div>
         </div>
 
@@ -1433,7 +1438,7 @@ export function AdminMonitoringDashboard() {
         </section>
       </div>
 
-      {(selectedSupplier || selectedSchool) && (
+      {(selectedSupplier || selectedSchool || selectedFoodSupplier) && (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/45 p-0 sm:items-center sm:p-6"
           role="dialog"
@@ -1449,7 +1454,9 @@ export function AdminMonitoringDashboard() {
               <div>
                 <p className="mono-label text-primary">THÔNG TIN CƠ SỞ</p>
                 <h2 className="mt-1 text-xl font-extrabold">
-                  {selectedSupplier?.name ?? selectedSchool?.name}
+                  {selectedSupplier?.name ??
+                    selectedSchool?.name ??
+                    selectedFoodSupplier?.name}
                 </h2>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Địa bàn: {area}, TP.HCM
@@ -1636,6 +1643,63 @@ export function AdminMonitoringDashboard() {
                   </div>
                   <p className="mt-3 text-right text-xs font-extrabold text-primary">
                     Tổng: {formatNumber(selectedSchool.supply)} suất/ngày
+                  </p>
+                </div>
+              </div>
+            ) : selectedFoodSupplier ? (
+              <div className="mt-5 grid gap-5 md:grid-cols-[.8fr_1.2fr]">
+                <div className="space-y-3">
+                  <div className="rounded-2xl bg-secondary/60 p-4">
+                    <p className="text-xs font-bold text-muted-foreground">
+                      Địa chỉ
+                    </p>
+                    <p className="mt-1 text-sm font-bold">
+                      {selectedFoodSupplier.address}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-secondary/60 p-4">
+                    <p className="text-xs font-bold text-muted-foreground">
+                      Trạng thái
+                    </p>
+                    <div className="mt-2">
+                      <StatusPill
+                        status={statusTone(selectedFoodSupplier.status)}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold">
+                    Năng lực cung cấp thực phẩm
+                  </h3>
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                    <div className="rounded-xl border border-border p-3">
+                      <p className="text-[10px] text-muted-foreground">
+                        Nhóm thực phẩm
+                      </p>
+                      <p className="mt-1 text-xs font-black">
+                        {selectedFoodSupplier.category}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-border p-3">
+                      <p className="text-[10px] text-muted-foreground">
+                        Công suất/ngày
+                      </p>
+                      <p className="mt-1 font-black">
+                        {formatNumber(selectedFoodSupplier.capacity)}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-border p-3">
+                      <p className="text-[10px] text-muted-foreground">
+                        Đang sử dụng
+                      </p>
+                      <p className="mt-1 font-black">
+                        {selectedFoodSupplier.buyers} cơ sở
+                      </p>
+                    </div>
+                  </div>
+                  <p className="mt-4 text-xs text-muted-foreground">
+                    Cập nhật gần nhất: {selectedFoodSupplier.updated}
                   </p>
                 </div>
               </div>
