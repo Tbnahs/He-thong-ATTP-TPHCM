@@ -225,6 +225,8 @@ function categoryShortName(category: FacilityCategory) {
 }
 
 export function AdminMonitoringDashboard() {
+  const [activeTab, setActiveTab] = useState<"suppliers" | "schools">("suppliers");
+  const [schoolLevel, setSchoolLevel] = useState("Tất cả cấp học");
   const alertRows = [
     [
       "MN Hoa Sen",
@@ -297,41 +299,67 @@ export function AdminMonitoringDashboard() {
     { label: "Vệ sinh", value: "14%", color: "#ec4899" },
     { label: "Chứng nhận", value: "18%", color: "#6366f1" },
   ];
+  const schoolLevelStats: Record<string, { schools: string; demand: string; updated: string; alerts: string }> = {
+    "Tất cả cấp học": { schools: "14", demand: "3.180", updated: "11/14", alerts: "6" },
+    "Mầm non": { schools: "05", demand: "920", updated: "04/05", alerts: "2" },
+    "Cấp 1": { schools: "05", demand: "1.420", updated: "04/05", alerts: "3" },
+    "Cấp 2": { schools: "03", demand: "640", updated: "02/03", alerts: "1" },
+    "Cấp 3": { schools: "01", demand: "200", updated: "01/01", alerts: "0" },
+  };
+  const cards = activeTab === "suppliers"
+    ? [
+        ["Tổng cơ sở cung cấp", "06", "04 đạt · 01 cảnh báo · 01 chưa đạt", "text-primary", Building2],
+        ["Tổng công suất cung cấp", "1.850", "suất ăn/ngày", "text-primary", Utensils],
+        ["Tổng nhu cầu đã đăng ký", "1.620", "suất ăn/ngày", "text-sky-600", ClipboardCheck],
+        ["Cân bằng cung - nhu cầu", "+230", "Dư công suất", "text-emerald-600", CheckCircle2],
+      ]
+    : [
+        ["Tổng cơ sở giáo dục", schoolLevelStats[schoolLevel].schools, "Theo cấp học", "text-primary", Building2],
+        ["Tổng nhu cầu suất ăn", schoolLevelStats[schoolLevel].demand, "suất ăn/ngày", "text-primary", Utensils],
+        ["Đã cập nhật nhu cầu", schoolLevelStats[schoolLevel].updated, "cơ sở giáo dục", "text-sky-600", ClipboardCheck],
+        ["Cảnh báo đang mở", schoolLevelStats[schoolLevel].alerts, "Cần xử lý ngay", "text-red-600", TriangleAlert],
+      ];
 
   return (
     <AdminShell>
       <div className="mx-auto max-w-[1600px] px-4 py-5 sm:px-6 lg:px-8">
+        <section className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="mono-label text-primary">DASHBOARD GIÁM SÁT</p>
+              <h1 className="mt-1 text-xl font-extrabold">Theo dõi cung - cầu suất ăn</h1>
+              <p className="mt-1 text-sm text-muted-foreground">Tách riêng dữ liệu cơ sở cung cấp và cơ sở giáo dục để theo dõi đúng nhu cầu quản lý.</p>
+            </div>
+            <div className="flex rounded-xl bg-secondary p-1" role="tablist" aria-label="Phạm vi dashboard">
+              {[
+                ["suppliers", "Cơ sở cung cấp suất ăn"],
+                ["schools", "Cơ sở giáo dục"],
+              ].map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === value}
+                  onClick={() => setActiveTab(value as "suppliers" | "schools")}
+                  className={`rounded-lg px-3 py-2 text-xs font-bold transition-colors sm:px-4 ${activeTab === value ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                  data-testid={`tab-dashboard-${value}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {activeTab === "schools" && (
+            <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-border pt-4">
+              <label htmlFor="dashboard-school-level" className="text-xs font-bold text-muted-foreground">Lọc theo cấp học</label>
+              <select id="dashboard-school-level" value={schoolLevel} onChange={(event) => setSchoolLevel(event.target.value)} className="rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold" data-testid="select-dashboard-school-level">
+                {Object.keys(schoolLevelStats).map((level) => <option key={level}>{level}</option>)}
+              </select>
+            </div>
+          )}
+        </section>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {[
-            [
-              "Tổng trường quản lý",
-              "14",
-              "Bến Nghé",
-              "text-primary",
-              Building2,
-            ],
-            [
-              "Suất ăn phục vụ hôm nay",
-              "3.180",
-              "11.430 lượt",
-              "text-primary",
-              Utensils,
-            ],
-            [
-              "Cảnh báo đang mở",
-              "6",
-              "Cần xử lý ngay",
-              "text-red-600",
-              TriangleAlert,
-            ],
-            [
-              "Sự cố đang xử lý",
-              "1",
-              "Mức Sai Sót",
-              "text-amber-600",
-              CheckCircle2,
-            ],
-          ].map(([label, value, note, tone, Icon]) => (
+          {cards.map(([label, value, note, tone, Icon]) => (
             <div
               key={label as string}
               className="rounded-2xl border border-border bg-card p-4 shadow-sm"

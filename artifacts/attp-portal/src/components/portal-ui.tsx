@@ -39,12 +39,15 @@ export function BrandMark({ compact = false }: { compact?: boolean }) {
         data-testid="img-national-emblem"
       />
       {!compact && (
-        <span className="leading-tight">
-          <strong className="block text-sm font-extrabold tracking-tight">
-            SỞ AN TOÀN THỰC PHẨM
+        <span className="max-w-[270px] leading-tight">
+          <strong className="block text-[11px] font-extrabold uppercase tracking-tight text-primary">
+            HỆ THỐNG QUẢN LÝ CHUYÊN NGÀNH
           </strong>
-          <span className="block text-xs text-muted-foreground">
-            THÀNH PHỐ HỒ CHÍ MINH
+          <span className="block text-xs font-bold text-foreground">
+            VỀ SUẤT ĂN TRONG CƠ SỞ GIÁO DỤC
+          </span>
+          <span className="mt-0.5 block text-[10px] font-semibold text-muted-foreground">
+            SỞ AN TOÀN THỰC PHẨM TP.HCM
           </span>
         </span>
       )}

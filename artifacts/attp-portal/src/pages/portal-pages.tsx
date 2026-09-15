@@ -686,8 +686,7 @@ export function HomePage() {
           <div className="mx-auto grid max-w-7xl gap-14 px-5 py-20 lg:grid-cols-[1.02fr_.98fr] lg:items-center lg:px-8 lg:py-28">
             <div className="rise-in">
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-card/80 px-3.5 py-2 text-xs font-bold text-primary shadow-sm">
-                <span className="status-dot bg-primary" /> CỔNG THÔNG TIN CHÍNH
-                THỨC
+                <span className="status-dot bg-primary" /> HỆ THỐNG QUẢN LÝ CHUYÊN NGÀNH
               </div>
               <h2 className="display-tight text-4xl font-extrabold leading-[1.05] tracking-tight md:text-6xl lg:text-[4.8rem]">
                 Sở An Toàn Thực Phẩm.

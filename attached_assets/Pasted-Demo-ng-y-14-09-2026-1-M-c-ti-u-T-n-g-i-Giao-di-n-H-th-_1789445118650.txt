@@ -1,0 +1,36 @@
+Demo ngày 14/09/2026
+1. Mục tiêu, Tên gọi & Giao diện Hệ thống
+•	Đổi tên hệ thống: Thống nhất đổi tên thành "Hệ thống quản lý chuyên ngành về suất ăn trong cơ sở giáo dục" (thay vì "Cổng thông tin...") để phù hợp khi nhúng đường dẫn trực tiếp trên trang web của Sở An toàn thực phẩm[1][2].
+•	Chuẩn hóa giao diện: Điều chỉnh màu sắc giao diện theo tông màu tươi sáng/cam chuẩn của trang web Sở An toàn thực phẩm[3].
+•	Bám sát quy định: Toàn bộ hệ thống được thiết kế bám sát Chỉ thị 33 và Chỉ đạo 79 về tăng cường công tác đảm bảo an toàn thực phẩm trong các cơ sở giáo dục[4].
+________________________________________
+2. Chuẩn bị Dữ liệu Demo (Data Ingestion)
+•	Danh mục 168 Phường/Xã: Nạp toàn bộ 168 xã/phường kèm mã định danh điện tử chuẩn theo quy định và cấp tài khoản đăng nhập cho từng đơn vị[7].
+•	Danh mục Trường học: Nạp dữ liệu thử nghiệm từ 5 – 10 trường học kèm số lượng học sinh và nhu cầu suất ăn thực tế[7].
+•	Cơ sở cung cấp suất ăn: Đổ danh sách các đơn vị cung cấp suất ăn với tỷ lệ giả định 70% Đạt và 30% Chưa đạt/Cảnh báo[10].
+•	Tải dữ liệu hàng loạt: Bổ sung chức năng nhập dữ liệu bằng file Excel theo mẫu chuẩn (template)[4][11].
+•	Hướng dẫn đăng ký: Soạn thảo tài liệu hướng dẫn quy trình tạo và đăng ký tài khoản cho các cơ sở chưa có trong hệ thống[12][13].
+________________________________________
+3. Phân quyền Người dùng & Bảo mật Thông tin
+•	Ban Giám đốc Sở: Phân toàn quyền quản trị hệ thống (Admin)[14].
+•	Các Phòng chuyên môn: Được cấp quyền cập nhật, quản lý kết quả đánh giá và lập lịch kiểm tra[14].
+•	UBND Phường/Xã: 
+o	Tra cứu thông tin tất cả các cơ sở cung cấp suất ăn trên toàn địa bàn TP.HCM (không bị giới hạn địa giới hành chính) để phục vụ việc lựa chọn đơn vị ký hợp đồng[14][15].
+o	Tra cứu thông tin các cơ sở giáo dục (trường học) trong phạm vi quản lý của địa bàn mình[15].
+o	Hỗ trợ nhãn/tooltip hiển thị địa danh cũ (như khu vực Bình Dương, Vũng Tàu cũ...) giúp cán bộ dễ tra cứu[16].
+•	Cơ sở giáo dục (Trường học): Quản lý nhu cầu suất ăn, thực đơn và nhật ký giao nhận thực tế[15].
+•	Bảo mật giá suất ăn: Giá suất ăn không công khai rộng rãi; chỉ phân quyền cho cán bộ Phường/Xã xem dưới dạng giá trung bình 1 suất ăn để tham khảo[21].
+________________________________________
+4. Tiêu chí Đánh giá & Quản lý Cung - Cầu
+•	Khống chế dung lượng file: Giới hạn dung lượng tối đa và định dạng file minh chứng/hình ảnh tải lên để tránh làm chậm hệ thống[28].
+•	Quản lý hợp đồng & Cảnh báo lệch công suất: 
+o	Tích hợp liên kết hợp đồng giữa trường học và cơ sở cung cấp suất ăn (rõ số lượng suất ăn ký kết)[10][30].
+o	Phát hiện trường hợp trường học báo nhu cầu lớn hơn số suất ký trong hợp đồng[31].
+o	Tự động phát cảnh báo khi cơ sở nhận tổng số suất ăn vượt quá công suất thiết kế tối đa[30][32].
+________________________________________
+5. Dashboard Giám sát (2 Tab)
+•	Thiết lập 2 Tab giám sát riêng biệt: Cơ sở cung cấp suất ăn và Cơ sở giáo dục[33].
+•	Các chỉ số tổng quan: Tổng số cơ sở (phân theo Đạt / Chưa đạt / Cảnh báo)[33][34], Tổng công suất cung cấp[33][34], và Tổng nhu cầu suất ăn toàn thành phố[33][34].
+•	Cân bằng Cung - Nhu cầu: So sánh tổng công suất cung cấp với tổng nhu cầu thực tế để cơ quan quản lý chủ động phát hiện nguy cơ thiếu hụt nguồn cung[33].
+•	Phân nhóm lứa tuổi: Lọc/gom nhóm cơ sở theo từng cấp học (Mầm non, Cấp 1, Cấp 2, Cấp 3) do chế độ dinh dưỡng từng lứa tuổi khác nhau[35][36].
+
