@@ -8,8 +8,11 @@ import {
   Clock3,
   FileText,
   Filter,
+  Info,
   MapPin,
+  MessageSquareText,
   Paperclip,
+  Phone,
   Plus,
   Search,
   ShieldCheck,
@@ -889,6 +892,237 @@ function UploadIcon() {
 }
 
 export function IncidentDetailPage() {
+  const params = useParams<{ id: string }>();
+  const [incident, setIncident] = useState<Incident | null>(() => readIncidents().find((item) => item.id === params.id) ?? null);
+
+  const closeIncident = () => {
+    if (!incident || incident.status === "Đã đóng") return;
+    if (!window.confirm("Xác nhận đóng sự cố này?")) return;
+    const closedAt = new Date().toISOString();
+    const next = {
+      ...incident,
+      status: "Đã đóng" as IncidentStatus,
+      closedAt,
+      timeline: [
+        ...incident.timeline,
+        {
+          time: new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit" }).format(new Date()),
+          label: "Đã đóng sự cố",
+          detail: "Cán bộ phụ trách xác nhận sự cố đã hoàn tất xử lý.",
+          tone: "green",
+        },
+      ],
+    };
+    setIncident(next);
+    persistIncidents(readIncidents().map((item) => item.id === next.id ? next : item));
+  };
+
+  if (!incident) {
+    return (
+      <AdminShell>
+        <div className="min-h-[calc(100dvh-73px)] bg-[#f8fafc] p-6 sm:p-10">
+          <div className="mx-auto max-w-3xl rounded-xl border border-[#e2e8f0] bg-white p-14 text-center shadow-sm">
+            <CircleAlert className="mx-auto text-[#dc2626]" size={36} />
+            <h1 className="mt-4 text-xl font-bold text-[#0f172a]">Không tìm thấy sự cố</h1>
+            <p className="mt-2 text-sm text-[#64748b]">Sự cố có thể đã được xóa hoặc mã không còn hiệu lực.</p>
+            <Link href="/admin/inspections/incidents" className="mt-5 inline-flex text-sm font-bold text-[#059669]" data-testid="link-back-missing-incident">Quay lại danh sách</Link>
+          </div>
+        </div>
+      </AdminShell>
+    );
+  }
+
+  const processSteps = [
+    "Phát hiện sự cố",
+    "Kích hoạt SOP\nAlert",
+    "Gửi cảnh báo",
+    "Nhà trường khoanh\nvùng món",
+    "Nhà trường thực\nhiện truy xuất",
+    "Nhà trường gửi kết\nquả",
+    "Theo dõi xử lý",
+    "Kết luận",
+    "Đóng sự cố",
+  ];
+  const completedSteps = incident.status === "Đã đóng" ? processSteps.length : 3;
+  const selectedNotifications = [
+    incident.notifyFacility && "Nhà trường",
+    incident.notifyHealth && "Y tế địa phương",
+    incident.notifyDistrict && "Cơ quan quản lý",
+  ].filter(Boolean) as string[];
+
+  const statusBadge = incident.status === "Đang xử lý"
+    ? "border-[#fed7aa] bg-[#ffedd5] text-[#c2410c]"
+    : "border-[#a7f3d0] bg-[#d1fae5] text-[#047857]";
+
+  return (
+    <AdminShell>
+      <div className="min-h-[calc(100dvh-73px)] bg-[#f8fafc] text-[#0f172a]">
+        <header className="border-b border-[#e2e8f0] bg-white">
+          <div className="mx-auto flex min-h-[80px] items-center gap-4 px-5 py-4 sm:px-8">
+            <Link
+              href="/admin/inspections/incidents"
+              className="focus-ring inline-flex shrink-0 items-center gap-2 text-sm font-medium text-[#64748b] transition-colors hover:text-[#1e40af]"
+              aria-label="Quay lại danh sách sự cố"
+              data-testid="link-back-incident-list"
+            >
+              <ArrowLeft size={16} />
+              <span className="hidden sm:inline">Danh sách sự cố</span>
+            </Link>
+            <span className="h-8 w-px bg-[#e2e8f0]" aria-hidden="true" />
+            <div className="flex min-w-0 flex-1 items-center justify-between gap-4">
+              <div className="flex min-w-0 flex-wrap items-center gap-3">
+                <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-[.05em] ${statusBadge}`} data-testid="status-incident-detail">
+                  <span className={`h-1.5 w-1.5 rounded-full ${incident.status === "Đang xử lý" ? "bg-[#f97316]" : "bg-[#10b981]"}`} />
+                  {incident.status}
+                </span>
+                <span className="truncate text-base font-semibold text-[#000] sm:text-xl">{incident.facility}</span>
+              </div>
+              <span className="hidden shrink-0 font-mono text-xs font-bold tracking-[.08em] text-[#94a3b8] sm:block">{incident.code}</span>
+            </div>
+          </div>
+        </header>
+
+        <main className="mx-auto max-w-[1376px] space-y-8 px-5 py-8 sm:px-8">
+          <section className="rounded-xl border border-[#e2e8f0] bg-white p-5 shadow-sm sm:p-6" data-testid="section-incident-sop-timeline">
+            <h2 className="text-sm font-bold uppercase tracking-[.05em] text-[#64748b]">Tiến trình quy trình (SOP timeline)</h2>
+            <div className="relative mt-8 overflow-x-auto pb-1">
+              <div className="relative flex min-w-[780px] justify-between gap-4">
+                <div className="absolute left-12 right-12 top-4 h-0.5 bg-[#e2e8f0]" aria-hidden="true" />
+                <div
+                  className="absolute left-12 top-4 h-0.5 bg-[#059669]"
+                  style={{ width: `calc((100% - 96px) * ${Math.max(0, completedSteps - 1) / (processSteps.length - 1)})` }}
+                  aria-hidden="true"
+                />
+                {processSteps.map((label, index) => {
+                  const completed = index < completedSteps;
+                  return (
+                    <div key={label} className="relative z-10 flex w-24 shrink-0 flex-col items-center gap-3 text-center" data-testid={`step-incident-${index}`}>
+                      <span className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold ${completed ? "border-[#059669] bg-[#059669] text-white" : "border-[#cbd5e1] bg-white text-[#94a3b8]"}`}>
+                        {completed ? <Check size={14} strokeWidth={3} /> : index + 1}
+                      </span>
+                      <span className={`whitespace-pre-line text-[11px] font-medium leading-4 ${completed ? "text-[#0f172a]" : "text-[#94a3b8]"}`}>{label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+
+          <section className="overflow-hidden rounded-xl border border-[#e2e8f0] bg-white shadow-sm" data-testid="section-incident-summary">
+            <div className="flex items-center gap-3 border-b border-[#e2e8f0] px-5 py-5 sm:px-6">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ecfdf5] text-[#059669]"><CircleAlert size={17} /></span>
+              <h2 className="text-xl font-bold text-[#0f172a]">Chi tiết cảnh báo</h2>
+            </div>
+
+            <div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-6 xl:grid-cols-4">
+              <IncidentDetailCard icon={<FileText size={17} />} label="Mã sự cố" value={incident.code} tone="blue" />
+              <IncidentDetailCard icon={<MapPin size={17} />} label="Trường học" value={incident.facility} tone="orange" />
+              <IncidentDetailCard icon={<CircleAlert size={17} />} label="Số ca mắc" value={`${String(incident.suspectedCases ?? 0).padStart(2, "0")} học sinh`} tone="red" valueClassName="text-2xl font-bold text-[#dc2626]" />
+              <IncidentDetailCard icon={<Clock3 size={17} />} label="Thời gian" value={formatDate(incident.occurredAt)} tone="purple" />
+              <IncidentDetailCard icon={<Bell size={17} />} label="Bữa ăn nghi vấn" value={incident.meals?.join(", ") || incident.foods || "Chưa cập nhật"} tone="amber" />
+              <IncidentDetailCard icon={<UserRound size={17} />} label="Người báo cáo" value={incident.reporter} tone="green" />
+              <IncidentDetailCard icon={<Phone size={17} />} label="Số điện thoại" value={incident.phone || "Chưa cập nhật"} tone="green" />
+              <IncidentDetailCard icon={<ShieldCheck size={17} />} label="Thông báo đã chọn" value={selectedNotifications.length ? selectedNotifications.join(", ") : "Chưa chọn"} tone="purple" />
+            </div>
+
+            <div className="space-y-6 border-t border-[#e2e8f0] px-5 py-6 sm:px-6">
+              <div>
+                <h3 className="text-sm font-bold uppercase tracking-[.05em] text-[#1e293b]">Triệu chứng chính</h3>
+                <div className="mt-3 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] p-4 text-base leading-6 text-[#0f172a]" data-testid="text-incident-description">
+                  {incident.description}
+                </div>
+              </div>
+              <div>
+                <h3 className="text-sm font-bold uppercase tracking-[.05em] text-[#1e293b]">Minh chứng / hình ảnh</h3>
+                {incident.attachments.length ? (
+                  <div className="mt-3 flex flex-wrap gap-4 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] p-4">
+                    {incident.attachments.map((file) => (
+                      <div key={file} className="flex h-32 w-44 flex-col items-center justify-center gap-2 rounded-lg border border-[#e2e8f0] bg-white p-3 text-center shadow-sm" data-testid={`attachment-incident-${file}`}>
+                        <FileText className="text-[#1e40af]" size={30} />
+                        <span className="max-w-full truncate text-xs font-medium text-[#475569]">{file}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-3 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] p-6 text-sm text-[#94a3b8]">Chưa có minh chứng hoặc hình ảnh đính kèm.</div>
+                )}
+              </div>
+            </div>
+          </section>
+
+          <section className="overflow-hidden rounded-xl border border-[#e2e8f0] bg-white shadow-sm" data-testid="section-incident-school-update">
+            <div className="flex items-center gap-4 bg-[#f8fafc] px-5 py-5 sm:px-6">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f1f5f9] text-[#94a3b8]"><MessageSquareText size={17} /></span>
+              <div>
+                <h2 className="text-lg font-bold text-[#0f172a]">Cập nhật từ nhà trường</h2>
+                <p className="mt-0.5 text-xs text-[#64748b]">Đang chờ dữ liệu cập nhật từ phía nhà trường</p>
+              </div>
+            </div>
+            <div className="flex min-h-[280px] flex-col items-center justify-center px-6 py-16 text-center">
+              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#eff6ff] text-[#1e40af]"><Info size={28} /></span>
+              <h3 className="mt-5 text-lg font-bold text-[#0f172a]">Chưa có cập nhật từ nhà trường</h3>
+              <p className="mt-2 max-w-md text-sm leading-6 text-[#64748b]">Hệ thống đang chờ nhà trường cập nhật thông tin chi tiết về sự cố.</p>
+            </div>
+          </section>
+        </main>
+
+        <footer className="border-t border-[#e2e8f0] bg-white px-5 py-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,.08)] sm:px-8">
+          <div className="mx-auto flex max-w-[1376px] flex-col justify-center gap-3 sm:flex-row">
+            <button type="button" className="focus-ring inline-flex min-h-[59px] items-center justify-center gap-3 rounded-xl border border-[#e2e8f0] bg-[#f1f5f9] px-8 text-base font-bold text-[#0f172a] transition-colors hover:bg-[#e2e8f0]" data-testid="button-request-incident-update">
+              <Bell size={18} /> Gửi yêu cầu bổ sung
+            </button>
+            {incident.status === "Đang xử lý" ? (
+              <button type="button" onClick={closeIncident} className="focus-ring inline-flex min-h-[59px] items-center justify-center gap-3 rounded-xl bg-[#1e40af] px-8 text-base font-bold text-white transition-colors hover:bg-[#1d4ed8]" data-testid="button-close-incident">
+                <Check size={18} /> Đóng hồ sơ sự cố
+              </button>
+            ) : (
+              <span className="inline-flex min-h-[59px] items-center justify-center gap-3 rounded-xl bg-[#d1fae5] px-8 text-base font-bold text-[#047857]" data-testid="button-closed-incident">
+                <Check size={18} /> Hồ sơ đã đóng
+              </span>
+            )}
+          </div>
+        </footer>
+      </div>
+    </AdminShell>
+  );
+}
+
+function IncidentDetailCard({
+  icon,
+  label,
+  value,
+  tone,
+  valueClassName = "text-base font-medium text-[#0f172a]",
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  tone: "blue" | "orange" | "red" | "amber" | "green" | "purple";
+  valueClassName?: string;
+}) {
+  const tones = {
+    blue: "bg-[#eff6ff] text-[#1e40af]",
+    orange: "bg-[#fff7ed] text-[#ea580c]",
+    red: "bg-[#fef2f2] text-[#dc2626]",
+    amber: "bg-[#fffbeb] text-[#d97706]",
+    green: "bg-[#ecfdf5] text-[#059669]",
+    purple: "bg-[#faf5ff] text-[#9333ea]",
+  };
+
+  return (
+    <div className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-5">
+      <div className="flex items-center gap-3">
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${tones[tone]}`}>{icon}</span>
+        <div className="min-w-0">
+          <p className="text-xs font-bold uppercase tracking-[.05em] text-[#94a3b8]">{label}</p>
+          <p className={`mt-1 break-words leading-6 ${valueClassName}`}>{value}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function IncidentDetailPageLegacy() {
   const params = useParams<{ id: string }>();
   const [incident, setIncident] = useState<Incident | null>(() => readIncidents().find((item) => item.id === params.id) ?? null);
 
