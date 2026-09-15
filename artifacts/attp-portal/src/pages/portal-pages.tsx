@@ -93,6 +93,11 @@ import newsTrainingImage from "@assets/generated_images/news-training-workshop.j
 import newsMarketImage from "@assets/generated_images/news-market-inspection.jpg";
 import newsFoodServiceImage from "@assets/generated_images/news-food-service-training.jpg";
 import { vietnamMapFeatures, vietnamMapViewBox } from "@/lib/vietnam-map-data";
+import {
+  EVIDENCE_ACCEPT,
+  EVIDENCE_MAX_SIZE_LABEL,
+  validateEvidenceFiles,
+} from "@/lib/file-upload";
 
 const categoryNames: Record<string, string> = {
   "eligible-facilities": "Cơ sở đủ điều kiện",
@@ -2014,13 +2019,9 @@ function LegacyFacilityProfilePage() {
     setProfile((current: FacilityProfile) => ({ ...current, [key]: value }));
   const addAttachments = (event: ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(event.target.files ?? []);
-    const invalid = selectedFiles.find(
-      (file) =>
-        !["application/pdf", "image/jpeg", "image/png"].includes(file.type) ||
-        file.size > 5 * 1024 * 1024,
-    );
-    if (invalid) {
-      setError("Chỉ nhận tệp PDF, JPG, PNG và mỗi tệp không quá 5MB.");
+    const validationError = validateEvidenceFiles(selectedFiles);
+    if (validationError) {
+      setError(validationError);
       event.target.value = "";
       return;
     }
@@ -2362,13 +2363,10 @@ function ApplicationForm({
   };
   const addFiles = async (event: ChangeEvent<HTMLInputElement>) => {
     const chosen = Array.from(event.target.files ?? []);
-    const invalid = chosen.find(
-      (file) =>
-        !["application/pdf", "image/jpeg", "image/png"].includes(file.type) ||
-        file.size > 5 * 1024 * 1024,
-    );
-    if (invalid) {
-      setNotice("Chỉ nhận PDF, JPG, PNG và mỗi tệp không quá 5MB.");
+    const validationError = validateEvidenceFiles(chosen);
+    if (validationError) {
+      setNotice(validationError);
+      event.target.value = "";
       return;
     }
     const previews = await Promise.all(chosen.map(readFilePreview));
@@ -2388,13 +2386,9 @@ function ApplicationForm({
     event: ChangeEvent<HTMLInputElement>,
   ) => {
     const chosen = Array.from(event.target.files ?? []);
-    const invalid = chosen.find(
-      (file) =>
-        !["application/pdf", "image/jpeg", "image/png"].includes(file.type) ||
-        file.size > 5 * 1024 * 1024,
-    );
-    if (invalid) {
-      setNotice("Chỉ nhận PDF, JPG, PNG và mỗi tệp không quá 5MB.");
+    const validationError = validateEvidenceFiles(chosen);
+    if (validationError) {
+      setNotice(validationError);
       event.target.value = "";
       return;
     }
@@ -2986,14 +2980,14 @@ function DynamicQuestionControl({
         )}
         {sourceNote}
         <p className="mb-2 mt-3 text-xs text-muted-foreground">
-          PDF, JPG hoặc PNG · tối đa 5MB/tệp · có thể chọn nhiều tệp
+          PDF, JPG hoặc PNG · tối đa {EVIDENCE_MAX_SIZE_LABEL}/tệp · có thể chọn nhiều tệp
         </p>
         <label className="focus-ring flex min-h-16 cursor-pointer items-center gap-3 rounded-xl border border-dashed border-primary/35 bg-secondary/30 px-4 text-sm font-semibold text-primary hover:bg-secondary">
           <Plus size={18} />
           <span>Chọn tệp minh chứng</span>
           <input
             type="file"
-            accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+            accept={EVIDENCE_ACCEPT}
             multiple
             onChange={onFiles}
             className="sr-only"
@@ -3244,7 +3238,7 @@ function RepeatableQuestion({
                         <Plus size={16} /> Chọn tệp
                         <input
                           type="file"
-                          accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                          accept={EVIDENCE_ACCEPT}
                           multiple
                           className="sr-only"
                           onChange={(event) => onFilesFor(fieldKey, event)}
@@ -3453,7 +3447,7 @@ function FilePicker({
         <span>Chọn tệp {multiple ? "(có thể chọn nhiều)" : ""}</span>
         <input
           type="file"
-          accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+          accept={EVIDENCE_ACCEPT}
           multiple={multiple}
           onChange={onChange}
           className="sr-only"
@@ -4109,11 +4103,13 @@ export function AdminCriteriaPage() {
     id: string,
     event: ChangeEvent<HTMLInputElement>,
   ) => {
-    const selected = Array.from(event.target.files ?? []).filter(
-      (file) =>
-        ["application/pdf", "image/jpeg", "image/png"].includes(file.type) &&
-        file.size <= 5 * 1024 * 1024,
-    );
+    const selected = Array.from(event.target.files ?? []);
+    const validationError = validateEvidenceFiles(selected);
+    if (validationError) {
+      setNotice(validationError);
+      event.target.value = "";
+      return;
+    }
     const current = draft.find((item) => item.id === id);
     if (selected.length && current) {
       updateItem(id, {
@@ -4129,6 +4125,7 @@ export function AdminCriteriaPage() {
       });
     }
     event.target.value = "";
+    setNotice("");
   };
   const removeSourceMaterial = (itemId: string, sourceId: string) => {
     const item = draft.find((current) => current.id === itemId);
@@ -4503,7 +4500,7 @@ export function AdminCriteriaPage() {
                               <Plus size={15} /> Thêm tài liệu
                               <input
                                 type="file"
-                                accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                                accept={EVIDENCE_ACCEPT}
                                 multiple
                                 onChange={(event) =>
                                   addSourceMaterials(item.id, event)

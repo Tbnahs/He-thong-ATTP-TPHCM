@@ -4,6 +4,11 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { AdminShell, ButtonLink, EmptyState, MetricCard, PublicShell, SectionHeading } from "@/components/portal-ui";
 import { type PublicRecord } from "@/lib/mock-data";
+import {
+  EVIDENCE_ACCEPT,
+  EVIDENCE_MAX_SIZE_LABEL,
+  validateEvidenceFiles,
+} from "@/lib/file-upload";
 
 export type ProductType = "self-declared" | "registered";
 export type ProductStatus =
@@ -186,11 +191,32 @@ function ProductForm({
 
   const addFiles = (event: ChangeEvent<HTMLInputElement>, multiple = false) => {
     const files = Array.from(event.target.files ?? []);
+    const validationError = validateEvidenceFiles(files);
+    if (validationError) {
+      setError(validationError);
+      event.target.value = "";
+      return;
+    }
     setAttachments((current) => [
       ...current,
       ...files.map((file) => file.name).filter((name) => multiple || !current.includes(name)),
     ]);
     event.target.value = "";
+    setError("");
+  };
+  const selectSingleFile = (
+    event: ChangeEvent<HTMLInputElement>,
+    setFile: (name: string) => void,
+  ) => {
+    const file = event.target.files?.[0];
+    const validationError = file ? validateEvidenceFiles([file]) : null;
+    if (validationError) {
+      setError(validationError);
+      event.target.value = "";
+      return;
+    }
+    setFile(file?.name ?? "");
+    setError("");
   };
 
   const submit = (event: FormEvent) => {
@@ -262,7 +288,7 @@ function ProductForm({
         </label>
         <label>
           <span className="mb-2 block text-sm font-semibold">Phiếu kết quả kiểm nghiệm ATTP trong 12 tháng *</span>
-          <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(event) => setTestReport(event.target.files?.[0]?.name ?? "")} className="focus-ring block h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm" />
+          <input type="file" accept={EVIDENCE_ACCEPT} onChange={(event) => selectSingleFile(event, setTestReport)} className="focus-ring block h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm" />
           {testReport && <span className="mt-1 block text-xs text-primary">{testReport}</span>}
         </label>
         <label className="md:col-span-2">
@@ -271,12 +297,13 @@ function ProductForm({
         </label>
         <label>
           <span className="mb-2 block text-sm font-semibold">Mẫu nhãn sản phẩm *</span>
-          <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(event) => setLabelFile(event.target.files?.[0]?.name ?? "")} className="focus-ring block h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm" />
+          <input type="file" accept={EVIDENCE_ACCEPT} onChange={(event) => selectSingleFile(event, setLabelFile)} className="focus-ring block h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm" />
           {labelFile && <span className="mt-1 block text-xs text-primary">{labelFile}</span>}
         </label>
         <label>
           <span className="mb-2 block text-sm font-semibold">Hồ sơ đính kèm</span>
-          <input type="file" accept=".pdf,.jpg,.jpeg,.png" multiple onChange={(event) => addFiles(event, true)} className="focus-ring block h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm" />
+          <input type="file" accept={EVIDENCE_ACCEPT} multiple onChange={(event) => addFiles(event, true)} className="focus-ring block h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm" />
+          <span className="mt-1 block text-xs text-muted-foreground">PDF, JPG hoặc PNG · tối đa {EVIDENCE_MAX_SIZE_LABEL}/tệp.</span>
           {attachments.length > 0 && <span className="mt-1 block text-xs text-primary">{attachments.join(", ")}</span>}
         </label>
       </div>

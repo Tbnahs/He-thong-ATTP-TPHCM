@@ -27,6 +27,11 @@ import {
 import { Link, useLocation, useParams } from "wouter";
 import { AdminShell, PublicShell } from "@/components/portal-ui";
 import foodPhotoPath from "../../../../attached_assets/0_List_Of_Nucleic_Acid_Foods_1788929888254.jpg";
+import {
+  EVIDENCE_ACCEPT,
+  EVIDENCE_MAX_SIZE_LABEL,
+  validateEvidenceFiles,
+} from "@/lib/file-upload";
 
 type IncidentStatus = "Đang xử lý" | "Đã đóng";
 type IncidentSeverity = "Khẩn cấp" | "Cao" | "Trung bình";
@@ -885,7 +890,17 @@ export function IncidentCreatePage() {
   });
 
   const update = (key: string, value: string | boolean | string[]) => setForm((current) => ({ ...current, [key]: value }));
-  const handleFiles = (event: ChangeEvent<HTMLInputElement>) => setFiles(Array.from(event.target.files ?? []).map((file) => file.name));
+  const handleFiles = (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(event.target.files ?? []);
+    const validationError = validateEvidenceFiles(selectedFiles);
+    if (validationError) {
+      window.alert(validationError);
+      event.target.value = "";
+      return;
+    }
+    setFiles(selectedFiles.map((file) => file.name));
+    event.target.value = "";
+  };
   const toggleMeal = (meal: string) => setForm((current) => ({
     ...current,
     meals: current.meals.includes(meal)
@@ -1031,8 +1046,8 @@ export function IncidentCreatePage() {
             <label className="flex min-h-[172px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#e2e8f0] bg-[#f8fafc] px-5 text-center transition-colors hover:border-[#93c5fd] hover:bg-[#eff6ff]" data-testid="label-upload-incident-files">
               <span className="flex h-12 w-12 items-center justify-center rounded-full border border-[#e2e8f0] bg-white text-[#2563eb] shadow-sm"><Upload size={22} /></span>
               <span className="mt-3 text-base font-medium text-[#1e293b]">Nhấn để tải lên hoặc kéo thả hình ảnh/tài liệu</span>
-              <span className="mt-1 text-xs text-[#64748b]">Hỗ trợ JPG, PNG, PDF (Tối đa 10MB)</span>
-              <input type="file" accept=".pdf,.jpg,.jpeg,.png" multiple className="sr-only" onChange={handleFiles} data-testid="input-incident-files" />
+              <span className="mt-1 text-xs text-[#64748b]">Hỗ trợ JPG, PNG, PDF (Tối đa {EVIDENCE_MAX_SIZE_LABEL}/tệp)</span>
+              <input type="file" accept={EVIDENCE_ACCEPT} multiple className="sr-only" onChange={handleFiles} data-testid="input-incident-files" />
             </label>
             {files.length > 0 && <div className="mt-3 space-y-2">{files.map((file) => <div key={file} className="flex items-center justify-between rounded-lg bg-[#eff6ff] px-3 py-2 text-xs font-semibold text-[#1e3a8a]" data-testid={`file-incident-${file}`}><span className="flex items-center gap-2 truncate"><FileText size={14} />{file}</span><button type="button" onClick={() => setFiles((current) => current.filter((name) => name !== file))} className="focus-ring rounded p-1 text-[#64748b] hover:text-[#ef4444]" aria-label={`Xóa tệp ${file}`} data-testid={`button-remove-file-${file}`}><X size={14} /></button></div>)}</div>}
           </section>
@@ -1789,7 +1804,7 @@ export function FacilityIncidentDetailPage() {
                 <label className={`${designLabelClass} sm:col-span-2`}>Tình trạng mẫu lưu / truy xuất hồ sơ <span className="text-[#dc2626]">*</span><textarea value={form.sampleHandling} onChange={(e) => update("sampleHandling", e.target.value)} className={designAreaClass} placeholder="Mô tả việc niêm phong, bảo quản và bàn giao mẫu lưu..." data-testid="textarea-facility-incident-samples" />{error(form.sampleHandling)}</label>
                 <label className={`${designLabelClass} sm:col-span-2`}>Ghi chú thêm<textarea value={form.notes} onChange={(e) => update("notes", e.target.value)} className={designAreaClass} data-testid="textarea-facility-incident-notes" /></label>
               </div></section>
-              <section><h2 className="text-sm font-bold uppercase tracking-[.05em] text-[#1e293b]">Minh chứng / hình ảnh</h2><label className="mt-4 flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-[#dbe5e1] bg-[#f8fafc] px-4 py-5 text-sm font-semibold text-[#176b53]"><UploadIcon /><span>Chọn ảnh hoặc tài liệu minh chứng</span><input type="file" accept=".pdf,.jpg,.jpeg,.png" multiple className="sr-only" onChange={(event) => setFiles(Array.from(event.target.files ?? []).map((file) => file.name))} data-testid="input-facility-incident-files" /></label>{files.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{files.map((file) => <span key={file} className="rounded-lg bg-[#eff6ff] px-3 py-2 text-xs font-semibold text-[#1e40af]">{file}</span>)}</div>}</section>
+              <section><h2 className="text-sm font-bold uppercase tracking-[.05em] text-[#1e293b]">Minh chứng / hình ảnh</h2><label className="mt-4 flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-[#dbe5e1] bg-[#f8fafc] px-4 py-5 text-sm font-semibold text-[#176b53]"><UploadIcon /><span>Chọn ảnh hoặc tài liệu minh chứng</span><input type="file" accept={EVIDENCE_ACCEPT} multiple className="sr-only" onChange={(event) => { const selectedFiles = Array.from(event.target.files ?? []); const validationError = validateEvidenceFiles(selectedFiles); if (validationError) { window.alert(validationError); event.target.value = ""; return; } setFiles(selectedFiles.map((file) => file.name)); event.target.value = ""; }} data-testid="input-facility-incident-files" /></label><p className="mt-2 text-xs text-[#64748b]">PDF, JPG hoặc PNG · tối đa {EVIDENCE_MAX_SIZE_LABEL}/tệp.</p>{files.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{files.map((file) => <span key={file} className="rounded-lg bg-[#eff6ff] px-3 py-2 text-xs font-semibold text-[#1e40af]">{file}</span>)}</div>}</section>
               <div className="flex flex-col-reverse gap-3 border-t border-[#e2e8f0] pt-6 sm:flex-row sm:justify-end"><Link href="/facility/incidents" className="inline-flex h-12 items-center justify-center rounded-xl border border-[#e2e8f0] px-7 text-sm font-bold text-[#64748b]">Hủy</Link><PrimaryButton type="submit" testId="button-submit-facility-incident-update"><Check size={17} /> Kiểm tra & gửi Sở</PrimaryButton></div>
             </form>
           </div>

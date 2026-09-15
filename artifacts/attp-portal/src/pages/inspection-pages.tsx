@@ -31,6 +31,11 @@ import {
   StatusPill,
 } from "@/components/portal-ui";
 import { Button } from "@/components/ui/button";
+import {
+  EVIDENCE_ACCEPT,
+  EVIDENCE_MAX_SIZE_LABEL,
+  validateEvidenceFiles,
+} from "@/lib/file-upload";
 
 type InspectionResult = "approved" | "warning" | "stopped";
 type FacilityType =
@@ -1059,18 +1064,27 @@ function InspectionMinuteForm({
                 <input
                   type="file"
                   multiple
-                  accept="image/*,.pdf,.doc,.docx"
+                  accept={EVIDENCE_ACCEPT}
                   className="sr-only"
                   disabled={readOnly}
-                  onChange={(event) =>
+                  onChange={(event) => {
+                    const selectedFiles = Array.from(event.target.files ?? []);
+                    const validationError = validateEvidenceFiles(selectedFiles);
+                    if (validationError) {
+                      window.alert(validationError);
+                      event.target.value = "";
+                      return;
+                    }
                     updateAnswer(item.id, {
-                      evidence: Array.from(event.target.files ?? []).map(
-                        (file) => file.name,
-                      ),
-                    })
-                  }
+                      evidence: selectedFiles.map((file) => file.name),
+                    });
+                    event.target.value = "";
+                  }}
                 />
               </label>
+              <p className="mt-2 text-xs text-muted-foreground">
+                PDF, JPG hoặc PNG · tối đa {EVIDENCE_MAX_SIZE_LABEL}/tệp.
+              </p>
               {answer.evidence.length > 0 && (
                 <p className="mt-2 text-xs text-muted-foreground">
                   Minh chứng: {answer.evidence.join(", ")}
