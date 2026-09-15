@@ -383,8 +383,24 @@ export function AdminShell({ children }: { children: ReactNode }) {
       ? location === href
       : location === href || location.startsWith(`${href}/`);
   const closeMobileNav = () => setMobileNavOpen(false);
+  const adminPageTitle =
+    location.startsWith("/admin/meals/menus")
+      ? "Danh sách món ăn"
+      : location.startsWith("/admin/meals/recipes")
+        ? "Món ăn và quy trình chế biến"
+        : location.startsWith("/admin/meals")
+          ? "Kiểm thực 3 bước"
+          : location.startsWith("/admin/facilities")
+            ? "Quản lý cơ sở"
+            : location.startsWith("/admin/applications")
+              ? "Hồ sơ đăng ký"
+              : location.startsWith("/admin/inspections")
+                ? "Quản lý kiểm tra"
+                : location === "/admin"
+                  ? "Dashboard giám sát"
+                  : "Bàn xét duyệt";
   return (
-    <div className="portal-noise min-h-[100dvh] bg-[#f5f7f8] lg:grid lg:grid-cols-[252px_1fr]">
+    <div className="admin-shell portal-noise min-h-[100dvh] bg-[#f9fafb] lg:grid lg:grid-cols-[252px_1fr]">
       <aside className="hidden min-h-[100dvh] bg-[#123d36] text-sidebar-foreground lg:flex lg:flex-col">
         <div className="border-b border-white/10 px-5 py-5">
           <Link
@@ -491,12 +507,12 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </span>
         </div>
       </aside>
-      <main className="min-w-0">
-        <div className="border-b border-slate-200/80 bg-white/90 px-5 py-4 shadow-[0_1px_0_rgba(15,23,42,.03)] backdrop-blur lg:px-10">
+      <main className="admin-shell__main min-w-0">
+        <div className="admin-shell__header border-b border-slate-200/80 bg-white/90 px-5 py-4 shadow-[0_1px_0_rgba(15,23,42,.03)] backdrop-blur lg:px-10">
           <div className="flex items-center justify-between">
             <div className="flex min-w-0 items-center gap-3 lg:hidden">
               <BrandMark compact />
-              <span className="truncate text-sm font-bold">Bàn xét duyệt</span>
+              <span className="truncate text-sm font-bold">{adminPageTitle}</span>
               <button
                 type="button"
                 onClick={() => setMobileNavOpen((open) => !open)}
@@ -510,21 +526,36 @@ export function AdminShell({ children }: { children: ReactNode }) {
                 {mobileNavOpen ? <X size={18} /> : <Menu size={18} />}
               </button>
             </div>
-            <div className="hidden text-xs font-bold uppercase tracking-[.18em] text-slate-400 lg:block">
-              SỞ ATTP TP.HCM <span className="mx-2 text-slate-300">/</span>{" "}
-              Không gian quản trị
+            <div className="admin-shell__page-title hidden min-w-0 lg:block">
+              <h1>{adminPageTitle}</h1>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="admin-shell__actions flex items-center gap-4">
               <Link
                 href="/"
-                className="focus-ring flex items-center gap-2 text-sm font-semibold text-primary"
+                className="admin-shell__public-link focus-ring flex items-center gap-2 text-sm font-semibold text-primary"
                 data-testid="link-back-public"
               >
                 <Home size={16} /> Cổng công khai
               </Link>
               <button
+                type="button"
+                className="admin-shell__notification focus-ring"
+                aria-label="Thông báo"
+                data-testid="button-admin-notifications"
+              >
+                <Bell size={16} />
+                <span aria-hidden="true" />
+              </button>
+              <div className="admin-shell__profile">
+                <div className="admin-shell__profile-copy">
+                  <strong>Trần Anh Tuấn</strong>
+                  <span>Quản trị viên ATTP</span>
+                </div>
+                <div className="admin-shell__avatar" aria-hidden="true">TA</div>
+              </div>
+              <button
                 onClick={logout}
-                className="focus-ring hidden items-center gap-2 text-sm font-semibold text-slate-500 hover:text-destructive sm:flex"
+                className="admin-shell__logout focus-ring hidden items-center gap-2 text-sm font-semibold text-slate-500 hover:text-destructive sm:flex"
                 data-testid="button-reviewer-logout"
               >
                 <LogOut size={16} /> Đăng xuất

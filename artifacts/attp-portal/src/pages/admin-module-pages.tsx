@@ -1035,42 +1035,49 @@ function MenuDetailDialog({
           <button type="button" onClick={onClose} className="rounded-lg border border-slate-200 p-2 text-slate-500 transition hover:border-orange-300 hover:text-orange-600" aria-label="Đóng chi tiết thực đơn"><X size={18} /></button>
         </div>
         <div className="meal-detail-dialog__content space-y-4 p-4 sm:p-7">
-          <section className="meal-detail-card rounded-xl border border-slate-200 bg-white p-5">
-            <div className="grid gap-4 sm:grid-cols-4">
+          <section className="meal-detail-card meal-detail-summary rounded-xl border border-slate-200 bg-white p-5">
+            <div className="meal-detail-section-heading">
+              <span aria-hidden="true" />
+              <h3>Chi tiết thực đơn</h3>
+            </div>
+            <div className="meal-detail-summary-grid mt-4 grid gap-3 sm:grid-cols-4">
               {[
                 ["Ngày áp dụng", `${menu.day} ${menu.month} ${menu.year}`],
                 ["Lứa tuổi", menu.ageGroup],
                 ["Tổng suất ăn", `${menu.servedCount} suất`],
                 ["Tiền thu 1 suất", menu.price],
               ].map(([label, value]) => (
-                <div key={label}>
-                  <p className="text-[10px] font-extrabold uppercase tracking-wide text-slate-400">{label}</p>
-                  <p className="mt-1.5 text-sm font-black text-slate-800">{value}</p>
+                <div className="meal-detail-field" key={label}>
+                  <p>{label}</p>
+                  <div>{value}</div>
                 </div>
               ))}
             </div>
           </section>
           <section className="meal-detail-card overflow-hidden rounded-xl border border-slate-200 bg-white">
-            <div className="border-b border-slate-100 px-5 py-4">
-              <h3 className="text-sm font-black text-slate-800">Khẩu phần trong ngày</h3>
-              <p className="mt-1 text-xs text-slate-400">Các món ăn được phê duyệt cho ngày áp dụng.</p>
+            <div className="meal-detail-section-heading px-5 pt-4">
+              <span aria-hidden="true" />
+              <h3>Chọn món ăn theo từng buổi</h3>
             </div>
-            <div className="space-y-1 p-5">
+            <p className="meal-detail-section-description px-5 pt-2">Các món ăn được phê duyệt cho ngày áp dụng.</p>
+            <div className="meal-detail-meals space-y-1 p-5">
               <MealLine label="BỮA TRƯA" value={menu.lunch} tone="lunch" />
               <MealLine label="BỮA PHỤ" value={menu.snack} tone="snack" />
               <MealLine label="BỮA CHIỀU" value={menu.afternoon} tone="afternoon" />
             </div>
           </section>
           <section className="meal-detail-card overflow-hidden rounded-xl border border-slate-200 bg-white">
-            <div className="border-b border-slate-100 px-5 py-4">
-              <h3 className="text-sm font-black text-slate-800">Tổng hợp dinh dưỡng</h3>
+            <div className="meal-detail-section-heading px-5 pt-4">
+              <span aria-hidden="true" />
+              <h3>Tổng hợp dinh dưỡng</h3>
             </div>
+            <p className="meal-detail-section-description px-5 pt-2">Chỉ số dinh dưỡng được tính theo khẩu phần trong ngày.</p>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[620px] text-left text-xs">
-                <thead className="bg-slate-50 text-[10px] font-extrabold uppercase tracking-wide text-slate-500">
+              <table className="meal-detail-nutrition-table mt-3 w-full min-w-[620px] text-left text-xs">
+                <thead>
                   <tr><th className="px-5 py-3">Chỉ tiêu</th><th className="px-5 py-3">Tổng cộng</th><th className="px-5 py-3">Khoảng khuyến nghị</th><th className="px-5 py-3">Đánh giá</th></tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody>
                   {[
                     ["Calo (kcal)", menu.calories, menu.caloriesRange],
                     ["Đạm (%)", "14", "13–20"],
@@ -1083,9 +1090,16 @@ function MenuDetailDialog({
               </table>
             </div>
           </section>
-          <section className="meal-detail-cost flex items-center justify-between rounded-xl border border-orange-100 bg-orange-50 px-5 py-4">
-            <div className="flex items-center gap-3"><CircleDollarSign size={19} className="text-orange-600" /><div><p className="text-xs font-extrabold text-orange-900">Cân đối chi phí</p><p className="mt-1 text-[11px] text-orange-700/75">Tổng thu {menu.menuIncome} · Tổng chi {menu.menuExpense}</p></div></div>
-            <p className="text-lg font-black text-orange-700">{menu.menuIncome}</p>
+          <section className="meal-detail-card meal-detail-cost rounded-xl border border-orange-100 bg-orange-50 px-5 py-4">
+            <div className="meal-detail-section-heading">
+              <span aria-hidden="true" />
+              <h3>Cân đối chi phí</h3>
+            </div>
+            <div className="meal-detail-cost-grid mt-3">
+              <div><span>Tiền thu</span><strong>{menu.menuIncome}</strong></div>
+              <div><span>Tiền chi</span><strong>{menu.menuExpense}</strong></div>
+              <div><span>Tiền thu 1 suất</span><strong>{menu.price}</strong></div>
+            </div>
           </section>
         </div>
       </div>
