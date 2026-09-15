@@ -4,8 +4,10 @@ import {
   Bell,
   Check,
   ChevronRight,
+  ChevronDown,
   CircleAlert,
   Clock3,
+  ChefHat,
   FileText,
   Filter,
   Info,
@@ -19,10 +21,12 @@ import {
   Siren,
   Upload,
   UserRound,
+  Utensils,
   X,
 } from "lucide-react";
 import { Link, useLocation, useParams } from "wouter";
 import { AdminShell, PublicShell } from "@/components/portal-ui";
+import foodPhotoPath from "../../../../attached_assets/0_List_Of_Nucleic_Acid_Foods_1788929888254.jpg";
 
 type IncidentStatus = "Đang xử lý" | "Đã đóng";
 type IncidentSeverity = "Khẩn cấp" | "Cao" | "Trung bình";
@@ -193,11 +197,25 @@ const seedIncidents: Incident[] = [
     attachments: ["bien-ban-y-te-1809.pdf", "anh-khu-vuc-bep.jpg"],
     notifyFacility: true,
     notifyDistrict: true,
-    reviewStatus: "Chưa cập nhật",
+    reviewStatus: "Đã gửi",
+    schoolUpdate: {
+      submittedAt: "2026-09-18T15:10",
+      contactName: "Nguyễn Thị Minh Anh",
+      contactRole: "Cán bộ phụ trách y tế trường",
+      symptoms: "06 học sinh đau bụng, buồn nôn sau bữa trưa; hiện đang được theo dõi tại phòng y tế.",
+      affectedStudents: "06",
+      tracedMeals: "Mì trộn hải sản, canh chua cá basa",
+      actionsTaken: "Tạm dừng phục vụ bữa ăn, lập danh sách học sinh có triệu chứng và thông báo cho phụ huynh.",
+      sampleHandling: "Đã niêm phong mẫu lưu, bảo quản tại kho lạnh 01 và bàn giao theo hướng dẫn.",
+      notes: "Nhà trường đã hoàn tất cập nhật thông tin và hồ sơ lưu mẫu cho các món ăn trong bữa trưa.",
+      attachments: ["bien-ban-niem-phong-mau.pdf", "so-theo-doi-suc-khoe.xlsx"],
+      menus: demoMealLifecycles,
+    },
     timeline: [
       { time: "13:08", label: "Tiếp nhận cảnh báo", detail: "Cán bộ trực ban ghi nhận thông tin từ nhà trường.", tone: "amber" },
       { time: "13:21", label: "Phân công xử lý", detail: "Tổ ATTP số 02 được phân công xác minh tại hiện trường.", tone: "blue" },
       { time: "14:05", label: "Đã yêu cầu bảo toàn mẫu", detail: "Cơ sở xác nhận đã niêm phong thức ăn lưu mẫu.", tone: "green" },
+      { time: "15:10", label: "Nhà trường gửi kết quả", detail: "Nhà trường đã hoàn tất cập nhật thông tin và hồ sơ lưu mẫu.", tone: "blue" },
     ],
   },
   {
@@ -281,6 +299,48 @@ function formatDate(value: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+const attachmentPreviewMap: Record<string, string> = {
+  "anh-khu-vuc-bep.jpg": foodPhotoPath,
+  "hien-truong-hoa-sen.jpg": foodPhotoPath,
+};
+
+function getAttachmentPreview(file: string) {
+  if (!/\.(png|jpe?g|webp|gif)$/i.test(file)) return null;
+  return attachmentPreviewMap[file] ?? foodPhotoPath;
+}
+
+function AttachmentPreview({
+  file,
+  compact = false,
+}: {
+  file: string;
+  compact?: boolean;
+}) {
+  const preview = getAttachmentPreview(file);
+  if (!preview) {
+    return (
+      <div className={`flex items-center gap-2 rounded-lg bg-[#eff6ff] px-3 py-2 text-xs font-semibold text-[#1e40af] ${compact ? "" : "h-full flex-col justify-center bg-white text-center"}`}>
+        <FileText size={compact ? 14 : 30} className={compact ? "shrink-0" : ""} />
+        <span className={compact ? "truncate" : "max-w-full truncate"}>{file}</span>
+      </div>
+    );
+  }
+
+  return (
+    <a
+      href={preview}
+      target="_blank"
+      rel="noreferrer"
+      className={`group relative block overflow-hidden rounded-lg border border-[#dbe5ed] bg-white ${compact ? "h-24 w-36" : "h-32 w-44"}`}
+      aria-label={`Mở ảnh ${file}`}
+      data-testid={`image-attachment-${file}`}
+    >
+      <img src={preview} alt={file} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+      <span className="absolute inset-x-0 bottom-0 truncate bg-[#0f172a]/70 px-2 py-1 text-[10px] font-semibold text-white">{file}</span>
+    </a>
+  );
 }
 
 function severityClass(value: IncidentSeverity) {
@@ -1074,7 +1134,7 @@ export function IncidentDetailPage() {
     "Kết luận",
     "Đóng sự cố",
   ];
-  const completedSteps = incident.status === "Đã đóng" ? processSteps.length : 3;
+  const completedSteps = incident.status === "Đã đóng" ? processSteps.length : incident.schoolUpdate ? 6 : 3;
   const selectedNotifications = [
     incident.notifyFacility && "Nhà trường",
     incident.notifyHealth && "Y tế địa phương",
@@ -1168,10 +1228,7 @@ export function IncidentDetailPage() {
                 {incident.attachments.length ? (
                   <div className="mt-3 flex flex-wrap gap-4 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] p-4">
                     {incident.attachments.map((file) => (
-                      <div key={file} className="flex h-32 w-44 flex-col items-center justify-center gap-2 rounded-lg border border-[#e2e8f0] bg-white p-3 text-center shadow-sm" data-testid={`attachment-incident-${file}`}>
-                        <FileText className="text-[#1e40af]" size={30} />
-                        <span className="max-w-full truncate text-xs font-medium text-[#475569]">{file}</span>
-                      </div>
+                      <AttachmentPreview key={file} file={file} />
                     ))}
                   </div>
                 ) : (
@@ -1190,7 +1247,7 @@ export function IncidentDetailPage() {
               </div>
             </div>
              {incident.schoolUpdate ? (
-               <SchoolUpdateSummary update={incident.schoolUpdate} reviewStatus={incident.reviewStatus} supplementRequest={incident.supplementRequest} />
+               <SchoolUpdateSummary incidentId={incident.id} update={incident.schoolUpdate} reviewStatus={incident.reviewStatus} supplementRequest={incident.supplementRequest} />
              ) : (
                <div className="flex min-h-[280px] flex-col items-center justify-center px-6 py-16 text-center">
                  <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#eff6ff] text-[#1e40af]"><Info size={28} /></span>
@@ -1340,14 +1397,20 @@ function IncidentTextModal({
 }
 
 function SchoolUpdateSummary({
+  incidentId,
   update,
   reviewStatus,
   supplementRequest,
 }: {
+  incidentId: string;
   update: SchoolIncidentUpdate;
   reviewStatus: IncidentReviewStatus;
   supplementRequest?: string;
 }) {
+  const [, navigate] = useLocation();
+  const [isTraceOpen, setIsTraceOpen] = useState(false);
+  const menus = getMealLifecycles(update);
+
   return (
     <div className="space-y-5 px-5 py-6 sm:px-6" data-testid="section-school-update-submitted">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1378,8 +1441,153 @@ function SchoolUpdateSummary({
           <strong>Yêu cầu bổ sung gần nhất:</strong> {supplementRequest}
         </div>
       )}
-      {update.attachments.length > 0 && <div className="flex flex-wrap gap-2">{update.attachments.map((file) => <span key={file} className="inline-flex items-center gap-2 rounded-lg bg-[#eff6ff] px-3 py-2 text-xs font-semibold text-[#1e40af]"><Paperclip size={13} />{file}</span>)}</div>}
+      {update.attachments.length > 0 && <div className="flex flex-wrap gap-3">{update.attachments.map((file) => <AttachmentPreview key={file} file={file} compact />)}</div>}
+      <section className="rounded-2xl border border-[#dbe5ed] bg-[#f8fafc] p-4 sm:p-5" data-testid="section-saved-meal-records">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[.05em] text-[#64748b]">Hồ sơ lưu mẫu</p>
+            <h3 className="mt-1 text-lg font-bold text-[#0f172a]">Các thực đơn đã được nhà trường cập nhật</h3>
+          </div>
+          <span className="text-sm font-semibold text-[#64748b]">{menus.length} thực đơn</span>
+        </div>
+        <div className="mt-4 grid gap-4 lg:grid-cols-3">
+          {menus.map((menu) => (
+            <article key={menu.id} className="overflow-hidden rounded-xl border border-[#e2e8f0] bg-white shadow-sm">
+              <div className="relative flex h-32 items-end overflow-hidden bg-[#0f3f5b] p-4">
+                <img src={foodPhotoPath} alt={`Ảnh minh họa ${menu.name}`} className="absolute inset-0 h-full w-full object-cover opacity-80" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a]/80 to-transparent" />
+                <div className="absolute right-4 top-4 rounded-full bg-[#dcfce7] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[.1em] text-[#16a34a]">Đã cập nhật</div>
+                <div className="relative z-10">
+                  <p className="text-xs font-bold uppercase tracking-[.12em] text-white/70">Mã thực đơn</p>
+                  <p className="mt-1 text-xl font-extrabold text-white">{menu.code}</p>
+                </div>
+              </div>
+              <div className="space-y-3 p-4">
+                <h4 className="font-bold text-[#0f172a]">{menu.name}</h4>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div><p className="text-[#64748b]">Trạng thái</p><p className="mt-1 font-semibold text-[#16a34a]">{menu.status}</p></div>
+                  <div><p className="text-[#64748b]">Chế biến</p><p className="mt-1 font-semibold text-[#0f172a]">{menu.processedAt}</p></div>
+                </div>
+                <button type="button" onClick={() => setIsTraceOpen(true)} className="inline-flex w-full items-center justify-center rounded-lg bg-[#1b6c98] px-3 py-2.5 text-sm font-bold text-white transition-colors hover:bg-[#155777]" data-testid={`button-view-sample-record-${menu.id}`}>
+                  Xem hồ sơ lưu mẫu
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+      {isTraceOpen && (
+        <MealLifecycleDetailModal
+          menus={menus}
+          onClose={() => setIsTraceOpen(false)}
+          onOpenMenu={(menuId) => navigate(`/admin/inspections/incidents/${incidentId}/menu/${menuId}`)}
+        />
+      )}
     </div>
+  );
+}
+
+function MealLifecycleDetailModal({
+  menus,
+  onClose,
+  onOpenMenu,
+}: {
+  menus: MealLifecycle[];
+  onClose: () => void;
+  onOpenMenu: (menuId: string) => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0f172a]/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="meal-lifecycle-title">
+      <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl">
+        <header className="flex items-center justify-between gap-4 border-b border-[#d3d3d3] px-5 py-4 sm:px-6">
+          <h2 id="meal-lifecycle-title" className="text-xl font-bold text-[#0f172a]">Thông tin thực đơn</h2>
+          <button type="button" onClick={onClose} className="rounded-lg px-3 py-2 text-sm font-semibold text-[#f15d22] hover:bg-[#fff7ed]" data-testid="button-close-meal-lifecycle">Đóng lại</button>
+        </header>
+        <div className="space-y-5 overflow-y-auto bg-[#f0f0f0] p-4 sm:p-5">
+          <section className="rounded-xl bg-white p-4 shadow-sm sm:p-5">
+            <div className="flex flex-col gap-4 sm:flex-row">
+              <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-[#0f3f5b] p-3 text-xs font-bold text-white"><img src={foodPhotoPath} alt="Ảnh món ăn lưu mẫu" className="h-full w-full rounded-lg object-cover opacity-90" /><span className="absolute inset-x-2 bottom-2 rounded bg-[#0f172a]/70 px-1 py-0.5 text-center">Hồ sơ lưu mẫu</span></div>
+              <div className="min-w-0 flex-1 divide-y divide-[#f0f0f0]">
+                <div className="flex flex-wrap items-center justify-between gap-3 pb-3"><span className="font-semibold text-[#0f172a]">Tên thực đơn</span><span className="rounded-full bg-[#f0f0f0] px-3 py-1 text-xs font-semibold text-[#1e1e1e]">Không theo dõi</span></div>
+                <div className="flex gap-3 py-3 text-sm"><span className="w-36 shrink-0 font-semibold text-[#64748b]">Thực đơn</span><span className="font-bold text-[#f15d22]">Mì trộn hải sản</span></div>
+                <div className="flex gap-3 py-3 text-sm"><span className="w-36 shrink-0 font-semibold text-[#64748b]">Loại thực đơn</span><span className="text-[#1e1e1e]">Đặc (nấu chín)</span></div>
+                <div className="flex gap-3 pt-3 text-sm"><span className="w-36 shrink-0 font-semibold text-[#64748b]">Mô tả</span><span className="text-[#1e1e1e]">Món ăn được theo dõi và lưu đầy đủ hồ sơ trong 24 giờ.</span></div>
+              </div>
+            </div>
+          </section>
+          <section className="rounded-xl bg-white p-4 shadow-sm sm:p-5">
+            <h3 className="text-base font-bold text-[#0f172a]">Thời gian phát hành ({menus.length})</h3>
+            <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm text-[#1e1e1e]">{menus.map((menu) => <span key={menu.id}>• {menu.processedAt}</span>)}</div>
+          </section>
+          <section className="rounded-xl bg-white p-4 shadow-sm sm:p-5">
+            <h3 className="text-base font-bold text-[#0f172a]">Quy trình chế biến (lưu vết)</h3>
+            <p className="mt-3 text-sm text-[#808080]">Hiện tại không có quy trình chế biến nào!</p>
+          </section>
+          <section className="space-y-3">
+            <h3 className="text-base font-bold text-[#0f172a]">Vòng đời thực đơn ({menus.length})</h3>
+            {menus.map((menu, index) => (
+              <button type="button" key={menu.id} onClick={() => onOpenMenu(menu.id)} className="flex w-full items-center gap-4 rounded-2xl bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md" data-testid={`button-open-menu-lifecycle-${menu.id}`}>
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f15d22] text-sm font-bold text-white">{index + 1}</span>
+                <span className="min-w-0 flex-1"><span className="block text-sm text-[#1e1e1e]">Chế biến lúc {menu.processedAt}</span><span className="mt-1 block text-lg font-extrabold text-[#0f172a]">{menu.code}</span></span>
+                <ChevronDown className="shrink-0 text-[#808080]" size={20} />
+              </button>
+            ))}
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function IncidentMealDataPage() {
+  const { id, menuId } = useParams<{ id: string; menuId: string }>();
+  const incident = readIncidents().find((item) => item.id === id);
+  const menu = getMealLifecycles(incident?.schoolUpdate).find((item) => item.id === menuId) ?? getMealLifecycles(incident?.schoolUpdate)[0];
+
+  if (!incident || !menu) {
+    return <AdminShell><main className="min-h-[calc(100dvh-73px)] bg-[#f8fafc] p-8 text-center"><h1 className="text-xl font-bold text-[#0f172a]">Không tìm thấy hồ sơ lưu mẫu</h1><Link href={id ? `/admin/inspections/incidents/${id}` : "/admin/inspections/incidents"} className="mt-4 inline-flex text-sm font-bold text-[#1b6c98]">Quay lại chi tiết cảnh báo</Link></main></AdminShell>;
+  }
+
+  return (
+    <AdminShell>
+      <main className="min-h-[calc(100dvh-73px)] bg-[#fafafa] px-4 py-6 sm:px-8">
+        <div className="mx-auto max-w-5xl">
+          <Link href={`/admin/inspections/incidents/${incident.id}`} className="inline-flex items-center gap-2 text-sm font-bold text-[#1b6c98]"><ArrowLeft size={16} /> Quay lại chi tiết cảnh báo</Link>
+          <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div><p className="text-xs font-bold uppercase tracking-[.12em] text-[#f15d22]">Hồ sơ lưu mẫu / {menu.code}</p><h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[#0f172a] sm:text-3xl">{menu.name}</h1></div>
+            <span className="rounded-full bg-[#dcfce7] px-3 py-1.5 text-xs font-bold text-[#16a34a]">{menu.status}</span>
+          </div>
+          <section className="mt-6 rounded-xl bg-white p-4 shadow-sm sm:p-6">
+            <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start">
+              <div className="h-32 w-32 shrink-0 overflow-hidden rounded-xl border-2 border-[#f0f0f0] bg-[#0f3f5b]"><img src={foodPhotoPath} alt={`Ảnh ${menu.name}`} className="h-full w-full object-cover" /></div>
+              <div className="w-full divide-y divide-[#f0f0f0] text-sm">
+                {[
+                  ["Trạng thái", menu.status],
+                  ["Tên thực đơn", menu.name],
+                  ["Mã truy vết", menu.traceCode],
+                  ["Loại thực đơn", menu.menuType],
+                  ["Mô tả loại thực đơn", menu.description],
+                ].map(([label, value]) => <div key={label} className="flex items-start justify-between gap-5 py-3 first:pt-0 last:pb-0"><span className="text-[#808080]">{label}</span><span className="max-w-[65%] text-right font-medium text-[#1e1e1e]">{value}</span></div>)}
+              </div>
+            </div>
+          </section>
+          <section className="mt-6 rounded-xl bg-white p-4 shadow-sm sm:p-6">
+            <h2 className="text-base font-bold text-[#0f172a]">Quy trình chế biến (lưu vết)</h2>
+            <div className="mt-4 rounded-lg bg-[#f0f0f0] p-4">
+              <div className="flex items-center gap-4"><ChefHat size={24} className="text-[#0f172a]" /><div><p className="text-sm text-[#808080]">Đầu bếp</p><p className="font-semibold text-[#0f172a]">{menu.chef}</p></div></div>
+              <div className="mt-4 flex items-center gap-4"><Utensils size={24} className="text-[#0f172a]" /><div><p className="text-sm text-[#808080]">Mã quy trình</p><p className="font-semibold text-[#0f172a]">{menu.processCode}</p></div></div>
+              <div className="mt-4 flex items-center gap-4"><Clock3 size={24} className="text-[#0f172a]" /><div><p className="text-sm text-[#808080]">Chế biến lúc</p><p className="font-semibold text-[#0f172a]">{menu.processAt}</p></div></div>
+            </div>
+          </section>
+          <section className="mt-6 overflow-hidden rounded-xl bg-white p-4 shadow-sm sm:p-6">
+            <div className="flex items-center justify-between gap-3 border-b border-[#808080] pb-3"><h2 className="text-base font-bold text-[#0f172a]">Nguyên liệu</h2><span className="text-xs text-[#64748b]">{menu.ingredients.length} nguyên liệu</span></div>
+            <div className="overflow-x-auto">
+              <table className="mt-2 w-full min-w-[680px] text-left text-sm"><thead className="border-b border-[#d3d3d3] text-xs text-[#64748b]"><tr><th className="px-2 py-3">Nguyên liệu</th><th className="px-2 py-3">Nguồn cung cấp</th><th className="px-2 py-3 text-center">Số lô/mẻ</th><th className="px-2 py-3 text-center">Đơn vị tính</th></tr></thead><tbody>{menu.ingredients.map((ingredient) => <tr key={`${ingredient.name}-${ingredient.batch}`} className="border-b border-[#d3d3d3] last:border-0"><td className="px-2 py-4 font-medium">{ingredient.name}</td><td className="px-2 py-4">{ingredient.supplier}</td><td className="px-2 py-4 text-center">{ingredient.batch}</td><td className="px-2 py-4 text-center">{ingredient.unit}</td></tr>)}</tbody></table>
+            </div>
+          </section>
+        </div>
+      </main>
+    </AdminShell>
   );
 }
 
@@ -1445,7 +1653,7 @@ export function FacilityIncidentDetailPage() {
     const next: Incident = {
       ...incident,
       reviewStatus: "Đã gửi",
-      schoolUpdate: { ...form, submittedAt: new Date().toISOString(), attachments: files },
+      schoolUpdate: { ...form, submittedAt: new Date().toISOString(), attachments: files, menus: existing?.menus ?? demoMealLifecycles },
       timeline: [
         ...incident.timeline,
         {

@@ -30,6 +30,7 @@ import {
   FacilityIncidentListPage,
   IncidentCreatePage,
   IncidentDetailPage,
+  IncidentMealDataPage,
   IncidentListPage,
 } from "@/pages/incident-pages";
 import {
@@ -129,6 +130,11 @@ function Router() {
         <Route path="/admin/inspections/incidents/new">
           <AdminGuard>
             <IncidentCreatePage />
+          </AdminGuard>
+        </Route>
+        <Route path="/admin/inspections/incidents/:id/menu/:menuId">
+          <AdminGuard>
+            <IncidentMealDataPage />
           </AdminGuard>
         </Route>
         <Route path="/admin/inspections/incidents/:id">
