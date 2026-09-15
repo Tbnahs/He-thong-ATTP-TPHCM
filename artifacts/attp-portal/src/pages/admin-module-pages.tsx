@@ -3830,8 +3830,10 @@ export function AdminFacilityDetailPage() {
     return true;
   };
   const visibleDetailCriteria = detailCriteria.filter(isDetailVisible);
-  const visibleDetailGroups = detailGroups.filter((group) =>
-    visibleDetailCriteria.some((item) => item.groupId === group.id),
+  const visibleDetailGroups = detailGroups.filter(
+    (group) =>
+      !group.name.includes("Minh chứng") &&
+      visibleDetailCriteria.some((item) => item.groupId === group.id),
   );
 
   const approve = () => {
