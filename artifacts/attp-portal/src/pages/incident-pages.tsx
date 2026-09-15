@@ -76,6 +76,7 @@ type Incident = {
   notifyHealth?: boolean;
   notifyDistrict: boolean;
   closedAt?: string;
+  closedBy?: string;
   reviewStatus: IncidentReviewStatus;
   supplementRequest?: string;
   conclusion?: string;
@@ -172,6 +173,19 @@ const demoMealLifecycles: MealLifecycle[] = [
 
 function getMealLifecycles(update?: SchoolIncidentUpdate) {
   return update?.menus?.length ? update.menus : demoMealLifecycles;
+}
+
+function hasCompleteSchoolUpdate(update?: SchoolIncidentUpdate) {
+  if (!update) return false;
+  return [
+    update.contactName,
+    update.contactRole,
+    update.symptoms,
+    update.affectedStudents,
+    update.tracedMeals,
+    update.actionsTaken,
+    update.sampleHandling,
+  ].every((value) => Boolean(value?.trim()));
 }
 
 const STORAGE_KEY = "attp-food-safety-incidents";
@@ -299,6 +313,14 @@ function formatDate(value: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+function toDateTimeLocal(value?: string) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const offset = date.getTimezoneOffset();
+  return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 16);
 }
 
 const attachmentPreviewMap: Record<string, string> = {
@@ -1052,9 +1074,11 @@ export function IncidentDetailPage() {
   const params = useParams<{ id: string }>();
   const [incident, setIncident] = useState<Incident | null>(() => readIncidents().find((item) => item.id === params.id) ?? null);
   const [isSupplementOpen, setIsSupplementOpen] = useState(false);
-  const [isConclusionOpen, setIsConclusionOpen] = useState(false);
   const [supplementRequest, setSupplementRequest] = useState("");
-  const [conclusion, setConclusion] = useState("");
+  const [closedAt, setClosedAt] = useState(() => toDateTimeLocal(incident?.closedAt));
+  const [closedBy, setClosedBy] = useState(() => incident?.closedBy ?? "");
+  const [conclusion, setConclusion] = useState(() => incident?.conclusion ?? "");
+  const [closeError, setCloseError] = useState("");
 
   const updateIncident = (next: Incident) => {
     setIncident(next);
@@ -1083,15 +1107,19 @@ export function IncidentDetailPage() {
     setIsSupplementOpen(false);
   };
 
-  const closeIncident = (event: FormEvent) => {
-    event.preventDefault();
+  const closeIncident = () => {
     if (!incident || incident.status === "Đã đóng") return;
-    if (!conclusion.trim()) return;
-    const closedAt = new Date().toISOString();
+    if (!closedAt || !closedBy.trim() || !conclusion.trim()) {
+      setCloseError("Vui lòng nhập đầy đủ ngày đóng hồ sơ, người thực hiện và kết luận cuối cùng.");
+      return;
+    }
+    if (!window.confirm("Xác nhận đóng hồ sơ sự cố? Sau khi đóng, hồ sơ sẽ chỉ được xem và không thể chỉnh sửa.")) return;
+    const closedAtIso = new Date(closedAt).toISOString();
     const next = {
       ...incident,
       status: "Đã đóng" as IncidentStatus,
-      closedAt,
+      closedAt: closedAtIso,
+      closedBy: closedBy.trim(),
       conclusion: conclusion.trim(),
       timeline: [
         ...incident.timeline,
@@ -1104,8 +1132,7 @@ export function IncidentDetailPage() {
       ],
     };
     updateIncident(next);
-    setConclusion("");
-    setIsConclusionOpen(false);
+    setCloseError("");
   };
 
   if (!incident) {
@@ -1140,6 +1167,7 @@ export function IncidentDetailPage() {
     incident.notifyHealth && "Y tế địa phương",
     incident.notifyDistrict && "Cơ quan quản lý",
   ].filter(Boolean) as string[];
+  const canCloseIncident = hasCompleteSchoolUpdate(incident.schoolUpdate);
 
   const statusBadge = incident.status === "Đang xử lý"
     ? "border-[#fed7aa] bg-[#ffedd5] text-[#c2410c]"
@@ -1271,24 +1299,32 @@ export function IncidentDetailPage() {
                <div className="space-y-4">
                  <div>
                    <p className="text-[10px] font-extrabold uppercase tracking-[.06em] text-[#64748b]">Ngày đóng hồ sơ</p>
-                   <p className={`mt-1 text-xs ${incident.status === "Đã đóng" ? "text-[#334155]" : "text-[#94a3b8]"}`}>
-                     {incident.status === "Đã đóng" ? formatDate(incident.closedAt ?? incident.reportedAt) : "Nhập ngày đóng hồ sơ"}
-                   </p>
+                   {incident.status === "Đã đóng" ? (
+                     <p className="mt-1 text-xs text-[#334155]" data-testid="text-incident-closed-at">{formatDate(incident.closedAt ?? incident.reportedAt)}</p>
+                   ) : (
+                     <input type="datetime-local" value={closedAt} onChange={(event) => { setClosedAt(event.target.value); setCloseError(""); }} className={`${designInputClass} mt-2`} data-testid="input-incident-closed-at" />
+                   )}
                  </div>
                  <div>
                    <p className="text-[10px] font-extrabold uppercase tracking-[.06em] text-[#64748b]">Người thực hiện đóng</p>
-                   <p className={`mt-1 text-xs ${incident.status === "Đã đóng" ? "text-[#334155]" : "text-[#94a3b8]"}`}>
-                     {incident.status === "Đã đóng" ? "Cán bộ phụ trách" : "Nhập tên người thực hiện"}
-                   </p>
+                   {incident.status === "Đã đóng" ? (
+                     <p className="mt-1 text-xs text-[#334155]" data-testid="text-incident-closed-by">{incident.closedBy || "Cán bộ phụ trách"}</p>
+                   ) : (
+                     <input value={closedBy} onChange={(event) => { setClosedBy(event.target.value); setCloseError(""); }} className={`${designInputClass} mt-2`} placeholder="Nhập tên người thực hiện" data-testid="input-incident-closed-by" />
+                   )}
                  </div>
                </div>
                <div className="border-t border-[#e2e8f0] pt-4 md:border-l md:border-t-0 md:pl-6 md:pt-0">
                  <p className="text-[10px] font-extrabold uppercase tracking-[.06em] text-[#64748b]">Kết luận cuối cùng</p>
-                 <p className={`mt-1 text-xs leading-5 ${incident.status === "Đã đóng" ? "text-[#334155]" : "text-[#94a3b8]"}`} data-testid="text-incident-conclusion">
-                   {incident.status === "Đã đóng" ? incident.conclusion || "Chưa cập nhật kết luận." : "Nhập kết luận trước khi đóng hồ sơ..."}
-                 </p>
+                 {incident.status === "Đã đóng" ? (
+                   <p className="mt-1 text-xs leading-5 text-[#334155]" data-testid="text-incident-conclusion">{incident.conclusion || "Chưa cập nhật kết luận."}</p>
+                 ) : (
+                   <textarea value={conclusion} onChange={(event) => { setConclusion(event.target.value); setCloseError(""); }} className={`${designAreaClass} mt-2 min-h-[100px]`} placeholder="Nhập kết luận trước khi đóng hồ sơ..." data-testid="textarea-incident-conclusion" />
+                 )}
                </div>
              </div>
+             {incident.status !== "Đã đóng" && closeError && <p className="mt-3 text-sm font-semibold text-[#dc2626]" role="alert" data-testid="text-incident-close-error">{closeError}</p>}
+             {incident.status !== "Đã đóng" && !canCloseIncident && <p className="mt-3 text-sm font-semibold text-[#b45309]" data-testid="text-incident-close-requirement">Chỉ có thể đóng hồ sơ sau khi nhà trường cập nhật đầy đủ thông tin xử lý.</p>}
            </section>
         </main>
 
@@ -1300,12 +1336,12 @@ export function IncidentDetailPage() {
             </button>
              )}
             {incident.status === "Đang xử lý" ? (
-               <button type="button" onClick={() => setIsConclusionOpen(true)} className="focus-ring inline-flex min-h-[59px] items-center justify-center gap-3 rounded-xl bg-[#1e40af] px-8 text-base font-bold text-white transition-colors hover:bg-[#1d4ed8]" data-testid="button-close-incident">
+               <button type="button" onClick={closeIncident} disabled={!canCloseIncident} className="focus-ring inline-flex min-h-[59px] items-center justify-center gap-3 rounded-xl bg-[#1e40af] px-8 text-base font-bold text-white transition-colors hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:bg-[#cbd5e1] disabled:text-[#64748b]" data-testid="button-close-incident" title={!canCloseIncident ? "Chờ nhà trường cập nhật đầy đủ thông tin xử lý" : undefined}>
                 <Check size={18} /> Đóng hồ sơ sự cố
               </button>
             ) : (
-              <span className="inline-flex min-h-[59px] items-center justify-center gap-3 rounded-xl bg-[#d1fae5] px-8 text-base font-bold text-[#047857]" data-testid="button-closed-incident">
-                <Check size={18} /> Hồ sơ đã đóng
+              <span className="inline-flex min-h-[59px] items-center justify-center gap-3 rounded-xl border border-[#cbd5e1] bg-white px-8 text-sm font-bold text-[#64748b]" data-testid="button-closed-incident">
+                <Check size={17} /> Hồ sơ đã được đóng - không thể chỉnh sửa
               </span>
             )}
           </div>
@@ -1320,18 +1356,6 @@ export function IncidentDetailPage() {
              onSubmit={requestSupplement}
              submitLabel="Gửi yêu cầu bổ sung"
              testId="dialog-request-incident-update"
-           />
-         )}
-         {isConclusionOpen && (
-           <IncidentTextModal
-             title="Đóng hồ sơ sự cố"
-             description="Nhập kết luận xử lý trước khi đóng hồ sơ."
-             value={conclusion}
-             onChange={setConclusion}
-             onClose={() => setIsConclusionOpen(false)}
-             onSubmit={closeIncident}
-             submitLabel="Xác nhận đóng hồ sơ"
-             testId="dialog-close-incident"
            />
          )}
       </div>
