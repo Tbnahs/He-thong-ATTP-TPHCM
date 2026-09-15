@@ -32,7 +32,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useParams } from "wouter";
 import * as XLSX from "xlsx";
 import {
   AdminShell,
@@ -733,7 +733,7 @@ const formatManagementAnswer = (value: unknown): string => {
 };
 
 function managementStatusLabel(
-  status: FacilityManagementRow["status"],
+  status: FacilityManagementRow["status"] | Application["status"],
 ) {
   return status === "approved" ? "Đạt" : "Cần bổ sung";
 }
@@ -1474,7 +1474,6 @@ export function AdminMonitoringDashboard() {
             item.address,
             item.capacity,
             item.serving,
-            item.schools,
             item.status,
             item.updated,
           ])
@@ -1509,7 +1508,6 @@ export function AdminMonitoringDashboard() {
             "Địa chỉ",
             "Công suất/ngày",
             "Đang cung cấp",
-            "Số trường",
             "Trạng thái",
             "Cập nhật",
           ]
@@ -2302,14 +2300,6 @@ export function AdminMonitoringDashboard() {
                         {formatNumber(selectedSupplier.serving)}
                       </p>
                     </div>
-                    <div className="rounded-xl border border-border p-3">
-                      <p className="text-[10px] text-muted-foreground">
-                        Số trường
-                      </p>
-                      <p className="mt-1 font-black">
-                        {selectedSupplier.schools}
-                      </p>
-                    </div>
                   </div>
                   <h3 className="mt-5 text-sm font-extrabold">
                     Cơ sở giáo dục đang được cung cấp
@@ -2628,8 +2618,12 @@ export function AdminFacilitiesPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("Tất cả trạng thái");
   const [importedRows, setImportedRows] = useState<FacilityManagementRow[]>([]);
-  const [selectedRow, setSelectedRow] =
+  const [selectedRowState, setSelectedRow] =
     useState<FacilityManagementRow | null>(null);
+  const selectedRow = selectedRowState as FacilityManagementRow & {
+    detailFields: Array<{ label: string; value: string }>;
+    missingFields: string[];
+  };
   const [notice, setNotice] = useState("");
   const [reviewNote, setReviewNote] = useState("");
   const [reviewConclusion, setReviewConclusion] = useState<
@@ -2637,9 +2631,11 @@ export function AdminFacilitiesPage() {
   >("");
   const [reviewer, setReviewer] = useState("nguyen-minh-anh");
 
-  const selectedApplication = selectedRow?.applicationId
-    ? applications.find((item) => item.id === selectedRow.applicationId)
-    : undefined;
+  const selectedApplication = (
+    selectedRow?.applicationId
+      ? applications.find((item) => item.id === selectedRow.applicationId)
+      : undefined
+  ) as Application;
 
   useEffect(() => {
     setReviewNote(selectedApplication?.reviewNote ?? "");
@@ -2734,7 +2730,7 @@ export function AdminFacilitiesPage() {
     selectedApplication,
     selectedStoredAccount,
   );
-  const selectedRegistrant =
+  const selectedRegistrant = (
     linkedRegistrant ??
     (selectedRow
       ? {
@@ -2745,12 +2741,13 @@ export function AdminFacilitiesPage() {
           submittedAt: selectedRow.updated,
           isLinked: false,
         }
-      : null);
+      : null)
+  ) as NonNullable<typeof linkedRegistrant>;
   const selectedRegistrationType =
     selectedApplication?.type ??
     selectedStoredAccount?.registration?.type ??
     getRowRegistrationType(selectedRow);
-  const selectedRegistrationFields =
+  const selectedRegistrationFields = (
     selectedApplication?.data ??
     selectedStoredAccount?.registration?.fields ??
     (selectedRow
@@ -2767,7 +2764,8 @@ export function AdminFacilitiesPage() {
           category: selectedRow.category,
           updated: selectedRow.updated,
         }
-      : undefined);
+      : undefined)
+  ) as Record<string, unknown> | undefined;
   const selectedRegistrationFiles =
     selectedApplication?.attachments ?? selectedStoredAccount?.registration?.files ?? [];
   const selectedCriteria = selectedApplication
@@ -3084,8 +3082,7 @@ export function AdminFacilitiesPage() {
                       <th className="px-4 py-3">Công suất/ngày</th>
                       <th className="px-4 py-3 text-right">Đang cung cấp</th>
                     </>
-                  ) : null
-                  )}
+                   ) : null}
                   <th className="px-4 py-3">Trạng thái</th>
                   <th className="px-5 py-3 text-right">Chi tiết</th>
                 </tr>
@@ -3156,7 +3153,7 @@ export function AdminFacilitiesPage() {
         </p>
       </div>
 
-      {selectedRow && (
+      {selectedRow && selectedApplication && false && (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/45 p-0 sm:items-center sm:p-6"
           role="dialog"
@@ -3449,7 +3446,7 @@ export function AdminFacilitiesPage() {
                                     .map((file) => file.name)
                                     .join(", ") || "—"
                                 : formatManagementAnswer(
-                                    selectedRegistrationFields[item.key],
+                                    selectedRegistrationFields?.[item.key],
                                   );
                             return (
                               <div key={item.key} className="min-w-0">
@@ -3611,6 +3608,422 @@ export function AdminFacilitiesPage() {
           </div>
         </div>
       )}
+      {notice && (
+        <div className="fixed bottom-5 right-5 z-50 max-w-sm rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-xl" role="status">
+          {notice}
+          <button type="button" onClick={() => setNotice("")} className="ml-3 font-black" aria-label="Đóng thông báo">×</button>
+        </div>
+      )}
+    </AdminShell>
+  );
+}
+
+export function AdminFacilityDetailPage() {
+  const { facilityId = "" } = useParams<{ facilityId: string }>();
+  const [, navigate] = useLocation();
+  const [reviewNote, setReviewNote] = useState("");
+  const [notice, setNotice] = useState("");
+  const [detailStatus, setDetailStatus] =
+    useState<FacilityManagementRow["status"]>("approved");
+
+  const { row, application } = useMemo(() => {
+    const applicationRows: FacilityManagementRow[] = applications.map((app) => ({
+      id: `application-${app.id}`,
+      name: app.applicantName,
+      province: String(app.data.addressProvince ?? "TP. Hồ Chí Minh"),
+      ward: String(app.data.addressWard ?? "—"),
+      address: app.address,
+      contact: app.contact,
+      status: app.status === "rejected" ? "stopped" : app.status,
+      capacity: 0,
+      category: getRegistrationCategory(app.type),
+      updated: new Intl.DateTimeFormat("vi-VN").format(new Date(app.submittedAt)),
+      applicationId: app.id,
+    }));
+    const allRows = [
+      ...facilityManagementData.suppliers,
+      ...facilityManagementData.schools,
+      ...facilityManagementData.food,
+      ...applicationRows,
+      ...getStoredRegistrationRows(),
+    ];
+    const found = allRows.find((item) => item.id === facilityId);
+    return {
+      row: found,
+      application: found?.applicationId
+        ? applications.find((item) => item.id === found.applicationId)
+        : undefined,
+    };
+  }, [facilityId]);
+
+  useEffect(() => {
+    setReviewNote(application?.reviewNote ?? "");
+    setDetailStatus(
+      application?.status === "rejected"
+        ? "stopped"
+        : application?.status ?? row?.status ?? "approved",
+    );
+  }, [application?.id, application?.reviewNote, application?.status, row?.status]);
+
+  if (!row) {
+    return (
+      <AdminShell>
+        <div className="mx-auto max-w-4xl px-5 py-12 lg:px-10">
+          <Link
+            href="/admin/facilities"
+            className="inline-flex items-center gap-2 text-sm font-bold text-primary"
+          >
+            <ArrowLeft size={16} /> Quay lại Quản lý cơ sở
+          </Link>
+          <div className="mt-8 rounded-3xl border border-border bg-card p-8 text-center shadow-sm">
+            <h1 className="text-2xl font-extrabold">Không tìm thấy cơ sở</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Cơ sở có thể đã được di chuyển hoặc không tồn tại.
+            </p>
+          </div>
+        </div>
+      </AdminShell>
+    );
+  }
+
+  const registrationType =
+    application?.type ??
+    row.storedAccount?.registration?.type ??
+    getRowRegistrationType(row);
+  const formatDetailNumber = (value?: number) =>
+    typeof value === "number" && value > 0
+      ? new Intl.NumberFormat("vi-VN").format(value)
+      : "—";
+  const registrationFields =
+    application?.data ??
+    row.storedAccount?.registration?.fields ??
+    ({
+      applicantName: row.name,
+      addressProvince: row.province,
+      addressWard: row.ward,
+      addressDetail: row.address,
+      contact: row.contact,
+      category: row.category,
+      capacity: row.capacity,
+      students: row.students,
+      demand: row.demand,
+    } satisfies Record<string, unknown>);
+  const registrationFiles =
+    application?.attachments ?? row.storedAccount?.registration?.files ?? [];
+  const criteriaSet = registrationType ? getCriteriaSet(registrationType) : null;
+  const detailCriteria = criteriaSet?.criteria
+    .filter((item) => item.active)
+    .sort((a, b) => a.order - b.order) ?? [];
+  const detailGroups =
+    criteriaSet?.groups.slice().sort((a, b) => a.order - b.order) ?? [];
+  const registrant = getFacilityRegistrant(application, row.storedAccount) ?? {
+    name: row.name,
+    phone: row.contact,
+    email: "Chưa cập nhật",
+    username: "Tài khoản cơ sở",
+    submittedAt: row.updated,
+    isLinked: false,
+  };
+  const detailFields = row.detailFields ?? [];
+  const submittedAt = application?.submittedAt
+    ? new Intl.DateTimeFormat("vi-VN").format(new Date(application.submittedAt))
+    : row.updated;
+  const currentStatus = application?.status === "rejected"
+    ? "stopped"
+    : application?.status ?? detailStatus;
+
+  const approve = () => {
+    if (application) {
+      application.status = "approved";
+      application.reviewNote = null;
+      application.published = true;
+    }
+    setDetailStatus("approved");
+    setNotice("Đã duyệt hồ sơ và cập nhật trạng thái cơ sở.");
+  };
+  const requestSupplement = () => {
+    if (!reviewNote.trim()) {
+      setNotice("Vui lòng nhập nội dung yêu cầu bổ sung.");
+      return;
+    }
+    if (application) {
+      application.status = "needs-more-info";
+      application.reviewNote = reviewNote.trim();
+      application.published = false;
+    }
+    setDetailStatus("needs-more-info");
+    setNotice("Đã lưu yêu cầu bổ sung cho hồ sơ.");
+  };
+
+  return (
+    <AdminShell>
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+        <Link
+          href="/admin/facilities"
+          className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:underline"
+          data-testid="link-back-to-facilities"
+        >
+          <ArrowLeft size={16} /> Quay lại Quản lý cơ sở
+        </Link>
+
+        <div className="mt-5 flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="mono-label text-primary">THÔNG TIN CHI TIẾT CƠ SỞ</p>
+            <h1 className="mt-2 text-3xl font-extrabold tracking-tight">
+              {row.name}
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {row.category ?? "Cơ sở"} · Cập nhật {row.updated}
+            </p>
+          </div>
+          <StatusPill status={managementStatusLabel(currentStatus)} />
+        </div>
+
+        <section className="mt-6 overflow-hidden rounded-3xl bg-[#123d36] text-white shadow-sm">
+          <div className="grid gap-5 px-5 py-6 sm:grid-cols-[1fr_auto] sm:px-7">
+            <div>
+              <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-[#f4c95d]">
+                <span>{application?.reference ?? row.id}</span>
+                <span className="text-white/35">•</span>
+                <span>{row.category ?? "Cơ sở"}</span>
+                <span className="text-white/35">•</span>
+                <span>{application?.published ? "Đã công bố" : "Hồ sơ cơ sở"}</span>
+              </div>
+              <h2 className="mt-2 text-2xl font-extrabold">{row.name}</h2>
+              <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm text-white/70">
+                <span>{row.address}</span>
+                <span>•</span>
+                <span>{row.contact}</span>
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:min-w-[270px]">
+              <div className="rounded-xl bg-white/10 p-3">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-white/55">Ngày nộp</p>
+                <p className="mt-1 text-sm font-bold">{submittedAt}</p>
+              </div>
+              <div className="rounded-xl bg-white/10 p-3">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-white/55">Đánh giá</p>
+                <p className="mt-1 text-sm font-bold text-[#f4c95d]">
+                  {managementStatusLabel(currentStatus)}
+                  {application ? ` · ${application.score}/100` : ""}
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_.8fr]">
+          <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+            <p className="mono-label text-primary">HỒ SƠ CƠ SỞ</p>
+            <h2 className="mt-1 text-xl font-extrabold">Thông tin cơ bản</h2>
+            <dl className="mt-5 grid gap-x-6 gap-y-5 sm:grid-cols-2">
+              {[
+                ["Tên cơ sở", row.name],
+                ["Loại cơ sở", row.category ?? "—"],
+                ["Tỉnh/thành phố", row.province],
+                ["Xã/phường", row.ward],
+                ["Địa chỉ", row.address],
+                ["Số điện thoại", row.contact],
+                ["Công suất/ngày", formatDetailNumber(row.capacity)],
+                ["Cấp học", row.level ?? "—"],
+                ["Học sinh", formatDetailNumber(row.students)],
+                ["Nhu cầu suất ăn/ngày", formatDetailNumber(row.demand)],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <dt className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{label}</dt>
+                  <dd className="mt-1 text-sm font-bold">{value}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+
+          <section className="rounded-2xl border border-primary/15 bg-secondary/30 p-5 sm:p-6">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="mono-label text-primary">ĐỐI CHIẾU HỒ SƠ</p>
+                <h2 className="mt-1 text-xl font-extrabold">Thông tin pháp lý</h2>
+              </div>
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-extrabold ${row.detailCompleteness === "complete" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
+                {row.detailCompleteness === "complete" ? <CheckCircle2 size={14} /> : <TriangleAlert size={14} />}
+                {row.detailCompleteness === "complete" ? "Đủ thông tin" : "Chưa đủ thông tin"}
+              </span>
+            </div>
+            <dl className="mt-5 space-y-4">
+              {detailFields.map((field) => (
+                <div key={field.label} className="flex items-start justify-between gap-4 border-b border-border/70 pb-3 last:border-0 last:pb-0">
+                  <dt className="text-xs font-semibold text-muted-foreground">{field.label}</dt>
+                  <dd className={`text-right text-sm font-bold ${field.value === "Chưa cập nhật" ? "text-amber-700" : ""}`}>{field.value}</dd>
+                </div>
+              ))}
+            </dl>
+            {row.missingFields?.length ? (
+              <div className="mt-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-sm text-amber-900">
+                <Info size={17} className="mt-0.5 shrink-0" />
+                <p><strong>Còn thiếu:</strong> {row.missingFields.join(", ")}.</p>
+              </div>
+            ) : null}
+          </section>
+        </div>
+
+        <section className="mt-6 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
+              <UserRound size={18} />
+            </span>
+            <div>
+              <p className="mono-label text-primary">TÀI KHOẢN HỒ SƠ</p>
+              <h2 className="mt-1 text-xl font-extrabold">Người đăng ký và liên hệ</h2>
+            </div>
+          </div>
+          <dl className="mt-5 grid gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              ["Người đại diện", registrant.name],
+              ["Tên đăng nhập", registrant.username],
+              ["Email", registrant.email],
+              ["Số điện thoại", registrant.phone],
+              ["Ngày nộp hồ sơ", submittedAt],
+              ["Hình thức đăng ký", registrationType ? getRegistrationCategory(registrationType) : "—"],
+            ].map(([label, value]) => (
+              <div key={label}>
+                <dt className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{label}</dt>
+                <dd className="mt-1 break-words text-sm font-bold">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        {registrationType && (
+          <section className="mt-6 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+            <p className="mono-label text-primary">NỘI DUNG ĐÃ KHAI BÁO</p>
+            <h2 className="mt-1 text-xl font-extrabold">Thông tin hồ sơ đăng ký</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Toàn bộ nội dung cơ sở đã khai báo trong biểu mẫu đăng ký.
+            </p>
+            <div className="mt-5 space-y-7 rounded-2xl border border-border bg-background p-4 sm:p-6">
+              {detailGroups.map((group) => {
+                const groupCriteria = detailCriteria.filter(
+                  (item) => item.groupId === group.id,
+                );
+                if (!groupCriteria.length) return null;
+                return (
+                  <div key={group.id}>
+                    <h3 className="border-b border-border pb-2 text-sm font-extrabold text-primary">
+                      {group.name}
+                    </h3>
+                    <dl className="mt-3 grid gap-x-7 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
+                      {groupCriteria.map((item) => {
+                        const value =
+                          item.answerType === "file"
+                            ? registrationFiles
+                                .filter((file) => file.fieldKey === item.key)
+                                .map((file) => file.name)
+                                .join(", ") || "—"
+                            : formatManagementAnswer(registrationFields[item.key]);
+                        return (
+                          <div key={item.key} className="min-w-0">
+                            <dt className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                              {item.label}
+                            </dt>
+                            <dd className="mt-1 break-words text-sm font-bold">
+                              {value}
+                            </dd>
+                          </div>
+                        );
+                      })}
+                    </dl>
+                  </div>
+                );
+              })}
+              {!detailGroups.length && (
+                <dl className="grid gap-x-7 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
+                  {Object.entries(registrationFields)
+                    .filter(([key]) => !["applicantName", "addressProvince", "addressWard", "addressDetail", "contact"].includes(key))
+                    .map(([key, value]) => (
+                      <div key={key} className="min-w-0">
+                        <dt className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{key}</dt>
+                        <dd className="mt-1 break-words text-sm font-bold">{formatManagementAnswer(value)}</dd>
+                      </div>
+                    ))}
+                </dl>
+              )}
+            </div>
+          </section>
+        )}
+
+        <section className="mt-6 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="mono-label text-primary">MINH CHỨNG</p>
+              <h2 className="mt-1 text-xl font-extrabold">Tệp hồ sơ đính kèm</h2>
+            </div>
+            <span className="rounded-full bg-secondary px-3 py-1 text-xs font-bold text-muted-foreground">{registrationFiles.length} tệp</span>
+          </div>
+          {registrationFiles.length ? (
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {registrationFiles.map((file) => (
+                <div key={`${file.fieldKey ?? "attachment"}-${file.name}`} className="flex min-w-0 items-center gap-3 rounded-xl border border-border p-3">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
+                    {file.kind?.startsWith("image/") ? <ImagePlus size={20} /> : <FileText size={20} />}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-bold">{file.name}</span>
+                    <span className="mt-1 block text-xs text-muted-foreground">{file.size ? `${(file.size / 1024 / 1024).toFixed(1)}MB` : "Dung lượng chưa cập nhật"}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-5 text-sm text-muted-foreground">Chưa có tệp minh chứng.</p>
+          )}
+        </section>
+
+        <section className="mt-6 rounded-2xl border border-primary/15 bg-secondary/30 p-5 sm:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="mono-label text-primary">XỬ LÝ HỒ SƠ</p>
+              <h2 className="mt-1 text-xl font-extrabold">Cập nhật kết quả xét duyệt</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Cán bộ có thể duyệt hồ sơ hoặc yêu cầu cơ sở bổ sung thông tin ngay tại trang này.
+              </p>
+            </div>
+            <StatusPill status={managementStatusLabel(currentStatus)} />
+          </div>
+          <label className="mt-5 block">
+            <span className="mb-2 block text-sm font-bold">Nội dung yêu cầu bổ sung</span>
+            <textarea
+              value={reviewNote}
+              onChange={(event) => setReviewNote(event.target.value)}
+              placeholder="Nhập giấy tờ hoặc thông tin cơ sở cần bổ sung..."
+              className="focus-ring min-h-28 w-full rounded-xl border border-input bg-card p-3 text-sm"
+              data-testid="textarea-facility-detail-review-note"
+            />
+          </label>
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={requestSupplement}
+              disabled={!reviewNote.trim()}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 text-sm font-bold text-amber-800 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
+              data-testid="button-request-facility-detail-supplement"
+            >
+              <Info size={16} /> Yêu cầu bổ sung
+            </button>
+            <button
+              type="button"
+              onClick={approve}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground hover:bg-primary/90"
+              data-testid="button-approve-facility-detail"
+            >
+              <CheckCircle2 size={16} /> Duyệt hồ sơ
+            </button>
+          </div>
+          {currentStatus === "approved" && (
+            <p className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+              Hồ sơ đã được duyệt và đang hiển thị trên cổng thông tin công khai.
+            </p>
+          )}
+        </section>
+      </div>
       {notice && (
         <div className="fixed bottom-5 right-5 z-50 max-w-sm rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-xl" role="status">
           {notice}
