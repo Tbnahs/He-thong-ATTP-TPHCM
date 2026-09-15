@@ -26,6 +26,8 @@ import {
   AdminMonitoringDashboard,
 } from "@/pages/admin-module-pages";
 import {
+  FacilityIncidentDetailPage,
+  FacilityIncidentListPage,
   IncidentCreatePage,
   IncidentDetailPage,
   IncidentListPage,
@@ -142,6 +144,16 @@ function Router() {
         <Route path="/facility/profile">
           <FacilityGuard>
             <FacilityProfilePage />
+          </FacilityGuard>
+        </Route>
+        <Route path="/facility/incidents/:id">
+          <FacilityGuard>
+            <FacilityIncidentDetailPage />
+          </FacilityGuard>
+        </Route>
+        <Route path="/facility/incidents">
+          <FacilityGuard>
+            <FacilityIncidentListPage />
           </FacilityGuard>
         </Route>
         <Route component={NotFound} />

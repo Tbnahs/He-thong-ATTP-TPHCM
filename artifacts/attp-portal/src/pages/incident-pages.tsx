@@ -22,10 +22,11 @@ import {
   X,
 } from "lucide-react";
 import { Link, useLocation, useParams } from "wouter";
-import { AdminShell } from "@/components/portal-ui";
+import { AdminShell, PublicShell } from "@/components/portal-ui";
 
 type IncidentStatus = "Đang xử lý" | "Đã đóng";
 type IncidentSeverity = "Khẩn cấp" | "Cao" | "Trung bình";
+type IncidentReviewStatus = "Chưa cập nhật" | "Đã gửi" | "Yêu cầu bổ sung";
 type IncidentFacilityType =
   | "Cơ sở giáo dục"
   | "Đơn vị cung cấp thực phẩm"
@@ -71,7 +72,24 @@ type Incident = {
   notifyHealth?: boolean;
   notifyDistrict: boolean;
   closedAt?: string;
+  reviewStatus: IncidentReviewStatus;
+  supplementRequest?: string;
+  conclusion?: string;
+  schoolUpdate?: SchoolIncidentUpdate;
   timeline: Array<{ time: string; label: string; detail: string; tone: string }>;
+};
+
+type SchoolIncidentUpdate = {
+  submittedAt: string;
+  contactName: string;
+  contactRole: string;
+  symptoms: string;
+  affectedStudents: string;
+  tracedMeals: string;
+  actionsTaken: string;
+  sampleHandling: string;
+  notes: string;
+  attachments: string[];
 };
 
 const STORAGE_KEY = "attp-food-safety-incidents";
@@ -97,6 +115,7 @@ const seedIncidents: Incident[] = [
     attachments: ["bien-ban-y-te-1809.pdf", "anh-khu-vuc-bep.jpg"],
     notifyFacility: true,
     notifyDistrict: true,
+    reviewStatus: "Chưa cập nhật",
     timeline: [
       { time: "13:08", label: "Tiếp nhận cảnh báo", detail: "Cán bộ trực ban ghi nhận thông tin từ nhà trường.", tone: "amber" },
       { time: "13:21", label: "Phân công xử lý", detail: "Tổ ATTP số 02 được phân công xác minh tại hiện trường.", tone: "blue" },
@@ -122,6 +141,7 @@ const seedIncidents: Incident[] = [
     attachments: ["hien-truong-hoa-sen.jpg"],
     notifyFacility: true,
     notifyDistrict: false,
+    reviewStatus: "Chưa cập nhật",
     timeline: [
       { time: "09:02", label: "Tiếp nhận cảnh báo", detail: "Phản ánh được ghi nhận trên hệ thống.", tone: "amber" },
       { time: "10:10", label: "Đã gửi yêu cầu khắc phục", detail: "Cơ sở được yêu cầu báo cáo kết quả trong ngày.", tone: "blue" },
@@ -145,6 +165,8 @@ const seedIncidents: Incident[] = [
     attachments: [],
     notifyFacility: true,
     notifyDistrict: true,
+    reviewStatus: "Đã gửi",
+    conclusion: "Đã khắc phục, tiếp tục theo dõi trong 07 ngày.",
     closedAt: "2026-09-13T16:30",
     timeline: [
       { time: "15:44", label: "Tiếp nhận cảnh báo", detail: "Cảnh báo phát sinh từ biên bản kiểm tra.", tone: "amber" },
@@ -156,7 +178,12 @@ const seedIncidents: Incident[] = [
 function readIncidents(): Incident[] {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored) as Incident[];
+    if (stored) {
+      return (JSON.parse(stored) as Incident[]).map((item) => ({
+        ...item,
+        reviewStatus: item.reviewStatus ?? (item.schoolUpdate ? "Đã gửi" : "Chưa cập nhật"),
+      }));
+    }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(seedIncidents));
   } catch {
     return seedIncidents;
@@ -477,6 +504,7 @@ function IncidentCreateModal({
       attachments: [],
       notifyFacility: true,
       notifyDistrict: false,
+      reviewStatus: "Chưa cập nhật",
       timeline: [
         {
           time: new Intl.DateTimeFormat("vi-VN", {
@@ -643,16 +671,6 @@ function IncidentCreateModal({
               />
             </label>
             <label className={`${designLabelClass} sm:col-span-2`}>
-              Thực phẩm / món ăn cụ thể
-              <input
-                value={form.foods}
-                onChange={(event) => update("foods", event.target.value)}
-                className={designInputClass}
-                placeholder="Tên món ăn, nguyên liệu hoặc lô hàng..."
-                data-testid="input-modal-incident-foods"
-              />
-            </label>
-            <label className={`${designLabelClass} sm:col-span-2`}>
               Mô tả chi tiết / ghi chú ban đầu <span className="text-[#ef4444]">*</span>
               <textarea
                 value={form.description}
@@ -746,6 +764,7 @@ export function IncidentCreatePage() {
       notifyFacility: form.notifyFacility,
       notifyHealth: form.notifyHealth,
       notifyDistrict: form.notifyDistrict,
+      reviewStatus: "Chưa cập nhật",
       timeline: [{ time: new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit" }).format(new Date()), label: "Tiếp nhận cảnh báo", detail: "Cảnh báo mới được tạo bởi cán bộ phụ trách.", tone: "amber" }],
     };
     persistIncidents([incident, ...current]);
@@ -894,27 +913,61 @@ function UploadIcon() {
 export function IncidentDetailPage() {
   const params = useParams<{ id: string }>();
   const [incident, setIncident] = useState<Incident | null>(() => readIncidents().find((item) => item.id === params.id) ?? null);
+  const [isSupplementOpen, setIsSupplementOpen] = useState(false);
+  const [isConclusionOpen, setIsConclusionOpen] = useState(false);
+  const [supplementRequest, setSupplementRequest] = useState("");
+  const [conclusion, setConclusion] = useState("");
 
-  const closeIncident = () => {
+  const updateIncident = (next: Incident) => {
+    setIncident(next);
+    persistIncidents(readIncidents().map((item) => item.id === next.id ? next : item));
+  };
+
+  const requestSupplement = (event: FormEvent) => {
+    event.preventDefault();
+    if (!incident || !supplementRequest.trim()) return;
+    const next = {
+      ...incident,
+      reviewStatus: "Yêu cầu bổ sung" as IncidentReviewStatus,
+      supplementRequest: supplementRequest.trim(),
+      timeline: [
+        ...incident.timeline,
+        {
+          time: new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit" }).format(new Date()),
+          label: "Yêu cầu nhà trường bổ sung",
+          detail: supplementRequest.trim(),
+          tone: "orange",
+        },
+      ],
+    };
+    updateIncident(next);
+    setSupplementRequest("");
+    setIsSupplementOpen(false);
+  };
+
+  const closeIncident = (event: FormEvent) => {
+    event.preventDefault();
     if (!incident || incident.status === "Đã đóng") return;
-    if (!window.confirm("Xác nhận đóng sự cố này?")) return;
+    if (!conclusion.trim()) return;
     const closedAt = new Date().toISOString();
     const next = {
       ...incident,
       status: "Đã đóng" as IncidentStatus,
       closedAt,
+      conclusion: conclusion.trim(),
       timeline: [
         ...incident.timeline,
         {
           time: new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit" }).format(new Date()),
           label: "Đã đóng sự cố",
-          detail: "Cán bộ phụ trách xác nhận sự cố đã hoàn tất xử lý.",
+          detail: conclusion.trim(),
           tone: "green",
         },
       ],
     };
-    setIncident(next);
-    persistIncidents(readIncidents().map((item) => item.id === next.id ? next : item));
+    updateIncident(next);
+    setConclusion("");
+    setIsConclusionOpen(false);
   };
 
   if (!incident) {
@@ -1058,21 +1111,32 @@ export function IncidentDetailPage() {
                 <p className="mt-0.5 text-xs text-[#64748b]">Đang chờ dữ liệu cập nhật từ phía nhà trường</p>
               </div>
             </div>
-            <div className="flex min-h-[280px] flex-col items-center justify-center px-6 py-16 text-center">
-              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#eff6ff] text-[#1e40af]"><Info size={28} /></span>
-              <h3 className="mt-5 text-lg font-bold text-[#0f172a]">Chưa có cập nhật từ nhà trường</h3>
-              <p className="mt-2 max-w-md text-sm leading-6 text-[#64748b]">Hệ thống đang chờ nhà trường cập nhật thông tin chi tiết về sự cố.</p>
-            </div>
+             {incident.schoolUpdate ? (
+               <SchoolUpdateSummary update={incident.schoolUpdate} reviewStatus={incident.reviewStatus} supplementRequest={incident.supplementRequest} />
+             ) : (
+               <div className="flex min-h-[280px] flex-col items-center justify-center px-6 py-16 text-center">
+                 <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#eff6ff] text-[#1e40af]"><Info size={28} /></span>
+                 <h3 className="mt-5 text-lg font-bold text-[#0f172a]">Chưa có cập nhật từ nhà trường</h3>
+                 <p className="mt-2 max-w-md text-sm leading-6 text-[#64748b]">Hệ thống đang chờ nhà trường cập nhật thông tin chi tiết về sự cố.</p>
+                 {incident.reviewStatus === "Yêu cầu bổ sung" && incident.supplementRequest && (
+                   <div className="mt-5 max-w-xl rounded-xl border border-[#fed7aa] bg-[#fff7ed] px-5 py-4 text-left text-sm text-[#9a3412]">
+                     <strong>Yêu cầu bổ sung:</strong> {incident.supplementRequest}
+                   </div>
+                 )}
+               </div>
+             )}
           </section>
         </main>
 
         <footer className="border-t border-[#e2e8f0] bg-white px-5 py-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,.08)] sm:px-8">
           <div className="mx-auto flex max-w-[1376px] flex-col justify-center gap-3 sm:flex-row">
-            <button type="button" className="focus-ring inline-flex min-h-[59px] items-center justify-center gap-3 rounded-xl border border-[#e2e8f0] bg-[#f1f5f9] px-8 text-base font-bold text-[#0f172a] transition-colors hover:bg-[#e2e8f0]" data-testid="button-request-incident-update">
+             {incident.status === "Đang xử lý" && (
+             <button type="button" onClick={() => setIsSupplementOpen(true)} className="focus-ring inline-flex min-h-[59px] items-center justify-center gap-3 rounded-xl border border-[#e2e8f0] bg-[#f1f5f9] px-8 text-base font-bold text-[#0f172a] transition-colors hover:bg-[#e2e8f0]" data-testid="button-request-incident-update">
               <Bell size={18} /> Gửi yêu cầu bổ sung
             </button>
+             )}
             {incident.status === "Đang xử lý" ? (
-              <button type="button" onClick={closeIncident} className="focus-ring inline-flex min-h-[59px] items-center justify-center gap-3 rounded-xl bg-[#1e40af] px-8 text-base font-bold text-white transition-colors hover:bg-[#1d4ed8]" data-testid="button-close-incident">
+               <button type="button" onClick={() => setIsConclusionOpen(true)} className="focus-ring inline-flex min-h-[59px] items-center justify-center gap-3 rounded-xl bg-[#1e40af] px-8 text-base font-bold text-white transition-colors hover:bg-[#1d4ed8]" data-testid="button-close-incident">
                 <Check size={18} /> Đóng hồ sơ sự cố
               </button>
             ) : (
@@ -1082,6 +1146,30 @@ export function IncidentDetailPage() {
             )}
           </div>
         </footer>
+         {isSupplementOpen && (
+           <IncidentTextModal
+             title="Yêu cầu nhà trường cập nhật bổ sung"
+             description="Nội dung này sẽ hiển thị trong thông báo demo của nhà trường."
+             value={supplementRequest}
+             onChange={setSupplementRequest}
+             onClose={() => setIsSupplementOpen(false)}
+             onSubmit={requestSupplement}
+             submitLabel="Gửi yêu cầu bổ sung"
+             testId="dialog-request-incident-update"
+           />
+         )}
+         {isConclusionOpen && (
+           <IncidentTextModal
+             title="Đóng hồ sơ sự cố"
+             description="Nhập kết luận xử lý trước khi đóng hồ sơ."
+             value={conclusion}
+             onChange={setConclusion}
+             onClose={() => setIsConclusionOpen(false)}
+             onSubmit={closeIncident}
+             submitLabel="Xác nhận đóng hồ sơ"
+             testId="dialog-close-incident"
+           />
+         )}
       </div>
     </AdminShell>
   );
@@ -1119,6 +1207,213 @@ function IncidentDetailCard({
         </div>
       </div>
     </div>
+  );
+}
+
+function IncidentTextModal({
+  title,
+  description,
+  value,
+  onChange,
+  onClose,
+  onSubmit,
+  submitLabel,
+  testId,
+}: {
+  title: string;
+  description: string;
+  value: string;
+  onChange: (value: string) => void;
+  onClose: () => void;
+  onSubmit: (event: FormEvent) => void;
+  submitLabel: string;
+  testId: string;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0f172a]/55 p-4" role="dialog" aria-modal="true" data-testid={testId}>
+      <form onSubmit={onSubmit} className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl sm:p-7">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="mono-label text-[#176b53]">Hồ sơ cảnh báo ATTP</p>
+            <h2 className="mt-2 text-xl font-bold text-[#0f172a]">{title}</h2>
+            <p className="mt-2 text-sm leading-6 text-[#64748b]">{description}</p>
+          </div>
+          <button type="button" onClick={onClose} className="focus-ring rounded-lg p-2 text-[#64748b] hover:bg-[#f1f5f9]" aria-label="Đóng popup"><X size={19} /></button>
+        </div>
+        <label className="mt-6 block text-sm font-bold text-[#334155]">
+          Nội dung <span className="text-[#dc2626]">*</span>
+          <textarea
+            autoFocus
+            required
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            className={`${designAreaClass} min-h-[130px]`}
+            placeholder="Nhập nội dung..."
+            data-testid={`${testId}-textarea`}
+          />
+        </label>
+        <div className="mt-6 flex flex-col-reverse gap-3 border-t border-[#e2e8f0] pt-5 sm:flex-row sm:justify-end">
+          <button type="button" onClick={onClose} className="focus-ring inline-flex h-11 items-center justify-center rounded-xl border border-[#e2e8f0] px-6 text-sm font-bold text-[#64748b] hover:border-[#94a3b8]">Hủy</button>
+          <PrimaryButton type="submit" testId={`${testId}-submit`}>{submitLabel}</PrimaryButton>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function SchoolUpdateSummary({
+  update,
+  reviewStatus,
+  supplementRequest,
+}: {
+  update: SchoolIncidentUpdate;
+  reviewStatus: IncidentReviewStatus;
+  supplementRequest?: string;
+}) {
+  return (
+    <div className="space-y-5 px-5 py-6 sm:px-6" data-testid="section-school-update-submitted">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[.05em] text-[#64748b]">Thông tin nhà trường cung cấp</p>
+          <p className="mt-1 text-sm text-[#64748b]">Gửi lúc {formatDate(update.submittedAt)}</p>
+        </div>
+        <span className={`rounded-full border px-3 py-1 text-xs font-bold ${reviewStatus === "Yêu cầu bổ sung" ? "border-[#fed7aa] bg-[#fff7ed] text-[#c2410c]" : "border-[#a7f3d0] bg-[#ecfdf5] text-[#047857]"}`} data-testid="status-school-update">{reviewStatus}</span>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {[
+          ["Người cập nhật", `${update.contactName} · ${update.contactRole}`],
+          ["Số học sinh / người có triệu chứng", update.affectedStudents],
+          ["Triệu chứng ghi nhận", update.symptoms],
+          ["Món ăn đã truy xuất", update.tracedMeals],
+          ["Biện pháp đã thực hiện", update.actionsTaken],
+          ["Xử lý mẫu lưu", update.sampleHandling],
+        ].map(([label, value]) => (
+          <div key={label} className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
+            <p className="text-xs font-bold uppercase tracking-[.05em] text-[#94a3b8]">{label}</p>
+            <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[#0f172a]">{value || "Chưa cập nhật"}</p>
+          </div>
+        ))}
+      </div>
+      {update.notes && <div className="rounded-xl border border-[#e2e8f0] bg-white p-4"><p className="text-xs font-bold uppercase tracking-[.05em] text-[#94a3b8]">Ghi chú thêm</p><p className="mt-2 whitespace-pre-line text-sm leading-6 text-[#334155]">{update.notes}</p></div>}
+      {supplementRequest && (
+        <div className="rounded-xl border border-[#fed7aa] bg-[#fff7ed] p-4 text-sm leading-6 text-[#9a3412]">
+          <strong>Yêu cầu bổ sung gần nhất:</strong> {supplementRequest}
+        </div>
+      )}
+      {update.attachments.length > 0 && <div className="flex flex-wrap gap-2">{update.attachments.map((file) => <span key={file} className="inline-flex items-center gap-2 rounded-lg bg-[#eff6ff] px-3 py-2 text-xs font-semibold text-[#1e40af]"><Paperclip size={13} />{file}</span>)}</div>}
+    </div>
+  );
+}
+
+export function FacilityIncidentListPage() {
+  const incidents = readIncidents().filter((item) => item.notifyFacility);
+  return (
+    <PublicShell>
+      <main className="min-h-[calc(100dvh-160px)] bg-[#f8fafc] px-5 py-10 lg:px-8">
+        <div className="mx-auto max-w-5xl">
+          <p className="mono-label text-[#176b53]">Không gian nhà trường / Thông báo hệ thống</p>
+          <h1 className="mt-2 text-3xl font-extrabold tracking-[-.04em] text-[#143b35]">Cảnh báo ATTP cần cập nhật</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#64748b]">Đây là luồng demo để nhà trường tiếp nhận cảnh báo từ Sở, cập nhật tình hình và gửi kết quả xử lý.</p>
+          <div className="mt-8 space-y-4">
+            {incidents.map((item) => (
+              <Link key={item.id} href={`/facility/incidents/${item.id}`} className="block rounded-2xl border border-[#e2e8f0] bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[#93c5fd] hover:shadow-md sm:p-6" data-testid={`card-facility-incident-${item.id}`}>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2"><span className="font-mono text-xs font-bold text-[#64748b]">{item.code}</span><span className={`rounded-full px-3 py-1 text-xs font-bold ${item.reviewStatus === "Yêu cầu bổ sung" ? "bg-[#fff7ed] text-[#c2410c]" : item.reviewStatus === "Đã gửi" ? "bg-[#ecfdf5] text-[#047857]" : "bg-[#eff6ff] text-[#1e40af]"}`}>{item.reviewStatus}</span></div>
+                    <h2 className="mt-3 text-lg font-bold text-[#0f172a]">{item.title}</h2>
+                    <p className="mt-1 text-sm text-[#64748b]">{item.facility} · Phát hiện {formatDate(item.occurredAt)}</p>
+                  </div>
+                  <span className="inline-flex items-center gap-2 text-sm font-bold text-[#1e40af]">Mở hồ sơ <ChevronRight size={16} /></span>
+                </div>
+                {item.reviewStatus === "Yêu cầu bổ sung" && item.supplementRequest && <p className="mt-4 rounded-xl bg-[#fff7ed] px-4 py-3 text-sm leading-6 text-[#9a3412]"><strong>Cần bổ sung:</strong> {item.supplementRequest}</p>}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </main>
+    </PublicShell>
+  );
+}
+
+export function FacilityIncidentDetailPage() {
+  const params = useParams<{ id: string }>();
+  const [, navigate] = useLocation();
+  const [incident, setIncident] = useState<Incident | null>(() => readIncidents().find((item) => item.id === params.id) ?? null);
+  const existing = incident?.schoolUpdate;
+  const [form, setForm] = useState({
+    contactName: existing?.contactName ?? "Nguyễn Thị Minh Anh",
+    contactRole: existing?.contactRole ?? "Cán bộ phụ trách y tế trường",
+    symptoms: existing?.symptoms ?? incident?.description ?? "",
+    affectedStudents: existing?.affectedStudents ?? String(incident?.suspectedCases ?? ""),
+    tracedMeals: existing?.tracedMeals ?? incident?.meals?.join(", ") ?? "",
+    actionsTaken: existing?.actionsTaken ?? "",
+    sampleHandling: existing?.sampleHandling ?? "",
+    notes: existing?.notes ?? "",
+  });
+  const [files, setFiles] = useState<string[]>(existing?.attachments ?? []);
+  const [submitted, setSubmitted] = useState(false);
+
+  if (!incident) {
+    return <PublicShell><main className="min-h-[calc(100dvh-160px)] px-5 py-16 text-center"><h1 className="text-xl font-bold text-[#143b35]">Không tìm thấy cảnh báo</h1><Link href="/facility/incidents" className="mt-4 inline-flex text-sm font-bold text-[#176b53]">Quay lại thông báo</Link></main></PublicShell>;
+  }
+
+  const update = (key: keyof typeof form, value: string) => setForm((current) => ({ ...current, [key]: value }));
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    if (!form.contactName || !form.contactRole || !form.symptoms || !form.affectedStudents || !form.tracedMeals || !form.actionsTaken || !form.sampleHandling) {
+      setSubmitted(true);
+      return;
+    }
+    const next: Incident = {
+      ...incident,
+      reviewStatus: "Đã gửi",
+      schoolUpdate: { ...form, submittedAt: new Date().toISOString(), attachments: files },
+      timeline: [
+        ...incident.timeline,
+        {
+          time: new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit" }).format(new Date()),
+          label: "Nhà trường gửi kết quả",
+          detail: "Nhà trường đã hoàn tất cập nhật thông tin sự cố và gửi lại Sở.",
+          tone: "blue",
+        },
+      ],
+    };
+    persistIncidents(readIncidents().map((item) => item.id === next.id ? next : item));
+    setIncident(next);
+    setSubmitted(false);
+    navigate(`/facility/incidents/${next.id}`);
+  };
+  const error = (value: string) => submitted && !value ? <span className="mt-1 block text-xs font-medium text-[#dc2626]">Vui lòng nhập thông tin này.</span> : null;
+
+  return (
+    <PublicShell>
+      <main className="min-h-[calc(100dvh-160px)] bg-[#f8fafc] px-5 py-8 lg:px-8">
+        <div className="mx-auto max-w-4xl">
+          <Link href="/facility/incidents" className="inline-flex items-center gap-2 text-sm font-bold text-[#176b53]" data-testid="link-back-facility-incidents"><ArrowLeft size={16} /> Thông báo cảnh báo</Link>
+          <div className="mt-6 rounded-2xl border border-[#e2e8f0] bg-white p-6 shadow-sm sm:p-8">
+            <div className="flex flex-col gap-3 border-b border-[#e2e8f0] pb-6 sm:flex-row sm:items-start sm:justify-between">
+              <div><p className="font-mono text-xs font-bold tracking-[.08em] text-[#64748b]">{incident.code}</p><h1 className="mt-2 text-2xl font-extrabold text-[#143b35]">Nhà trường cập nhật thông tin sự cố</h1><p className="mt-2 text-sm text-[#64748b]">{incident.facility} · {incident.title}</p></div>
+              <span className={`rounded-full px-3 py-1 text-xs font-bold ${incident.reviewStatus === "Yêu cầu bổ sung" ? "bg-[#fff7ed] text-[#c2410c]" : incident.reviewStatus === "Đã gửi" ? "bg-[#ecfdf5] text-[#047857]" : "bg-[#eff6ff] text-[#1e40af]"}`}>{incident.reviewStatus}</span>
+            </div>
+            {incident.supplementRequest && <div className="mt-6 rounded-xl border border-[#fed7aa] bg-[#fff7ed] p-4 text-sm leading-6 text-[#9a3412]" data-testid="notice-incident-supplement-request"><strong>Yêu cầu từ Sở:</strong> {incident.supplementRequest}</div>}
+            <form onSubmit={submit} className="mt-8 space-y-7" data-testid="form-facility-incident-update">
+              <section><h2 className="text-sm font-bold uppercase tracking-[.05em] text-[#1e293b]">Thông tin cập nhật thực tế</h2><div className="mt-4 grid gap-5 sm:grid-cols-2">
+                <label className={designLabelClass}>Người cập nhật <span className="text-[#dc2626]">*</span><input value={form.contactName} onChange={(e) => update("contactName", e.target.value)} className={designInputClass} data-testid="input-facility-incident-contact" />{error(form.contactName)}</label>
+                <label className={designLabelClass}>Chức vụ <span className="text-[#dc2626]">*</span><input value={form.contactRole} onChange={(e) => update("contactRole", e.target.value)} className={designInputClass} data-testid="input-facility-incident-role" />{error(form.contactRole)}</label>
+                <label className={`${designLabelClass} sm:col-span-2`}>Triệu chứng / tình hình thực tế <span className="text-[#dc2626]">*</span><textarea value={form.symptoms} onChange={(e) => update("symptoms", e.target.value)} className={designAreaClass} data-testid="textarea-facility-incident-symptoms" />{error(form.symptoms)}</label>
+                <label className={designLabelClass}>Số học sinh / người có triệu chứng <span className="text-[#dc2626]">*</span><input type="number" min="0" value={form.affectedStudents} onChange={(e) => update("affectedStudents", e.target.value)} className={designInputClass} data-testid="input-facility-incident-affected" />{error(form.affectedStudents)}</label>
+                <label className={designLabelClass}>Món ăn đã khoanh vùng / truy xuất <span className="text-[#dc2626]">*</span><input value={form.tracedMeals} onChange={(e) => update("tracedMeals", e.target.value)} className={designInputClass} data-testid="input-facility-incident-meals" />{error(form.tracedMeals)}</label>
+                <label className={`${designLabelClass} sm:col-span-2`}>Biện pháp nhà trường đã thực hiện <span className="text-[#dc2626]">*</span><textarea value={form.actionsTaken} onChange={(e) => update("actionsTaken", e.target.value)} className={designAreaClass} placeholder="Ví dụ: tạm dừng phục vụ, theo dõi sức khỏe học sinh..." data-testid="textarea-facility-incident-actions" />{error(form.actionsTaken)}</label>
+                <label className={`${designLabelClass} sm:col-span-2`}>Tình trạng mẫu lưu / truy xuất hồ sơ <span className="text-[#dc2626]">*</span><textarea value={form.sampleHandling} onChange={(e) => update("sampleHandling", e.target.value)} className={designAreaClass} placeholder="Mô tả việc niêm phong, bảo quản và bàn giao mẫu lưu..." data-testid="textarea-facility-incident-samples" />{error(form.sampleHandling)}</label>
+                <label className={`${designLabelClass} sm:col-span-2`}>Ghi chú thêm<textarea value={form.notes} onChange={(e) => update("notes", e.target.value)} className={designAreaClass} data-testid="textarea-facility-incident-notes" /></label>
+              </div></section>
+              <section><h2 className="text-sm font-bold uppercase tracking-[.05em] text-[#1e293b]">Minh chứng / hình ảnh</h2><label className="mt-4 flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-[#dbe5e1] bg-[#f8fafc] px-4 py-5 text-sm font-semibold text-[#176b53]"><UploadIcon /><span>Chọn ảnh hoặc tài liệu minh chứng</span><input type="file" accept=".pdf,.jpg,.jpeg,.png" multiple className="sr-only" onChange={(event) => setFiles(Array.from(event.target.files ?? []).map((file) => file.name))} data-testid="input-facility-incident-files" /></label>{files.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{files.map((file) => <span key={file} className="rounded-lg bg-[#eff6ff] px-3 py-2 text-xs font-semibold text-[#1e40af]">{file}</span>)}</div>}</section>
+              <div className="flex flex-col-reverse gap-3 border-t border-[#e2e8f0] pt-6 sm:flex-row sm:justify-end"><Link href="/facility/incidents" className="inline-flex h-12 items-center justify-center rounded-xl border border-[#e2e8f0] px-7 text-sm font-bold text-[#64748b]">Hủy</Link><PrimaryButton type="submit" testId="button-submit-facility-incident-update"><Check size={17} /> Kiểm tra & gửi Sở</PrimaryButton></div>
+            </form>
+          </div>
+        </div>
+      </main>
+    </PublicShell>
   );
 }
 

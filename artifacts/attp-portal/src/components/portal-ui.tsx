@@ -63,16 +63,25 @@ export function PublicHeader() {
   const notificationStorageKey = `attp-read-notifications:${sessionStorage.getItem("attp-session-username") || "coso.demo"}`;
   const notifications = [
     {
+      id: "incident-update",
+      title: "Cảnh báo ATTP cần cập nhật",
+      text: "Sở vừa gửi cảnh báo. Vui lòng mở hồ sơ và gửi thông tin thực tế của nhà trường.",
+      time: "Mới nhất",
+      href: "/facility/incidents",
+    },
+    {
       id: "review-request",
       title: "Yêu cầu bổ sung hồ sơ",
       text: "Vui lòng rà soát ảnh khu vực bảo quản trước khi hồ sơ được duyệt.",
       time: "Mới nhất",
+      href: "/facility/profile",
     },
     {
       id: "profile-reminder",
       title: "Cập nhật thông tin cơ sở",
       text: "Kiểm tra lại giấy phép ATTP và thông tin người phụ trách.",
       time: "Hôm nay",
+      href: "/facility/profile",
     },
   ];
   const [readNotifications, setReadNotifications] = useState<string[]>(() => {
@@ -91,6 +100,7 @@ export function PublicHeader() {
         ["/lookup", "Tra cứu"],
         ["/news", "Tin tức & sự kiện"],
         ["/facility/profile", "Hồ sơ cơ sở"],
+        ["/facility/incidents", "Cảnh báo ATTP"],
       ]
     : [
         ["/", "Tổng quan"],
@@ -120,7 +130,8 @@ export function PublicHeader() {
     setReadNotifications(nextRead);
     sessionStorage.setItem(notificationStorageKey, JSON.stringify(nextRead));
     setNotificationsOpen(false);
-    navigate("/facility/profile");
+    const notification = notifications.find((item) => item.id === id);
+    navigate(notification?.href ?? "/facility/profile");
   };
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 shadow-[0_8px_30px_hsl(158_37%_15%/.04)] backdrop-blur-xl">

@@ -436,7 +436,7 @@ export function AdminMonitoringDashboard() {
                 <tbody className="divide-y divide-border">
                   {alertRows.map(
                     ([school, issue, time, priority, severity]) => (
-                      <tr key={school} className="hover:bg-secondary/30">
+                      <tr key={`${school}-${issue}-${time}`} className="hover:bg-secondary/30">
                         <td className="px-4 py-3 font-bold">{school}</td>
                         <td className="px-4 py-3">
                           <span className="rounded-md bg-red-50 px-2 py-1 text-[10px] font-semibold text-red-600">

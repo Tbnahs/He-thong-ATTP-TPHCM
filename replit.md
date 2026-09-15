@@ -26,13 +26,14 @@ Cổng thông tin an toàn thực phẩm TP.HCM với tra cứu công khai, đă
 ## Architecture decisions
 
 - The inspection module is a frontend-only workflow backed by typed sample data and browser localStorage, matching the current no-API demo architecture.
+- The food-safety alert flow includes a frontend-only school notification/update demo: schools can open an alert, submit incident details and evidence names, while Sở staff can request a text-only supplement or close the case with a conclusion. State is shared through the existing browser localStorage demo.
 - Inspection criteria use a single 100-point score and classify results at 100% (PASS), 80–99% (warning / temporary suspension), and below 80% (stop operation).
 - The admin navigation keeps incident management as a reserved submenu entry while schedule, minutes, and criteria configuration have dedicated screens.
 - Product declarations are intentionally a frontend prototype: self-declared products publish immediately, while registered declarations move through review, request-for-more-information, rejection, and approval/receipt-number states. Published records are added to the existing public lookup session data.
 
 ## Product
 
-The portal supports public ATTP lookup and registration, an admin monitoring dashboard, facility management grouped by school / food supplier / meal provider, meal management for three-step checks, menus, and recipes, admin review of facility applications, product declarations with self-declaration and registered-declaration paths, and an inspection workflow for scheduling visits, creating scored inspection minutes, configuring weighted criteria, and exposing automatic result classifications.
+The portal supports public ATTP lookup and registration, an admin monitoring dashboard, facility management grouped by school / food supplier / meal provider, meal management for three-step checks, menus, and recipes, admin review of facility applications, product declarations with self-declaration and registered-declaration paths, and an inspection workflow for scheduling visits, creating scored inspection minutes, configuring weighted criteria, exposing automatic result classifications, and demonstrating the school-to-Sở alert update loop.
 
 ## User preferences
 
