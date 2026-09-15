@@ -298,549 +298,383 @@ export function AdminMonitoringDashboard() {
   type SchoolLevel = "Mầm non" | "Cấp 1" | "Cấp 2" | "Cấp 3";
   type SupplierRecord = {
     name: string;
-    area: string;
+    ward: string;
+    address: string;
     status: MonitoringStatus;
     capacity: number;
-    demand: number;
+    serving: number;
+    schools: number;
     updated: string;
   };
   type SchoolRecord = {
     name: string;
     level: SchoolLevel;
-    area: string;
-    status: MonitoringStatus;
+    ward: string;
+    students: number;
     demand: number;
     supply: number;
-    supplier: string;
+    suppliers: number;
+    status: MonitoringStatus;
     updated: string;
   };
+  type Summary = {
+    suppliers: number;
+    supplierCapacity: number;
+    supplierDemand: number;
+    schools: number;
+    students: number;
+    schoolDemand: number;
+    status: Record<MonitoringStatus, number>;
+  };
 
-  const [activeTab, setActiveTab] = useState<"suppliers" | "schools">(
-    "suppliers",
+  const [activeTab, setActiveTab] = useState<"suppliers" | "schools">("suppliers");
+  const [area, setArea] = useState("Quận 1");
+  const [district, setDistrict] = useState("Quận 1");
+  const [ward, setWard] = useState("Tất cả phường/xã");
+  const [schoolLevel, setSchoolLevel] = useState<"Tất cả cấp học" | SchoolLevel>("Tất cả cấp học");
+  const [status, setStatus] = useState<"Tất cả trạng thái" | MonitoringStatus>("Tất cả trạng thái");
+  const [search, setSearch] = useState("");
+  const [selectedSupplier, setSelectedSupplier] = useState<SupplierRecord | null>(null);
+  const [selectedSchool, setSelectedSchool] = useState<SchoolRecord | null>(null);
+
+  const supplierRows: SupplierRecord[] = [
+    { name: "Công ty TNHH ABC", ward: "Bến Nghé", address: "18 Nguyễn Huệ, P. Bến Nghé", status: "Đạt", capacity: 3000, serving: 2650, schools: 5, updated: "08/09/2026" },
+    { name: "Công ty Suất ăn Minh Tâm", ward: "Đa Kao", address: "52 Điện Biên Phủ, P. Đa Kao", status: "Đạt", capacity: 2500, serving: 2200, schools: 4, updated: "08/09/2026" },
+    { name: "Bếp ăn tập thể Cầu Ông Lãnh", ward: "Cầu Ông Lãnh", address: "116 Nguyễn Thái Học, P. Cầu Ông Lãnh", status: "Cảnh báo", capacity: 1500, serving: 1460, schools: 3, updated: "07/09/2026" },
+    { name: "Cơ sở Suất ăn Nguyễn Cư Trinh", ward: "Nguyễn Cư Trinh", address: "24 Trần Hưng Đạo, P. Nguyễn Cư Trinh", status: "Chưa đạt", capacity: 2000, serving: 1860, schools: 2, updated: "06/09/2026" },
+  ];
+  const schoolRows: SchoolRecord[] = [
+    { name: "Trường Mầm non Hoa Mai", level: "Mầm non", ward: "Bến Nghé", students: 420, demand: 420, supply: 420, suppliers: 1, status: "Đạt", updated: "08/09/2026" },
+    { name: "Trường Tiểu học Nguyễn Du", level: "Cấp 1", ward: "Đa Kao", students: 650, demand: 650, supply: 650, suppliers: 2, status: "Đạt", updated: "08/09/2026" },
+    { name: "Trường THCS ABC", level: "Cấp 2", ward: "Cầu Ông Lãnh", students: 780, demand: 780, supply: 760, suppliers: 1, status: "Cảnh báo", updated: "07/09/2026" },
+    { name: "Trường THPT XYZ", level: "Cấp 3", ward: "Nguyễn Cư Trinh", students: 800, demand: 800, supply: 800, suppliers: 2, status: "Đạt", updated: "06/09/2026" },
+  ];
+  const summaries: Record<string, Summary> = {
+    "Quận 1": {
+      suppliers: 28,
+      supplierCapacity: 18500,
+      supplierDemand: 16800,
+      schools: 85,
+      students: 42500,
+      schoolDemand: 38200,
+      status: { Đạt: 22, "Cảnh báo": 4, "Chưa đạt": 2 },
+    },
+    "Toàn thành phố": {
+      suppliers: 214,
+      supplierCapacity: 126400,
+      supplierDemand: 114250,
+      schools: 1038,
+      students: 518200,
+      schoolDemand: 462800,
+      status: { Đạt: 868, "Cảnh báo": 119, "Chưa đạt": 51 },
+    },
+  };
+  const summary = summaries[area] ?? summaries["Quận 1"];
+  const visibleSuppliers = supplierRows.filter((item) => {
+    const matchesWard = ward === "Tất cả phường/xã" || item.ward === ward;
+    const matchesStatus = status === "Tất cả trạng thái" || item.status === status;
+    const matchesSearch = `${item.name} ${item.address}`.toLowerCase().includes(search.toLowerCase());
+    return matchesWard && matchesStatus && matchesSearch;
+  });
+  const visibleSchools = schoolRows.filter((item) => {
+    const matchesWard = ward === "Tất cả phường/xã" || item.ward === ward;
+    const matchesLevel = schoolLevel === "Tất cả cấp học" || item.level === schoolLevel;
+    const matchesStatus = status === "Tất cả trạng thái" || item.status === status;
+    const matchesSearch = `${item.name} ${item.ward}`.toLowerCase().includes(search.toLowerCase());
+    return matchesWard && matchesLevel && matchesStatus && matchesSearch;
+  });
+  const visibleRows = activeTab === "suppliers" ? visibleSuppliers : visibleSchools;
+  const visibleStatus = visibleRows.reduce(
+    (counts, item) => ({ ...counts, [item.status]: counts[item.status] + 1 }),
+    { Đạt: 0, "Cảnh báo": 0, "Chưa đạt": 0 } as Record<MonitoringStatus, number>,
   );
-  const [schoolLevel, setSchoolLevel] = useState<"Tất cả cấp học" | SchoolLevel>(
-    "Tất cả cấp học",
-  );
-  const suppliers: SupplierRecord[] = [
-    { name: "Công ty Suất ăn Minh Tâm", area: "Tân Bình", status: "Đạt", capacity: 1200, demand: 980, updated: "08/09/2026" },
-    { name: "Bếp ăn tập thể An Phú", area: "Quận 7", status: "Chưa đạt", capacity: 650, demand: 420, updated: "08/09/2026" },
-    { name: "Công ty TNHH Bếp Việt", area: "Bình Thạnh", status: "Đạt", capacity: 480, demand: 360, updated: "07/09/2026" },
-    { name: "Hợp tác xã Suất ăn Xanh", area: "Thủ Đức", status: "Đạt", capacity: 320, demand: 280, updated: "06/09/2026" },
-    { name: "Cơ sở Bếp sạch Nam Sài Gòn", area: "Quận 4", status: "Cảnh báo", capacity: 270, demand: 210, updated: "05/09/2026" },
-    { name: "Công ty Suất ăn Hướng Dương", area: "Gò Vấp", status: "Đạt", capacity: 180, demand: 120, updated: "04/09/2026" },
-  ];
-  const schools: SchoolRecord[] = [
-    { name: "Trường Mầm non Hoa Sen", level: "Mầm non", area: "Phường Sài Gòn", status: "Cảnh báo", demand: 180, supply: 190, supplier: "Minh Tâm", updated: "08/09/2026" },
-    { name: "Trường Mầm non Sao Mai", level: "Mầm non", area: "Tân Bình", status: "Đạt", demand: 220, supply: 220, supplier: "Bếp Việt", updated: "08/09/2026" },
-    { name: "Trường Mầm non Mặt Trời", level: "Mầm non", area: "Quận 7", status: "Đạt", demand: 180, supply: 190, supplier: "Minh Tâm", updated: "07/09/2026" },
-    { name: "Trường Mầm non Tuổi Thơ", level: "Mầm non", area: "Gò Vấp", status: "Đạt", demand: 160, supply: 170, supplier: "Hướng Dương", updated: "07/09/2026" },
-    { name: "Trường Mầm non Bé Ngoan", level: "Mầm non", area: "Thủ Đức", status: "Chưa đạt", demand: 180, supply: 160, supplier: "An Phú", updated: "06/09/2026" },
-    { name: "Trường Tiểu học Lê Lợi", level: "Cấp 1", area: "Phường Bến Nghé", status: "Đạt", demand: 320, supply: 340, supplier: "Minh Tâm", updated: "08/09/2026" },
-    { name: "Trường Tiểu học Nguyễn Huệ", level: "Cấp 1", area: "Quận 1", status: "Cảnh báo", demand: 280, supply: 300, supplier: "Bếp Việt", updated: "08/09/2026" },
-    { name: "Trường Tiểu học Trần Hưng Đạo", level: "Cấp 1", area: "Quận 5", status: "Đạt", demand: 300, supply: 310, supplier: "Minh Tâm", updated: "07/09/2026" },
-    { name: "Trường Tiểu học Bàu Sen", level: "Cấp 1", area: "Quận 6", status: "Đạt", demand: 260, supply: 280, supplier: "Xanh", updated: "07/09/2026" },
-    { name: "Trường Tiểu học Bình Quới", level: "Cấp 1", area: "Bình Thạnh", status: "Đạt", demand: 260, supply: 280, supplier: "Hướng Dương", updated: "06/09/2026" },
-    { name: "Trường THCS Minh Khai", level: "Cấp 2", area: "Quận 3", status: "Cảnh báo", demand: 240, supply: 250, supplier: "Minh Tâm", updated: "08/09/2026" },
-    { name: "Trường THCS Võ Trường Toản", level: "Cấp 2", area: "Quận 1", status: "Đạt", demand: 220, supply: 220, supplier: "Bếp Việt", updated: "07/09/2026" },
-    { name: "Trường THCS Nguyễn Du", level: "Cấp 2", area: "Quận 10", status: "Đạt", demand: 180, supply: 190, supplier: "Xanh", updated: "06/09/2026" },
-    { name: "Trường THPT Lê Quý Đôn", level: "Cấp 3", area: "Quận 3", status: "Đạt", demand: 200, supply: 210, supplier: "Minh Tâm", updated: "08/09/2026" },
-  ];
-  const alertRows = [
-    ["MN Hoa Sen", "Nhập nguyên liệu thiếu hóa đơn/chứng từ", "08/09/2026", "Khẩn cấp", "urgent"],
-    ["THCS Minh Khai", "Số lượng suất ăn không khớp với dữ liệu thực tế", "08/09/2026", "Cao", "high"],
-    ["MN Sao Mai", "Chưa lưu mẫu món ăn", "08/09/2026", "Khẩn cấp", "urgent"],
-    ["TH Lê Lợi", "Thiếu hình ảnh/minh chứng khi lưu mẫu", "08/09/2026", "Cao", "high"],
-  ];
-  const mapPins = [
-    { left: "23%", top: "45%" },
-    { left: "37%", top: "32%" },
-    { left: "52%", top: "55%" },
-    { left: "61%", top: "39%" },
-    { left: "72%", top: "60%" },
-    { left: "43%", top: "72%" },
-    { left: "79%", top: "31%" },
-  ];
-  const filteredSchools = schoolLevel === "Tất cả cấp học"
-    ? schools
-    : schools.filter((school) => school.level === schoolLevel);
-  const activeSchools = activeTab === "schools" ? filteredSchools : schools;
-  const supplierCapacity = suppliers.reduce((sum, item) => sum + item.capacity, 0);
-  const supplierDemand = suppliers.reduce((sum, item) => sum + item.demand, 0);
-  const schoolDemand = activeSchools.reduce((sum, item) => sum + item.demand, 0);
-  const schoolSupply = activeSchools.reduce((sum, school) => sum + school.supply, 0);
-  const activeStatusCounts = (records: Array<{ status: MonitoringStatus }>) =>
-    records.reduce(
-      (counts, record) => ({ ...counts, [record.status]: counts[record.status] + 1 }),
-      { Đạt: 0, "Cảnh báo": 0, "Chưa đạt": 0 },
-    );
-  const statusCounts = activeTab === "suppliers"
-    ? activeStatusCounts(suppliers)
-    : activeStatusCounts(activeSchools);
-  const balance = activeTab === "suppliers"
-    ? supplierCapacity - supplierDemand
-    : schoolSupply - schoolDemand;
-  const balancePercent = activeTab === "suppliers"
-    ? Math.round((supplierDemand / supplierCapacity) * 100)
-    : Math.min(100, Math.round((schoolSupply / Math.max(1, schoolDemand)) * 100));
-  const scoreBars = [44, 52, 47, 70, 64, 82, 75];
-  const riskSlices = [
-    { label: "Lưu mẫu", value: "32%", color: "#f97316" },
-    { label: "Nguồn gốc", value: "24%", color: "#facc15" },
-    { label: "Vệ sinh", value: "14%", color: "#ec4899" },
-    { label: "Chứng nhận", value: "18%", color: "#6366f1" },
-  ];
-  const cards = activeTab === "suppliers"
-    ? [
-        ["Tổng cơ sở cung cấp", suppliers.length.toString().padStart(2, "0"), "cơ sở trong hệ thống", "text-primary", Building2],
-        ["Tổng công suất cung cấp", supplierCapacity.toLocaleString("vi-VN"), "suất ăn/ngày", "text-primary", Utensils],
-        ["Tổng nhu cầu thực tế", supplierDemand.toLocaleString("vi-VN"), "suất ăn/ngày", "text-sky-600", ClipboardCheck],
-        ["Cân bằng cung - nhu cầu", `+${balance.toLocaleString("vi-VN")}`, "suất ăn/ngày còn dư", "text-emerald-600", CheckCircle2],
-      ]
-    : [
-        ["Tổng cơ sở giáo dục", activeSchools.length.toString().padStart(2, "0"), schoolLevel === "Tất cả cấp học" ? "toàn thành phố" : schoolLevel, "text-primary", Building2],
-        ["Tổng nhu cầu suất ăn", schoolDemand.toLocaleString("vi-VN"), "suất ăn/ngày", "text-primary", Utensils],
-        ["Công suất đã phân bổ", schoolSupply.toLocaleString("vi-VN"), "suất ăn/ngày", "text-sky-600", ClipboardCheck],
-        ["Cân bằng cung - nhu cầu", balance >= 0 ? `+${balance.toLocaleString("vi-VN")}` : balance.toLocaleString("vi-VN"), balance >= 0 ? "còn dư công suất" : "thiếu công suất", balance >= 0 ? "text-emerald-600" : "text-red-600", balance >= 0 ? CheckCircle2 : TriangleAlert],
-      ];
+  const hasFilters = ward !== "Tất cả phường/xã" || status !== "Tất cả trạng thái" || Boolean(search) || (activeTab === "schools" && schoolLevel !== "Tất cả cấp học");
+  const statusCounts = hasFilters
+    ? visibleStatus
+    : summary.status;
+  const totalStatus = Object.values(statusCounts).reduce((sum, value) => sum + value, 0);
+  const currentCapacity = activeTab === "suppliers" ? summary.supplierCapacity : summary.supplierDemand;
+  const currentDemand = activeTab === "suppliers" ? summary.supplierDemand : summary.schoolDemand;
+  const balance = currentCapacity - currentDemand;
+  const formatNumber = (value: number) => value.toLocaleString("vi-VN");
+  const closeDetail = () => {
+    setSelectedSupplier(null);
+    setSelectedSchool(null);
+  };
+  const statusTone = (value: MonitoringStatus) =>
+    value === "Đạt" ? "approved" : value === "Cảnh báo" ? "warning" : "stopped";
 
   return (
     <AdminShell>
       <div className="mx-auto max-w-[1600px] px-4 py-5 sm:px-6 lg:px-8">
-        <section className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
+        <section className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
+          <div className="bg-[#123d36] px-5 py-6 text-white sm:px-7">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <div className="flex items-center gap-2 text-[#f4c95d]">
+                  <BarChart3 size={16} />
+                  <p className="mono-label">DASHBOARD GIÁM SÁT</p>
+                </div>
+                <h1 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">Theo dõi theo địa bàn</h1>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-white/70">
+                  Chọn địa bàn trước để xem toàn bộ cơ sở cung cấp suất ăn và cơ sở giáo dục thuộc khu vực đó.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-xs text-white/80">
+                <Clock3 size={14} />
+                Cập nhật dữ liệu: 08/09/2026
+              </div>
+            </div>
+          </div>
+          <div className="grid gap-3 border-b border-border bg-background p-4 sm:grid-cols-2 lg:grid-cols-6">
+            <label className="text-xs font-bold text-muted-foreground">
+              <span className="mb-1.5 block text-primary">Địa bàn *</span>
+              <select value={area} onChange={(event) => { setArea(event.target.value); setDistrict(event.target.value === "Quận 1" ? "Quận 1" : "Tất cả quận/huyện"); setWard("Tất cả phường/xã"); }} className="h-10 w-full rounded-xl border border-primary/40 bg-card px-3 text-sm font-extrabold text-foreground" data-testid="select-dashboard-area">
+                <option>Quận 1</option>
+                <option>Toàn thành phố</option>
+              </select>
+            </label>
+            <label className="text-xs font-bold text-muted-foreground">
+              <span className="mb-1.5 block">Quận/Huyện</span>
+              <select value={district} onChange={(event) => setDistrict(event.target.value)} className="h-10 w-full rounded-xl border border-input bg-card px-3 text-sm font-semibold">
+                <option>Quận 1</option>
+                <option>Tất cả quận/huyện</option>
+              </select>
+            </label>
+            <label className="text-xs font-bold text-muted-foreground">
+              <span className="mb-1.5 block">Phường/Xã</span>
+              <select value={ward} onChange={(event) => setWard(event.target.value)} className="h-10 w-full rounded-xl border border-input bg-card px-3 text-sm font-semibold" data-testid="select-dashboard-ward">
+                <option>Tất cả phường/xã</option>
+                {["Bến Nghé", "Đa Kao", "Cầu Ông Lãnh", "Nguyễn Cư Trinh"].map((item) => <option key={item}>{item}</option>)}
+              </select>
+            </label>
+            <label className="text-xs font-bold text-muted-foreground">
+              <span className="mb-1.5 block">Cấp học</span>
+              <select value={schoolLevel} onChange={(event) => setSchoolLevel(event.target.value as typeof schoolLevel)} className="h-10 w-full rounded-xl border border-input bg-card px-3 text-sm font-semibold" data-testid="select-dashboard-school-level">
+                {["Tất cả cấp học", "Mầm non", "Cấp 1", "Cấp 2", "Cấp 3"].map((item) => <option key={item}>{item}</option>)}
+              </select>
+            </label>
+            <label className="text-xs font-bold text-muted-foreground">
+              <span className="mb-1.5 block">Trạng thái</span>
+              <select value={status} onChange={(event) => setStatus(event.target.value as typeof status)} className="h-10 w-full rounded-xl border border-input bg-card px-3 text-sm font-semibold">
+                {["Tất cả trạng thái", "Đạt", "Cảnh báo", "Chưa đạt"].map((item) => <option key={item}>{item}</option>)}
+              </select>
+            </label>
+            <label className="text-xs font-bold text-muted-foreground">
+              <span className="mb-1.5 block">Tìm kiếm cơ sở</span>
+              <span className="relative block">
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tên cơ sở..." className="h-10 w-full rounded-xl border border-input bg-card pl-9 pr-3 text-sm font-semibold outline-none focus:border-primary" data-testid="input-dashboard-search" />
+              </span>
+            </label>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 bg-amber-50/70 px-4 py-3 text-xs text-amber-900 sm:px-6">
+            <MapPin size={15} className="text-amber-700" />
+            <strong>Địa bàn đang xem:</strong>
+            <span>{area}</span>
+            <span className="text-amber-700/60">·</span>
+            <span>Toàn bộ số liệu bên dưới được quy về địa bàn này.</span>
+          </div>
+        </section>
+
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="mono-label text-primary">TỔNG QUAN THEO ĐỊA BÀN</p>
+            <h2 className="mt-1 text-2xl font-extrabold">{area}</h2>
+          </div>
+          <div className="grid grid-cols-2 rounded-xl bg-secondary p-1 sm:w-auto" role="tablist" aria-label="Đối tượng giám sát">
+            {([["suppliers", "Cơ sở cung cấp suất ăn"], ["schools", "Cơ sở giáo dục"]] as const).map(([value, label]) => (
+              <button key={value} type="button" role="tab" aria-selected={activeTab === value} onClick={() => setActiveTab(value)} className={`rounded-lg px-3 py-2.5 text-left text-xs font-bold transition-colors sm:px-5 ${activeTab === value ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`} data-testid={`tab-dashboard-${value}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {activeTab === "suppliers" ? (
+            <>
+              <MetricCard label="Tổng cơ sở cung cấp" value={`${summary.suppliers}`} icon={Building2} tone="green" />
+              <MetricCard label="Công suất cung cấp" value={`${formatNumber(summary.supplierCapacity)}`} icon={Utensils} tone="blue" />
+              <MetricCard label="Nhu cầu đang phục vụ" value={`${formatNumber(summary.supplierDemand)}`} icon={ClipboardCheck} tone="gold" />
+              <MetricCard label="Cân bằng cung - cầu" value={`+${formatNumber(summary.supplierCapacity - summary.supplierDemand)}`} icon={CheckCircle2} tone="green" />
+            </>
+          ) : (
+            <>
+              <MetricCard label="Tổng cơ sở giáo dục" value={`${summary.schools}`} icon={Building2} tone="green" />
+              <MetricCard label="Tổng số học sinh" value={formatNumber(summary.students)} icon={ChefHat} tone="blue" />
+              <MetricCard label="Tổng nhu cầu suất ăn" value={formatNumber(summary.schoolDemand)} icon={Utensils} tone="gold" />
+              <MetricCard label="Trường đã kết nối nhà cung cấp" value="81" icon={CheckCircle2} tone="green" />
+            </>
+          )}
+        </div>
+
+        {activeTab === "schools" && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card p-3 shadow-sm">
+            <span className="mr-1 text-xs font-extrabold text-muted-foreground">PHÂN NHÓM CẤP HỌC</span>
+            {(["Tất cả cấp học", "Mầm non", "Cấp 1", "Cấp 2", "Cấp 3"] as const).map((item) => (
+              <button key={item} type="button" onClick={() => setSchoolLevel(item)} className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-colors ${schoolLevel === item ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-muted-foreground hover:border-primary hover:text-primary"}`} data-testid={`button-level-${item}`}>
+                {item === "Tất cả cấp học" ? "Tất cả" : item}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <section className="mt-3 rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="mono-label text-primary">DASHBOARD GIÁM SÁT</p>
-              <h1 className="mt-1 text-2xl font-extrabold tracking-tight">Theo dõi cung - cầu suất ăn</h1>
-              <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-                Tách riêng dữ liệu cơ sở cung cấp và cơ sở giáo dục để cơ quan quản lý chủ động nhận diện nguy cơ thiếu hụt.
-              </p>
+              <p className="mono-label text-primary">TRẠNG THÁI</p>
+              <h2 className="mt-1 text-lg font-extrabold">{activeTab === "suppliers" ? "Cơ sở cung cấp tại " : "Cơ sở giáo dục tại "}{area}</h2>
             </div>
-            <div className="grid grid-cols-2 rounded-xl bg-secondary p-1" role="tablist" aria-label="Phạm vi dashboard">
-              {[
-                ["suppliers", "Cơ sở cung cấp suất ăn"],
-                ["schools", "Cơ sở giáo dục"],
-              ].map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  role="tab"
-                  aria-selected={activeTab === value}
-                  onClick={() => setActiveTab(value as "suppliers" | "schools")}
-                  className={`rounded-lg px-3 py-2.5 text-left text-xs font-bold transition-colors sm:px-4 ${activeTab === value ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-                  data-testid={`tab-dashboard-${value}`}
-                >
-                  {label}
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              {(["Đạt", "Cảnh báo", "Chưa đạt"] as const).map((item) => (
+                <button key={item} type="button" onClick={() => setStatus(status === item ? "Tất cả trạng thái" : item)} className={`min-w-[82px] rounded-xl border px-3 py-2 text-left transition-all ${item === "Đạt" ? "border-emerald-100 bg-emerald-50 text-emerald-700" : item === "Cảnh báo" ? "border-amber-100 bg-amber-50 text-amber-700" : "border-red-100 bg-red-50 text-red-700"} ${status === item ? "ring-2 ring-primary/30" : ""}`}>
+                  <p className="text-[10px] font-bold uppercase tracking-wide">{item}</p>
+                  <p className="mt-1 text-xl font-black">{statusCounts[item]}</p>
+                  <p className="text-[10px] font-medium opacity-80">{activeTab === "suppliers" ? "cơ sở" : "trường"}</p>
                 </button>
               ))}
             </div>
           </div>
-          {activeTab === "schools" && (
-            <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-border pt-4">
-              <label htmlFor="dashboard-school-level" className="text-xs font-bold text-muted-foreground">Lọc theo cấp học</label>
-              <select
-                id="dashboard-school-level"
-                value={schoolLevel}
-                onChange={(event) => setSchoolLevel(event.target.value as "Tất cả cấp học" | SchoolLevel)}
-                className="rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold"
-                data-testid="select-dashboard-school-level"
-              >
-                {["Tất cả cấp học", "Mầm non", "Cấp 1", "Cấp 2", "Cấp 3"].map((level) => <option key={level}>{level}</option>)}
-              </select>
-              <span className="text-xs text-muted-foreground">
-                {activeSchools.length} cơ sở · {schoolDemand.toLocaleString("vi-VN")} suất ăn/ngày cần phục vụ
-              </span>
-            </div>
-          )}
-        </section>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {cards.map(([label, value, note, tone, Icon]) => (
-            <div
-              key={label as string}
-              className="rounded-2xl border border-border bg-card p-4 shadow-sm"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <p className="text-xs font-bold text-muted-foreground">
-                  {label as string}
-                </p>
-                <span
-                  className={`rounded-lg bg-secondary p-2 ${tone as string}`}
-                >
-                  <Icon size={17} />
-                </span>
-              </div>
-              <div className="mt-3 flex items-end justify-between gap-2">
-                <p
-                  className={`text-3xl font-black tracking-tight ${tone as string}`}
-                >
-                  {value as string}
-                </p>
-                <span className="text-right text-[10px] font-bold text-muted-foreground">
-                  {note as string}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <section className="mt-4 rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div>
-              <p className="mono-label text-primary">TÌNH TRẠNG HỒ SƠ</p>
-              <h2 className="mt-1 text-lg font-extrabold">
-                {activeTab === "suppliers" ? "Phân loại cơ sở cung cấp" : "Phân loại cơ sở giáo dục"}
-              </h2>
-              <p className="mt-1 text-xs text-muted-foreground">Số liệu cập nhật đến ngày 08/09/2026</p>
-            </div>
-            <div className="grid grid-cols-3 gap-2 sm:gap-3">
-              {([
-                ["Đạt", "bg-emerald-50 text-emerald-700", "border-emerald-100"],
-                ["Cảnh báo", "bg-amber-50 text-amber-700", "border-amber-100"],
-                ["Chưa đạt", "bg-red-50 text-red-700", "border-red-100"],
-              ] as const).map(([status, color, border]) => (
-                <div key={status} className={`min-w-[92px] rounded-xl border px-3 py-2.5 ${color} ${border}`}>
-                  <p className="text-[10px] font-bold uppercase tracking-wide">{status}</p>
-                  <p className="mt-1 text-xl font-black">{statusCounts[status]}</p>
-                  <p className="text-[10px] font-medium opacity-80">
-                    {activeTab === "suppliers" ? "cơ sở cung cấp" : "cơ sở giáo dục"}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="mt-5">
-            <div className="mb-2 flex justify-between text-[11px] font-semibold text-muted-foreground">
+          <div className="mt-4">
+            <div className="mb-2 flex justify-between text-[11px] font-bold text-muted-foreground">
               <span>Tỷ lệ đạt yêu cầu</span>
-              <span>{Math.round((statusCounts["Đạt"] / Math.max(1, activeTab === "suppliers" ? suppliers.length : activeSchools.length)) * 100)}%</span>
+              <span>{Math.round((statusCounts["Đạt"] / Math.max(1, totalStatus)) * 100)}%</span>
             </div>
             <div className="flex h-2.5 overflow-hidden rounded-full bg-slate-100">
-              <div className="bg-emerald-500" style={{ width: `${(statusCounts["Đạt"] / Math.max(1, activeTab === "suppliers" ? suppliers.length : activeSchools.length)) * 100}%` }} />
-              <div className="bg-amber-400" style={{ width: `${(statusCounts["Cảnh báo"] / Math.max(1, activeTab === "suppliers" ? suppliers.length : activeSchools.length)) * 100}%` }} />
-              <div className="bg-red-500" style={{ width: `${(statusCounts["Chưa đạt"] / Math.max(1, activeTab === "suppliers" ? suppliers.length : activeSchools.length)) * 100}%` }} />
+              <div className="bg-emerald-500" style={{ width: `${(statusCounts["Đạt"] / Math.max(1, totalStatus)) * 100}%` }} />
+              <div className="bg-amber-400" style={{ width: `${(statusCounts["Cảnh báo"] / Math.max(1, totalStatus)) * 100}%` }} />
+              <div className="bg-red-500" style={{ width: `${(statusCounts["Chưa đạt"] / Math.max(1, totalStatus)) * 100}%` }} />
             </div>
           </div>
         </section>
 
-        <section className="mt-4 rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="mono-label text-primary">CÂN BẰNG CUNG - NHU CẦU</p>
-              <h2 className="mt-1 text-lg font-extrabold">Năng lực phục vụ suất ăn trong ngày</h2>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {activeTab === "suppliers" ? "So sánh tổng công suất của các cơ sở cung cấp với nhu cầu đã đăng ký." : "So sánh công suất đã phân bổ với nhu cầu theo cấp học đang chọn."}
-              </p>
-            </div>
-            <div className={`rounded-xl px-3 py-2 text-right ${balance >= 0 ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
-              <p className="text-[10px] font-bold uppercase tracking-wide">Kết quả</p>
-              <p className="text-lg font-black">{balance >= 0 ? "Đủ nguồn cung" : "Có nguy cơ thiếu"}</p>
-            </div>
-          </div>
-          <div className="mt-5 grid gap-5 md:grid-cols-[1fr_250px] md:items-center">
-            <div>
-              <div className="mb-2 flex justify-between text-xs font-semibold text-muted-foreground">
-                <span>Công suất sử dụng dự kiến</span>
-                <span className="font-black text-foreground">{balancePercent}%</span>
-              </div>
-              <div className="relative h-5 overflow-hidden rounded-full bg-slate-100">
-                <div className={`h-full rounded-full ${balance >= 0 ? "bg-primary" : "bg-red-500"}`} style={{ width: `${Math.min(100, balancePercent)}%` }} />
-                <div className="absolute inset-y-0 left-1/2 border-l border-white/70" />
-                <div className="absolute inset-y-0 left-3/4 border-l border-white/70" />
-              </div>
-              <div className="mt-2 flex justify-between text-[10px] text-muted-foreground">
-                <span>0 suất</span><span>50%</span><span>75%</span><span>100% nhu cầu</span>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3 text-center">
-              <div className="rounded-xl bg-secondary/60 p-3">
-                <p className="text-[10px] font-bold text-muted-foreground">CUNG</p>
-                <p className="mt-1 text-xl font-black text-primary">{(activeTab === "suppliers" ? supplierCapacity : schoolSupply).toLocaleString("vi-VN")}</p>
-              </div>
-              <div className="rounded-xl bg-secondary/60 p-3">
-                <p className="text-[10px] font-bold text-muted-foreground">NHU CẦU</p>
-                <p className="mt-1 text-xl font-black text-sky-700">{(activeTab === "suppliers" ? supplierDemand : schoolDemand).toLocaleString("vi-VN")}</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="mt-4 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <section className="mt-3 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
           <div className="flex flex-col gap-2 border-b border-border px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <div>
-              <p className="mono-label text-primary">DANH SÁCH THEO DÕI</p>
-              <h2 className="mt-1 text-lg font-extrabold">
-                {activeTab === "suppliers" ? "Cơ sở cung cấp suất ăn" : `Cơ sở giáo dục${schoolLevel === "Tất cả cấp học" ? "" : ` · ${schoolLevel}`}`}
-              </h2>
+              <p className="mono-label text-primary">DANH SÁCH THEO ĐỊA BÀN</p>
+              <h2 className="mt-1 text-lg font-extrabold">{activeTab === "suppliers" ? `Cơ sở cung cấp suất ăn tại ${area}` : `Cơ sở giáo dục tại ${area}`}</h2>
             </div>
-            <span className="text-xs font-semibold text-muted-foreground">{activeTab === "suppliers" ? suppliers.length : activeSchools.length} kết quả</span>
+            <span className="text-xs font-semibold text-muted-foreground">{visibleRows.length} mẫu hiển thị · {activeTab === "suppliers" ? summary.suppliers : summary.schools} tổng cộng</span>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left text-xs">
+            <table className="w-full min-w-[900px] text-left text-xs">
               <thead className="bg-secondary/70 text-[10px] font-extrabold uppercase tracking-wide text-muted-foreground">
                 {activeTab === "suppliers" ? (
-                  <tr><th className="px-5 py-3">Cơ sở cung cấp</th><th className="px-4 py-3">Khu vực</th><th className="px-4 py-3">Trạng thái</th><th className="px-4 py-3 text-right">Công suất</th><th className="px-4 py-3 text-right">Nhu cầu</th><th className="px-5 py-3 text-right">Cập nhật</th></tr>
+                  <tr><th className="px-5 py-3">Cơ sở cung cấp</th><th className="px-4 py-3">Địa chỉ</th><th className="px-4 py-3 text-right">Công suất/ngày</th><th className="px-4 py-3 text-right">Đang cung cấp</th><th className="px-4 py-3 text-center">Đang cung cấp cho</th><th className="px-4 py-3">Trạng thái</th><th className="px-5 py-3 text-right">Chi tiết</th></tr>
                 ) : (
-                  <tr><th className="px-5 py-3">Cơ sở giáo dục</th><th className="px-4 py-3">Cấp học</th><th className="px-4 py-3">Khu vực</th><th className="px-4 py-3">Trạng thái</th><th className="px-4 py-3 text-right">Nhu cầu</th><th className="px-5 py-3 text-right">Cập nhật</th></tr>
+                  <tr><th className="px-5 py-3">Cơ sở giáo dục</th><th className="px-4 py-3">Địa chỉ</th><th className="px-4 py-3">Cấp học</th><th className="px-4 py-3 text-right">Học sinh</th><th className="px-4 py-3 text-right">Nhu cầu suất ăn</th><th className="px-4 py-3">Nhà cung cấp</th><th className="px-4 py-3">Trạng thái</th><th className="px-5 py-3 text-right">Chi tiết</th></tr>
                 )}
               </thead>
               <tbody className="divide-y divide-border">
-                {activeTab === "suppliers" ? suppliers.map((supplier) => (
+                {activeTab === "suppliers" ? visibleSuppliers.map((supplier) => (
                   <tr key={supplier.name} className="transition-colors hover:bg-secondary/30">
-                    <td className="px-5 py-3.5 font-bold">{supplier.name}</td><td className="px-4 py-3.5 text-muted-foreground">{supplier.area}</td><td className="px-4 py-3.5"><StatusPill status={supplier.status === "Đạt" ? "approved" : supplier.status === "Cảnh báo" ? "warning" : "stopped"} /></td><td className="px-4 py-3.5 text-right font-bold">{supplier.capacity.toLocaleString("vi-VN")}</td><td className="px-4 py-3.5 text-right font-bold">{supplier.demand.toLocaleString("vi-VN")}</td><td className="px-5 py-3.5 text-right text-muted-foreground">{supplier.updated}</td>
+                    <td className="px-5 py-4 font-bold">{supplier.name}<span className="mt-1 block text-[10px] font-medium text-muted-foreground">{supplier.ward}</span></td>
+                    <td className="px-4 py-4 text-muted-foreground">{supplier.address}</td>
+                    <td className="px-4 py-4 text-right font-bold">{formatNumber(supplier.capacity)}</td>
+                    <td className="px-4 py-4 text-right font-bold">{formatNumber(supplier.serving)}</td>
+                    <td className="px-4 py-4 text-center font-bold">{supplier.schools} trường</td>
+                    <td className="px-4 py-4"><StatusPill status={statusTone(supplier.status)} /></td>
+                    <td className="px-5 py-4 text-right"><button type="button" onClick={() => setSelectedSupplier(supplier)} className="inline-flex items-center gap-1 rounded-lg border border-primary/30 px-2.5 py-1.5 text-[10px] font-extrabold text-primary hover:bg-primary hover:text-primary-foreground">Xem chi tiết <ChevronRight size={13} /></button></td>
                   </tr>
-                )) : activeSchools.map((school) => (
+                )) : visibleSchools.map((school) => (
                   <tr key={school.name} className="transition-colors hover:bg-secondary/30">
-                    <td className="px-5 py-3.5 font-bold">{school.name}<span className="mt-1 block text-[10px] font-medium text-muted-foreground">Đơn vị cung cấp: {school.supplier}</span></td><td className="px-4 py-3.5"><span className="rounded-full bg-sky-50 px-2.5 py-1 text-[10px] font-bold text-sky-700">{school.level}</span></td><td className="px-4 py-3.5 text-muted-foreground">{school.area}</td><td className="px-4 py-3.5"><StatusPill status={school.status === "Đạt" ? "approved" : school.status === "Cảnh báo" ? "warning" : "stopped"} /></td><td className="px-4 py-3.5 text-right font-bold">{school.demand.toLocaleString("vi-VN")}</td><td className="px-5 py-3.5 text-right text-muted-foreground">{school.updated}</td>
+                    <td className="px-5 py-4 font-bold">{school.name}</td>
+                    <td className="px-4 py-4 text-muted-foreground">P. {school.ward}, Quận 1</td>
+                    <td className="px-4 py-4"><span className="rounded-full bg-sky-50 px-2.5 py-1 text-[10px] font-bold text-sky-700">{school.level}</span></td>
+                    <td className="px-4 py-4 text-right font-bold">{formatNumber(school.students)}</td>
+                    <td className="px-4 py-4 text-right font-bold">{formatNumber(school.demand)}</td>
+                    <td className="px-4 py-4 text-center font-bold">{school.suppliers}</td>
+                    <td className="px-4 py-4"><StatusPill status={statusTone(school.status)} /></td>
+                    <td className="px-5 py-4 text-right"><button type="button" onClick={() => setSelectedSchool(school)} className="inline-flex items-center gap-1 rounded-lg border border-primary/30 px-2.5 py-1.5 text-[10px] font-extrabold text-primary hover:bg-primary hover:text-primary-foreground">Xem chi tiết <ChevronRight size={13} /></button></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          {!visibleRows.length && <div className="px-5 py-12 text-center text-sm text-muted-foreground">Không tìm thấy cơ sở phù hợp với bộ lọc hiện tại.</div>}
         </section>
 
-        <div className="mt-4 grid gap-4 lg:grid-cols-[.9fr_1.7fr]">
-          <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-            <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <h2 className="flex items-center gap-2 text-sm font-extrabold">
-                <MapPin size={16} className="text-primary" /> Bản đồ số ATTP
-              </h2>
-              <span className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" /> Đạt
-                <span className="ml-2 h-2 w-2 rounded-full bg-amber-400" /> Cảnh
-                báo
-              </span>
-            </div>
-            <div className="relative h-[270px] overflow-hidden bg-[#dce5ea]">
-              <div
-                className="absolute inset-0 opacity-60"
-                style={{
-                  backgroundImage:
-                    "linear-gradient(30deg, transparent 47%, #aabcc5 48%, #aabcc5 49%, transparent 50%), linear-gradient(120deg, transparent 46%, #b6c7ce 47%, #b6c7ce 48%, transparent 49%), linear-gradient(#c9d5da 1px, transparent 1px), linear-gradient(90deg, #c9d5da 1px, transparent 1px)",
-                  backgroundSize:
-                    "150px 120px, 190px 160px, 34px 34px, 34px 34px",
-                }}
-              />
-              <div className="absolute left-[20%] top-[15%] h-[72%] w-[58%] rotate-12 rounded-[38%_62%_48%_52%] border-2 border-white/75 bg-slate-400/20" />
-              <div className="absolute left-[42%] top-[28%] h-28 w-36 -rotate-12 rounded-[45%] border border-white/80 bg-slate-500/20" />
-              <span className="absolute left-[42%] top-[16%] text-xs font-extrabold text-slate-500/80">
-                Hồ Chí Minh{" "}
-              </span>
-              {mapPins.map((pin, index) => (
-                <MapPin
-                  key={`${pin.left}-${pin.top}`}
-                  size={index === 2 ? 25 : 20}
-                  fill={index === 2 ? "#ef4444" : "#ef4444"}
-                  className="absolute -translate-x-1/2 -translate-y-full text-red-500 drop-shadow-sm"
-                  style={{ left: pin.left, top: pin.top }}
-                />
-              ))}
-              <div className="absolute bottom-3 right-3 flex flex-col overflow-hidden rounded-lg border border-white bg-white/90 shadow-sm">
-                <button
-                  type="button"
-                  className="px-2 py-1 text-lg leading-none text-slate-500"
-                >
-                  +
-                </button>
-                <button
-                  type="button"
-                  className="border-t border-slate-200 px-2 py-1 text-lg leading-none text-slate-500"
-                >
-                  −
-                </button>
+        <section className="mt-3 grid gap-3 lg:grid-cols-[1.3fr_.7fr]">
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="mono-label text-primary">CÂN BẰNG CUNG - CẦU</p>
+                <h2 className="mt-1 text-lg font-extrabold">Năng lực phục vụ tại {area}</h2>
+                <p className="mt-1 text-xs text-muted-foreground">Công suất cung cấp so với nhu cầu suất ăn đang phục vụ.</p>
+              </div>
+              <div className="rounded-xl bg-emerald-50 px-3 py-2 text-right text-emerald-700">
+                <p className="text-[10px] font-bold uppercase">Còn dư</p>
+                <p className="text-lg font-black">+{formatNumber(balance)}</p>
               </div>
             </div>
-          </section>
-
-          <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-            <div className="flex items-center justify-between border-b border-border bg-red-50/70 px-4 py-3">
-              <h2 className="flex items-center gap-2 text-sm font-extrabold text-red-700">
-                <TriangleAlert size={16} /> Danh sách cảnh báo đỏ
-              </h2>
-              <span className="rounded-full bg-red-600 px-2 py-1 text-[9px] font-extrabold text-white">
-                MỚI NHẤT
-              </span>
+            <div className="mt-5">
+              <div className="mb-2 flex justify-between text-xs font-bold text-muted-foreground"><span>Công suất đang sử dụng</span><span>{Math.round((currentDemand / currentCapacity) * 100)}%</span></div>
+              <div className="h-4 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, (currentDemand / currentCapacity) * 100)}%` }} /></div>
+              <div className="mt-2 flex justify-between text-[10px] text-muted-foreground"><span>0 suất</span><span>{formatNumber(currentCapacity)} suất/ngày công suất</span></div>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[650px] text-left text-xs">
-                <thead className="bg-secondary/70 text-[9px] font-extrabold uppercase tracking-wide text-muted-foreground">
-                  <tr>
-                    <th className="px-4 py-2.5">Trường</th>
-                    <th className="px-4 py-2.5">Nội dung cảnh báo</th>
-                    <th className="px-4 py-2.5">Thời gian</th>
-                    <th className="px-4 py-2.5">Mức ưu tiên</th>
-                    <th className="px-4 py-2.5 text-right">Hành động</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {alertRows.map(
-                    ([school, issue, time, priority, severity]) => (
-                      <tr key={`${school}-${issue}-${time}`} className="hover:bg-secondary/30">
-                        <td className="px-4 py-3 font-bold">{school}</td>
-                        <td className="px-4 py-3">
-                          <span className="rounded-md bg-red-50 px-2 py-1 text-[10px] font-semibold text-red-600">
-                            {issue}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {time}
-                        </td>
-                        <td
-                          className={`px-4 py-3 font-bold ${severity === "urgent" ? "text-red-600" : severity === "high" ? "text-orange-600" : "text-amber-600"}`}
-                        >
-                          {priority}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <button
-                            type="button"
-                            className="rounded-md bg-red-600 px-3 py-1 text-[10px] font-extrabold text-white hover:bg-red-700"
-                          >
-                            BÁO CÁO
-                          </button>
-                        </td>
-                      </tr>
-                    ),
-                  )}
-                </tbody>
-              </table>
-            </div>
-            <Link
-              href="/admin/inspections/incidents"
-              className="block border-t border-border py-2 text-center text-[10px] font-bold text-muted-foreground hover:text-primary"
-            >
-              Xem tất cả 24 cảnh báo →
-            </Link>
-          </section>
-        </div>
-
-        <div className="mt-4 grid gap-4 lg:grid-cols-3">
-          <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-            <h2 className="text-xs font-extrabold">Kiểm thực 3 bước theo tháng</h2>
-            <div className="mt-4 flex h-40 items-end gap-2 border-b border-l border-border px-2 pb-1 pt-3">
-              <svg
-                viewBox="0 0 100 100"
-                preserveAspectRatio="none"
-                className="h-full w-full overflow-visible"
-              >
-                <polyline
-                  points="0,74 16,55 32,68 48,42 64,47 80,24 100,52"
-                  fill="rgba(249,115,22,.12)"
-                  stroke="none"
-                />
-                <polyline
-                  points="0,74 16,55 32,68 48,42 64,47 80,24 100,52"
-                  fill="none"
-                  stroke="#f97316"
-                  strokeWidth="1.5"
-                  vectorEffect="non-scaling-stroke"
-                />
-                {"0,74 16,55 32,68 48,42 64,47 80,24 100,52".split(" ").map((point) => {
-                  const [cx, cy] = point.split(",");
-                  return (
-                    <circle
-                      key={point}
-                      cx={cx}
-                      cy={cy}
-                      r="1.5"
-                      fill="#f97316"
-                    />
-                  );
-                })}
-              </svg>
-            </div>
-            <div className="mt-2 flex justify-between pl-2 text-[9px] text-muted-foreground">
-              {["T1", "T2", "T3", "T4", "T5", "T6", "T7"].map((month) => (
-                <span key={month}>{month}</span>
-              ))}
-            </div>
-          </section>
-
-          <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-            <h2 className="text-xs font-extrabold">
-              Số đợt kiểm tra theo tháng
-            </h2>
-            <div className="mt-4 flex h-40 items-end justify-around gap-2 border-b border-l border-border px-3 pb-1 pt-3">
-              {scoreBars.map((height, index) => (
-                <div
-                  key={height + index}
-                  className="flex h-full flex-1 items-end justify-center"
-                >
-                  <div
-                    className={`w-full max-w-8 rounded-t-sm ${index > 4 ? "bg-indigo-500" : "bg-slate-300"}`}
-                    style={{ height: `${height}%` }}
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="mt-2 flex justify-around text-[9px] text-muted-foreground">
-              {["T1", "T2", "T3", "T4", "T5", "T6", "T7"].map((month) => (
-                <span key={month}>{month}</span>
-              ))}
-            </div>
-          </section>
-
-          <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-            <h2 className="text-xs font-extrabold">Top 5 lỗi thường gặp (%)</h2>
-            <div className="mt-4 flex items-center gap-5">
-              <div
-                className="relative h-32 w-32 shrink-0 rounded-full"
-                style={{
-                  background:
-                    "conic-gradient(#f97316 0 32%, #facc15 32% 56%, #ec4899 56% 70%, #6366f1 70% 88%, #cbd5e1 88% 100%)",
-                }}
-              >
-                <div className="absolute inset-7 flex items-center justify-center rounded-full bg-card text-center text-[10px] font-bold text-muted-foreground">
-                  Tỷ lệ
-                  <br />
-                  lỗi
-                </div>
-              </div>
-              <div className="grid gap-2 text-[10px] font-semibold text-muted-foreground">
-                {riskSlices.map((slice) => (
-                  <span key={slice.label} className="flex items-center gap-2">
-                    <i
-                      className="h-2 w-2 rounded-sm"
-                      style={{ backgroundColor: slice.color }}
-                    />
-                    {slice.label}{" "}
-                    <b className="text-foreground">{slice.value}</b>
-                  </span>
-                ))}
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <section className="mt-4 rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="mono-label text-primary">HOẠT ĐỘNG GẦN NHẤT</p>
-              <h2 className="mt-1 text-lg font-extrabold">
-                Theo dõi nghiệp vụ
-              </h2>
-            </div>
-            <Link
-              href="/admin/applications/pending"
-              className="inline-flex items-center gap-1 text-sm font-bold text-primary hover:underline"
-            >
-              Xem hồ sơ đăng ký <ArrowUpRight size={15} />
-            </Link>
           </div>
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
-            {[
-              [
-                "12",
-                "Hồ sơ đăng ký trong tuần",
-                "bg-emerald-50 text-emerald-900",
-              ],
-              ["08", "Lịch kiểm tra đã hoàn tất", "bg-sky-50 text-sky-900"],
-              ["03", "Biên bản cần khắc phục", "bg-amber-50 text-amber-900"],
-            ].map(([value, label, className]) => (
-              <div key={label} className={`rounded-2xl p-4 ${className}`}>
-                <p className="font-mono text-3xl font-extrabold">{value}</p>
-                <p className="mt-1 text-sm font-semibold">{label}</p>
-              </div>
-            ))}
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+            <p className="mono-label text-primary">TÓM TẮT LỌC</p>
+            <h2 className="mt-1 text-lg font-extrabold">Phạm vi đang xem</h2>
+            <div className="mt-4 grid gap-2 text-xs">
+              <div className="flex justify-between rounded-lg bg-secondary/60 px-3 py-2"><span className="text-muted-foreground">Địa bàn</span><strong>{area}</strong></div>
+              <div className="flex justify-between rounded-lg bg-secondary/60 px-3 py-2"><span className="text-muted-foreground">Phường/Xã</span><strong>{ward}</strong></div>
+              <div className="flex justify-between rounded-lg bg-secondary/60 px-3 py-2"><span className="text-muted-foreground">Bản ghi mẫu</span><strong>{visibleRows.length}</strong></div>
+            </div>
           </div>
         </section>
       </div>
+
+      {(selectedSupplier || selectedSchool) && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/45 p-0 sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-label="Chi tiết cơ sở" onClick={closeDetail}>
+          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-t-3xl bg-card p-5 shadow-2xl sm:rounded-3xl sm:p-7" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4 border-b border-border pb-4">
+              <div>
+                <p className="mono-label text-primary">THÔNG TIN CƠ SỞ</p>
+                <h2 className="mt-1 text-xl font-extrabold">{selectedSupplier?.name ?? selectedSchool?.name}</h2>
+                <p className="mt-1 text-xs text-muted-foreground">Địa bàn: {area}, TP.HCM</p>
+              </div>
+              <button type="button" onClick={closeDetail} className="rounded-xl bg-secondary p-2 text-muted-foreground hover:text-foreground" aria-label="Đóng"><X size={18} /></button>
+            </div>
+            {selectedSupplier ? (
+              <div className="mt-5 grid gap-5 md:grid-cols-[.8fr_1.2fr]">
+                <div className="space-y-3">
+                  <div className="rounded-2xl bg-secondary/60 p-4"><p className="text-xs font-bold text-muted-foreground">Địa chỉ</p><p className="mt-1 text-sm font-bold">{selectedSupplier.address}</p></div>
+                  <div className="rounded-2xl bg-secondary/60 p-4"><p className="text-xs font-bold text-muted-foreground">Trạng thái</p><div className="mt-2"><StatusPill status={statusTone(selectedSupplier.status)} /></div></div>
+                  <div className="rounded-2xl bg-primary p-4 text-primary-foreground"><p className="text-xs font-bold text-primary-foreground/70">Năng lực còn lại</p><p className="mt-1 text-2xl font-black">{formatNumber(selectedSupplier.capacity - selectedSupplier.serving)} suất/ngày</p></div>
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold">Năng lực cung cấp</h3>
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                    <div className="rounded-xl border border-border p-3"><p className="text-[10px] text-muted-foreground">Công suất tối đa</p><p className="mt-1 font-black">{formatNumber(selectedSupplier.capacity)}</p></div>
+                    <div className="rounded-xl border border-border p-3"><p className="text-[10px] text-muted-foreground">Đang cung cấp</p><p className="mt-1 font-black">{formatNumber(selectedSupplier.serving)}</p></div>
+                    <div className="rounded-xl border border-border p-3"><p className="text-[10px] text-muted-foreground">Số trường</p><p className="mt-1 font-black">{selectedSupplier.schools}</p></div>
+                  </div>
+                  <h3 className="mt-5 text-sm font-extrabold">Cơ sở giáo dục đang được cung cấp</h3>
+                  <div className="mt-3 divide-y divide-border rounded-xl border border-border">
+                    {schoolRows.slice(0, selectedSupplier.schools > 3 ? 4 : 3).map((school) => <button key={school.name} type="button" onClick={() => { setSelectedSupplier(null); setSelectedSchool(school); }} className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left text-xs hover:bg-secondary/50"><span><strong>{school.name}</strong><span className="mt-1 block text-muted-foreground">{school.level} · {formatNumber(school.demand)} suất/ngày</span></span><ChevronRight size={14} className="shrink-0 text-primary" /></button>)}
+                  </div>
+                </div>
+              </div>
+            ) : selectedSchool ? (
+              <div className="mt-5 grid gap-5 md:grid-cols-[.8fr_1.2fr]">
+                <div className="space-y-3">
+                  <div className="rounded-2xl bg-secondary/60 p-4"><p className="text-xs font-bold text-muted-foreground">Thông tin cơ sở giáo dục</p><div className="mt-2 space-y-1 text-sm"><p><strong>Địa chỉ:</strong> P. {selectedSchool.ward}, Quận 1</p><p><strong>Cấp học:</strong> {selectedSchool.level}</p><p><strong>Số học sinh:</strong> {formatNumber(selectedSchool.students)}</p><p><strong>Nhu cầu:</strong> {formatNumber(selectedSchool.demand)} suất/ngày</p></div></div>
+                  <div className="rounded-2xl bg-secondary/60 p-4"><p className="text-xs font-bold text-muted-foreground">Trạng thái</p><div className="mt-2"><StatusPill status={statusTone(selectedSchool.status)} /></div></div>
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold">Nhà cung cấp suất ăn</h3>
+                  <div className="mt-3 divide-y divide-border rounded-xl border border-border">
+                    {supplierRows.slice(0, selectedSchool.suppliers).map((supplier) => <button key={supplier.name} type="button" onClick={() => { setSelectedSchool(null); setSelectedSupplier(supplier); }} className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left text-xs hover:bg-secondary/50"><span><strong>{supplier.name}</strong><span className="mt-1 block text-muted-foreground">{formatNumber(Math.round(selectedSchool.demand / selectedSchool.suppliers))} suất cung cấp · 01/09/2026 → nay</span></span><ChevronRight size={14} className="shrink-0 text-primary" /></button>)}
+                  </div>
+                  <p className="mt-3 text-right text-xs font-extrabold text-primary">Tổng: {formatNumber(selectedSchool.supply)} suất/ngày</p>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
     </AdminShell>
   );
 }

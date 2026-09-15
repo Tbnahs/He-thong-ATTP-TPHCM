@@ -1,0 +1,149 @@
+5. DASHBOARD GIÁM SÁT
+A. Thanh điều khiển chung
+DASHBOARD GIÁM SÁT
+
+[ Địa bàn ▼ ]   [ Quận/Huyện ▼ ]   [ Phường/Xã ▼ ]
+[ Cấp học ▼ ]   [ Trạng thái ▼ ]   [ Tìm kiếm cơ sở... ]
+Địa bàn là bộ lọc quan trọng nhất
+
+Ví dụ chọn:
+
+Quận 1
+
+thì toàn bộ Dashboard phải thay đổi thành dữ liệu các cơ sở thuộc Quận 1.
+
+Không nên hiển thị kiểu:
+
+Cơ sở A – Địa bàn Quận 1
+
+mà nên tư duy:
+
+Quận 1 có những cơ sở nào?
+
+TAB 1 — CƠ SỞ CUNG CẤP SUẤT ĂN
+1. Tổng quan theo địa bàn
+QUẬN 1
+────────────────────────────────────────
+
+Tổng cơ sở cung cấp       28 cơ sở
+Công suất cung cấp        18.500 suất/ngày
+Nhu cầu đang phục vụ      16.800 suất/ngày
+Cân bằng cung - cầu       +1.700 suất/ngày
+Trạng thái
+🟢 Đạt             22 cơ sở
+🟠 Cảnh báo          4 cơ sở
+🔴 Chưa đạt          2 cơ sở
+2. DANH SÁCH CƠ SỞ THEO ĐỊA BÀN
+
+Đây mới là bảng chính.
+
+Cơ sở cung cấp suất ăn tại Quận 1
+Cơ sở cung cấp	Địa chỉ	Công suất/ngày	Đang cung cấp cho	Trạng thái
+Công ty A	P. Bến Nghé	3.000	5 trường	🟢 Đạt
+Công ty B	P. Đa Kao	2.500	4 trường	🟢 Đạt
+Công ty C	P. Cầu Ông Lãnh	1.500	3 trường	🟠 Cảnh báo
+Công ty D	P. Nguyễn Cư Trinh	2.000	2 trường	🔴 Chưa đạt
+
+[Xem chi tiết]
+
+3. Xem chi tiết CƠ SỞ CUNG CẤP
+
+Khi click:
+
+Công ty A
+
+mở trang/popup:
+
+Thông tin cơ sở
+CÔNG TY TNHH ABC
+
+Địa chỉ: Quận 1, TP.HCM
+Công suất tối đa: 3.000 suất/ngày
+Công suất đang sử dụng: 2.650 suất/ngày
+Trạng thái: 🟢 Đạt
+Năng lực cung cấp
+Công suất tối đa       3.000
+Đang cung cấp          2.650
+Còn khả năng            350
+4. Cơ sở này đang cung cấp cho trường nào?
+
+Đây là phần rất quan trọng.
+
+DANH SÁCH CƠ SỞ GIÁO DỤC ĐANG ĐƯỢC CUNG CẤP
+Trường	Cấp học	Số học sinh	Nhu cầu suất ăn	Số suất đang cung cấp	Trạng thái
+Trường MN Hoa Mai	Mầm non	420	420	420	🟢
+Trường TH Nguyễn Du	Cấp 1	650	650	650	🟢
+Trường THCS ABC	Cấp 2	780	780	780	🟢
+Trường THPT XYZ	Cấp 3	800	800	800	🟠
+
+→ Như vậy từ nhà cung cấp có thể truy ngược ra các trường đang sử dụng nhà cung cấp đó.
+
+TAB 2 — CƠ SỞ GIÁO DỤC
+
+Tab này ngược lại hoàn toàn.
+
+1. Tổng quan theo địa bàn
+
+Ví dụ:
+
+Quận 1
+
+Tổng cơ sở giáo dục        85
+Tổng số học sinh        42.500
+Tổng nhu cầu suất ăn     38.200
+Theo trạng thái
+🟢 Đạt             72 trường
+🟠 Cảnh báo          9 trường
+🔴 Chưa đạt          4 trường
+2. DANH SÁCH TRƯỜNG THEO ĐỊA BÀN
+Cơ sở giáo dục tại Quận 1
+Cơ sở giáo dục	Địa chỉ	Cấp học	Số học sinh	Nhu cầu suất ăn	Nhà cung cấp	Trạng thái
+MN Hoa Mai	P. Bến Nghé	Mầm non	420	420	1	🟢
+TH Nguyễn Du	P. Đa Kao	Cấp 1	650	650	2	🟢
+THCS ABC	P. Cầu Ông Lãnh	Cấp 2	780	780	1	🟠
+THPT XYZ	P. Nguyễn Cư Trinh	Cấp 3	800	800	2	🟢
+3. Xem chi tiết TRƯỜNG
+
+Khi click:
+
+Trường TH Nguyễn Du
+
+hiển thị:
+
+Thông tin cơ sở giáo dục
+TRƯỜNG TIỂU HỌC NGUYỄN DU
+
+Địa chỉ: Quận 1, TP.HCM
+Cấp học: Tiểu học
+Số học sinh: 650
+Nhu cầu suất ăn: 650 suất/ngày
+
+Trạng thái: 🟢 Đạt
+4. TRƯỜNG ĐANG SỬ DỤNG NHÀ CUNG CẤP NÀO?
+
+Đây là chiều ngược lại của Tab 1.
+
+NHÀ CUNG CẤP SUẤT ĂN
+Nhà cung cấp	Công suất	Số suất cung cấp cho trường	Thời gian cung cấp	Trạng thái
+Công ty A	3.000	400	01/09/2026 → nay	🟢
+Công ty B	2.500	250	01/09/2026 → nay	🟢
+
+Tổng: 650 suất/ngày
+
+→ Như vậy trường này có 2 nhà cung cấp.
+
+5. PHÂN NHÓM CẤP HỌC
+
+Phần này nên đặt ngay dưới KPI:
+
+[ Tất cả ]
+
+[ Mầm non ]   [ Cấp 1 ]   [ Cấp 2 ]   [ Cấp 3 ]
+
+Khi chọn Mầm non, danh sách bên dưới chỉ còn:
+
+Các cơ sở giáo dục Mầm non thuộc địa bàn đang chọn.
+
+Tương tự đối với cơ sở cung cấp, có thể xem:
+
+Nhà cung cấp đang phục vụ nhóm trường nào.
