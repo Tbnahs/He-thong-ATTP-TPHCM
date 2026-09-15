@@ -50,10 +50,13 @@ type Incident = {
   title: string;
   facilityType?: IncidentFacilityType;
   facility: string;
+  meals?: string[];
+  suspectedCases?: number;
   address: string;
   occurredAt: string;
   reportedAt: string;
   reporter: string;
+  reporterRole?: string;
   phone: string;
   severity: IncidentSeverity;
   status: IncidentStatus;
@@ -62,6 +65,7 @@ type Incident = {
   foods: string;
   attachments: string[];
   notifyFacility: boolean;
+  notifyHealth?: boolean;
   notifyDistrict: boolean;
   closedAt?: string;
   timeline: Array<{ time: string; label: string; detail: string; tone: string }>;
@@ -186,8 +190,8 @@ function statusClass(value: IncidentStatus) {
 function PageFrame({ children }: { children: ReactNode }) {
   return (
     <AdminShell>
-      <div className="min-h-[calc(100dvh-73px)] bg-[#f5f7f8] px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
-        <div className="mx-auto max-w-[1420px]">{children}</div>
+      <div className="min-h-[calc(100dvh-73px)] bg-[#f8fafc] px-4 py-8 sm:px-8 lg:px-10">
+        <div className="mx-auto max-w-[1096px]">{children}</div>
       </div>
     </AdminShell>
   );
@@ -255,7 +259,9 @@ export function IncidentListPage() {
   const [incidents] = useState<Incident[]>(readIncidents);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"Tất cả" | IncidentStatus>("Tất cả");
-  const [severity, setSeverity] = useState<"Tất cả" | IncidentSeverity>("Tất cả");
+  const [facilityQuery, setFacilityQuery] = useState("Tất cả");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("vi");
@@ -266,97 +272,125 @@ export function IncidentListPage() {
           .join(" ")
           .toLocaleLowerCase("vi")
           .includes(normalized);
+      const occurredDate = item.occurredAt.slice(0, 10);
       return (
         matchesQuery &&
         (status === "Tất cả" || item.status === status) &&
-        (severity === "Tất cả" || item.severity === severity)
+        (facilityQuery === "Tất cả" || item.facility === facilityQuery) &&
+        (!dateFrom || occurredDate >= dateFrom) &&
+        (!dateTo || occurredDate <= dateTo)
       );
     });
-  }, [incidents, query, severity, status]);
+  }, [dateFrom, dateTo, facilityQuery, incidents, query, status]);
 
   const activeCount = incidents.filter((item) => item.status === "Đang xử lý").length;
-  const urgentCount = incidents.filter((item) => item.severity === "Khẩn cấp" && item.status === "Đang xử lý").length;
+  const closedCount = incidents.filter((item) => item.status === "Đã đóng").length;
+  const facilityOptions = Array.from(new Set(incidents.map((item) => item.facility)));
 
   return (
     <PageFrame>
-      <TopBar
-        title="Quản lý và xử lý sự cố ATTP"
-        description="Tiếp nhận cảnh báo, điều phối xác minh và theo dõi khắc phục tại các cơ sở giáo dục trên địa bàn."
-        action={
-          <PrimaryButton onClick={() => navigate("/admin/inspections/incidents/new")} testId="button-create-incident">
-            <Plus size={17} /> Cảnh báo ATTP
-          </PrimaryButton>
-        }
-      />
+      <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h1 className="text-xl font-normal leading-7 tracking-[.014em] text-[#1e293b]">Quản lý và xử lý sự cố An toàn Thực phẩm</h1>
+          <p className="mt-1 text-base leading-6 text-[#64748b]">Giám sát và phản ứng nhanh với các báo cáo nghi ngờ ngộ độc thực phẩm từ các trường học</p>
+        </div>
+        <PrimaryButton onClick={() => navigate("/admin/inspections/incidents/new")} testId="button-create-incident" variant="danger">
+          <Plus size={17} /> Cảnh báo ATTP
+        </PrimaryButton>
+      </div>
 
-      <div className="mb-6 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-2xl border border-[#d7e2de] bg-white p-4 shadow-[0_8px_25px_rgba(21,64,53,.04)]">
-          <p className="text-xs font-bold uppercase tracking-[.12em] text-[#71817d]">Tổng sự cố</p>
-          <p className="mt-2 text-2xl font-extrabold text-[#143b35]" data-testid="metric-incident-total">{incidents.length}</p>
+      <div className="mt-8 grid gap-6 md:grid-cols-2">
+        <div className="flex items-center gap-5 rounded-2xl border border-[#f1f5f9] bg-white p-6 shadow-sm">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#fef2f2] text-[#dc2626]"><CircleAlert size={25} /></div>
+          <div>
+            <p className="text-sm leading-5 tracking-[.016em] text-[#64748b]">Đang xử lý</p>
+            <p className="mt-1 text-3xl font-normal leading-9 tracking-[.03em] text-[#1e293b]" data-testid="metric-incident-active">{String(activeCount).padStart(2, "0")}</p>
+          </div>
         </div>
-        <div className="rounded-2xl border border-[#ebd8a5] bg-[#fff9e9] p-4 shadow-[0_8px_25px_rgba(115,85,15,.04)]">
-          <p className="text-xs font-bold uppercase tracking-[.12em] text-[#917023]">Đang xử lý</p>
-          <p className="mt-2 text-2xl font-extrabold text-[#805b05]" data-testid="metric-incident-active">{activeCount}</p>
-        </div>
-        <div className="rounded-2xl border border-[#f1c9bf] bg-[#fff3f0] p-4 shadow-[0_8px_25px_rgba(163,59,39,.04)]">
-          <p className="text-xs font-bold uppercase tracking-[.12em] text-[#aa4c37]">Khẩn cấp cần chú ý</p>
-          <p className="mt-2 text-2xl font-extrabold text-[#a33b27]" data-testid="metric-incident-urgent">{urgentCount}</p>
+        <div className="flex items-center gap-5 rounded-2xl border border-[#f1f5f9] bg-white p-6 shadow-sm">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#f0fdf4] text-[#16a34a]"><Check size={25} /></div>
+          <div>
+            <p className="text-sm leading-5 tracking-[.016em] text-[#64748b]">Đã đóng</p>
+            <p className="mt-1 text-3xl font-normal leading-9 tracking-[-.03em] text-[#1e293b]" data-testid="metric-incident-closed">{String(closedCount).padStart(2, "0")}</p>
+          </div>
         </div>
       </div>
 
-      <section className="overflow-hidden rounded-2xl border border-[#d7e2de] bg-white shadow-[0_10px_35px_rgba(21,64,53,.05)]" data-testid="panel-incident-list">
-        <div className="flex flex-col gap-3 border-b border-[#e4ebe8] p-4 lg:flex-row lg:items-center">
-          <label className="relative min-w-0 flex-1">
-            <Search size={17} className="absolute left-3.5 top-3 text-[#82908d]" />
+      <section className="mt-8 overflow-hidden rounded-2xl border border-[#f1f5f9] bg-white p-6 shadow-sm" data-testid="panel-incident-list">
+        <div className="relative">
+          <Search size={16} className="absolute left-4 top-4 text-[#94a3b8]" />
+          <label className="block">
             <input
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Tìm theo mã, tên sự cố hoặc cơ sở..."
-              className="focus-ring h-10 w-full rounded-xl border border-[#d4dfdb] bg-[#f9fbfa] pl-10 pr-3 text-sm outline-none transition-colors placeholder:text-[#9aa7a3] focus:border-[#176b53]"
+              placeholder="Nhập mã sự cố hoặc tên trường..."
+              className="focus-ring h-[49px] w-full rounded-xl border border-[#e2e8f0] bg-[#f8fafc] pl-11 pr-4 text-base text-[#475569] outline-none transition-colors placeholder:text-[#9ca3af] focus:border-[#2563eb]"
               data-testid="input-incident-search"
             />
           </label>
-          <div className="flex flex-wrap items-center gap-2">
-            <Filter size={16} className="ml-1 text-[#71817d]" />
-            <select value={status} onChange={(event) => setStatus(event.target.value as typeof status)} className="focus-ring h-10 rounded-xl border border-[#d4dfdb] bg-[#f9fbfa] px-3 text-sm font-semibold text-[#31534b]" data-testid="select-incident-status">
-              <option>Tất cả</option><option>Đang xử lý</option><option>Đã đóng</option>
-            </select>
-            <select value={severity} onChange={(event) => setSeverity(event.target.value as typeof severity)} className="focus-ring h-10 rounded-xl border border-[#d4dfdb] bg-[#f9fbfa] px-3 text-sm font-semibold text-[#31534b]" data-testid="select-incident-severity">
-              <option>Tất cả</option><option>Khẩn cấp</option><option>Cao</option><option>Trung bình</option>
-            </select>
-          </div>
         </div>
+        <div className="mt-5 flex flex-wrap items-end gap-4 border-t border-[#f1f5f9] pt-5">
+          <label className="flex min-w-[180px] flex-1 flex-col gap-1.5 px-1 text-xs uppercase tracking-[.05em] text-[#94a3b8]">Trạng thái
+            <select value={status} onChange={(event) => setStatus(event.target.value as typeof status)} className="focus-ring h-10 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-4 text-base normal-case tracking-normal text-[#475569] outline-none focus:border-[#2563eb]" data-testid="select-incident-status">
+              <option value="Tất cả">Tất cả trạng thái</option><option>Đang xử lý</option><option>Đã đóng</option>
+            </select>
+          </label>
+          <label className="flex min-w-[180px] flex-1 flex-col gap-1.5 px-1 text-xs uppercase tracking-[.05em] text-[#94a3b8]">Trường
+            <select value={facilityQuery} onChange={(event) => setFacilityQuery(event.target.value)} className="focus-ring h-10 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-4 text-base normal-case tracking-normal text-[#475569] outline-none focus:border-[#2563eb]" data-testid="select-incident-facility">
+              <option>Tất cả</option>{facilityOptions.map((facility) => <option key={facility}>{facility}</option>)}
+            </select>
+          </label>
+          <label className="flex min-w-[220px] flex-[1.2] flex-col gap-1.5 px-1 text-xs uppercase tracking-[.05em] text-[#94a3b8]">Khoảng thời gian
+            <span className="flex h-10 items-center gap-2 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-3">
+              <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} className="min-w-0 flex-1 bg-transparent text-sm text-[#475569] outline-none" aria-label="Từ ngày" />
+              <span className="text-[#94a3b8]">–</span>
+              <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} className="min-w-0 flex-1 bg-transparent text-sm text-[#475569] outline-none" aria-label="Đến ngày" />
+            </span>
+          </label>
+        </div>
+      </section>
+
+      <section className="mt-6 overflow-hidden rounded-2xl border border-[#f1f5f9] bg-white shadow-sm" data-testid="table-incident-list">
         <div className="hidden overflow-x-auto md:block">
-          <table className="w-full min-w-[900px] text-left">
-            <thead className="bg-[#f6f9f8] text-[11px] uppercase tracking-[.1em] text-[#71817d]">
-              <tr><th className="px-5 py-3 font-extrabold">Mã sự cố</th><th className="px-5 py-3 font-extrabold">Thông tin sự cố</th><th className="px-5 py-3 font-extrabold">Cơ sở</th><th className="px-5 py-3 font-extrabold">Mức độ</th><th className="px-5 py-3 font-extrabold">Trạng thái</th><th className="px-5 py-3 text-right font-extrabold">Xem</th></tr>
+          <table className="w-full min-w-[920px] text-left">
+            <thead className="bg-[#f8fafc] text-xs uppercase tracking-[.05em] text-[#94a3b8]">
+              <tr><th className="px-6 py-4 font-normal">Mã sự cố</th><th className="px-6 py-4 font-normal">Trường</th><th className="px-6 py-4 font-normal">Phát hiện</th><th className="px-6 py-4 font-normal">Số ca</th><th className="px-6 py-4 font-normal">Bữa ăn</th><th className="px-6 py-4 font-normal">Trạng thái</th><th className="px-6 py-4 text-right font-normal">Action</th></tr>
             </thead>
-            <tbody className="divide-y divide-[#edf1ef]">
+            <tbody className="divide-y divide-[#f8fafc]">
               {filtered.map((item) => (
-                <tr key={item.id} className="group transition-colors hover:bg-[#fbfcfb]" data-testid={`row-incident-${item.id}`}>
-                  <td className="px-5 py-4 align-top"><span className="font-mono text-xs font-bold text-[#176b53]" data-testid={`text-incident-code-${item.id}`}>{item.code}</span><span className="mt-1 block text-xs text-[#8a9793]">{formatDate(item.reportedAt)}</span></td>
-                  <td className="max-w-[300px] px-5 py-4 align-top"><p className="font-bold text-[#21453d]">{item.title}</p><p className="mt-1 line-clamp-2 text-xs leading-5 text-[#76837f]">{item.description}</p></td>
-                  <td className="px-5 py-4 align-top"><p className="text-sm font-semibold text-[#31534b]">{item.facility}</p><p className="mt-1 flex items-start gap-1 text-xs text-[#8a9793]"><MapPin size={12} className="mt-0.5 shrink-0" />{item.address}</p></td>
-                  <td className="px-5 py-4 align-top"><span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${severityClass(item.severity)}`}>{item.severity}</span></td>
-                  <td className="px-5 py-4 align-top"><span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${statusClass(item.status)}`} data-testid={`status-incident-${item.id}`}>{item.status}</span></td>
-                  <td className="px-5 py-4 text-right align-top"><Link href={`/admin/inspections/incidents/${item.id}`} className="focus-ring inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-bold text-[#176b53] transition-colors hover:bg-[#e9f3ee]" data-testid={`link-view-incident-${item.id}`}>Xem chi tiết <ChevronRight size={15} /></Link></td>
+                <tr key={item.id} className="transition-colors hover:bg-[#f8fafc]" data-testid={`row-incident-${item.id}`}>
+                  <td className="px-6 py-6 align-middle font-mono text-base leading-6 tracking-[.03em] text-[#334155]" data-testid={`text-incident-code-${item.id}`}>{item.code}</td>
+                  <td className="max-w-[220px] px-6 py-6 align-middle text-base leading-6 text-[#334155]">{item.facility}</td>
+                  <td className="px-6 py-6 align-middle"><span className="block text-sm text-[#475569]">{new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(item.occurredAt))}</span><span className="mt-0.5 block text-xs text-[#94a3b8]">{new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit" }).format(new Date(item.occurredAt))}</span></td>
+                  <td className="px-6 py-6 align-middle"><span className="inline-flex min-w-8 justify-center rounded bg-[#fef3c7] px-2 py-1 text-xs text-[#000]">{String(item.suspectedCases ?? 0).padStart(2, "0")}</span></td>
+                  <td className="max-w-[120px] px-6 py-6 align-middle text-sm leading-5 text-[#475569]">{item.meals?.join(", ") || item.foods || "—"}</td>
+                  <td className="px-6 py-6 align-middle"><span className={`inline-flex rounded-full px-3 py-1 text-xs ${item.status === "Đang xử lý" ? "bg-[#dbeafe] text-[#1d4ed8]" : "bg-[#dcfce7] text-[#15803d]"}`} data-testid={`status-incident-${item.id}`}>{item.status}</span></td>
+                  <td className="px-6 py-6 text-right align-middle"><Link href={`/admin/inspections/incidents/${item.id}`} className="focus-ring inline-flex min-h-[58px] items-center justify-center rounded-lg border border-[#e2e8f0] bg-white px-6 text-sm text-[#334155] transition-colors hover:border-[#2563eb] hover:text-[#2563eb]" data-testid={`link-view-incident-${item.id}`}>Xem chi tiết</Link></td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <div className="divide-y divide-[#edf1ef] md:hidden">
+        <div className="divide-y divide-[#f1f5f9] md:hidden">
           {filtered.map((item) => (
-            <Link key={item.id} href={`/admin/inspections/incidents/${item.id}`} className="block p-4 transition-colors hover:bg-[#fbfcfb]" data-testid={`card-incident-${item.id}`}>
-              <div className="flex items-start justify-between gap-3"><span className="font-mono text-xs font-bold text-[#176b53]">{item.code}</span><span className={`rounded-full border px-2 py-1 text-[11px] font-bold ${statusClass(item.status)}`}>{item.status}</span></div>
-              <p className="mt-3 font-bold text-[#21453d]">{item.title}</p><p className="mt-2 text-xs font-semibold text-[#58706a]">{item.facility}</p>
-              <div className="mt-3 flex items-center justify-between"><span className={`rounded-full border px-2 py-1 text-[11px] font-bold ${severityClass(item.severity)}`}>{item.severity}</span><span className="flex items-center gap-1 text-xs font-bold text-[#176b53]">Xem chi tiết <ChevronRight size={14} /></span></div>
+            <Link key={item.id} href={`/admin/inspections/incidents/${item.id}`} className="block p-5 transition-colors hover:bg-[#f8fafc]" data-testid={`card-incident-${item.id}`}>
+              <div className="flex items-start justify-between gap-3"><span className="font-mono text-sm text-[#334155]">{item.code}</span><span className={`rounded-full px-3 py-1 text-xs ${item.status === "Đang xử lý" ? "bg-[#dbeafe] text-[#1d4ed8]" : "bg-[#dcfce7] text-[#15803d]"}`}>{item.status}</span></div>
+              <p className="mt-4 text-base text-[#334155]">{item.facility}</p><p className="mt-2 text-sm text-[#64748b]">{item.title}</p>
+              <div className="mt-4 flex items-center justify-between text-sm text-[#475569]"><span>{item.meals?.join(", ") || item.foods || "—"} · {item.suspectedCases ?? 0} ca</span><span className="font-semibold text-[#2563eb]">Xem</span></div>
             </Link>
           ))}
         </div>
-        {filtered.length === 0 && <div className="p-14 text-center" data-testid="empty-incident-results"><CircleAlert className="mx-auto text-[#c6d3cf]" size={34} /><p className="mt-3 font-bold text-[#31534b]">Không tìm thấy sự cố phù hợp</p><p className="mt-1 text-sm text-[#81908b]">Thử thay đổi từ khóa hoặc bộ lọc đang chọn.</p></div>}
-        <div className="border-t border-[#e4ebe8] px-5 py-3 text-xs text-[#7c8b86]">Hiển thị <strong className="text-[#31534b]">{filtered.length}</strong> trên {incidents.length} sự cố</div>
+        {filtered.length === 0 && <div className="p-14 text-center" data-testid="empty-incident-results"><CircleAlert className="mx-auto text-[#cbd5e1]" size={34} /><p className="mt-3 font-semibold text-[#334155]">Không tìm thấy sự cố phù hợp</p><p className="mt-1 text-sm text-[#64748b]">Thử thay đổi từ khóa hoặc bộ lọc đang chọn.</p></div>}
+        <div className="flex flex-col gap-4 border-t border-[#f1f5f9] bg-[#f8fafc] px-6 py-4 text-sm text-[#64748b] sm:flex-row sm:items-center sm:justify-between">
+          <span>Hiển thị 1 - {Math.min(filtered.length, 10)} trong tổng số {filtered.length} sự cố</span>
+          <div className="flex items-center gap-2">
+            <button type="button" className="h-8 w-8 rounded border border-[#e2e8f0] bg-white text-[#94a3b8]" aria-label="Trang trước">‹</button>
+            <button type="button" className="h-8 w-8 rounded bg-[#2563eb] text-white">1</button>
+            <button type="button" className="h-8 w-8 rounded border border-[#e2e8f0] bg-white text-[#475569]">2</button>
+            <button type="button" className="h-8 w-8 rounded border border-[#e2e8f0] bg-white text-[#475569]" aria-label="Trang sau">›</button>
+          </div>
+        </div>
       </section>
     </PageFrame>
   );
@@ -364,6 +398,9 @@ export function IncidentListPage() {
 
 const fieldClass = "focus-ring mt-1.5 h-11 w-full rounded-xl border border-[#d4dfdb] bg-[#fbfcfb] px-3.5 text-sm text-[#21453d] outline-none transition-colors placeholder:text-[#a1ada9] focus:border-[#176b53]";
 const areaClass = "focus-ring mt-1.5 w-full rounded-xl border border-[#d4dfdb] bg-[#fbfcfb] px-3.5 py-3 text-sm leading-6 text-[#21453d] outline-none transition-colors placeholder:text-[#a1ada9] focus:border-[#176b53]";
+const designInputClass = "focus-ring mt-2 h-[50px] w-full rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-4 text-base text-[#334155] outline-none transition-colors placeholder:text-[#9ca3af] focus:border-[#2563eb]";
+const designAreaClass = "focus-ring mt-2 min-h-[98px] w-full resize-y rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3 text-base leading-6 text-[#334155] outline-none transition-colors placeholder:text-[#9ca3af] focus:border-[#2563eb]";
+const designLabelClass = "text-xs font-semibold uppercase tracking-[0.05em] text-[#64748b]";
 
 export function IncidentCreatePage() {
   const [, navigate] = useLocation();
@@ -373,22 +410,32 @@ export function IncidentCreatePage() {
     title: "",
     facilityType: "" as IncidentFacilityType | "",
     facility: "",
+    meals: ["Trưa"],
+    suspectedCases: "",
     occurredAt: "",
     severity: "Cao" as IncidentSeverity,
     reporter: "",
+    reporterRole: "",
     phone: "",
     foods: "",
     description: "",
     response: "",
     notifyFacility: true,
+    notifyHealth: false,
     notifyDistrict: false,
   });
 
-  const update = (key: string, value: string | boolean) => setForm((current) => ({ ...current, [key]: value }));
+  const update = (key: string, value: string | boolean | string[]) => setForm((current) => ({ ...current, [key]: value }));
   const handleFiles = (event: ChangeEvent<HTMLInputElement>) => setFiles(Array.from(event.target.files ?? []).map((file) => file.name));
+  const toggleMeal = (meal: string) => setForm((current) => ({
+    ...current,
+    meals: current.meals.includes(meal)
+      ? current.meals.filter((item) => item !== meal)
+      : [...current.meals, meal],
+  }));
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (!form.title || !form.facilityType || !form.facility || !form.occurredAt || !form.description || !form.reporter) {
+    if (!form.title || !form.facilityType || !form.facility || !form.meals.length || !form.suspectedCases || !form.occurredAt || !form.description || !form.reporter || !form.reporterRole) {
       setSubmitted(true);
       return;
     }
@@ -401,18 +448,22 @@ export function IncidentCreatePage() {
       title: form.title,
       facilityType: form.facilityType || undefined,
       facility: form.facility,
+      meals: form.meals,
+      suspectedCases: Number(form.suspectedCases),
       address: "Chưa cập nhật địa chỉ",
       occurredAt: form.occurredAt,
       reportedAt: now,
       reporter: form.reporter,
+      reporterRole: form.reporterRole,
       phone: form.phone,
       severity: form.severity,
       status: "Đang xử lý",
       description: form.description,
       response: form.response || "Chưa có biện pháp xử lý được ghi nhận.",
-      foods: form.foods || "Chưa cập nhật",
+      foods: form.foods || form.meals.join(", "),
       attachments: files,
       notifyFacility: form.notifyFacility,
+      notifyHealth: form.notifyHealth,
       notifyDistrict: form.notifyDistrict,
       timeline: [{ time: new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit" }).format(new Date()), label: "Tiếp nhận cảnh báo", detail: "Cảnh báo mới được tạo bởi cán bộ phụ trách.", tone: "amber" }],
     };
@@ -422,36 +473,134 @@ export function IncidentCreatePage() {
 
   return (
     <PageFrame>
-      <div className="mb-6"><Link href="/admin/inspections/incidents" className="focus-ring inline-flex items-center gap-2 text-sm font-bold text-[#176b53] hover:text-[#125943]" data-testid="link-back-incidents"><ArrowLeft size={16} /> Danh sách sự cố</Link></div>
-      <TopBar title="Tạo cảnh báo sự cố" description="Ghi nhận nhanh thông tin ban đầu để kích hoạt quy trình xác minh và phối hợp xử lý." />
-      <form onSubmit={submit} className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]" data-testid="form-create-incident">
-        <div className="space-y-6">
-          <section className="rounded-2xl border border-[#d7e2de] bg-white p-5 shadow-[0_10px_35px_rgba(21,64,53,.05)] sm:p-7">
-            <div className="mb-5 flex items-start gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#e5f2eb] text-[#176b53]"><Siren size={18} /></div><div><h2 className="font-extrabold text-[#21453d]">Thông tin sự cố</h2><p className="mt-1 text-xs text-[#83908c]">Các trường có dấu <span className="text-[#a33b27]">*</span> là bắt buộc.</p></div></div>
-            <div className="grid gap-5 md:grid-cols-2">
-              <label className="md:col-span-2 text-sm font-bold text-[#31534b]">Tiêu đề sự cố <span className="text-[#a33b27]">*</span><input value={form.title} onChange={(e) => update("title", e.target.value)} className={fieldClass} placeholder="Ví dụ: Nghi ngờ ngộ độc sau bữa trưa" data-testid="input-incident-title" />{submitted && !form.title && <span className="mt-1 block text-xs font-medium text-[#a33b27]">Vui lòng nhập tiêu đề.</span>}</label>
-               <label className="text-sm font-bold text-[#31534b]">Loại cơ sở <span className="text-[#a33b27]">*</span><select value={form.facilityType} onChange={(e) => setForm((current) => ({ ...current, facilityType: e.target.value as IncidentFacilityType | "", facility: "" }))} className={fieldClass} data-testid="select-incident-facility-type"><option value="">Chọn loại cơ sở</option>{Object.keys(incidentFacilityOptions).map((option) => <option key={option} value={option}>{option}</option>)}</select>{submitted && !form.facilityType && <span className="mt-1 block text-xs font-medium text-[#a33b27]">Vui lòng chọn loại cơ sở.</span>}</label>
-               <label className="text-sm font-bold text-[#31534b]">Tên cơ sở liên quan <span className="text-[#a33b27]">*</span><select value={form.facility} onChange={(e) => update("facility", e.target.value)} disabled={!form.facilityType} className={`${fieldClass} disabled:cursor-not-allowed disabled:bg-[#f1f5f3] disabled:text-[#8a9793]`} data-testid="select-incident-facility"><option value="">{form.facilityType ? "Chọn cơ sở" : "Chọn loại cơ sở trước"}</option>{form.facilityType && incidentFacilityOptions[form.facilityType].map((facility) => <option key={facility}>{facility}</option>)}</select>{submitted && !form.facility && <span className="mt-1 block text-xs font-medium text-[#a33b27]">Vui lòng chọn cơ sở.</span>}</label>
-              <label className="text-sm font-bold text-[#31534b]">Thời điểm xảy ra <span className="text-[#a33b27]">*</span><input type="datetime-local" value={form.occurredAt} onChange={(e) => update("occurredAt", e.target.value)} className={fieldClass} data-testid="input-incident-occurred-at" />{submitted && !form.occurredAt && <span className="mt-1 block text-xs font-medium text-[#a33b27]">Vui lòng chọn thời điểm.</span>}</label>
-              <label className="text-sm font-bold text-[#31534b]">Mức độ ưu tiên<select value={form.severity} onChange={(e) => update("severity", e.target.value)} className={fieldClass} data-testid="select-incident-priority"><option>Khẩn cấp</option><option>Cao</option><option>Trung bình</option></select></label>
-              <label className="text-sm font-bold text-[#31534b]">Người báo tin <span className="text-[#a33b27]">*</span><input value={form.reporter} onChange={(e) => update("reporter", e.target.value)} className={fieldClass} placeholder="Họ và tên" data-testid="input-incident-reporter" />{submitted && !form.reporter && <span className="mt-1 block text-xs font-medium text-[#a33b27]">Vui lòng nhập người báo tin.</span>}</label>
-              <label className="text-sm font-bold text-[#31534b]">Số điện thoại<input value={form.phone} onChange={(e) => update("phone", e.target.value)} className={fieldClass} placeholder="0900 000 000" data-testid="input-incident-phone" /></label>
-              <label className="text-sm font-bold text-[#31534b] md:col-span-2">Thực phẩm / món ăn liên quan<input value={form.foods} onChange={(e) => update("foods", e.target.value)} className={fieldClass} placeholder="Tên món ăn, nguyên liệu hoặc lô hàng..." data-testid="input-incident-foods" /></label>
-              <label className="text-sm font-bold text-[#31534b] md:col-span-2">Mô tả tình huống <span className="text-[#a33b27]">*</span><textarea value={form.description} onChange={(e) => update("description", e.target.value)} rows={5} className={areaClass} placeholder="Mô tả ngắn gọn diễn biến, số người bị ảnh hưởng và thông tin đã xác minh..." data-testid="textarea-incident-description" />{submitted && !form.description && <span className="mt-1 block text-xs font-medium text-[#a33b27]">Vui lòng mô tả tình huống.</span>}</label>
-              <label className="text-sm font-bold text-[#31534b] md:col-span-2">Biện pháp đã thực hiện<textarea value={form.response} onChange={(e) => update("response", e.target.value)} rows={3} className={areaClass} placeholder="Ví dụ: tạm dừng phục vụ, niêm phong mẫu lưu..." data-testid="textarea-incident-response" /></label>
+      <div className="mb-6">
+        <Link href="/admin/inspections/incidents" className="focus-ring inline-flex items-center gap-2 text-sm font-bold text-[#2563eb] hover:text-[#1d4ed8]" data-testid="link-back-incidents">
+          <ArrowLeft size={16} /> Danh sách sự cố
+        </Link>
+      </div>
+      <TopBar title="Tạo mới cảnh báo ATTP" description="Ghi nhận nhanh thông tin ban đầu để kích hoạt quy trình xác minh và phối hợp xử lý." />
+      <form onSubmit={submit} className="mx-auto max-w-[894px] rounded-2xl border border-[#e2e8f0] bg-white p-6 shadow-[0_12px_40px_rgba(15,23,42,.06)] sm:p-8" data-testid="form-create-incident">
+        <div className="space-y-10">
+          <section>
+            <div className="mb-6 flex items-center gap-2">
+              <span className="h-6 w-1 rounded-full bg-[#2563eb]" />
+              <h2 className="text-sm font-bold uppercase tracking-[.05em] text-[#1e293b]">1. Thông tin sự cố</h2>
+            </div>
+            <div className="space-y-6">
+              <label className={designLabelClass}>Tiêu đề sự cố <span className="text-[#ef4444]">*</span>
+                <input value={form.title} onChange={(e) => update("title", e.target.value)} className={designInputClass} placeholder="Ví dụ: Nghi ngờ ngộ độc sau bữa trưa" data-testid="input-incident-title" />
+                {submitted && !form.title && <span className="mt-1 block normal-case tracking-normal text-xs font-medium text-[#ef4444]">Vui lòng nhập tiêu đề.</span>}
+              </label>
+              <label className={designLabelClass}>Loại cơ sở <span className="text-[#ef4444]">*</span>
+                <select value={form.facilityType} onChange={(e) => setForm((current) => ({ ...current, facilityType: e.target.value as IncidentFacilityType | "", facility: "" }))} className={designInputClass} data-testid="select-incident-facility-type">
+                  <option value="">Chọn loại cơ sở</option>
+                  {Object.keys(incidentFacilityOptions).map((option) => <option key={option} value={option}>{option}</option>)}
+                </select>
+                {submitted && !form.facilityType && <span className="mt-1 block normal-case tracking-normal text-xs font-medium text-[#ef4444]">Vui lòng chọn loại cơ sở.</span>}
+              </label>
+              <label className={designLabelClass}>Tên cơ sở liên quan <span className="text-[#ef4444]">*</span>
+                <select value={form.facility} onChange={(e) => update("facility", e.target.value)} disabled={!form.facilityType} className={`${designInputClass} disabled:cursor-not-allowed disabled:bg-[#f1f5f9] disabled:text-[#94a3b8]`} data-testid="select-incident-facility">
+                  <option value="">{form.facilityType ? "Chọn cơ sở" : "Chọn loại cơ sở trước"}</option>
+                  {form.facilityType && incidentFacilityOptions[form.facilityType].map((facility) => <option key={facility}>{facility}</option>)}
+                </select>
+                {submitted && !form.facility && <span className="mt-1 block normal-case tracking-normal text-xs font-medium text-[#ef4444]">Vui lòng chọn cơ sở.</span>}
+              </label>
+              <div className="grid gap-6 md:grid-cols-2">
+                <label className={designLabelClass}>Thời điểm phát hiện <span className="text-[#ef4444]">*</span>
+                  <input type="datetime-local" value={form.occurredAt} onChange={(e) => update("occurredAt", e.target.value)} className={designInputClass} data-testid="input-incident-occurred-at" />
+                  {submitted && !form.occurredAt && <span className="mt-1 block normal-case tracking-normal text-xs font-medium text-[#ef4444]">Vui lòng chọn thời điểm.</span>}
+                </label>
+                <div>
+                  <p className={designLabelClass}>Bữa ăn liên quan <span className="text-[#ef4444]">*</span></p>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {["Sáng", "Trưa", "Chiều", "Tối"].map((meal) => {
+                      const selected = form.meals.includes(meal);
+                      return <button type="button" key={meal} onClick={() => toggleMeal(meal)} className={`h-[50px] rounded-xl border text-sm font-medium transition-colors ${selected ? "border-[#2563eb] bg-[#eff6ff] text-[#1d4ed8]" : "border-[#e2e8f0] bg-[#f8fafc] text-[#475569] hover:border-[#93c5fd]"}`} data-testid={`button-incident-meal-${meal}`}>{meal}</button>;
+                    })}
+                  </div>
+                  {submitted && !form.meals.length && <span className="mt-1 block text-xs font-medium text-[#ef4444]">Vui lòng chọn ít nhất một bữa ăn.</span>}
+                </div>
+              </div>
+              <div className="grid gap-6 md:grid-cols-2">
+                <label className={designLabelClass}>Số ca nghi ngờ <span className="text-[#ef4444]">*</span>
+                  <input type="number" min="1" value={form.suspectedCases} onChange={(e) => update("suspectedCases", e.target.value)} className={designInputClass} placeholder="0" data-testid="input-incident-suspected-cases" />
+                  {submitted && !form.suspectedCases && <span className="mt-1 block normal-case tracking-normal text-xs font-medium text-[#ef4444]">Vui lòng nhập số ca nghi ngờ.</span>}
+                </label>
+                <label className={designLabelClass}>Mức độ ưu tiên
+                  <select value={form.severity} onChange={(e) => update("severity", e.target.value)} className={designInputClass} data-testid="select-incident-priority"><option>Khẩn cấp</option><option>Cao</option><option>Trung bình</option></select>
+                </label>
+              </div>
+              <label className={designLabelClass}>Mô tả chi tiết / Ghi chú ban đầu <span className="text-[#ef4444]">*</span>
+                <textarea value={form.description} onChange={(e) => update("description", e.target.value)} className={designAreaClass} placeholder="Mô tả các biểu hiện, số người bị ảnh hưởng và các biện pháp xử lý ban đầu tại chỗ..." data-testid="textarea-incident-description" />
+                {submitted && !form.description && <span className="mt-1 block normal-case tracking-normal text-xs font-medium text-[#ef4444]">Vui lòng mô tả tình huống.</span>}
+              </label>
+              <label className={designLabelClass}>Thực phẩm / món ăn cụ thể
+                <input value={form.foods} onChange={(e) => update("foods", e.target.value)} className={designInputClass} placeholder="Tên món ăn, nguyên liệu hoặc lô hàng..." data-testid="input-incident-foods" />
+              </label>
             </div>
           </section>
-          <section className="rounded-2xl border border-[#d7e2de] bg-white p-5 shadow-[0_10px_35px_rgba(21,64,53,.05)] sm:p-7">
-            <div className="mb-4 flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#eef3f2] text-[#176b53]"><Paperclip size={18} /></div><div><h2 className="font-extrabold text-[#21453d]">Tài liệu đính kèm</h2><p className="mt-1 text-xs text-[#83908c]">Đính kèm biên bản, hình ảnh hoặc tài liệu liên quan.</p></div></div>
-            <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-[#b9cbc4] bg-[#f8fbf9] px-5 py-7 text-center transition-colors hover:border-[#176b53] hover:bg-[#f1f8f3]" data-testid="label-upload-incident-files"><UploadIcon /><span className="mt-2 text-sm font-bold text-[#31534b]">Chọn tệp từ máy tính</span><span className="mt-1 text-xs text-[#8a9793]">PDF, JPG, PNG · tối đa 10MB / tệp</span><input type="file" accept=".pdf,.jpg,.jpeg,.png" multiple className="sr-only" onChange={handleFiles} data-testid="input-incident-files" /></label>
-            {files.length > 0 && <div className="mt-3 space-y-2">{files.map((file) => <div key={file} className="flex items-center justify-between rounded-lg bg-[#f1f7f3] px-3 py-2 text-xs font-semibold text-[#31534b]" data-testid={`file-incident-${file}`}><span className="flex items-center gap-2 truncate"><FileText size={14} />{file}</span><button type="button" onClick={() => setFiles((current) => current.filter((name) => name !== file))} className="focus-ring rounded p-1 text-[#7f918b] hover:text-[#a33b27]" aria-label={`Xóa tệp ${file}`} data-testid={`button-remove-file-${file}`}><X size={14} /></button></div>)}</div>}
+
+          <section>
+            <div className="mb-6 flex items-center gap-2">
+              <span className="h-6 w-1 rounded-full bg-[#94a3b8]" />
+              <h2 className="text-sm font-bold uppercase tracking-[.05em] text-[#1e293b]">3. Thông tin người báo cáo & ghi chú</h2>
+            </div>
+            <div className="grid gap-6 md:grid-cols-3">
+              <label className={designLabelClass}>Họ và tên <span className="text-[#ef4444]">*</span>
+                <input value={form.reporter} onChange={(e) => update("reporter", e.target.value)} className={designInputClass} placeholder="Nguyễn Văn A" data-testid="input-incident-reporter" />
+                {submitted && !form.reporter && <span className="mt-1 block normal-case tracking-normal text-xs font-medium text-[#ef4444]">Vui lòng nhập họ tên.</span>}
+              </label>
+              <label className={designLabelClass}>Chức vụ <span className="text-[#ef4444]">*</span>
+                <input value={form.reporterRole} onChange={(e) => update("reporterRole", e.target.value)} className={designInputClass} placeholder="Trưởng trạm y tế" data-testid="input-incident-reporter-role" />
+                {submitted && !form.reporterRole && <span className="mt-1 block normal-case tracking-normal text-xs font-medium text-[#ef4444]">Vui lòng nhập chức vụ.</span>}
+              </label>
+              <label className={designLabelClass}>Số điện thoại <span className="text-[#ef4444]">*</span>
+                <input value={form.phone} onChange={(e) => update("phone", e.target.value)} className={designInputClass} placeholder="0909 123 456" data-testid="input-incident-phone" />
+              </label>
+            </div>
+            <label className={`${designLabelClass} mt-6 block`}>Biện pháp đã thực hiện
+              <textarea value={form.response} onChange={(e) => update("response", e.target.value)} className={designAreaClass} placeholder="Ví dụ: tạm dừng phục vụ, niêm phong mẫu lưu..." data-testid="textarea-incident-response" />
+            </label>
           </section>
+
+          <section>
+            <div className="mb-6 flex items-center gap-2">
+              <span className="h-6 w-1 rounded-full bg-[#94a3b8]" />
+              <h2 className="text-sm font-bold uppercase tracking-[.05em] text-[#1e293b]">4. Tải lên minh chứng / hình ảnh</h2>
+            </div>
+            <label className="flex min-h-[172px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#e2e8f0] bg-[#f8fafc] px-5 text-center transition-colors hover:border-[#93c5fd] hover:bg-[#eff6ff]" data-testid="label-upload-incident-files">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full border border-[#e2e8f0] bg-white text-[#2563eb] shadow-sm"><Upload size={22} /></span>
+              <span className="mt-3 text-base font-medium text-[#1e293b]">Nhấn để tải lên hoặc kéo thả hình ảnh/tài liệu</span>
+              <span className="mt-1 text-xs text-[#64748b]">Hỗ trợ JPG, PNG, PDF (Tối đa 10MB)</span>
+              <input type="file" accept=".pdf,.jpg,.jpeg,.png" multiple className="sr-only" onChange={handleFiles} data-testid="input-incident-files" />
+            </label>
+            {files.length > 0 && <div className="mt-3 space-y-2">{files.map((file) => <div key={file} className="flex items-center justify-between rounded-lg bg-[#eff6ff] px-3 py-2 text-xs font-semibold text-[#1e3a8a]" data-testid={`file-incident-${file}`}><span className="flex items-center gap-2 truncate"><FileText size={14} />{file}</span><button type="button" onClick={() => setFiles((current) => current.filter((name) => name !== file))} className="focus-ring rounded p-1 text-[#64748b] hover:text-[#ef4444]" aria-label={`Xóa tệp ${file}`} data-testid={`button-remove-file-${file}`}><X size={14} /></button></div>)}</div>}
+          </section>
+
+          <section>
+            <div className="mb-6 flex items-center gap-2">
+              <span className="h-6 w-1 rounded-full bg-[#2563eb]" />
+              <h2 className="text-sm font-bold uppercase tracking-[.05em] text-[#1e293b]">5. Gửi thông báo đến các bên liên quan</h2>
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              {[
+                ["notifyFacility", "Nhà trường", "Thông báo qua hệ thống", form.notifyFacility, "checkbox-notify-facility"],
+                ["notifyHealth", "Trạm Y tế địa phương", "Gửi Email tự động", form.notifyHealth, "checkbox-notify-health"],
+                ["notifyDistrict", "UBND Phường/Xã", "Gửi Email tự động", form.notifyDistrict, "checkbox-notify-district"],
+              ].map(([key, title, description, checked, testId]) => (
+                <label key={String(key)} className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${checked ? "border-[#2563eb] bg-[#eff6ff]" : "border-[#e2e8f0] bg-white hover:border-[#93c5fd]"}`}>
+                  <input type="checkbox" checked={Boolean(checked)} onChange={(e) => update(String(key), e.target.checked)} className="mt-0.5 h-5 w-5 accent-[#2563eb]" data-testid={testId} />
+                  <span><strong className="block text-[13px] text-[#1e293b]">{title}</strong><span className="mt-1 block text-[11px] text-[#64748b]">{description}</span></span>
+                </label>
+              ))}
+            </div>
+          </section>
+
+          <div className="flex flex-col-reverse gap-3 border-t border-[#e2e8f0] pt-6 sm:flex-row sm:justify-end">
+            <Link href="/admin/inspections/incidents" className="focus-ring inline-flex h-[50px] items-center justify-center rounded-xl border border-[#e2e8f0] px-8 text-base font-semibold text-[#64748b] transition-colors hover:border-[#94a3b8] hover:text-[#334155]" data-testid="link-cancel-create-incident">Hủy</Link>
+            <PrimaryButton type="submit" variant="danger" testId="button-submit-incident"><Siren size={16} /> Kích hoạt SOP & gửi thông báo</PrimaryButton>
+          </div>
         </div>
-        <aside className="space-y-6">
-          <section className="rounded-2xl border border-[#d7e2de] bg-white p-5 shadow-[0_10px_35px_rgba(21,64,53,.05)]"><div className="flex items-center gap-3"><Bell size={18} className="text-[#176b53]" /><h2 className="font-extrabold text-[#21453d]">Thông báo xử lý</h2></div><p className="mt-2 text-xs leading-5 text-[#83908c]">Chọn các đầu mối cần nhận thông báo ngay khi cảnh báo được tạo.</p><div className="mt-5 space-y-3"><label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#e0e9e5] p-3 transition-colors hover:bg-[#f7faf8]"><input type="checkbox" checked={form.notifyFacility} onChange={(e) => update("notifyFacility", e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#176b53]" data-testid="checkbox-notify-facility" /><span><strong className="block text-sm text-[#31534b]">Cơ sở liên quan</strong><span className="mt-1 block text-xs leading-5 text-[#83908c]">Người phụ trách ATTP tại cơ sở</span></span></label><label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#e0e9e5] p-3 transition-colors hover:bg-[#f7faf8]"><input type="checkbox" checked={form.notifyDistrict} onChange={(e) => update("notifyDistrict", e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#176b53]" data-testid="checkbox-notify-district" /><span><strong className="block text-sm text-[#31534b]">Phòng Y tế quận, huyện</strong><span className="mt-1 block text-xs leading-5 text-[#83908c]">Đầu mối giám sát địa bàn</span></span></label></div></section>
-          <div className="rounded-2xl border border-[#e6d39d] bg-[#fff9e9] p-5"><div className="flex gap-3"><ShieldCheck size={19} className="shrink-0 text-[#97731e]" /><p className="text-xs leading-5 text-[#70591e]">Sau khi gửi, sự cố sẽ ở trạng thái <strong>Đang xử lý</strong>. Cán bộ được phân công có thể cập nhật tiến độ và đóng sự cố tại trang chi tiết.</p></div></div>
-          <div className="flex flex-col gap-2 sm:flex-row lg:flex-col"><PrimaryButton type="submit" testId="button-submit-incident"><Siren size={16} /> Gửi cảnh báo</PrimaryButton><Link href="/admin/inspections/incidents" className="focus-ring inline-flex items-center justify-center rounded-xl border border-[#cbdad5] bg-white px-4 py-2.5 text-sm font-bold text-[#31534b] transition-colors hover:border-[#176b53] hover:text-[#176b53]" data-testid="link-cancel-create-incident">Hủy bỏ</Link></div>
-        </aside>
       </form>
     </PageFrame>
   );
