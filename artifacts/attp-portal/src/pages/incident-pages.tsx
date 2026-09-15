@@ -1454,7 +1454,6 @@ function SchoolUpdateSummary({
       <div className="grid gap-4 sm:grid-cols-2">
         {[
           ["Người cập nhật", `${update.contactName} · ${update.contactRole}`],
-          ["Triệu chứng ghi nhận", update.symptoms],
           ["Món ăn đã truy xuất", update.tracedMeals],
           ["Biện pháp đã thực hiện", update.actionsTaken],
         ].map(([label, value]) => (
