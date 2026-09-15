@@ -229,15 +229,32 @@ export function AdminReportsPage() {
     setKeyword("");
   };
 
-  const exportCsv = () => {
+  const exportExcel = () => {
     const header = ["Phường/Xã", "Tổng cơ sở GD", "Tự nấu", "Dùng suất ăn ngoài", "Nhu cầu dự kiến", "Nhu cầu thực tế", "Cơ sở cung cấp", "Công suất cung cấp"];
     const rows = filteredRows.map((row) => [row.name, row.schools, row.selfCook, row.externalMeals, row.plannedDemand, row.actualDemand, row.suppliers, row.capacity]);
-    const csv = [header, ...rows].map((row) => row.join(",")).join("\n");
+    const escapeCell = (value: unknown) =>
+      String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    const body = rows
+      .map(
+        (row) =>
+          `<tr>${row.map((value) => `<td>${escapeCell(value)}</td>`).join("")}</tr>`,
+      )
+      .join("");
+    const html = `<html><head><meta charset="utf-8" /></head><body><h1>Báo cáo thống kê cơ sở và nhu cầu suất ăn</h1><table border="1"><thead><tr>${header.map((value) => `<th>${escapeCell(value)}</th>`).join("")}</tr></thead><tbody>${body}</tbody></table></body></html>`;
+    const url = URL.createObjectURL(
+      new Blob([`\ufeff${html}`], {
+        type: "application/vnd.ms-excel;charset=utf-8",
+      }),
+    );
     const link = document.createElement("a");
-    link.href = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" }));
-    link.download = "bao-cao-thong-ke-co-so-va-nhu-cau-suat-an.csv";
+    link.href = url;
+    link.download = `bao-cao-thong-ke-co-so-va-nhu-cau-suat-an-${new Date().toISOString().slice(0, 10)}.xls`;
     link.click();
-    URL.revokeObjectURL(link.href);
+    URL.revokeObjectURL(url);
   };
 
   const hasFilters = Boolean(keyword || ward !== "Tất cả phường/xã" || category !== "Tất cả loại hình" || mealType !== "Tất cả hình thức" || status !== "Tất cả trạng thái");
@@ -257,8 +274,8 @@ export function AdminReportsPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <button type="button" onClick={exportCsv} className="inline-flex h-11 items-center gap-2 rounded-xl border border-[#1d7a50]/25 bg-white px-4 text-sm font-bold text-[#167345] shadow-sm transition hover:bg-[#f0faf4]" data-testid="button-export-report">
-              <Download size={17} /> Xuất file CSV
+            <button type="button" onClick={exportExcel} className="inline-flex h-11 items-center gap-2 rounded-xl border border-[#1d7a50]/25 bg-white px-4 text-sm font-bold text-[#167345] shadow-sm transition hover:bg-[#f0faf4]" data-testid="button-export-report">
+              <FileSpreadsheet size={17} /> Xuất file Excel
             </button>
             <button type="button" onClick={resetFilters} className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#123d36] px-4 text-sm font-bold text-white shadow-sm transition hover:bg-[#1b5549]" data-testid="button-refresh-report">
               <RefreshCw size={16} /> Cập nhật báo cáo

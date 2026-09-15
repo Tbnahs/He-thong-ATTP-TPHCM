@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ChangeEvent } from "react";
 import {
   ArrowUpRight,
   BarChart3,
@@ -13,6 +13,7 @@ import {
   CircleDollarSign,
   ClipboardCheck,
   Download,
+  FileSpreadsheet,
   Flame,
   FileText,
   MapPin,
@@ -24,6 +25,7 @@ import {
   X,
 } from "lucide-react";
 import { Link } from "wouter";
+import * as XLSX from "xlsx";
 import {
   AdminShell,
   EmptyState,
@@ -31,6 +33,7 @@ import {
   SectionHeading,
   StatusPill,
 } from "@/components/portal-ui";
+import { applications } from "@/lib/mock-data";
 
 type FacilityCategory =
   | "Trường học có bếp ăn bán trú"
@@ -110,6 +113,218 @@ const categoryOptions: Array<"Tất cả" | FacilityCategory> = [
   "Cơ sở cung cấp thực phẩm",
   "Cơ sở cung cấp suất ăn",
 ];
+
+type FacilityManagementTab =
+  | "suppliers"
+  | "schools"
+  | "food"
+  | "applications";
+type FacilityManagementRow = {
+  id: string;
+  name: string;
+  province: string;
+  ward: string;
+  address: string;
+  contact: string;
+  status: "approved" | "warning" | "stopped" | "pending" | "needs-more-info";
+  capacity: number;
+  serving?: number;
+  students?: number;
+  demand?: number;
+  level?: string;
+  mealOrganization?: string;
+  category?: string;
+  updated: string;
+  applicationId?: string;
+};
+
+const facilityManagementData: Record<
+  Exclude<FacilityManagementTab, "applications">,
+  FacilityManagementRow[]
+> = {
+  suppliers: [
+    {
+      id: "fm-supplier-001",
+      name: "Công ty TNHH ABC",
+      province: "TP. Hồ Chí Minh",
+      ward: "Bến Nghé",
+      address: "18 Nguyễn Huệ, P. Bến Nghé",
+      contact: "028 3822 4567",
+      status: "approved",
+      capacity: 3000,
+      serving: 2650,
+      updated: "08/09/2026",
+    },
+    {
+      id: "fm-supplier-002",
+      name: "Công ty Suất ăn Minh Tâm",
+      province: "TP. Hồ Chí Minh",
+      ward: "Đa Kao",
+      address: "52 Điện Biên Phủ, P. Đa Kao",
+      contact: "028 3812 8899",
+      status: "approved",
+      capacity: 2500,
+      serving: 2200,
+      updated: "08/09/2026",
+    },
+    {
+      id: "fm-supplier-003",
+      name: "Bếp ăn tập thể Cầu Ông Lãnh",
+      province: "TP. Hồ Chí Minh",
+      ward: "Cầu Ông Lãnh",
+      address: "116 Nguyễn Thái Học, P. Cầu Ông Lãnh",
+      contact: "0912 555 888",
+      status: "warning",
+      capacity: 1500,
+      serving: 1460,
+      updated: "07/09/2026",
+    },
+    {
+      id: "fm-supplier-004",
+      name: "Cơ sở Suất ăn Nguyễn Cư Trinh",
+      province: "TP. Hồ Chí Minh",
+      ward: "Nguyễn Cư Trinh",
+      address: "24 Trần Hưng Đạo, P. Nguyễn Cư Trinh",
+      contact: "0903 456 789",
+      status: "stopped",
+      capacity: 2000,
+      serving: 1860,
+      updated: "06/09/2026",
+    },
+  ],
+  schools: [
+    {
+      id: "fm-school-001",
+      name: "Trường Mầm non Hoa Mai",
+      province: "TP. Hồ Chí Minh",
+      ward: "Bến Nghé",
+      address: "25 Nguyễn Huệ, P. Bến Nghé",
+      contact: "028 3822 0001",
+      status: "approved",
+      capacity: 420,
+      students: 420,
+      demand: 420,
+      level: "Mầm non",
+      mealOrganization: "Tự tổ chức nấu ăn",
+      updated: "08/09/2026",
+    },
+    {
+      id: "fm-school-002",
+      name: "Trường Tiểu học Nguyễn Du",
+      province: "TP. Hồ Chí Minh",
+      ward: "Đa Kao",
+      address: "12 Nguyễn Du, P. Đa Kao",
+      contact: "028 3822 0002",
+      status: "approved",
+      capacity: 650,
+      students: 650,
+      demand: 650,
+      level: "Cấp 1",
+      mealOrganization: "Sử dụng suất ăn từ bên ngoài",
+      updated: "08/09/2026",
+    },
+    {
+      id: "fm-school-003",
+      name: "Trường THCS ABC",
+      province: "TP. Hồ Chí Minh",
+      ward: "Cầu Ông Lãnh",
+      address: "40 Nguyễn Thái Học, P. Cầu Ông Lãnh",
+      contact: "028 3822 0003",
+      status: "warning",
+      capacity: 780,
+      students: 780,
+      demand: 780,
+      level: "Cấp 2",
+      mealOrganization: "Sử dụng suất ăn từ bên ngoài",
+      updated: "07/09/2026",
+    },
+    {
+      id: "fm-school-004",
+      name: "Trường THPT XYZ",
+      province: "TP. Hồ Chí Minh",
+      ward: "Nguyễn Cư Trinh",
+      address: "88 Cống Quỳnh, P. Nguyễn Cư Trinh",
+      contact: "028 3822 0004",
+      status: "approved",
+      capacity: 800,
+      students: 800,
+      demand: 800,
+      level: "Cấp 3",
+      mealOrganization: "Tự tổ chức nấu ăn",
+      updated: "06/09/2026",
+    },
+  ],
+  food: [
+    {
+      id: "fm-food-001",
+      name: "Công ty TNHH Nông sản An Phú",
+      province: "TP. Hồ Chí Minh",
+      ward: "Bến Nghé",
+      address: "184 Nguyễn Văn Linh, Quận 7",
+      contact: "0908 123 456",
+      status: "approved",
+      capacity: 5200,
+      category: "Rau củ quả, thịt gia súc",
+      updated: "08/09/2026",
+      applicationId: "app-001",
+    },
+    {
+      id: "fm-food-002",
+      name: "Công ty Thực phẩm Tân Hưng",
+      province: "TP. Hồ Chí Minh",
+      ward: "Tân Hưng",
+      address: "42 Nguyễn Hữu Thọ, P. Tân Hưng",
+      contact: "0903 456 789",
+      status: "warning",
+      capacity: 3600,
+      category: "Thịt, cá và trứng",
+      updated: "07/09/2026",
+    },
+    {
+      id: "fm-food-003",
+      name: "Hợp tác xã Rau sạch Củ Chi",
+      province: "TP. Hồ Chí Minh",
+      ward: "Củ Chi",
+      address: "Đường Tỉnh lộ 8, xã Tân An Hội",
+      contact: "0904 567 890",
+      status: "approved",
+      capacity: 6800,
+      category: "Rau củ quả",
+      updated: "07/09/2026",
+    },
+    {
+      id: "fm-food-004",
+      name: "Cơ sở Hải sản Tươi Sài Gòn",
+      province: "TP. Hồ Chí Minh",
+      ward: "Cầu Ông Lãnh",
+      address: "128 Đề Thám, P. Cầu Ông Lãnh",
+      contact: "0905 678 901",
+      status: "stopped",
+      capacity: 2100,
+      category: "Hải sản",
+      updated: "05/09/2026",
+    },
+  ],
+};
+
+const facilityTabLabels: Record<FacilityManagementTab, string> = {
+  suppliers: "Cơ sở cung cấp suất ăn",
+  schools: "Cơ sở giáo dục",
+  food: "Cơ sở cung cấp thực phẩm",
+  applications: "Hồ sơ đăng ký",
+};
+
+function managementStatusLabel(
+  status: FacilityManagementRow["status"],
+) {
+  return {
+    approved: "Đạt",
+    warning: "Cảnh báo",
+    stopped: "Chưa đạt",
+    pending: "Chờ duyệt",
+    "needs-more-info": "Cần bổ sung",
+  }[status];
+}
 
 const mealData = {
   "three-step": {
@@ -291,6 +506,74 @@ function categoryShortName(category: FacilityCategory) {
     : category === "Cơ sở cung cấp thực phẩm"
       ? "Cung cấp thực phẩm"
       : "Cung cấp suất ăn";
+}
+
+function escapeExcelCell(value: unknown) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function downloadExcelTable(
+  filename: string,
+  title: string,
+  headers: string[],
+  rows: unknown[][],
+) {
+  const body = rows
+    .map(
+      (row) =>
+        `<tr>${row
+          .map((value) => `<td>${escapeExcelCell(value)}</td>`)
+          .join("")}</tr>`,
+    )
+    .join("");
+  const html = `<html><head><meta charset="utf-8" /></head><body><h1>${escapeExcelCell(title)}</h1><table border="1"><thead><tr>${headers.map((header) => `<th>${escapeExcelCell(header)}</th>`).join("")}</tr></thead><tbody>${body}</tbody></table></body></html>`;
+  const url = URL.createObjectURL(
+    new Blob([`\ufeff${html}`], {
+      type: "application/vnd.ms-excel;charset=utf-8",
+    }),
+  );
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadFacilityTemplate() {
+  downloadExcelTable(
+    "mau-nhap-quan-ly-co-so.xls",
+    "Mẫu nhập quản lý cơ sở",
+    [
+      "Tên cơ sở",
+      "Loại hình",
+      "Tỉnh/thành phố",
+      "Xã/phường",
+      "Địa chỉ",
+      "Số điện thoại",
+      "Trạng thái",
+      "Công suất/ngày",
+      "Số học sinh",
+      "Nhu cầu suất ăn/ngày",
+    ],
+    [
+      [
+        "Công ty TNHH Nông sản An Phú",
+        "Cơ sở cung cấp thực phẩm",
+        "TP. Hồ Chí Minh",
+        "Bến Nghé",
+        "184 Nguyễn Văn Linh, Quận 7",
+        "0908 123 456",
+        "Đạt",
+        "5200",
+        "",
+        "",
+      ],
+    ],
+  );
 }
 
 const sampleWardOptions = `phường Hiệp Bình, phường Tam Bình, phường Thủ Đức, phường Linh Xuân, phường Long Bình, phường Tăng Nhơn Phú, phường Phước Long, phường Long Phước, phường Long Trường, phường An Khánh, phường Bình Trưng, phường Cát Lái, phường Tân Định, phường Sài Gòn, phường Bến Thành, phường Cầu Ông Lãnh, phường Xuân Hòa, phường Bàn Cờ, phường Nhiêu Lộc, phường Vĩnh Hội, phường Khánh Hội, phường Xóm Chiếu, phường Chợ Quán, phường An Đông, phường Chợ Lớn, phường Bình Tiên, phường Bình Tây, phường Bình Phú, phường Phú Lâm, phường Tân Mỹ, phường Tân Hưng, phường Tân Thuận, phường Phú Thuận, phường Chánh Hưng, phường Bình Đông, phường Phú Định, phường Vườn Lài, phường Diên Hồng, phường Hòa Hưng, phường Hòa Bình, phường Phú Thọ, phường Bình Thới, phường Minh Phụng, phường Đông Hưng Thuận, phường Trung Mỹ Tây, phường Tân Thới Hiệp, phường Thới An, phường An Phú Đông, phường Bình Tân, phường Bình Hưng Hòa, phường Bình Trị Đông, phường An Lạc, phường Tân Tạo, phường Gia Định, phường Bình Thạnh, phường Bình Lợi Trung, phường Thạnh Mỹ Tây, phường Bình Quới, phường Hạnh Thông, phường An Nhơn, phường Gò Vấp, phường Thông Tây Hội, phường An Hội Tây, phường An Hội Đông, phường Đức Nhuận, phường Cầu Kiệu, phường Phú Nhuận, phường Tân Sơn Hòa, phường Tân Sơn Nhất, phường Tân Hòa, phường Bảy Hiền, phường Tân Bình, phường Tân Sơn, phường Tây Thạnh, phường Tân Sơn Nhì, phường Phú Thọ Hòa, phường Phú Thạnh, phường Tân Phú, phường Vũng Tàu, phường Tam Thắng, phường Rạch Dừa, phường Phước Thắng, phường Bà Rịa, phường Long Hương, phường Tam Long, phường Phú Mỹ, phường Tân Thành, phường Tân Phước, phường Tân Hải, phường Thới Hòa, phường Đông Hòa, phường Dĩ An, phường Tân Đông Hiệp, phường Thuận An, phường Thuận Giao, phường Bình Hòa, phường Lái Thiêu, phường An Phú, phường Bình Dương, phường Chánh Hiệp, phường Thủ Dầu Một, phường Phú Lợi, phường Vĩnh Tân, phường Bình Cơ, phường Tân Uyên, phường Tân Hiệp, phường Tân Khánh, phường Phú An, phường Tây Nam, phường Long Nguyên, phường Bến Cát, phường Chánh Phú Hòa, phường Hòa Lợi, xã Vĩnh Lộc, xã Tân Vĩnh Lộc, xã Bình Lợi, xã Tân Nhựt, xã Bình Chánh, xã Hưng Long, xã Bình Hưng, xã Cần Giờ, xã An Thới Đông, xã Bình Khánh, xã Thạnh An, xã An Nhơn Tây, xã Thái Mỹ, xã Nhuận Đức, xã Tân An Hội, xã Củ Chi, xã Phú Hòa Đông, xã Bình Mỹ, xã Hóc Môn, xã Bà Điểm, xã Xuân Thới Sơn, xã Đông Thạnh, xã Nhà Bè, xã Hiệp Phước, xã Long Sơn, xã Châu Pha, xã Ngãi Giao, xã Bình Giã, xã Kim Long, xã Châu Đức, xã Xuân Sơn, xã Nghĩa Thành, xã Hòa Hiệp, xã Bình Châu, xã Hồ Tràm, xã Xuyên Mộc, xã Hòa Hội, xã Bàu Lâm, xã Đất Đỏ, xã Long Hải, xã Long Điền, xã Phước Hải, xã Bắc Tân Uyên, xã Thường Tân, xã An Long, xã Phước Thành, xã Phước Hòa, xã Phú Giáo, xã Trừ Văn Thố, xã Bàu Bàng, xã Minh Thạnh, xã Long Hòa, xã Dầu Tiếng, xã Thanh An, đặc khu Côn Đảo`
@@ -764,6 +1047,90 @@ export function AdminMonitoringDashboard() {
     (total, item) => total + item.buyers,
     0,
   );
+  const exportDashboardExcel = () => {
+    const tabTitle =
+      activeTab === "suppliers"
+        ? "Cơ sở cung cấp suất ăn"
+        : activeTab === "schools"
+          ? "Cơ sở giáo dục"
+          : "Cơ sở cung cấp thực phẩm";
+    const rows =
+      activeTab === "suppliers"
+        ? visibleSuppliers.map((item) => [
+            item.name,
+            item.ward,
+            item.address,
+            item.capacity,
+            item.serving,
+            item.schools,
+            item.status,
+            item.updated,
+          ])
+        : activeTab === "schools"
+          ? visibleSchools.map((item) => [
+              item.name,
+              item.ward,
+              item.level,
+              item.mealOrganization,
+              item.students,
+              item.demand,
+              item.supply,
+              item.status,
+              item.updated,
+            ])
+          : visibleFoodSuppliers.map((item) => [
+              item.name,
+              item.province,
+              item.ward,
+              item.address,
+              item.category,
+              item.capacity,
+              item.buyers,
+              item.status,
+              item.updated,
+            ]);
+    const headers =
+      activeTab === "suppliers"
+        ? [
+            "Cơ sở cung cấp",
+            "Xã/phường",
+            "Địa chỉ",
+            "Công suất/ngày",
+            "Đang cung cấp",
+            "Số trường",
+            "Trạng thái",
+            "Cập nhật",
+          ]
+        : activeTab === "schools"
+          ? [
+              "Cơ sở giáo dục",
+              "Xã/phường",
+              "Cấp học",
+              "Hình thức bữa ăn",
+              "Học sinh",
+              "Nhu cầu suất ăn",
+              "Đã cung cấp",
+              "Trạng thái",
+              "Cập nhật",
+            ]
+          : [
+              "Cơ sở cung cấp thực phẩm",
+              "Tỉnh/thành phố",
+              "Xã/phường",
+              "Địa chỉ",
+              "Nhóm thực phẩm",
+              "Công suất/ngày",
+              "Đơn vị đang sử dụng",
+              "Trạng thái",
+              "Cập nhật",
+            ];
+    downloadExcelTable(
+      `dashboard-${activeTab}-${new Date().toISOString().slice(0, 10)}.xls`,
+      `Dashboard giám sát - ${tabTitle}`,
+      headers,
+      rows,
+    );
+  };
   const currentCapacity =
     activeTab === "suppliers"
       ? summary.supplierCapacity
@@ -809,6 +1176,14 @@ export function AdminMonitoringDashboard() {
                 <Clock3 size={14} />
                 Cập nhật dữ liệu: 08/09/2026
               </div>
+              <button
+                type="button"
+                onClick={exportDashboardExcel}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#f4c95d] px-3 py-2 text-xs font-extrabold text-[#123d36] transition hover:bg-[#f7d77d]"
+                data-testid="button-export-dashboard-excel"
+              >
+                <Download size={15} /> Xuất Excel
+              </button>
             </div>
           </div>
           <div className="border-b border-border bg-background px-4 pt-4 sm:px-6">
@@ -1711,7 +2086,7 @@ export function AdminBlankPage() {
   );
 }
 
-export function AdminFacilitiesPage() {
+function LegacyAdminFacilitiesPage() {
   const [category, setCategory] =
     useState<(typeof categoryOptions)[number]>("Tất cả");
   const [search, setSearch] = useState("");
@@ -1831,6 +2206,436 @@ export function AdminFacilitiesPage() {
           )}
         </div>
       </div>
+    </AdminShell>
+  );
+}
+
+export function AdminFacilitiesPage() {
+  const [activeTab, setActiveTab] =
+    useState<FacilityManagementTab>("suppliers");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("Tất cả trạng thái");
+  const [importedRows, setImportedRows] = useState<FacilityManagementRow[]>([]);
+  const [selectedRow, setSelectedRow] =
+    useState<FacilityManagementRow | null>(null);
+  const [notice, setNotice] = useState("");
+
+  const applicationRows: FacilityManagementRow[] = applications.map((app) => ({
+    id: `application-${app.id}`,
+    name: app.applicantName,
+    province: String(app.data.addressProvince ?? "TP. Hồ Chí Minh"),
+    ward: String(app.data.addressWard ?? "—"),
+    address: app.address,
+    contact: app.contact,
+    status: app.status === "rejected" ? "stopped" : app.status,
+    capacity: 0,
+    category:
+      app.type === "food-supplier"
+        ? "Cơ sở cung cấp thực phẩm"
+        : app.type === "meal-provider"
+          ? "Cơ sở cung cấp suất ăn"
+          : "Cơ sở giáo dục",
+    updated: new Intl.DateTimeFormat("vi-VN").format(
+      new Date(app.submittedAt),
+    ),
+    applicationId: app.id,
+  }));
+
+  const rows = useMemo(() => {
+    const source =
+      activeTab === "applications"
+        ? applicationRows
+        : [
+            ...facilityManagementData[activeTab],
+            ...importedRows.filter((row) => {
+              if (activeTab === "food")
+                return row.category === "Cơ sở cung cấp thực phẩm";
+              if (activeTab === "schools")
+                return row.category === "Trường học có bếp ăn bán trú";
+              return row.category === "Cơ sở cung cấp suất ăn";
+            }),
+          ];
+    return source.filter((row) => {
+      const haystack =
+        `${row.name} ${row.address} ${row.ward} ${row.contact}`.toLowerCase();
+      return (
+        haystack.includes(search.trim().toLowerCase()) &&
+        (statusFilter === "Tất cả trạng thái" ||
+          managementStatusLabel(row.status) === statusFilter)
+      );
+    });
+  }, [activeTab, importedRows, search, statusFilter]);
+
+  const tabCounts = {
+    suppliers: facilityManagementData.suppliers.length,
+    schools: facilityManagementData.schools.length,
+    food: facilityManagementData.food.length,
+    applications: applicationRows.length,
+  };
+
+  const formatNumber = (value?: number) =>
+    typeof value === "number" && value > 0
+      ? new Intl.NumberFormat("vi-VN").format(value)
+      : "—";
+
+  const exportFacilities = () => {
+    downloadExcelTable(
+      `quan-ly-co-so-${activeTab}-${new Date().toISOString().slice(0, 10)}.xls`,
+      `Quản lý cơ sở - ${facilityTabLabels[activeTab]}`,
+      [
+        "Tên cơ sở",
+        "Loại hình",
+        "Tỉnh/thành phố",
+        "Xã/phường",
+        "Địa chỉ",
+        "Số điện thoại",
+        "Trạng thái",
+        "Công suất/ngày",
+        "Số học sinh",
+        "Nhu cầu suất ăn/ngày",
+        "Ngày cập nhật",
+      ],
+      rows.map((row) => [
+        row.name,
+        row.category ?? facilityTabLabels[activeTab],
+        row.province,
+        row.ward,
+        row.address,
+        row.contact,
+        managementStatusLabel(row.status),
+        row.capacity || "",
+        row.students || "",
+        row.demand || "",
+        row.updated,
+      ]),
+    );
+  };
+
+  const handleImport = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      let rowsFromFile: string[][] = [];
+      try {
+        const workbook = XLSX.read(reader.result, { type: "array" });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        rowsFromFile = (
+          XLSX.utils.sheet_to_json<unknown[]>(firstSheet, {
+            header: 1,
+            defval: "",
+            raw: false,
+          }) as unknown[][]
+        ).map((row) => row.map((cell) => String(cell ?? "").trim())).slice(1);
+      } catch {
+        const raw = String(reader.result ?? "");
+        rowsFromFile = raw
+          .split(/\r?\n/)
+          .filter((line) => line.trim())
+          .slice(1)
+          .map((line) => line.split(/\t|,/).map((cell) => cell.trim()));
+      }
+      const imported = rowsFromFile
+        .filter((cells) => cells[0])
+        .map((cells, index): FacilityManagementRow => {
+          const categoryText = cells[1] || "Cơ sở cung cấp suất ăn";
+          const category = categoryText.includes("thực phẩm")
+            ? "Cơ sở cung cấp thực phẩm"
+            : categoryText.includes("giáo dục") ||
+                categoryText.includes("trường")
+              ? "Trường học có bếp ăn bán trú"
+              : "Cơ sở cung cấp suất ăn";
+          const statusText = cells[6] || "Đạt";
+          const status =
+            statusText.includes("chờ")
+              ? "pending"
+              : statusText.includes("bổ sung")
+                ? "needs-more-info"
+                : statusText.includes("cảnh")
+                  ? "warning"
+                  : statusText.includes("chưa") || statusText.includes("dừng")
+                    ? "stopped"
+                    : "approved";
+          return {
+            id: `imported-${Date.now()}-${index}`,
+            name: cells[0],
+            category,
+            province: cells[2] || "TP. Hồ Chí Minh",
+            ward: cells[3] || "—",
+            address: cells[4] || "—",
+            contact: cells[5] || "—",
+            status,
+            capacity: Number(cells[7]?.replace(/[^\d]/g, "")) || 0,
+            students: Number(cells[8]?.replace(/[^\d]/g, "")) || undefined,
+            demand: Number(cells[9]?.replace(/[^\d]/g, "")) || undefined,
+            updated: new Intl.DateTimeFormat("vi-VN").format(new Date()),
+          };
+        });
+      if (!imported.length) {
+        setNotice(
+          "Không đọc được dữ liệu. Hãy dùng file mẫu Excel và giữ nguyên dòng tiêu đề.",
+        );
+        return;
+      }
+      setImportedRows((previous) => [...imported, ...previous]);
+      setNotice(`Đã nhập ${imported.length} cơ sở từ file Excel.`);
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  return (
+    <AdminShell>
+      <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+          <SectionHeading
+            eyebrow="Quản lý cơ sở"
+            title="Danh sách cơ sở và hồ sơ."
+            description="Theo dõi cùng một cấu trúc 3 nhóm dữ liệu như Dashboard, đồng thời tiếp nhận và xử lý hồ sơ đăng ký."
+          />
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={downloadFacilityTemplate}
+              className="inline-flex items-center gap-2 rounded-xl border border-primary/25 bg-card px-3.5 py-2.5 text-sm font-bold text-primary hover:bg-secondary"
+              data-testid="button-download-facility-template"
+            >
+              <FileSpreadsheet size={16} /> Tải file mẫu Excel
+            </button>
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-primary px-3.5 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90">
+              <Download size={16} /> Nhập từ Excel
+              <input
+                type="file"
+                accept=".xls,.xlsx,.csv,text/csv,application/vnd.ms-excel"
+                onChange={handleImport}
+                className="sr-only"
+                data-testid="input-import-facilities-excel"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={exportFacilities}
+              className="inline-flex items-center gap-2 rounded-xl border border-primary/25 bg-card px-3.5 py-2.5 text-sm font-bold text-primary hover:bg-secondary"
+              data-testid="button-export-facilities-excel"
+            >
+              <Download size={16} /> Xuất Excel
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {(
+            [
+              ["suppliers", "Cơ sở cung cấp suất ăn", Utensils],
+              ["schools", "Cơ sở giáo dục", Building2],
+              ["food", "Cơ sở cung cấp thực phẩm", FileText],
+              ["applications", "Hồ sơ đăng ký", ClipboardCheck],
+            ] as const
+          ).map(([value, label, Icon]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => {
+                setActiveTab(value);
+                setStatusFilter("Tất cả trạng thái");
+              }}
+              className={`flex items-center justify-between rounded-2xl border p-4 text-left shadow-sm transition ${activeTab === value ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card hover:border-primary/30"}`}
+              data-testid={`tab-facilities-${value}`}
+            >
+              <span className="flex items-center gap-3">
+                <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${activeTab === value ? "bg-white/15" : "bg-secondary text-primary"}`}>
+                  <Icon size={18} />
+                </span>
+                <span className="text-sm font-extrabold">{label}</span>
+              </span>
+              <span className={`rounded-full px-2 py-1 text-xs font-black ${activeTab === value ? "bg-white/15" : "bg-secondary text-foreground"}`}>
+                {tabCounts[value]}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        <section className="mt-5 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-border p-4 sm:p-5 lg:flex-row lg:items-center">
+            <label className="relative flex-1">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Tìm tên cơ sở, địa chỉ, số điện thoại..."
+                className="focus-ring h-11 w-full rounded-xl border border-input bg-background pl-9 pr-3 text-sm"
+                data-testid="input-facilities-search"
+              />
+            </label>
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+              className="focus-ring h-11 rounded-xl border border-input bg-background px-3 text-sm font-semibold"
+              data-testid="select-facilities-status"
+            >
+              {["Tất cả trạng thái", "Đạt", "Cảnh báo", "Chưa đạt", "Chờ duyệt", "Cần bổ sung"].map((item) => (
+                <option key={item}>{item}</option>
+              ))}
+            </select>
+            <span className="text-xs font-semibold text-muted-foreground">
+              {rows.length} bản ghi hiển thị
+            </span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[980px] text-left text-xs">
+              <thead className="bg-secondary/70 text-[10px] font-extrabold uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th className="px-5 py-3">Cơ sở</th>
+                  <th className="px-4 py-3">Địa chỉ</th>
+                  {activeTab === "applications" ? (
+                    <>
+                      <th className="px-4 py-3">Loại hình</th>
+                      <th className="px-4 py-3">Ngày nộp</th>
+                      <th className="px-4 py-3 text-right">Điểm</th>
+                    </>
+                  ) : activeTab === "schools" ? (
+                    <>
+                      <th className="px-4 py-3">Cấp học</th>
+                      <th className="px-4 py-3 text-right">Học sinh</th>
+                      <th className="px-4 py-3 text-right">Nhu cầu</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="px-4 py-3">{activeTab === "food" ? "Nhóm thực phẩm" : "Công suất/ngày"}</th>
+                      <th className="px-4 py-3 text-right">{activeTab === "food" ? "Công suất/ngày" : "Đang cung cấp"}</th>
+                      <th className="px-4 py-3 text-right">{activeTab === "food" ? "Cập nhật" : "Số trường"}</th>
+                    </>
+                  )}
+                  <th className="px-4 py-3">Trạng thái</th>
+                  <th className="px-5 py-3 text-right">Chi tiết</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {rows.map((row) => {
+                  const application = row.applicationId
+                    ? applications.find((item) => item.id === row.applicationId)
+                    : undefined;
+                  return (
+                    <tr key={row.id} className="transition-colors hover:bg-secondary/30">
+                      <td className="px-5 py-4 font-bold">
+                        {row.name}
+                        <span className="mt-1 block text-[10px] font-medium text-muted-foreground">
+                          {row.ward} · {row.contact}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-muted-foreground">{row.address}</td>
+                      {activeTab === "applications" ? (
+                        <>
+                          <td className="px-4 py-4">{row.category}</td>
+                          <td className="px-4 py-4">{row.updated}</td>
+                          <td className="px-4 py-4 text-right font-bold">{application?.score ?? "—"}/100</td>
+                        </>
+                      ) : activeTab === "schools" ? (
+                        <>
+                          <td className="px-4 py-4">{row.level}</td>
+                          <td className="px-4 py-4 text-right font-bold">{formatNumber(row.students)}</td>
+                          <td className="px-4 py-4 text-right font-bold">{formatNumber(row.demand)}</td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="px-4 py-4">{activeTab === "food" ? row.category : formatNumber(row.capacity)}</td>
+                          <td className="px-4 py-4 text-right font-bold">{activeTab === "food" ? formatNumber(row.capacity) : formatNumber(row.serving)}</td>
+                          <td className="px-4 py-4 text-right">{activeTab === "food" ? row.updated : `${row.students ?? row.capacity ? row.students ?? "—" : "—"}`}</td>
+                        </>
+                      )}
+                      <td className="px-4 py-4">
+                        <StatusPill status={managementStatusLabel(row.status)} />
+                      </td>
+                      <td className="px-5 py-4 text-right">
+                        {row.applicationId ? (
+                          <Link
+                            href={`/admin/applications/${row.applicationId}`}
+                            className="inline-flex items-center gap-1 rounded-lg border border-primary/30 px-2.5 py-1.5 text-[10px] font-extrabold text-primary hover:bg-primary hover:text-primary-foreground"
+                            data-testid={`link-facility-application-${row.applicationId}`}
+                          >
+                            Xem hồ sơ <ArrowUpRight size={13} />
+                          </Link>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedRow(row)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-primary/30 px-2.5 py-1.5 text-[10px] font-extrabold text-primary hover:bg-primary hover:text-primary-foreground"
+                          >
+                            Xem chi tiết <ChevronRight size={13} />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {!rows.length && (
+            <div className="px-5 py-12 text-center text-sm text-muted-foreground">
+              Không tìm thấy dữ liệu phù hợp.
+            </div>
+          )}
+        </section>
+
+        <p className="mt-3 text-xs leading-5 text-muted-foreground">
+          File mẫu dùng định dạng Excel tương thích .xls. Giữ nguyên hàng tiêu đề khi nhập; dữ liệu mới sẽ được thêm vào danh sách hiện tại.
+        </p>
+      </div>
+
+      {selectedRow && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/45 p-0 sm:items-center sm:p-6"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setSelectedRow(null)}
+        >
+          <div
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-t-3xl bg-card p-5 shadow-2xl sm:rounded-3xl sm:p-7"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-border pb-4">
+              <div>
+                <p className="mono-label text-primary">THÔNG TIN CƠ SỞ</p>
+                <h2 className="mt-1 text-xl font-extrabold">{selectedRow.name}</h2>
+                <p className="mt-1 text-xs text-muted-foreground">{selectedRow.category ?? facilityTabLabels[activeTab]}</p>
+              </div>
+              <button type="button" onClick={() => setSelectedRow(null)} className="rounded-xl bg-secondary p-2 text-muted-foreground" aria-label="Đóng">
+                <X size={18} />
+              </button>
+            </div>
+            <dl className="mt-5 grid gap-x-6 gap-y-4 sm:grid-cols-2">
+              {[
+                ["Tỉnh/thành phố", selectedRow.province],
+                ["Xã/phường", selectedRow.ward],
+                ["Địa chỉ", selectedRow.address],
+                ["Số điện thoại", selectedRow.contact],
+                ["Trạng thái", managementStatusLabel(selectedRow.status)],
+                ["Công suất/ngày", formatNumber(selectedRow.capacity)],
+                ["Số học sinh", formatNumber(selectedRow.students)],
+                ["Nhu cầu suất ăn/ngày", formatNumber(selectedRow.demand)],
+                ["Cập nhật", selectedRow.updated],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <dt className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{label}</dt>
+                  <dd className="mt-1 text-sm font-bold">{value}</dd>
+                </div>
+              ))}
+            </dl>
+            {selectedRow.applicationId && (
+              <Link href={`/admin/applications/${selectedRow.applicationId}`} className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground">
+                Mở toàn bộ hồ sơ đăng ký <ArrowUpRight size={16} />
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
+      {notice && (
+        <div className="fixed bottom-5 right-5 z-50 max-w-sm rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-xl" role="status">
+          {notice}
+          <button type="button" onClick={() => setNotice("")} className="ml-3 font-black" aria-label="Đóng thông báo">×</button>
+        </div>
+      )}
     </AdminShell>
   );
 }
