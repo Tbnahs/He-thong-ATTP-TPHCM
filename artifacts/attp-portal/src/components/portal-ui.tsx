@@ -396,6 +396,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
               ? "Hồ sơ đăng ký"
               : location.startsWith("/admin/inspections")
                 ? "Quản lý kiểm tra"
+                  : location.startsWith("/admin/reports")
+                    ? "Báo cáo thống kê"
                 : location === "/admin"
                   ? "Dashboard giám sát"
                   : "Bàn xét duyệt";

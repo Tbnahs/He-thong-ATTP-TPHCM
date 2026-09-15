@@ -1,0 +1,175 @@
+BÁO CÁO THỐNG KÊ CƠ SỞ VÀ NHU CẦU SUẤT ĂN
+1. Bộ lọc báo cáo
+Địa bàn
+Tỉnh/Thành phố
+Quận/Huyện
+Phường/Xã
+Loại hình cơ sở
+Cơ sở cung cấp suất ăn
+Cơ sở giáo dục
+Cơ sở cung cấp thực phẩm
+Hình thức tổ chức bữa ăn
+Tất cả
+Tự tổ chức nấu ăn
+Sử dụng suất ăn từ bên ngoài
+Trạng thái hồ sơ
+Đạt
+Chờ hoàn thiện hồ sơ
+Khoảng thời gian
+2. Tổng quan thống kê
+Nhóm 1 – Cơ sở cung cấp suất ăn
+
+Tổng số cơ sở cung cấp suất ăn: XX cơ sở
+
+Trong đó:
+
+Đạt hồ sơ: XX cơ sở
+
+Tổng công suất cung cấp: XX suất/ngày
+
+Chờ hoàn thiện hồ sơ: XX cơ sở
+
+Tổng công suất đăng ký: XX suất/ngày
+
+Công suất phải được thống kê riêng theo trạng thái để cơ quan quản lý biết đã đủ hồ sơ với năng lực cung cấp bao nhiêu suất và còn bao nhiêu suất đang nằm ở hồ sơ chưa hoàn thiện.
+
+Nhóm 2 – Cơ sở giáo dục
+
+Tổng số cơ sở giáo dục: XX cơ sở
+
+Cơ sở tự tổ chức nấu ăn: XX cơ sở
+
+Cơ sở sử dụng suất ăn từ bên ngoài: XX cơ sở
+
+Tổng nhu cầu suất ăn dự kiến: XX suất/ngày
+
+Tổng nhu cầu suất ăn thực tế: XX suất/ngày
+
+3. Phân biệt nhu cầu suất ăn
+Nhu cầu dự kiến
+
+Là nhu cầu suất ăn được xác định theo:
+
+Số học sinh có nhu cầu ăn bán trú × số suất ăn dự kiến/học sinh
+
+Ví dụ:
+
+Trường có 800 học sinh
+Nhu cầu ăn bán trú dự kiến: 800 suất
+
+→ Nhu cầu dự kiến = 800 suất/ngày
+
+Nhu cầu thực tế
+
+Là số suất ăn thực tế phát sinh trong ngày/vận hành:
+
+Số học sinh thực tế sử dụng suất ăn
+
+Ví dụ:
+
+Nhu cầu dự kiến: 800 suất
+Thực tế ngày hôm đó: 760 suất
+
+→ Nhu cầu thực tế = 760 suất/ngày
+
+Có thể thống kê thêm:
+
+Chênh lệch = Nhu cầu thực tế – Nhu cầu dự kiến
+
+4. Thống kê theo địa bàn
+
+Phần này là quan trọng nhất để cơ quan quản lý xem địa bàn nào đang có nhu cầu bao nhiêu suất.
+
+THỐNG KÊ THEO PHƯỜNG/XÃ
+Phường/Xã	Tổng cơ sở GD	Tự nấu	Dùng suất ăn ngoài	Nhu cầu dự kiến	Nhu cầu thực tế	Cơ sở cung cấp suất ăn	Công suất cung cấp
+P. Bến Thành	12	5	7	5.200	4.850	4	6.000
+P. Bến Nghé	8	3	5	3.600	3.420	3	4.500
+P. Nguyễn Cư Trinh	10	6	4	4.100	3.950	2	3.200
+P. Đa Kao	7	2	5	3.000	2.850	3	4.000
+
+Các con số trên chỉ là ví dụ minh họa cho giao diện, không phải số liệu thực tế.
+
+Khi click vào P. Bến Thành, mở chi tiết:
+
+P. BẾN THÀNH
+
+Cơ sở giáo dục: 12
+
+Tự tổ chức nấu ăn: 5 trường
+
+Sử dụng suất ăn bên ngoài: 7 trường
+
+Nhu cầu suất ăn dự kiến: 5.200 suất/ngày
+
+Nhu cầu suất ăn thực tế: 4.850 suất/ngày
+
+Công suất các đơn vị cung cấp: 6.000 suất/ngày
+
+Sau đó hiển thị danh sách:
+
+Cơ sở giáo dục	Hình thức	Học sinh	Nhu cầu dự kiến	Nhu cầu thực tế	Nhà cung cấp
+Trường A	Tự nấu	500	500	480	0
+Trường B	Suất ăn ngoài	700	700	680	1
+Trường C	Suất ăn ngoài	800	800	760	2
+5. Thống kê theo loại hình hoạt động
+
+Có thể thêm bảng:
+
+Loại hình	Số cơ sở	Công suất / Nhu cầu dự kiến	Nhu cầu thực tế
+Cơ sở cung cấp suất ăn	25	30.000 suất	—
+Cơ sở giáo dục – Tự nấu	40	18.000 suất	17.200 suất
+Cơ sở giáo dục – Suất ăn ngoài	35	22.000 suất	20.800 suất
+Cơ sở cung cấp thực phẩm	60	—	—
+6. Báo cáo cân đối cung – cầu suất ăn
+
+Nên có thêm một chỉ số rất hữu ích:
+
+Tổng công suất cung cấp
+
+30.000 suất/ngày
+
+Tổng nhu cầu sử dụng suất ăn ngoài
+
+22.000 suất/ngày
+
+Công suất còn khả năng cung cấp
+
+8.000 suất/ngày
+
+Công thức:
+
+Công suất còn lại = Tổng công suất các cơ sở cung cấp suất ăn – Tổng nhu cầu thực tế sử dụng suất ăn ngoài
+
+Phần này giúp cơ quan quản lý nhìn được địa bàn nào thiếu hoặc dư năng lực cung cấp suất ăn.
+
+7. Cấu trúc báo cáo cuối cùng
+BÁO CÁO THỐNG KÊ
+│
+├── 1. Tổng quan
+│   ├── Tổng cơ sở đạt
+│   │   └── Công suất
+│   ├── Chờ hoàn thiện hồ sơ
+│   │   └── Công suất
+│   ├── Tổng cơ sở giáo dục
+│   ├── Cơ sở tự nấu
+│   ├── Cơ sở sử dụng suất ăn ngoài
+│   ├── Nhu cầu dự kiến
+│   └── Nhu cầu thực tế
+│
+├── 2. Theo địa bàn
+│   ├── Quận/Huyện
+│   └── Phường/Xã
+│
+├── 3. Theo loại hình hoạt động
+│   ├── Cơ sở giáo dục
+│   ├── Cơ sở cung cấp suất ăn
+│   └── Cơ sở cung cấp thực phẩm
+│
+├── 4. Chi tiết từng địa bàn
+│   └── Danh sách cơ sở + nhu cầu suất ăn
+│
+└── 5. Cân đối cung – cầu
+    ├── Tổng công suất
+    ├── Tổng nhu cầu
+    ├── Công suất đã sử dụng
+    └── Công suất còn lại
