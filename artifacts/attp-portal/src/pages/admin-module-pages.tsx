@@ -3724,7 +3724,65 @@ export function AdminFacilityDetailPage() {
     submittedAt: row.updated,
     isLinked: false,
   };
-  const detailFields = row.detailFields ?? [];
+  const registrationValue = (key: string) => {
+    const value = registrationFields[key];
+    if (Array.isArray(value)) return value.length ? formatManagementAnswer(value) : "";
+    return typeof value === "string" || typeof value === "number"
+      ? String(value).trim()
+      : "";
+  };
+  const detailFields = row.detailFields ?? [
+    {
+      label: "Mã cơ sở",
+      value: application?.reference ?? row.id,
+    },
+    {
+      label: "Mã số thuế",
+      value: registrationValue("taxCode") || "Chưa cập nhật",
+    },
+    {
+      label: "Người đại diện",
+      value:
+        registrationValue("representative") ||
+        registrationValue("contactPerson") ||
+        registrant.name ||
+        "Chưa cập nhật",
+    },
+    {
+      label: "Email hồ sơ",
+      value: registrant.email || "Chưa cập nhật",
+    },
+    {
+      label: "Giấy chứng nhận ATTP",
+      value: registrationValue("licenseNumber") || "Chưa cập nhật",
+    },
+    {
+      label: "Ngày cấp",
+      value:
+        registrationValue("licenseIssuedDate") ||
+        registrationValue("licenseIssueDate") ||
+        "Chưa cập nhật",
+    },
+    {
+      label: "Hồ sơ minh chứng",
+      value: registrationFiles.length
+        ? `Đủ ${registrationFiles.length} tệp`
+        : "Chưa cập nhật",
+    },
+  ];
+  const detailMissingFields = row.missingFields ?? [
+    !registrationValue("taxCode") && "Mã số thuế",
+    !(
+      registrationValue("representative") ||
+      registrationValue("contactPerson") ||
+      registrant.name
+    ) && "Người đại diện",
+    !registrationValue("licenseNumber") && "Giấy chứng nhận ATTP",
+    !registrationFiles.length && "Hồ sơ minh chứng",
+  ].filter((field): field is string => Boolean(field));
+  const detailIsComplete =
+    row.detailCompleteness === "complete" ||
+    !detailMissingFields.length;
   const submittedAt = application?.submittedAt
     ? new Intl.DateTimeFormat("vi-VN").format(new Date(application.submittedAt))
     : row.updated;
@@ -3976,7 +4034,7 @@ export function AdminFacilityDetailPage() {
           })}
         </section>
 
-        {false && <div className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_.8fr]">
+        <div className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_.8fr]">
           <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
             <p className="mono-label text-primary">HỒ SƠ CƠ SỞ</p>
             <h2 className="mt-1 text-xl font-extrabold">Thông tin cơ bản</h2>
@@ -4007,9 +4065,9 @@ export function AdminFacilityDetailPage() {
                 <p className="mono-label text-primary">ĐỐI CHIẾU HỒ SƠ</p>
                 <h2 className="mt-1 text-xl font-extrabold">Thông tin pháp lý</h2>
               </div>
-              <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-extrabold ${row.detailCompleteness === "complete" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
-                {row.detailCompleteness === "complete" ? <CheckCircle2 size={14} /> : <TriangleAlert size={14} />}
-                {row.detailCompleteness === "complete" ? "Đủ thông tin" : "Chưa đủ thông tin"}
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-extrabold ${detailIsComplete ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
+                 {detailIsComplete ? <CheckCircle2 size={14} /> : <TriangleAlert size={14} />}
+                 {detailIsComplete ? "Đủ thông tin" : "Chưa đủ thông tin"}
               </span>
             </div>
             <dl className="mt-5 space-y-4">
@@ -4020,10 +4078,10 @@ export function AdminFacilityDetailPage() {
                 </div>
               ))}
             </dl>
-            {row.missingFields?.length ? (
+            {detailMissingFields.length ? (
               <div className="mt-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-sm text-amber-900">
                 <Info size={17} className="mt-0.5 shrink-0" />
-                <p><strong>Còn thiếu:</strong> {row.missingFields.join(", ")}.</p>
+                <p><strong>Còn thiếu:</strong> {detailMissingFields.join(", ")}.</p>
               </div>
             ) : null}
           </section>
@@ -4054,7 +4112,7 @@ export function AdminFacilityDetailPage() {
               </div>
             ))}
           </dl>
-        </section>}
+        </section>
 
         {registrationType && (
           <section className="mt-6 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
