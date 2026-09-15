@@ -311,20 +311,43 @@ const criteria: Record<ApplicationType, CriteriaSet> = {
         [],
         {
           order: 9,
-          description: "Có thể thêm nhiều sản phẩm. Mỗi sản phẩm cần khai báo đầy đủ thông tin bên dưới.",
+          description:
+            "Có thể thêm nhiều sản phẩm. Mỗi sản phẩm cần khai báo đầy đủ thông tin bên dưới.",
           repeatableFields: [
             {
               key: "category",
               label: "Danh mục sản phẩm",
               answerType: "select",
-              options: ["Rau củ quả", "Thịt gia súc", "Thủy sản", "Thực phẩm chế biến"],
+              options: [
+                "Rau củ quả",
+                "Thịt gia súc",
+                "Thủy sản",
+                "Thực phẩm chế biến",
+              ],
               required: true,
             },
-            { key: "name", label: "Tên sản phẩm", answerType: "text", required: true },
+            {
+              key: "name",
+              label: "Tên sản phẩm",
+              answerType: "text",
+              required: true,
+            },
             { key: "gtin", label: "Mã GTIN", answerType: "text" },
-            { key: "origin", label: "Vùng trồng / nuôi / khai thác", answerType: "text" },
-            { key: "qualityCertificate", label: "Chứng nhận chất lượng", answerType: "file" },
-            { key: "supplyContract", label: "Hợp đồng cung cấp", answerType: "file" },
+            {
+              key: "origin",
+              label: "Vùng trồng / nuôi / khai thác",
+              answerType: "text",
+            },
+            {
+              key: "qualityCertificate",
+              label: "Chứng nhận chất lượng",
+              answerType: "file",
+            },
+            {
+              key: "supplyContract",
+              label: "Hợp đồng cung cấp",
+              answerType: "file",
+            },
             {
               key: "traceability",
               label: "Có thực hiện truy xuất nguồn gốc (TXNG)",
@@ -474,7 +497,7 @@ const criteria: Record<ApplicationType, CriteriaSet> = {
       criterion(
         "meal-provider",
         "foodSafetyManagerName",
-        "Người phụ trách quản lý ATTP — Họ tên",
+        "Họ và tên",
         "meal-provider-group-3",
         "text",
         0,
@@ -484,7 +507,7 @@ const criteria: Record<ApplicationType, CriteriaSet> = {
       criterion(
         "meal-provider",
         "foodSafetyManagerTitle",
-        "Người phụ trách quản lý ATTP — Chức vụ",
+        "Chức vụ",
         "meal-provider-group-3",
         "text",
         0,
@@ -494,7 +517,7 @@ const criteria: Record<ApplicationType, CriteriaSet> = {
       criterion(
         "meal-provider",
         "foodSafetyManagerPhone",
-        "Người phụ trách quản lý ATTP — Số điện thoại",
+        "Số điện thoại",
         "meal-provider-group-3",
         "text",
         0,
@@ -523,8 +546,18 @@ const criteria: Record<ApplicationType, CriteriaSet> = {
           order: 16,
           description: "Có thể thêm nhiều nhà cung cấp.",
           repeatableFields: [
-            { key: "name", label: "Tên nhà cung cấp", answerType: "text", required: true },
-            { key: "taxCode", label: "Mã số thuế", answerType: "text", required: true },
+            {
+              key: "name",
+              label: "Tên nhà cung cấp",
+              answerType: "text",
+              required: true,
+            },
+            {
+              key: "taxCode",
+              label: "Mã số thuế",
+              answerType: "text",
+              required: true,
+            },
             { key: "contract", label: "Hợp đồng cung cấp", answerType: "file" },
           ],
         },
@@ -587,7 +620,11 @@ const criteria: Record<ApplicationType, CriteriaSet> = {
         "number",
         0,
         [],
-        { order: 22, required: false, dependsOn: { key: "hasSampleCabinet", equals: "Có" } },
+        {
+          order: 22,
+          required: false,
+          dependsOn: { key: "hasSampleCabinet", equals: "Có" },
+        },
       ),
       criterion(
         "meal-provider",
@@ -597,7 +634,11 @@ const criteria: Record<ApplicationType, CriteriaSet> = {
         "file",
         0,
         [],
-        { order: 23, required: false, dependsOn: { key: "hasSampleCabinet", equals: "Có" } },
+        {
+          order: 23,
+          required: false,
+          dependsOn: { key: "hasSampleCabinet", equals: "Có" },
+        },
       ),
       criterion(
         "meal-provider",
@@ -773,7 +814,11 @@ const criteria: Record<ApplicationType, CriteriaSet> = {
         "file",
         0,
         [],
-        { order: 13, required: false, dependsOn: { key: "hasFoodSafetyLead", equals: "Có" } },
+        {
+          order: 13,
+          required: false,
+          dependsOn: { key: "hasFoodSafetyLead", equals: "Có" },
+        },
       ),
       criterion(
         "school",
@@ -803,7 +848,13 @@ const criteria: Record<ApplicationType, CriteriaSet> = {
         "text",
         0,
         [],
-        { order: 18, dependsOn: { key: "mealModel", equals: "Thuê đơn vị nấu tại bếp trường" } },
+        {
+          order: 18,
+          dependsOn: {
+            key: "mealModel",
+            equals: "Thuê đơn vị nấu tại bếp trường",
+          },
+        },
       ),
       criterion(
         "school",
@@ -813,7 +864,13 @@ const criteria: Record<ApplicationType, CriteriaSet> = {
         "text",
         0,
         [],
-        { order: 19, dependsOn: { key: "mealModel", equals: "Thuê đơn vị nấu tại bếp trường" } },
+        {
+          order: 19,
+          dependsOn: {
+            key: "mealModel",
+            equals: "Thuê đơn vị nấu tại bếp trường",
+          },
+        },
       ),
       criterion(
         "school",
@@ -823,7 +880,13 @@ const criteria: Record<ApplicationType, CriteriaSet> = {
         "number",
         0,
         [],
-        { order: 20, dependsOn: { key: "mealModel", equals: "Thuê đơn vị nấu tại bếp trường" } },
+        {
+          order: 20,
+          dependsOn: {
+            key: "mealModel",
+            equals: "Thuê đơn vị nấu tại bếp trường",
+          },
+        },
       ),
       criterion(
         "school",
@@ -833,7 +896,13 @@ const criteria: Record<ApplicationType, CriteriaSet> = {
         "file",
         0,
         [],
-        { order: 21, dependsOn: { key: "mealModel", equals: "Thuê đơn vị nấu tại bếp trường" } },
+        {
+          order: 21,
+          dependsOn: {
+            key: "mealModel",
+            equals: "Thuê đơn vị nấu tại bếp trường",
+          },
+        },
       ),
       criterion(
         "school",
@@ -843,7 +912,10 @@ const criteria: Record<ApplicationType, CriteriaSet> = {
         "text",
         0,
         [],
-        { order: 22, dependsOn: { key: "mealModel", equals: "Liên kết đơn vị suất ăn" } },
+        {
+          order: 22,
+          dependsOn: { key: "mealModel", equals: "Liên kết đơn vị suất ăn" },
+        },
       ),
       criterion(
         "school",
@@ -853,7 +925,10 @@ const criteria: Record<ApplicationType, CriteriaSet> = {
         "text",
         0,
         [],
-        { order: 23, dependsOn: { key: "mealModel", equals: "Liên kết đơn vị suất ăn" } },
+        {
+          order: 23,
+          dependsOn: { key: "mealModel", equals: "Liên kết đơn vị suất ăn" },
+        },
       ),
       criterion(
         "school",
@@ -863,7 +938,10 @@ const criteria: Record<ApplicationType, CriteriaSet> = {
         "file",
         0,
         [],
-        { order: 24, dependsOn: { key: "mealModel", equals: "Liên kết đơn vị suất ăn" } },
+        {
+          order: 24,
+          dependsOn: { key: "mealModel", equals: "Liên kết đơn vị suất ăn" },
+        },
       ),
       criterion(
         "school",
@@ -907,7 +985,11 @@ const criteria: Record<ApplicationType, CriteriaSet> = {
         "number",
         0,
         [],
-        { order: 28, required: false, dependsOn: { key: "sampleStorage", equals: "Có" } },
+        {
+          order: 28,
+          required: false,
+          dependsOn: { key: "sampleStorage", equals: "Có" },
+        },
       ),
       criterion(
         "school",
@@ -917,7 +999,11 @@ const criteria: Record<ApplicationType, CriteriaSet> = {
         "file",
         0,
         [],
-        { order: 29, required: false, dependsOn: { key: "sampleStorage", equals: "Có" } },
+        {
+          order: 29,
+          required: false,
+          dependsOn: { key: "sampleStorage", equals: "Có" },
+        },
       ),
       criterion(
         "school",
@@ -1272,12 +1358,12 @@ const getPublishedRecords = (): PublicRecord[] => {
 export const getPublicRecords = (search = "", category = "") =>
   [...publicRecords, ...regionalPublicRecords, ...getPublishedRecords()]
     .filter(
-    (item) =>
-      (!category || item.category === category) &&
-      (!search ||
-        `${item.title} ${item.subtitle} ${item.location}`
-          .toLowerCase()
-          .includes(search.toLowerCase())),
+      (item) =>
+        (!category || item.category === category) &&
+        (!search ||
+          `${item.title} ${item.subtitle} ${item.location}`
+            .toLowerCase()
+            .includes(search.toLowerCase())),
     )
     .filter(
       (item, index, records) =>

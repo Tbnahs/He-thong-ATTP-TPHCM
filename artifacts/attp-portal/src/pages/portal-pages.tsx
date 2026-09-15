@@ -92,10 +92,7 @@ import heroFoodImage from "@assets/1788940094256_5613377993845818882_56133779938
 import newsTrainingImage from "@assets/generated_images/news-training-workshop.jpg";
 import newsMarketImage from "@assets/generated_images/news-market-inspection.jpg";
 import newsFoodServiceImage from "@assets/generated_images/news-food-service-training.jpg";
-import {
-  vietnamMapFeatures,
-  vietnamMapViewBox,
-} from "@/lib/vietnam-map-data";
+import { vietnamMapFeatures, vietnamMapViewBox } from "@/lib/vietnam-map-data";
 
 const categoryNames: Record<string, string> = {
   "eligible-facilities": "Cơ sở đủ điều kiện",
@@ -104,6 +101,15 @@ const categoryNames: Record<string, string> = {
   "licensed-advertising": "Quảng cáo được cấp phép",
   "testing-facilities": "Cơ sở kiểm nghiệm",
 };
+const foodSafetyManagerFieldKeys = [
+  "foodSafetyManagerName",
+  "foodSafetyManagerTitle",
+  "foodSafetyManagerPhone",
+];
+
+const isFoodSafetyManagerField = (item: CriteriaDefinition) =>
+  foodSafetyManagerFieldKeys.includes(item.key);
+
 type ProvinceRegion = {
   id: string;
   name: string;
@@ -121,67 +127,321 @@ type RegionalFacility = {
 };
 
 const provinceRegions: ProvinceRegion[] = [
-  { id: "ha-giang", name: "Hà Giang", focus: { x: 18, y: 34 }, color: "#F2B86B" },
-  { id: "cao-bang", name: "Cao Bằng", focus: { x: 20, y: 32 }, color: "#F28F8F" },
+  {
+    id: "ha-giang",
+    name: "Hà Giang",
+    focus: { x: 18, y: 34 },
+    color: "#F2B86B",
+  },
+  {
+    id: "cao-bang",
+    name: "Cao Bằng",
+    focus: { x: 20, y: 32 },
+    color: "#F28F8F",
+  },
   { id: "lao-cai", name: "Lào Cai", focus: { x: 14, y: 35 }, color: "#75C9B4" },
   { id: "yen-bai", name: "Yên Bái", focus: { x: 14, y: 27 }, color: "#8E9FDC" },
-  { id: "tuyen-quang", name: "Tuyên Quang", focus: { x: 15, y: 23 }, color: "#F6D779" },
-  { id: "thai-nguyen", name: "Thái Nguyên", focus: { x: 9, y: 20 }, color: "#EB9C75" },
+  {
+    id: "tuyen-quang",
+    name: "Tuyên Quang",
+    focus: { x: 15, y: 23 },
+    color: "#F6D779",
+  },
+  {
+    id: "thai-nguyen",
+    name: "Thái Nguyên",
+    focus: { x: 9, y: 20 },
+    color: "#EB9C75",
+  },
   { id: "bac-kan", name: "Bắc Kạn", focus: { x: 8, y: 28 }, color: "#A8C985" },
   { id: "phu-tho", name: "Phú Thọ", focus: { x: 8, y: 14 }, color: "#EFA3B7" },
   { id: "ha-noi", name: "Hà Nội", focus: { x: 1, y: 9 }, color: "#8DBFE2" },
-  { id: "hai-phong", name: "Hải Phòng", focus: { x: -3, y: 6 }, color: "#F0B4CF" },
-  { id: "quang-ninh", name: "Quảng Ninh", focus: { x: -5, y: 10 }, color: "#F5C85B" },
-  { id: "ninh-binh", name: "Ninh Bình", focus: { x: 3, y: 1 }, color: "#9FD1A5" },
-  { id: "thanh-hoa", name: "Thanh Hóa", focus: { x: 8, y: -2 }, color: "#F29F83" },
+  {
+    id: "hai-phong",
+    name: "Hải Phòng",
+    focus: { x: -3, y: 6 },
+    color: "#F0B4CF",
+  },
+  {
+    id: "quang-ninh",
+    name: "Quảng Ninh",
+    focus: { x: -5, y: 10 },
+    color: "#F5C85B",
+  },
+  {
+    id: "ninh-binh",
+    name: "Ninh Bình",
+    focus: { x: 3, y: 1 },
+    color: "#9FD1A5",
+  },
+  {
+    id: "thanh-hoa",
+    name: "Thanh Hóa",
+    focus: { x: 8, y: -2 },
+    color: "#F29F83",
+  },
   { id: "nghe-an", name: "Nghệ An", focus: { x: 10, y: -7 }, color: "#F3A38D" },
   { id: "ha-tinh", name: "Hà Tĩnh", focus: { x: 9, y: -12 }, color: "#F4D36A" },
-  { id: "quang-binh", name: "Quảng Bình", focus: { x: 10, y: -18 }, color: "#D6C1E9" },
-  { id: "quang-tri", name: "Quảng Trị", focus: { x: 9, y: -24 }, color: "#AFCBE0" },
-  { id: "hue", name: "Thừa Thiên Huế", focus: { x: 7, y: -30 }, color: "#A9CFAF" },
+  {
+    id: "quang-binh",
+    name: "Quảng Bình",
+    focus: { x: 10, y: -18 },
+    color: "#D6C1E9",
+  },
+  {
+    id: "quang-tri",
+    name: "Quảng Trị",
+    focus: { x: 9, y: -24 },
+    color: "#AFCBE0",
+  },
+  {
+    id: "hue",
+    name: "Thừa Thiên Huế",
+    focus: { x: 7, y: -30 },
+    color: "#A9CFAF",
+  },
   { id: "da-nang", name: "Đà Nẵng", focus: { x: 3, y: -34 }, color: "#F4C678" },
-  { id: "quang-nam", name: "Quảng Nam", focus: { x: 6, y: -37 }, color: "#86C6B8" },
-  { id: "quang-ngai", name: "Quảng Ngãi", focus: { x: 7, y: -41 }, color: "#F59A83" },
-  { id: "kon-tum", name: "Kon Tum", focus: { x: 14, y: -42 }, color: "#A7C2E5" },
-  { id: "gia-lai", name: "Gia Lai", focus: { x: 14, y: -46 }, color: "#F3B38A" },
-  { id: "binh-dinh", name: "Bình Định", focus: { x: 7, y: -47 }, color: "#EE8B8C" },
+  {
+    id: "quang-nam",
+    name: "Quảng Nam",
+    focus: { x: 6, y: -37 },
+    color: "#86C6B8",
+  },
+  {
+    id: "quang-ngai",
+    name: "Quảng Ngãi",
+    focus: { x: 7, y: -41 },
+    color: "#F59A83",
+  },
+  {
+    id: "kon-tum",
+    name: "Kon Tum",
+    focus: { x: 14, y: -42 },
+    color: "#A7C2E5",
+  },
+  {
+    id: "gia-lai",
+    name: "Gia Lai",
+    focus: { x: 14, y: -46 },
+    color: "#F3B38A",
+  },
+  {
+    id: "binh-dinh",
+    name: "Bình Định",
+    focus: { x: 7, y: -47 },
+    color: "#EE8B8C",
+  },
   { id: "phu-yen", name: "Phú Yên", focus: { x: 7, y: -52 }, color: "#F6D779" },
-  { id: "dak-lak", name: "Đắk Lắk", focus: { x: 15, y: -53 }, color: "#E9A48A" },
-  { id: "khanh-hoa", name: "Khánh Hòa", focus: { x: 2, y: -58 }, color: "#8BB7D8" },
-  { id: "lam-dong", name: "Lâm Đồng", focus: { x: 11, y: -62 }, color: "#A6D0A7" },
-  { id: "binh-thuan", name: "Bình Thuận", focus: { x: 4, y: -66 }, color: "#F4C578" },
-  { id: "tay-ninh", name: "Tây Ninh", focus: { x: 13, y: -71 }, color: "#F19D8C" },
-  { id: "binh-duong", name: "Bình Dương", focus: { x: 5, y: -73 }, color: "#9CC6D9" },
-  { id: "dong-nai", name: "Đồng Nai", focus: { x: -3, y: -70 }, color: "#88C4A7" },
-  { id: "tp-hcm", name: "TP. Hồ Chí Minh", focus: { x: 5, y: -78 }, color: "#E98E88" },
-  { id: "long-an", name: "Long An", focus: { x: 15, y: -76 }, color: "#F2CA67" },
-  { id: "tien-giang", name: "Tiền Giang", focus: { x: 7, y: -81 }, color: "#A9C6E2" },
+  {
+    id: "dak-lak",
+    name: "Đắk Lắk",
+    focus: { x: 15, y: -53 },
+    color: "#E9A48A",
+  },
+  {
+    id: "khanh-hoa",
+    name: "Khánh Hòa",
+    focus: { x: 2, y: -58 },
+    color: "#8BB7D8",
+  },
+  {
+    id: "lam-dong",
+    name: "Lâm Đồng",
+    focus: { x: 11, y: -62 },
+    color: "#A6D0A7",
+  },
+  {
+    id: "binh-thuan",
+    name: "Bình Thuận",
+    focus: { x: 4, y: -66 },
+    color: "#F4C578",
+  },
+  {
+    id: "tay-ninh",
+    name: "Tây Ninh",
+    focus: { x: 13, y: -71 },
+    color: "#F19D8C",
+  },
+  {
+    id: "binh-duong",
+    name: "Bình Dương",
+    focus: { x: 5, y: -73 },
+    color: "#9CC6D9",
+  },
+  {
+    id: "dong-nai",
+    name: "Đồng Nai",
+    focus: { x: -3, y: -70 },
+    color: "#88C4A7",
+  },
+  {
+    id: "tp-hcm",
+    name: "TP. Hồ Chí Minh",
+    focus: { x: 5, y: -78 },
+    color: "#E98E88",
+  },
+  {
+    id: "long-an",
+    name: "Long An",
+    focus: { x: 15, y: -76 },
+    color: "#F2CA67",
+  },
+  {
+    id: "tien-giang",
+    name: "Tiền Giang",
+    focus: { x: 7, y: -81 },
+    color: "#A9C6E2",
+  },
   { id: "ben-tre", name: "Bến Tre", focus: { x: 0, y: -82 }, color: "#F1AD83" },
-  { id: "vinh-long", name: "Vĩnh Long", focus: { x: 4, y: -86 }, color: "#A9D0A8" },
-  { id: "tra-vinh", name: "Trà Vinh", focus: { x: -2, y: -86 }, color: "#C1A7D9" },
-  { id: "dong-thap", name: "Đồng Tháp", focus: { x: 13, y: -82 }, color: "#8BC7BB" },
-  { id: "an-giang", name: "An Giang", focus: { x: 16, y: -86 }, color: "#F39A87" },
-  { id: "kien-giang", name: "Kiên Giang", focus: { x: 16, y: -91 }, color: "#F1D06B" },
+  {
+    id: "vinh-long",
+    name: "Vĩnh Long",
+    focus: { x: 4, y: -86 },
+    color: "#A9D0A8",
+  },
+  {
+    id: "tra-vinh",
+    name: "Trà Vinh",
+    focus: { x: -2, y: -86 },
+    color: "#C1A7D9",
+  },
+  {
+    id: "dong-thap",
+    name: "Đồng Tháp",
+    focus: { x: 13, y: -82 },
+    color: "#8BC7BB",
+  },
+  {
+    id: "an-giang",
+    name: "An Giang",
+    focus: { x: 16, y: -86 },
+    color: "#F39A87",
+  },
+  {
+    id: "kien-giang",
+    name: "Kiên Giang",
+    focus: { x: 16, y: -91 },
+    color: "#F1D06B",
+  },
   { id: "can-tho", name: "Cần Thơ", focus: { x: 9, y: -87 }, color: "#98B8DE" },
-  { id: "hau-giang", name: "Hậu Giang", focus: { x: 8, y: -91 }, color: "#E89AB0" },
-  { id: "soc-trang", name: "Sóc Trăng", focus: { x: 3, y: -91 }, color: "#F1B56A" },
-  { id: "bac-lieu", name: "Bạc Liêu", focus: { x: -2, y: -94 }, color: "#A8CEA9" },
+  {
+    id: "hau-giang",
+    name: "Hậu Giang",
+    focus: { x: 8, y: -91 },
+    color: "#E89AB0",
+  },
+  {
+    id: "soc-trang",
+    name: "Sóc Trăng",
+    focus: { x: 3, y: -91 },
+    color: "#F1B56A",
+  },
+  {
+    id: "bac-lieu",
+    name: "Bạc Liêu",
+    focus: { x: -2, y: -94 },
+    color: "#A8CEA9",
+  },
   { id: "ca-mau", name: "Cà Mau", focus: { x: 5, y: -96 }, color: "#F4B08A" },
 ];
 
 const regionalFacilities: RegionalFacility[] = [
-  { id: "regional-001", province: "ho_chi_minh", name: "Công ty TNHH Nông sản An Phú", type: "Đơn vị cung cấp thực phẩm", address: "184 Nguyễn Văn Linh, Quận 7", status: "Đang hoạt động" },
-  { id: "regional-002", province: "ho_chi_minh", name: "Bếp ăn Trường Tiểu học Nguyễn Bỉnh Khiêm", type: "Cơ sở giáo dục", address: "25 Nguyễn Bỉnh Khiêm, Quận 1", status: "Đã công bố" },
-  { id: "regional-003", province: "ho_chi_minh", name: "Trung tâm Kiểm nghiệm Nam Sài Gòn", type: "Cơ sở kiểm nghiệm", address: "56 Hoàng Diệu, Quận 4", status: "Đang hoạt động" },
-  { id: "regional-004", province: "dong_nai", name: "Công ty CP Nông sản Hưng Thịnh", type: "Đơn vị cung cấp thực phẩm", address: "Khu công nghiệp Amata, Biên Hòa", status: "Đã công bố" },
-  { id: "regional-005", province: "dong_nai", name: "HTX Cây ăn trái Long Hà", type: "Hợp tác xã", address: "Long Khánh, Đồng Nai", status: "Đang hoạt động" },
-  { id: "regional-006", province: "ha_noi", name: "Công ty Thực phẩm sạch Thủ Đô", type: "Đơn vị cung cấp thực phẩm", address: "Cầu Giấy, Hà Nội", status: "Đang hoạt động" },
-  { id: "regional-007", province: "ha_noi", name: "Bếp ăn Trường Tiểu học Ba Đình", type: "Cơ sở giáo dục", address: "Ba Đình, Hà Nội", status: "Đã công bố" },
-  { id: "regional-008", province: "da_nang", name: "Cơ sở sản xuất Đặc sản Miền Trung", type: "Cơ sở sản xuất", address: "Hải Châu, Đà Nẵng", status: "Đang hoạt động" },
-  { id: "regional-009", province: "da_nang", name: "Nhà hàng Biển Xanh", type: "Dịch vụ ăn uống", address: "Sơn Trà, Đà Nẵng", status: "Đã công bố" },
-  { id: "regional-010", province: "hai_phong", name: "HTX Nông nghiệp Cát Hải", type: "Đơn vị cung cấp thực phẩm", address: "Cát Hải, Hải Phòng", status: "Đang hoạt động" },
-  { id: "regional-011", province: "can_tho", name: "Cơ sở chế biến Mekong Farm", type: "Cơ sở sản xuất", address: "Ninh Kiều, Cần Thơ", status: "Đã công bố" },
-  { id: "regional-012", province: "nghe_an", name: "Công ty TNHH Nông sản Xứ Nghệ", type: "Đơn vị cung cấp thực phẩm", address: "Vinh, Nghệ An", status: "Đang hoạt động" },
+  {
+    id: "regional-001",
+    province: "ho_chi_minh",
+    name: "Công ty TNHH Nông sản An Phú",
+    type: "Đơn vị cung cấp thực phẩm",
+    address: "184 Nguyễn Văn Linh, Quận 7",
+    status: "Đang hoạt động",
+  },
+  {
+    id: "regional-002",
+    province: "ho_chi_minh",
+    name: "Bếp ăn Trường Tiểu học Nguyễn Bỉnh Khiêm",
+    type: "Cơ sở giáo dục",
+    address: "25 Nguyễn Bỉnh Khiêm, Quận 1",
+    status: "Đã công bố",
+  },
+  {
+    id: "regional-003",
+    province: "ho_chi_minh",
+    name: "Trung tâm Kiểm nghiệm Nam Sài Gòn",
+    type: "Cơ sở kiểm nghiệm",
+    address: "56 Hoàng Diệu, Quận 4",
+    status: "Đang hoạt động",
+  },
+  {
+    id: "regional-004",
+    province: "dong_nai",
+    name: "Công ty CP Nông sản Hưng Thịnh",
+    type: "Đơn vị cung cấp thực phẩm",
+    address: "Khu công nghiệp Amata, Biên Hòa",
+    status: "Đã công bố",
+  },
+  {
+    id: "regional-005",
+    province: "dong_nai",
+    name: "HTX Cây ăn trái Long Hà",
+    type: "Hợp tác xã",
+    address: "Long Khánh, Đồng Nai",
+    status: "Đang hoạt động",
+  },
+  {
+    id: "regional-006",
+    province: "ha_noi",
+    name: "Công ty Thực phẩm sạch Thủ Đô",
+    type: "Đơn vị cung cấp thực phẩm",
+    address: "Cầu Giấy, Hà Nội",
+    status: "Đang hoạt động",
+  },
+  {
+    id: "regional-007",
+    province: "ha_noi",
+    name: "Bếp ăn Trường Tiểu học Ba Đình",
+    type: "Cơ sở giáo dục",
+    address: "Ba Đình, Hà Nội",
+    status: "Đã công bố",
+  },
+  {
+    id: "regional-008",
+    province: "da_nang",
+    name: "Cơ sở sản xuất Đặc sản Miền Trung",
+    type: "Cơ sở sản xuất",
+    address: "Hải Châu, Đà Nẵng",
+    status: "Đang hoạt động",
+  },
+  {
+    id: "regional-009",
+    province: "da_nang",
+    name: "Nhà hàng Biển Xanh",
+    type: "Dịch vụ ăn uống",
+    address: "Sơn Trà, Đà Nẵng",
+    status: "Đã công bố",
+  },
+  {
+    id: "regional-010",
+    province: "hai_phong",
+    name: "HTX Nông nghiệp Cát Hải",
+    type: "Đơn vị cung cấp thực phẩm",
+    address: "Cát Hải, Hải Phòng",
+    status: "Đang hoạt động",
+  },
+  {
+    id: "regional-011",
+    province: "can_tho",
+    name: "Cơ sở chế biến Mekong Farm",
+    type: "Cơ sở sản xuất",
+    address: "Ninh Kiều, Cần Thơ",
+    status: "Đã công bố",
+  },
+  {
+    id: "regional-012",
+    province: "nghe_an",
+    name: "Công ty TNHH Nông sản Xứ Nghệ",
+    type: "Đơn vị cung cấp thực phẩm",
+    address: "Vinh, Nghệ An",
+    status: "Đang hoạt động",
+  },
 ];
 const typeNames: Record<string, string> = {
   "food-supplier": "Đơn vị cung cấp thực phẩm",
@@ -237,10 +497,7 @@ const inferAccountRole = (username: string): AccountRole =>
     : "facility";
 type RepeatableValue = Record<string, string | string[]>[];
 type CriteriaValue =
-  | string
-  | string[]
-  | Record<string, string | string[]>
-  | RepeatableValue;
+  string | string[] | Record<string, string | string[]> | RepeatableValue;
 type ApplicationInput = {
   type: ApplicationType;
   applicantName: string;
@@ -306,7 +563,9 @@ const readFilePreview = (file: File): Promise<string | undefined> =>
     ? new Promise((resolve) => {
         const reader = new FileReader();
         reader.onload = () =>
-          resolve(typeof reader.result === "string" ? reader.result : undefined);
+          resolve(
+            typeof reader.result === "string" ? reader.result : undefined,
+          );
         reader.onerror = () => resolve(undefined);
         reader.readAsDataURL(file);
       })
@@ -360,7 +619,10 @@ const getRecordRegistrationDetail = (
       (registration?.fields as Record<string, unknown> | undefined) ??
       {},
     attachments:
-      record.attachments ?? application?.attachments ?? registration?.files ?? [],
+      record.attachments ??
+      application?.attachments ??
+      registration?.files ??
+      [],
     type: application?.type ?? registration?.type,
   };
 };
@@ -404,10 +666,14 @@ function HomeRegionalDirectory() {
   const selectedFeature =
     selectedId === "all"
       ? null
-      : vietnamMapFeatures.find((feature) => feature.id === selectedId) ?? null;
-  const selectedFacilities = selectedId === "all"
-    ? regionalFacilities
-    : regionalFacilities.filter((facility) => facility.province === selectedId);
+      : (vietnamMapFeatures.find((feature) => feature.id === selectedId) ??
+        null);
+  const selectedFacilities =
+    selectedId === "all"
+      ? regionalFacilities
+      : regionalFacilities.filter(
+          (facility) => facility.province === selectedId,
+        );
   const mapScale = (selectedFeature ? 2.65 : 1) * manualZoom;
   const mapTranslate = selectedFeature
     ? `translate(${600 - selectedFeature.labelX * mapScale + mapOffset.x} ${620 - selectedFeature.labelY * mapScale + mapOffset.y}) scale(${mapScale})`
@@ -426,13 +692,15 @@ function HomeRegionalDirectory() {
       <div className="mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-24">
         <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
           <div className="max-w-2xl">
-            <p className="mono-label font-semibold text-primary">Mạng lưới cơ sở</p>
+            <p className="mono-label font-semibold text-primary">
+              Mạng lưới cơ sở
+            </p>
             <h2 className="display-tight mt-3 text-4xl font-extrabold leading-tight md:text-5xl">
               <span className="text-primary">Bản đồ</span>
             </h2>
             <p className="mt-5 text-base leading-7 text-muted-foreground">
-              Chọn một tỉnh/thành để bản đồ tự phóng to và danh sách cơ sở bên cạnh
-              được lọc theo khu vực đó.
+              Chọn một tỉnh/thành để bản đồ tự phóng to và danh sách cơ sở bên
+              cạnh được lọc theo khu vực đó.
             </p>
           </div>
           <label className="w-full max-w-sm">
@@ -482,7 +750,10 @@ function HomeRegionalDirectory() {
             onPointerCancel={() => {
               dragStart.current = null;
             }}
-            style={{ touchAction: "none", cursor: dragStart.current ? "grabbing" : "grab" }}
+            style={{
+              touchAction: "none",
+              cursor: dragStart.current ? "grabbing" : "grab",
+            }}
           >
             <div className="absolute left-5 top-5 z-10 rounded-xl border border-white/80 bg-white/90 px-3 py-2 text-[11px] font-bold text-primary shadow-sm backdrop-blur">
               <span className="mr-2 inline-block h-2 w-2 rounded-full bg-primary align-middle" />
@@ -533,7 +804,9 @@ function HomeRegionalDirectory() {
                       key={feature.id}
                       d={feature.path}
                       fill={feature.color}
-                      fillOpacity={selectedId === "all" || isSelected ? 0.9 : 0.25}
+                      fillOpacity={
+                        selectedId === "all" || isSelected ? 0.9 : 0.25
+                      }
                       stroke={isSelected ? "#123d36" : "#ffffff"}
                       strokeWidth={isSelected ? 2.8 : 1.35}
                       vectorEffect="non-scaling-stroke"
@@ -562,7 +835,11 @@ function HomeRegionalDirectory() {
                     y={selectedFeature.labelY}
                     textAnchor="middle"
                     className="fill-[#123d36] text-[12px] font-extrabold"
-                    style={{ paintOrder: "stroke", stroke: "white", strokeWidth: 3 }}
+                    style={{
+                      paintOrder: "stroke",
+                      stroke: "white",
+                      strokeWidth: 3,
+                    }}
                   >
                     {selectedFeature.name}
                   </text>
@@ -604,7 +881,9 @@ function HomeRegionalDirectory() {
                       key={facility.id}
                       className="group block w-full px-6 py-5 text-left transition-colors hover:bg-secondary/45"
                       onClick={() =>
-                        navigate(`/lookup?record=${encodeURIComponent(facility.id)}`)
+                        navigate(
+                          `/lookup?record=${encodeURIComponent(facility.id)}`,
+                        )
                       }
                       data-testid={`button-regional-facility-${facility.id}`}
                     >
@@ -626,17 +905,35 @@ function HomeRegionalDirectory() {
                         const owner = record?.metadata["Chủ cơ sở"];
                         return (
                           <div className="mt-2 space-y-1.5 text-xs leading-5 text-muted-foreground">
-                            <p><strong className="text-foreground">Tên cơ sở:</strong> {facility.name}</p>
-                            <p><strong className="text-foreground">Chủ cơ sở:</strong> {owner ?? "—"}</p>
+                            <p>
+                              <strong className="text-foreground">
+                                Tên cơ sở:
+                              </strong>{" "}
+                              {facility.name}
+                            </p>
+                            <p>
+                              <strong className="text-foreground">
+                                Chủ cơ sở:
+                              </strong>{" "}
+                              {owner ?? "—"}
+                            </p>
                             <p className="flex items-start gap-2">
                               <MapPin size={14} className="mt-0.5 shrink-0" />
-                              <span><strong className="text-foreground">Địa chỉ:</strong> {record?.metadata["Địa chỉ"] ?? facility.address}</span>
+                              <span>
+                                <strong className="text-foreground">
+                                  Địa chỉ:
+                                </strong>{" "}
+                                {record?.metadata["Địa chỉ"] ??
+                                  facility.address}
+                              </span>
                             </p>
                           </div>
                         );
                       })()}
                       <span className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground">
-                        <span className={`h-1.5 w-1.5 rounded-full ${facility.status === "Đang hoạt động" ? "bg-emerald-500" : "bg-primary"}`} />
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${facility.status === "Đang hoạt động" ? "bg-emerald-500" : "bg-primary"}`}
+                        />
                         {facility.status}
                       </span>
                     </button>
@@ -646,7 +943,9 @@ function HomeRegionalDirectory() {
                 <div className="flex h-full min-h-[18rem] items-center justify-center px-8 text-center">
                   <div>
                     <MapPin className="mx-auto text-primary/50" size={30} />
-                    <p className="mt-4 text-sm font-bold">Chưa có dữ liệu mẫu</p>
+                    <p className="mt-4 text-sm font-bold">
+                      Chưa có dữ liệu mẫu
+                    </p>
                     <p className="mt-2 text-xs leading-5 text-muted-foreground">
                       Khu vực này đã có trên bản đồ. Danh sách sẽ hiển thị khi
                       dữ liệu cơ sở được cập nhật.
@@ -683,7 +982,8 @@ export function HomePage() {
           <div className="mx-auto grid max-w-7xl gap-14 px-5 py-20 lg:grid-cols-[1.02fr_.98fr] lg:items-center lg:px-8 lg:py-28">
             <div className="rise-in">
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-card/80 px-3.5 py-2 text-xs font-bold text-primary shadow-sm">
-                <span className="status-dot bg-primary" /> HỆ THỐNG QUẢN LÝ CHUYÊN NGÀNH
+                <span className="status-dot bg-primary" /> HỆ THỐNG QUẢN LÝ
+                CHUYÊN NGÀNH
               </div>
               <h2 className="display-tight text-4xl font-extrabold leading-[1.05] tracking-tight md:text-6xl lg:text-[4.8rem]">
                 Sở An Toàn Thực Phẩm.
@@ -691,8 +991,8 @@ export function HomePage() {
                 <span className="text-primary">Thành Phố Hồ Chí Minh.</span>
               </h2>
               <p className="mt-8 max-w-xl text-base leading-8 text-muted-foreground md:text-lg">
-                Tra cứu nhanh các cơ sở đã được
-                Sở An toàn thực phẩm Thành phố Hồ Chí Minh công khai.
+                Tra cứu nhanh các cơ sở đã được Sở An toàn thực phẩm Thành phố
+                Hồ Chí Minh công khai.
               </p>
               <div className="mt-10 flex flex-wrap gap-3">
                 <ButtonLink href="/lookup">Bắt đầu tra cứu</ButtonLink>
@@ -865,7 +1165,8 @@ export function LookupPage() {
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<string | null>(() => {
     const recordId = new URLSearchParams(window.location.search).get("record");
-    return recordId && regionalPublicRecords.some((item) => item.id === recordId)
+    return recordId &&
+      regionalPublicRecords.some((item) => item.id === recordId)
       ? recordId
       : null;
   });
@@ -1065,7 +1366,9 @@ export function NewsPage() {
         <section className="mx-auto max-w-7xl px-5 py-14 lg:px-8 lg:py-20">
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="mono-label font-semibold text-primary">Thư viện nội dung</p>
+              <p className="mono-label font-semibold text-primary">
+                Thư viện nội dung
+              </p>
               <h2 className="display-tight mt-3 text-3xl font-extrabold md:text-4xl">
                 Mới đây tại Sở.
               </h2>
@@ -1084,26 +1387,30 @@ export function NewsPage() {
               />
             </label>
           </div>
-          <div className="mt-8 flex flex-wrap gap-2" role="tablist" aria-label="Lọc tin tức">
-            {(Object.keys(newsCategoryNames) as Array<NewsCategory | "all">).map(
-              (item) => (
-                <button
-                  key={item}
-                  type="button"
-                  onClick={() => setCategory(item)}
-                  className={`focus-ring rounded-full px-4 py-2.5 text-sm font-bold transition-all ${
-                    category === item
-                      ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
-                      : "border border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-primary"
-                  }`}
-                  role="tab"
-                  aria-selected={category === item}
-                  data-testid={`button-news-filter-${item}`}
-                >
-                  {newsCategoryNames[item]}
-                </button>
-              ),
-            )}
+          <div
+            className="mt-8 flex flex-wrap gap-2"
+            role="tablist"
+            aria-label="Lọc tin tức"
+          >
+            {(
+              Object.keys(newsCategoryNames) as Array<NewsCategory | "all">
+            ).map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setCategory(item)}
+                className={`focus-ring rounded-full px-4 py-2.5 text-sm font-bold transition-all ${
+                  category === item
+                    ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                    : "border border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-primary"
+                }`}
+                role="tab"
+                aria-selected={category === item}
+                data-testid={`button-news-filter-${item}`}
+              >
+                {newsCategoryNames[item]}
+              </button>
+            ))}
           </div>
           {filtered.length ? (
             <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -1217,21 +1524,30 @@ export function NewsDetailPage() {
               ))}
             </div>
             <aside className="h-fit rounded-2xl border border-primary/10 bg-secondary/60 p-5">
-              <p className="mono-label font-semibold text-primary">Thông tin bài viết</p>
+              <p className="mono-label font-semibold text-primary">
+                Thông tin bài viết
+              </p>
               <div className="mt-5 space-y-4 text-sm">
                 <div className="flex items-start gap-3">
                   <Clock3 size={17} className="mt-0.5 shrink-0 text-primary" />
                   <span>
                     <strong className="block">Thời gian đọc</strong>
-                    <span className="text-muted-foreground">{item.readTime}</span>
+                    <span className="text-muted-foreground">
+                      {item.readTime}
+                    </span>
                   </span>
                 </div>
                 {item.location && (
                   <div className="flex items-start gap-3">
-                    <MapPin size={17} className="mt-0.5 shrink-0 text-primary" />
+                    <MapPin
+                      size={17}
+                      className="mt-0.5 shrink-0 text-primary"
+                    />
                     <span>
                       <strong className="block">Địa điểm</strong>
-                      <span className="text-muted-foreground">{item.location}</span>
+                      <span className="text-muted-foreground">
+                        {item.location}
+                      </span>
                     </span>
                   </div>
                 )}
@@ -1303,7 +1619,10 @@ function RecordRow({
           <MapPin className="mt-0.5 shrink-0" size={14} />
           <span className="break-words">{item.location}</span>
         </span>
-        <ArrowUpRight className="mt-0.5 shrink-0 text-primary sm:mt-0" size={17} />
+        <ArrowUpRight
+          className="mt-0.5 shrink-0 text-primary sm:mt-0"
+          size={17}
+        />
       </div>
     </button>
   );
@@ -1339,14 +1658,10 @@ function RecordDialog({
     "Số điện thoại liên hệ",
     "Số giấy phép ATTP",
   ]);
-  const shouldHideFacilityDetail =
-    record.category === "eligible-facilities";
+  const shouldHideFacilityDetail = record.category === "eligible-facilities";
   const metadataEntries = Object.entries(record.metadata ?? {}).filter(
     ([key]) =>
-      !(
-        shouldHideFacilityDetail &&
-        hiddenFacilityDetailLabels.has(key)
-      ),
+      !(shouldHideFacilityDetail && hiddenFacilityDetailLabels.has(key)),
   );
   const detailEntries = Object.entries(registration.data).filter(
     ([key, value]) => {
@@ -1359,9 +1674,7 @@ function RecordDialog({
         ) &&
         value !== undefined &&
         value !== null &&
-        (Array.isArray(value)
-          ? value.length > 0
-          : String(value).trim() !== "")
+        (Array.isArray(value) ? value.length > 0 : String(value).trim() !== "")
       );
     },
   );
@@ -1382,11 +1695,11 @@ function RecordDialog({
       >
         <div className="flex items-start justify-between">
           <div>
-             <p className="mono-label text-primary">
-               {record.category === "eligible-facilities"
-                 ? "Hồ sơ cơ sở"
-                 : categoryNames[record.category]}
-             </p>
+            <p className="mono-label text-primary">
+              {record.category === "eligible-facilities"
+                ? "Hồ sơ cơ sở"
+                : categoryNames[record.category]}
+            </p>
             <h2 className="mt-2 text-2xl font-extrabold">{record.title}</h2>
           </div>
           <button
@@ -1461,7 +1774,8 @@ function RecordDialog({
                   key={`${file.fieldKey ?? "attachment"}-${file.name}`}
                   className="overflow-hidden rounded-xl border border-border bg-secondary/30"
                 >
-                  {file.kind.startsWith("image/") && getAttachmentPreview(file) ? (
+                  {file.kind.startsWith("image/") &&
+                  getAttachmentPreview(file) ? (
                     <img
                       src={getAttachmentPreview(file)}
                       alt={`Hình ảnh ${file.name}`}
@@ -1478,14 +1792,17 @@ function RecordDialog({
                     ) : (
                       <FileText size={14} className="shrink-0 text-primary" />
                     )}
-                    <span className="min-w-0 truncate font-semibold">{file.name}</span>
+                    <span className="min-w-0 truncate font-semibold">
+                      {file.name}
+                    </span>
                   </div>
                 </div>
               ))}
             </div>
             {imageAttachments.some((file) => !getAttachmentPreview(file)) && (
               <p className="mt-2 text-xs text-muted-foreground">
-                Một số ảnh cũ chỉ còn tên tệp vì được đăng ký trước khi hệ thống lưu bản xem trước.
+                Một số ảnh cũ chỉ còn tên tệp vì được đăng ký trước khi hệ thống
+                lưu bản xem trước.
               </p>
             )}
           </div>
@@ -1751,7 +2068,10 @@ function LegacyFacilityProfilePage() {
     };
     setProfile(nextProfile);
     sessionStorage.setItem(profileStorageKey, JSON.stringify(nextProfile));
-    sessionStorage.setItem("attp-facility-profile", JSON.stringify(nextProfile));
+    sessionStorage.setItem(
+      "attp-facility-profile",
+      JSON.stringify(nextProfile),
+    );
     sessionStorage.setItem(attachmentStorageKey, JSON.stringify(attachments));
     sessionStorage.setItem(
       "attp-facility-attachments",
@@ -1981,16 +2301,12 @@ function FacilityProfileEditor() {
       item.email.toLowerCase() === accountName.toLowerCase(),
   );
   const fallbackApplication = applications[0];
-  const initialSnapshot: RegistrationSnapshot =
-    account?.registration || {
-      type: fallbackApplication?.type || "food-supplier",
-      fields: (fallbackApplication?.data || {}) as Record<
-        string,
-        CriteriaValue
-      >,
-      files: fallbackApplication?.attachments || [],
-      submittedAt: "",
-    };
+  const initialSnapshot: RegistrationSnapshot = account?.registration || {
+    type: fallbackApplication?.type || "food-supplier",
+    fields: (fallbackApplication?.data || {}) as Record<string, CriteriaValue>,
+    files: fallbackApplication?.attachments || [],
+    submittedAt: "",
+  };
 
   return (
     <PublicShell>
@@ -2103,7 +2419,7 @@ function ApplicationForm({
     if (!item.dependsOn) return true;
     const dependency = fields[item.dependsOn.key];
     const current = Array.isArray(dependency)
-      ? dependency[0] ?? ""
+      ? (dependency[0] ?? "")
       : typeof dependency === "string"
         ? dependency
         : "";
@@ -2129,7 +2445,10 @@ function ApplicationForm({
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (mode === "register") {
-      if (!accountEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(accountEmail.trim())) {
+      if (
+        !accountEmail.trim() ||
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(accountEmail.trim())
+      ) {
         setNotice("Vui lòng nhập email hợp lệ để tạo tài khoản cơ sở.");
         return;
       }
@@ -2142,10 +2461,13 @@ function ApplicationForm({
         return;
       }
       const existingAccount = readFacilityAccounts().some(
-        (account) => account.email.toLowerCase() === accountEmail.trim().toLowerCase(),
+        (account) =>
+          account.email.toLowerCase() === accountEmail.trim().toLowerCase(),
       );
       if (existingAccount) {
-        setNotice("Email này đã được đăng ký. Vui lòng dùng email khác hoặc đăng nhập.");
+        setNotice(
+          "Email này đã được đăng ký. Vui lòng dùng email khác hoặc đăng nhập.",
+        );
         return;
       }
     }
@@ -2165,8 +2487,7 @@ function ApplicationForm({
             if (!field.required) return false;
             if (field.answerType === "file")
               return !files.some(
-                (file) =>
-                  file.fieldKey === `${item.key}.${index}.${field.key}`,
+                (file) => file.fieldKey === `${item.key}.${index}.${field.key}`,
               );
             const answer = row[field.key];
             return Array.isArray(answer)
@@ -2219,9 +2540,7 @@ function ApplicationForm({
         .join(", "),
       contact: asText(fields.contact),
       criteriaVersion: formSet?.version ?? "",
-      isThirdParty:
-        type === "school" &&
-        fields.mealModel !== "Tự nấu",
+      isThirdParty: type === "school" && fields.mealModel !== "Tự nấu",
       data,
       attachments: files,
     };
@@ -2265,7 +2584,9 @@ function ApplicationForm({
           <Check size={30} />
         </div>
         <p className="mono-label mt-7 text-primary">
-          {mode === "register" ? "TẠO TÀI KHOẢN THÀNH CÔNG" : "ĐÃ CẬP NHẬT HỒ SƠ"}
+          {mode === "register"
+            ? "TẠO TÀI KHOẢN THÀNH CÔNG"
+            : "ĐÃ CẬP NHẬT HỒ SƠ"}
         </p>
         <h1 className="display-tight mt-3 text-4xl font-extrabold">
           {mode === "register"
@@ -2284,12 +2605,18 @@ function ApplicationForm({
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="rounded-xl border border-border bg-card p-3">
-                <p className="text-xs text-muted-foreground">Email / tên đăng nhập</p>
-                <p className="mt-1 break-all font-mono text-sm font-bold">{credentials.email}</p>
+                <p className="text-xs text-muted-foreground">
+                  Email / tên đăng nhập
+                </p>
+                <p className="mt-1 break-all font-mono text-sm font-bold">
+                  {credentials.email}
+                </p>
               </div>
               <div className="rounded-xl border border-border bg-card p-3">
                 <p className="text-xs text-muted-foreground">Mật khẩu</p>
-                <p className="mt-1 font-mono text-sm font-bold">{credentials.password}</p>
+                <p className="mt-1 font-mono text-sm font-bold">
+                  {credentials.password}
+                </p>
               </div>
             </div>
             <Button
@@ -2313,7 +2640,10 @@ function ApplicationForm({
                 setCopied(true);
               }}
             >
-              <Copy size={16} /> {copied ? "Đã sao chép tài khoản và mật khẩu" : "Sao chép tài khoản và mật khẩu"}
+              <Copy size={16} />{" "}
+              {copied
+                ? "Đã sao chép tài khoản và mật khẩu"
+                : "Sao chép tài khoản và mật khẩu"}
             </Button>
           </div>
         )}
@@ -2321,7 +2651,9 @@ function ApplicationForm({
           {mode === "register" ? (
             <>
               <ButtonLink href="/admin/login">Đăng nhập ngay</ButtonLink>
-              <ButtonLink href="/" variant="outline">Về trang chủ</ButtonLink>
+              <ButtonLink href="/" variant="outline">
+                Về trang chủ
+              </ButtonLink>
             </>
           ) : (
             <Button
@@ -2359,9 +2691,7 @@ function ApplicationForm({
       onChange={(value) => update(item.key, value)}
       onFiles={(event) => addFilesFor(item.key, event)}
       onFilesFor={addFilesFor}
-      onRemoveFile={(name, fieldKey) =>
-        removeFile(name, fieldKey ?? item.key)
-      }
+      onRemoveFile={(name, fieldKey) => removeFile(name, fieldKey ?? item.key)}
     />
   );
   return (
@@ -2372,7 +2702,9 @@ function ApplicationForm({
             ? "Đăng ký trực tuyến · Tạo tài khoản cơ sở"
             : `Chỉnh sửa hồ sơ · ${account?.email || "coso.demo"}`
         }
-        title={mode === "register" ? "Thông tin đăng ký" : "Hồ sơ cơ sở của bạn"}
+        title={
+          mode === "register" ? "Thông tin đăng ký" : "Hồ sơ cơ sở của bạn"
+        }
         description={
           mode === "register"
             ? "Chọn đúng loại cơ sở để điền biểu mẫu tương ứng. Mỗi loại cơ sở có bộ câu hỏi cố định riêng."
@@ -2392,7 +2724,9 @@ function ApplicationForm({
               </p>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <label>
-                  <span className="mb-2 block text-sm font-semibold">Email *</span>
+                  <span className="mb-2 block text-sm font-semibold">
+                    Email *
+                  </span>
                   <input
                     type="email"
                     value={accountEmail}
@@ -2406,11 +2740,15 @@ function ApplicationForm({
                 {mode === "register" ? (
                   <>
                     <label>
-                      <span className="mb-2 block text-sm font-semibold">Mật khẩu *</span>
+                      <span className="mb-2 block text-sm font-semibold">
+                        Mật khẩu *
+                      </span>
                       <input
                         type="password"
                         value={accountPassword}
-                        onChange={(event) => setAccountPassword(event.target.value)}
+                        onChange={(event) =>
+                          setAccountPassword(event.target.value)
+                        }
                         autoComplete="new-password"
                         placeholder="Ít nhất 6 ký tự"
                         className="focus-ring h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
@@ -2418,11 +2756,15 @@ function ApplicationForm({
                       />
                     </label>
                     <label className="md:col-start-2">
-                      <span className="mb-2 block text-sm font-semibold">Nhập lại mật khẩu *</span>
+                      <span className="mb-2 block text-sm font-semibold">
+                        Nhập lại mật khẩu *
+                      </span>
                       <input
                         type="password"
                         value={accountPasswordConfirm}
-                        onChange={(event) => setAccountPasswordConfirm(event.target.value)}
+                        onChange={(event) =>
+                          setAccountPasswordConfirm(event.target.value)
+                        }
                         autoComplete="new-password"
                         className="focus-ring h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
                         data-testid="input-registration-password-confirm"
@@ -2432,7 +2774,9 @@ function ApplicationForm({
                 ) : (
                   <div className="rounded-xl border border-border bg-card px-3 py-3 text-sm">
                     <p className="text-xs text-muted-foreground">Mật khẩu</p>
-                    <p className="mt-1 font-semibold">•••••••• · Đã thiết lập</p>
+                    <p className="mt-1 font-semibold">
+                      •••••••• · Đã thiết lập
+                    </p>
                   </div>
                 )}
               </div>
@@ -2472,11 +2816,32 @@ function ApplicationForm({
                   : UserRound
             }
           >
-            {formFields
-              .filter((item) => item.groupId === group.id)
-              .map((item, index) => {
-                return <Fragment key={`${item.id}-${index}`}>{renderQuestion(item)}</Fragment>;
-              })}
+            {(() => {
+              const groupFields = formFields.filter(
+                (item) => item.groupId === group.id,
+              );
+              const managerFields = groupFields.filter(
+                isFoodSafetyManagerField,
+              );
+              const firstManagerField = managerFields[0]?.key;
+              return groupFields.map((item, index) => {
+                if (isFoodSafetyManagerField(item)) {
+                  if (item.key !== firstManagerField) return null;
+                  return (
+                    <FoodSafetyManagerFields
+                      key="food-safety-manager-fields"
+                      items={managerFields}
+                      renderQuestion={renderQuestion}
+                    />
+                  );
+                }
+                return (
+                  <Fragment key={`${item.id}-${index}`}>
+                    {renderQuestion(item)}
+                  </Fragment>
+                );
+              });
+            })()}
           </FormSection>
         ))}
         <div className="flex flex-col gap-4 rounded-2xl border border-border bg-secondary/50 p-5 sm:flex-row sm:items-center sm:justify-between">
@@ -2491,17 +2856,41 @@ function ApplicationForm({
               </span>
             </p>
           </div>
-             <Button
+          <Button
             type="submit"
             className="h-12 rounded-xl px-6"
             data-testid="button-submit-application"
           >
-              {mode === "register" ? "Tạo tài khoản & nộp hồ sơ" : "Lưu thay đổi hồ sơ"} <Send size={16} />
+            {mode === "register"
+              ? "Tạo tài khoản & nộp hồ sơ"
+              : "Lưu thay đổi hồ sơ"}{" "}
+            <Send size={16} />
           </Button>
         </div>
       </form>
       {notice && <Notice message={notice} onClose={() => setNotice("")} />}
     </div>
+  );
+}
+
+function FoodSafetyManagerFields({
+  items,
+  renderQuestion,
+}: {
+  items: CriteriaDefinition[];
+  renderQuestion: (item: CriteriaDefinition) => ReactNode;
+}) {
+  return (
+    <section className="mt-5 rounded-2xl border border-primary/15 bg-secondary/20 p-4 sm:p-5">
+      <h4 className="text-sm font-extrabold uppercase tracking-[0.08em] text-primary">
+        Người phụ trách quản lý ATTP
+      </h4>
+      <div className="mt-4 grid gap-4 md:grid-cols-3 [&>*]:mt-0">
+        {items.map((item) => (
+          <Fragment key={item.id}>{renderQuestion(item)}</Fragment>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -2521,10 +2910,7 @@ function DynamicQuestion({
   suppliers: { id: string; name: string; taxCode: string }[];
   onChange: (value: CriteriaValue) => void;
   onFiles: (event: ChangeEvent<HTMLInputElement>) => void;
-  onFilesFor: (
-    fieldKey: string,
-    event: ChangeEvent<HTMLInputElement>,
-  ) => void;
+  onFilesFor: (fieldKey: string, event: ChangeEvent<HTMLInputElement>) => void;
   onRemoveFile: (name: string, fieldKey?: string) => void;
 }) {
   return (
@@ -2557,10 +2943,7 @@ function DynamicQuestionControl({
   suppliers: { id: string; name: string; taxCode: string }[];
   onChange: (value: CriteriaValue) => void;
   onFiles: (event: ChangeEvent<HTMLInputElement>) => void;
-  onFilesFor: (
-    fieldKey: string,
-    event: ChangeEvent<HTMLInputElement>,
-  ) => void;
+  onFilesFor: (fieldKey: string, event: ChangeEvent<HTMLInputElement>) => void;
   onRemoveFile: (name: string, fieldKey?: string) => void;
 }) {
   const options =
@@ -2771,10 +3154,7 @@ function RepeatableQuestion({
   value: CriteriaValue;
   files: Attachment[];
   onChange: (value: CriteriaValue) => void;
-  onFilesFor: (
-    fieldKey: string,
-    event: ChangeEvent<HTMLInputElement>,
-  ) => void;
+  onFilesFor: (fieldKey: string, event: ChangeEvent<HTMLInputElement>) => void;
   onRemoveFile: (name: string, fieldKey?: string) => void;
 }) {
   const rows: Record<string, string | string[]>[] =
@@ -2794,7 +3174,8 @@ function RepeatableQuestion({
     onChange(nextRows);
   };
   const addRow = () => onChange([...rows, {}]);
-  const removeRow = (rowIndex: number) => onChange(rows.filter((_, index) => index !== rowIndex));
+  const removeRow = (rowIndex: number) =>
+    onChange(rows.filter((_, index) => index !== rowIndex));
 
   return (
     <div className="mt-5 first:mt-0">
@@ -2805,7 +3186,9 @@ function RepeatableQuestion({
             {item.required && <span className="text-destructive"> *</span>}
           </p>
           {item.description && (
-            <p className="mt-1 text-xs text-muted-foreground">{item.description}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {item.description}
+            </p>
           )}
         </div>
         <Button
@@ -2815,7 +3198,8 @@ function RepeatableQuestion({
           onClick={addRow}
           data-testid={`button-add-${item.key}`}
         >
-          <Plus size={14} /> Thêm {item.key === "products" ? "sản phẩm" : "nhà cung cấp"}
+          <Plus size={14} /> Thêm{" "}
+          {item.key === "products" ? "sản phẩm" : "nhà cung cấp"}
         </Button>
       </div>
       {rows.length === 0 && (
@@ -2831,7 +3215,8 @@ function RepeatableQuestion({
           >
             <div className="mb-4 flex items-center justify-between gap-3">
               <p className="text-sm font-bold">
-                {item.key === "products" ? "Sản phẩm" : "Nhà cung cấp"} {rowIndex + 1}
+                {item.key === "products" ? "Sản phẩm" : "Nhà cung cấp"}{" "}
+                {rowIndex + 1}
               </p>
               <button
                 type="button"
@@ -2846,12 +3231,16 @@ function RepeatableQuestion({
                 const fieldKey = `${item.key}.${rowIndex}.${field.key}`;
                 const fieldValue = row[field.key] ?? "";
                 if (field.answerType === "file") {
-                  const rowFiles = files.filter((file) => file.fieldKey === fieldKey);
+                  const rowFiles = files.filter(
+                    (file) => file.fieldKey === fieldKey,
+                  );
                   return (
                     <div key={field.key} className="md:col-span-2">
                       <p className="mb-2 block text-sm font-semibold">
                         {field.label}
-                        {field.required && <span className="text-destructive"> *</span>}
+                        {field.required && (
+                          <span className="text-destructive"> *</span>
+                        )}
                       </p>
                       <label className="focus-ring flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-dashed border-primary/35 bg-background px-4 text-sm font-semibold text-primary hover:bg-secondary">
                         <Plus size={16} /> Chọn tệp
@@ -2870,7 +3259,10 @@ function RepeatableQuestion({
                           className="mt-2 flex items-center justify-between rounded-lg bg-muted px-3 py-2 text-sm"
                         >
                           <span className="flex min-w-0 items-center gap-2 truncate">
-                            <FileText size={15} className="shrink-0 text-primary" />
+                            <FileText
+                              size={15}
+                              className="shrink-0 text-primary"
+                            />
                             {file.name}
                           </span>
                           <button
@@ -2886,22 +3278,35 @@ function RepeatableQuestion({
                     </div>
                   );
                 }
-                if (field.answerType === "select" || field.answerType === "yes-no")
+                if (
+                  field.answerType === "select" ||
+                  field.answerType === "yes-no"
+                )
                   return (
                     <label key={field.key} className="block">
                       <span className="mb-2 block text-sm font-semibold">
                         {field.label}
-                        {field.required && <span className="text-destructive"> *</span>}
+                        {field.required && (
+                          <span className="text-destructive"> *</span>
+                        )}
                       </span>
                       <select
-                        value={Array.isArray(fieldValue) ? fieldValue[0] ?? "" : fieldValue}
-                        onChange={(event) => updateRow(rowIndex, field.key, event.target.value)}
+                        value={
+                          Array.isArray(fieldValue)
+                            ? (fieldValue[0] ?? "")
+                            : fieldValue
+                        }
+                        onChange={(event) =>
+                          updateRow(rowIndex, field.key, event.target.value)
+                        }
                         className="focus-ring h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
                         data-testid={`input-criteria-${fieldKey}`}
                       >
                         <option value="">Chọn một phương án</option>
                         {(field.options ?? []).map((option) => (
-                          <option key={option} value={option}>{option}</option>
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
                         ))}
                       </select>
                     </label>
@@ -2910,12 +3315,20 @@ function RepeatableQuestion({
                   <label key={field.key} className="block">
                     <span className="mb-2 block text-sm font-semibold">
                       {field.label}
-                      {field.required && <span className="text-destructive"> *</span>}
+                      {field.required && (
+                        <span className="text-destructive"> *</span>
+                      )}
                     </span>
                     <input
                       type={field.answerType === "number" ? "number" : "text"}
-                      value={Array.isArray(fieldValue) ? fieldValue.join(", ") : fieldValue}
-                      onChange={(event) => updateRow(rowIndex, field.key, event.target.value)}
+                      value={
+                        Array.isArray(fieldValue)
+                          ? fieldValue.join(", ")
+                          : fieldValue
+                      }
+                      onChange={(event) =>
+                        updateRow(rowIndex, field.key, event.target.value)
+                      }
                       className="focus-ring h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
                       data-testid={`input-criteria-${fieldKey}`}
                     />
@@ -4355,6 +4768,10 @@ function CriteriaPreviewDialog({
                   const groupCriteria = activeCriteria.filter(
                     (item) => item.groupId === group.id,
                   );
+                  const managerCriteria = groupCriteria.filter(
+                    isFoodSafetyManagerField,
+                  );
+                  const firstManagerField = managerCriteria[0]?.key;
                   return groupCriteria.length ? (
                     <section
                       key={group.id}
@@ -4364,14 +4781,32 @@ function CriteriaPreviewDialog({
                         {group.name}
                       </h3>
                       <div className="mt-2">
-                        {groupCriteria.map((item) => (
-                          <PreviewQuestion
-                            key={item.id}
-                            item={item}
-                            value={values[item.key] ?? ""}
-                            onChange={(value) => updateValue(item.key, value)}
-                          />
-                        ))}
+                        {groupCriteria.map((item) =>
+                          isFoodSafetyManagerField(item) ? (
+                            item.key === firstManagerField ? (
+                              <FoodSafetyManagerFields
+                                key="food-safety-manager-preview-fields"
+                                items={managerCriteria}
+                                renderQuestion={(managerItem) => (
+                                  <PreviewQuestion
+                                    item={managerItem}
+                                    value={values[managerItem.key] ?? ""}
+                                    onChange={(value) =>
+                                      updateValue(managerItem.key, value)
+                                    }
+                                  />
+                                )}
+                              />
+                            ) : null
+                          ) : (
+                            <PreviewQuestion
+                              key={item.id}
+                              item={item}
+                              value={values[item.key] ?? ""}
+                              onChange={(value) => updateValue(item.key, value)}
+                            />
+                          ),
+                        )}
                       </div>
                     </section>
                   ) : null;
@@ -5615,7 +6050,8 @@ export function AdminApplicationPage() {
     const existingIndex = regionalPublicRecords.findIndex(
       (record) => record.id === publishedRecord.id,
     );
-    if (existingIndex >= 0) regionalPublicRecords[existingIndex] = publishedRecord;
+    if (existingIndex >= 0)
+      regionalPublicRecords[existingIndex] = publishedRecord;
     else regionalPublicRecords.unshift(publishedRecord);
     const savedRecords = JSON.parse(
       sessionStorage.getItem("attp-published-records") || "[]",
@@ -5641,7 +6077,9 @@ export function AdminApplicationPage() {
     application.reviewNote = supplementNote.trim();
     application.published = false;
     setEvaluation("failed");
-    setNotice("Đã lưu yêu cầu bổ sung và chuyển hồ sơ về trạng thái cần bổ sung.");
+    setNotice(
+      "Đã lưu yêu cầu bổ sung và chuyển hồ sơ về trạng thái cần bổ sung.",
+    );
   };
   if (!application)
     return (
@@ -5679,7 +6117,9 @@ export function AdminApplicationPage() {
                   <span className="text-white/35">•</span>
                   <span>{typeNames[application.type]}</span>
                   <span className="text-white/35">•</span>
-                   <span>{application.published ? "Đã công bố" : "Chưa công bố"}</span>
+                  <span>
+                    {application.published ? "Đã công bố" : "Chưa công bố"}
+                  </span>
                 </div>
                 <h1 className="mt-2 max-w-3xl text-2xl font-extrabold tracking-tight sm:text-4xl">
                   {application.applicantName}
@@ -5691,7 +6131,7 @@ export function AdminApplicationPage() {
                 </p>
               </div>
             </div>
-             <div className="grid grid-cols-2 gap-3 sm:w-auto sm:min-w-[270px]">
+            <div className="grid grid-cols-2 gap-3 sm:w-auto sm:min-w-[270px]">
               <div className="rounded-xl bg-white/10 p-3">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-white/55">
                   Ngày nộp
@@ -5700,18 +6140,18 @@ export function AdminApplicationPage() {
                   {formatDate(application.submittedAt)}
                 </p>
               </div>
-               <div className="rounded-xl bg-white/10 p-3">
-                 <p className="text-[11px] font-bold uppercase tracking-wider text-white/55">
-                   Đánh giá
-                 </p>
-                 <p className="mt-1 text-sm font-bold text-[#f4c95d]">
-                   {application.status === "approved"
-                     ? "Đạt"
-                     : application.status === "needs-more-info"
-                       ? "Không đạt"
-                       : "Chưa đánh giá"}
-                 </p>
-               </div>
+              <div className="rounded-xl bg-white/10 p-3">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-white/55">
+                  Đánh giá
+                </p>
+                <p className="mt-1 text-sm font-bold text-[#f4c95d]">
+                  {application.status === "approved"
+                    ? "Đạt"
+                    : application.status === "needs-more-info"
+                      ? "Không đạt"
+                      : "Chưa đánh giá"}
+                </p>
+              </div>
             </div>
           </div>
         </section>
@@ -5724,9 +6164,9 @@ export function AdminApplicationPage() {
               <h2 className="mt-2 text-2xl font-extrabold text-slate-900">
                 Thông tin cơ sở đã khai báo
               </h2>
-               <p className="mt-1 text-sm text-slate-500">
-                 Nội dung được giữ nguyên theo form mà cơ sở đã điền khi đăng ký.
-               </p>
+              <p className="mt-1 text-sm text-slate-500">
+                Nội dung được giữ nguyên theo form mà cơ sở đã điền khi đăng ký.
+              </p>
             </div>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">
               <CheckCircle2 size={14} className="text-emerald-600" /> Đã tiếp
@@ -5734,38 +6174,38 @@ export function AdminApplicationPage() {
             </span>
           </div>
           <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-             <div className="space-y-7">
-               {formGroups.map((group) => {
-                 const groupCriteria = criteria.filter(
-                   (item) => item.groupId === group.id,
-                 );
-                 if (!groupCriteria.length) return null;
-                 return (
-                   <div key={group.id}>
-                     <h3 className="border-b border-slate-200 pb-2 text-sm font-extrabold text-[#16604f]">
-                       {group.name}
-                     </h3>
-                     <dl className="mt-3 grid gap-x-7 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
-                       {groupCriteria.map((item) => (
-                         <div key={item.key} className="min-w-0">
-                           <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                             {item.label}
-                           </dt>
-                           <dd className="mt-1.5 break-words text-sm font-bold text-slate-800">
-                             {item.answerType === "file"
-                               ? application.attachments
-                                   .filter((file) => file.fieldKey === item.key)
-                                   .map((file) => file.name)
-                                   .join(", ") || "—"
-                               : formatAnswer(application.data?.[item.key])}
-                           </dd>
-                         </div>
-                       ))}
-                     </dl>
-                   </div>
-                 );
-               })}
-             </div>
+            <div className="space-y-7">
+              {formGroups.map((group) => {
+                const groupCriteria = criteria.filter(
+                  (item) => item.groupId === group.id,
+                );
+                if (!groupCriteria.length) return null;
+                return (
+                  <div key={group.id}>
+                    <h3 className="border-b border-slate-200 pb-2 text-sm font-extrabold text-[#16604f]">
+                      {group.name}
+                    </h3>
+                    <dl className="mt-3 grid gap-x-7 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
+                      {groupCriteria.map((item) => (
+                        <div key={item.key} className="min-w-0">
+                          <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                            {item.label}
+                          </dt>
+                          <dd className="mt-1.5 break-words text-sm font-bold text-slate-800">
+                            {item.answerType === "file"
+                              ? application.attachments
+                                  .filter((file) => file.fieldKey === item.key)
+                                  .map((file) => file.name)
+                                  .join(", ") || "—"
+                              : formatAnswer(application.data?.[item.key])}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </div>
+                );
+              })}
+            </div>
             {application.reviewNote && (
               <div className="mt-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
                 <Info size={17} className="mt-0.5 shrink-0" />
@@ -5776,7 +6216,7 @@ export function AdminApplicationPage() {
             )}
           </div>
         </section>
-         <section className="mt-6 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+        <section className="mt-6 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#e7f2ef] text-[#16604f]">
@@ -5796,11 +6236,11 @@ export function AdminApplicationPage() {
             </span>
           </div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-             {application.attachments.map((file) => (
+            {application.attachments.map((file) => (
               <button
                 type="button"
                 key={file.name}
-                 onClick={() => setNotice(`Tệp minh chứng: ${file.name}`)}
+                onClick={() => setNotice(`Tệp minh chứng: ${file.name}`)}
                 className="group flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-left transition hover:border-[#16604f]/30 hover:bg-[#f7faf9]"
                 data-testid={`button-preview-attachment-${file.name}`}
               >
@@ -5831,80 +6271,84 @@ export function AdminApplicationPage() {
           </div>
         </section>
         <section className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_350px]">
-           <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-             <p className="text-xs font-bold uppercase tracking-[.16em] text-[#16604f]">
-               PHẦN 03 · ĐÁNH GIÁ
-             </p>
-             <h2 className="mt-2 text-xl font-extrabold text-slate-900">
-               Kết quả xử lý hồ sơ
-             </h2>
-             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-               Cán bộ chọn kết quả đánh giá dựa trên nội dung form và minh chứng
-               cơ sở đã cung cấp.
-             </p>
-             <div className="mt-6 rounded-2xl border border-[#16604f]/15 bg-[#f7faf9] p-5">
-               <label className="block">
-                 <span className="mb-2 block text-sm font-bold text-slate-700">
-                   Đánh giá
-                 </span>
-                 <select
-                   value={evaluation}
-                   onChange={(event) =>
-                     setEvaluation(event.target.value as "" | "passed" | "failed")
-                   }
-                   className="focus-ring h-12 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold"
-                   data-testid="select-application-evaluation"
-                 >
-                   <option value="">Chọn kết quả đánh giá</option>
-                   <option value="passed">Đạt</option>
-                   <option value="failed">Không đạt</option>
-                 </select>
-               </label>
-             </div>
-           </div>
-          <aside className="h-fit rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm lg:sticky lg:top-6">
+          <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
             <p className="text-xs font-bold uppercase tracking-[.16em] text-[#16604f]">
-               THAO TÁC CÁN BỘ
+              PHẦN 03 · ĐÁNH GIÁ
             </p>
             <h2 className="mt-2 text-xl font-extrabold text-slate-900">
-               Lưu và công bố
+              Kết quả xử lý hồ sơ
             </h2>
-             {evaluation === "failed" && (
-               <label className="mt-5 block">
-                 <span className="mb-2 block text-sm font-bold text-slate-700">
-                   Nội dung yêu cầu bổ sung
-                 </span>
-                 <textarea
-                   value={supplementNote}
-                   onChange={(event) => setSupplementNote(event.target.value)}
-                   placeholder="Nhập rõ giấy tờ hoặc thông tin cơ sở cần bổ sung..."
-                   className="focus-ring min-h-32 w-full rounded-xl border border-slate-200 p-3 text-sm"
-                   data-testid="textarea-supplement-request"
-                 />
-               </label>
-             )}
-             <div className="mt-5 space-y-2">
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+              Cán bộ chọn kết quả đánh giá dựa trên nội dung form và minh chứng
+              cơ sở đã cung cấp.
+            </p>
+            <div className="mt-6 rounded-2xl border border-[#16604f]/15 bg-[#f7faf9] p-5">
+              <label className="block">
+                <span className="mb-2 block text-sm font-bold text-slate-700">
+                  Đánh giá
+                </span>
+                <select
+                  value={evaluation}
+                  onChange={(event) =>
+                    setEvaluation(
+                      event.target.value as "" | "passed" | "failed",
+                    )
+                  }
+                  className="focus-ring h-12 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold"
+                  data-testid="select-application-evaluation"
+                >
+                  <option value="">Chọn kết quả đánh giá</option>
+                  <option value="passed">Đạt</option>
+                  <option value="failed">Không đạt</option>
+                </select>
+              </label>
+            </div>
+          </div>
+          <aside className="h-fit rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm lg:sticky lg:top-6">
+            <p className="text-xs font-bold uppercase tracking-[.16em] text-[#16604f]">
+              THAO TÁC CÁN BỘ
+            </p>
+            <h2 className="mt-2 text-xl font-extrabold text-slate-900">
+              Lưu và công bố
+            </h2>
+            {evaluation === "failed" && (
+              <label className="mt-5 block">
+                <span className="mb-2 block text-sm font-bold text-slate-700">
+                  Nội dung yêu cầu bổ sung
+                </span>
+                <textarea
+                  value={supplementNote}
+                  onChange={(event) => setSupplementNote(event.target.value)}
+                  placeholder="Nhập rõ giấy tờ hoặc thông tin cơ sở cần bổ sung..."
+                  className="focus-ring min-h-32 w-full rounded-xl border border-slate-200 p-3 text-sm"
+                  data-testid="textarea-supplement-request"
+                />
+              </label>
+            )}
+            <div className="mt-5 space-y-2">
               <button
                 type="button"
-                 onClick={() => {
-                   if (!evaluation) {
-                     setNotice("Vui lòng chọn kết quả trong trường Đánh giá.");
-                     return;
-                   }
-                   if (evaluation === "passed") publish();
-                   else requestSupplement();
-                 }}
+                onClick={() => {
+                  if (!evaluation) {
+                    setNotice("Vui lòng chọn kết quả trong trường Đánh giá.");
+                    return;
+                  }
+                  if (evaluation === "passed") publish();
+                  else requestSupplement();
+                }}
                 className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#16604f] px-4 text-sm font-bold text-white shadow-sm hover:bg-[#123d36]"
-                 data-testid="button-review-save-and-publish"
+                data-testid="button-review-save-and-publish"
               >
-                 <Check size={16} />{" "}
-                 {evaluation === "passed" ? "Lưu hồ sơ và công bố" : "Lưu yêu cầu bổ sung"}
+                <Check size={16} />{" "}
+                {evaluation === "passed"
+                  ? "Lưu hồ sơ và công bố"
+                  : "Lưu yêu cầu bổ sung"}
               </button>
             </div>
             <p className="mt-4 text-xs leading-5 text-slate-500">
-               Nếu chọn “Đạt”, hồ sơ được lưu và xuất hiện trong danh sách công
-               khai. Nếu chọn “Không đạt”, cán bộ phải nhập nội dung yêu cầu bổ
-               sung.
+              Nếu chọn “Đạt”, hồ sơ được lưu và xuất hiện trong danh sách công
+              khai. Nếu chọn “Không đạt”, cán bộ phải nhập nội dung yêu cầu bổ
+              sung.
             </p>
           </aside>
         </section>
