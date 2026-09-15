@@ -1262,40 +1262,32 @@ export function IncidentDetailPage() {
              )}
           </section>
 
-           <section className="overflow-hidden rounded-xl border border-[#e2e8f0] bg-white shadow-sm" data-testid="section-incident-conclusion">
-             <div className="flex items-center gap-4 border-b border-[#e2e8f0] px-5 py-5 sm:px-6">
-               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#eff6ff] text-[#1e40af]"><Check size={17} /></span>
-               <div>
-                 <h2 className="text-lg font-bold uppercase tracking-[.03em] text-[#0f172a]">Kết luận &amp; đóng hồ sơ</h2>
-                 <p className="mt-0.5 text-xs text-[#64748b]">
-                   {incident.status === "Đã đóng" ? `Đã đóng lúc ${formatDate(incident.closedAt ?? incident.reportedAt)}` : "Ghi nhận kết luận xử lý trước khi đóng hồ sơ"}
+           <section className="overflow-hidden rounded-xl border border-[#e2e8f0] bg-white p-5 shadow-sm sm:p-6" data-testid="section-incident-conclusion">
+             <div className="flex items-center gap-3">
+               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f1f5f9] text-[#475569]"><FileText size={15} /></span>
+               <h2 className="text-sm font-extrabold uppercase tracking-[.03em] text-[#1e293b]">Kết luận &amp; đóng hồ sơ</h2>
+             </div>
+             <div className="mt-5 grid gap-5 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-4 sm:p-5 md:grid-cols-2">
+               <div className="space-y-4">
+                 <div>
+                   <p className="text-[10px] font-extrabold uppercase tracking-[.06em] text-[#64748b]">Ngày đóng hồ sơ</p>
+                   <p className={`mt-1 text-xs ${incident.status === "Đã đóng" ? "text-[#334155]" : "text-[#94a3b8]"}`}>
+                     {incident.status === "Đã đóng" ? formatDate(incident.closedAt ?? incident.reportedAt) : "Nhập ngày đóng hồ sơ"}
+                   </p>
+                 </div>
+                 <div>
+                   <p className="text-[10px] font-extrabold uppercase tracking-[.06em] text-[#64748b]">Người thực hiện đóng</p>
+                   <p className={`mt-1 text-xs ${incident.status === "Đã đóng" ? "text-[#334155]" : "text-[#94a3b8]"}`}>
+                     {incident.status === "Đã đóng" ? "Cán bộ phụ trách" : "Nhập tên người thực hiện"}
+                   </p>
+                 </div>
+               </div>
+               <div className="border-t border-[#e2e8f0] pt-4 md:border-l md:border-t-0 md:pl-6 md:pt-0">
+                 <p className="text-[10px] font-extrabold uppercase tracking-[.06em] text-[#64748b]">Kết luận cuối cùng</p>
+                 <p className={`mt-1 text-xs leading-5 ${incident.status === "Đã đóng" ? "text-[#334155]" : "text-[#94a3b8]"}`} data-testid="text-incident-conclusion">
+                   {incident.status === "Đã đóng" ? incident.conclusion || "Chưa cập nhật kết luận." : "Nhập kết luận trước khi đóng hồ sơ..."}
                  </p>
                </div>
-             </div>
-             <div className="p-5 sm:p-6">
-               <label className="block text-sm font-bold text-[#334155]" htmlFor="incident-conclusion">
-                 Kết luận cuối cùng
-               </label>
-               {incident.status === "Đã đóng" ? (
-                 <div id="incident-conclusion" className="mt-3 rounded-lg border border-[#a7f3d0] bg-[#ecfdf5] p-4 text-sm leading-6 text-[#065f46]" data-testid="text-incident-conclusion">
-                   {incident.conclusion || "Chưa cập nhật kết luận."}
-                 </div>
-               ) : (
-                 <>
-                   <textarea
-                     id="incident-conclusion"
-                     value={conclusion}
-                     onChange={(event) => setConclusion(event.target.value)}
-                     className={`${designAreaClass} mt-3 min-h-[112px]`}
-                     placeholder="Nhập kết luận xử lý trước khi đóng hồ sơ..."
-                     aria-describedby="incident-conclusion-help"
-                     data-testid="textarea-incident-conclusion"
-                   />
-                   <p id="incident-conclusion-help" className="mt-2 text-xs text-[#64748b]">
-                     Nội dung này sẽ được lưu vào lịch sử xử lý và hiển thị sau khi hồ sơ được đóng.
-                   </p>
-                 </>
-               )}
              </div>
            </section>
         </main>
@@ -1490,17 +1482,17 @@ function SchoolUpdateSummary({
         <div className="mt-4 grid gap-4 lg:grid-cols-3">
           {menus.map((menu) => (
             <article key={menu.id} className="overflow-hidden rounded-xl border border-[#e2e8f0] bg-white shadow-sm">
-              <div className="relative flex h-32 items-end overflow-hidden bg-[#0f3f5b] p-4">
+              <div className="relative h-32 overflow-hidden bg-[#0f3f5b]">
                 <img src={foodPhotoPath} alt={`Ảnh minh họa ${menu.name}`} className="absolute inset-0 h-full w-full object-cover opacity-80" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a]/80 to-transparent" />
                 <div className="absolute right-4 top-4 rounded-full bg-[#dcfce7] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[.1em] text-[#16a34a]">Đã cập nhật</div>
-                <div className="relative z-10">
-                  <p className="text-xs font-bold uppercase tracking-[.12em] text-white/70">Mã thực đơn</p>
-                  <p className="mt-1 text-xl font-extrabold text-white">{menu.code}</p>
-                </div>
               </div>
               <div className="space-y-3 p-4">
                 <h4 className="font-bold text-[#0f172a]">{menu.name}</h4>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[.08em] text-[#64748b]">Mã thực đơn</p>
+                  <p className="mt-1 text-lg font-extrabold text-[#0f172a]">{menu.code}</p>
+                </div>
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div><p className="text-[#64748b]">Trạng thái</p><p className="mt-1 font-semibold text-[#16a34a]">{menu.status}</p></div>
                   <div><p className="text-[#64748b]">Chế biến</p><p className="mt-1 font-semibold text-[#0f172a]">{menu.processedAt}</p></div>
