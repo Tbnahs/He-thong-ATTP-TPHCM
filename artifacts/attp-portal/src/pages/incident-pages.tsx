@@ -1454,11 +1454,9 @@ function SchoolUpdateSummary({
       <div className="grid gap-4 sm:grid-cols-2">
         {[
           ["Người cập nhật", `${update.contactName} · ${update.contactRole}`],
-          ["Số học sinh / người có triệu chứng", update.affectedStudents],
           ["Triệu chứng ghi nhận", update.symptoms],
           ["Món ăn đã truy xuất", update.tracedMeals],
           ["Biện pháp đã thực hiện", update.actionsTaken],
-          ["Xử lý mẫu lưu", update.sampleHandling],
         ].map(([label, value]) => (
           <div key={label} className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
             <p className="text-xs font-bold uppercase tracking-[.05em] text-[#94a3b8]">{label}</p>
