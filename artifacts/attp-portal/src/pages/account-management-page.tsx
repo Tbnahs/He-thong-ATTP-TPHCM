@@ -1,11 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import {
   ArrowLeft,
   Building2,
   Check,
   CheckCircle2,
   ChevronRight,
+  Download,
   Eye,
+  FileSpreadsheet,
+  FileDown,
   Info,
   KeyRound,
   Lock,
@@ -18,10 +21,12 @@ import {
   ShieldCheck,
   Trash2,
   Unlock,
+  Upload,
   UserRound,
   Users,
   X,
 } from "lucide-react";
+import * as XLSX from "xlsx";
 import { AdminShell } from "@/components/portal-ui";
 
 type AccountRole = "director" | "specialist" | "ward";
@@ -314,6 +319,275 @@ function stripLocationPrefix(value: string) {
   return value.replace(/^(phường|xã|đặc khu)\s+/i, "");
 }
 
+const accountExcelColumns = [
+  { key: "organization", label: "Tên đơn vị", required: true },
+  { key: "unitType", label: "Loại đơn vị", required: false },
+  { key: "managementLevel", label: "Cấp quản lý", required: false },
+  { key: "province", label: "Tỉnh/thành phố", required: false },
+  { key: "ward", label: "Xã/phường quản lý", required: false },
+  { key: "oldLocality", label: "Địa danh cũ", required: false },
+  { key: "responsibleName", label: "Họ tên người phụ trách", required: true },
+  { key: "position", label: "Chức vụ", required: false },
+  { key: "phone", label: "Số điện thoại", required: false },
+  { key: "email", label: "Email", required: false },
+  { key: "username", label: "Tên đăng nhập", required: true },
+  { key: "role", label: "Vai trò", required: false },
+  { key: "status", label: "Trạng thái", required: false },
+  {
+    key: "managedFacilities",
+    label: "Số cơ sở quản lý",
+    required: false,
+  },
+] as const;
+
+type AccountExcelKey = (typeof accountExcelColumns)[number]["key"];
+type AccountExcelRow = Partial<Record<AccountExcelKey, string>>;
+
+const normalizeExcelText = (value: unknown) =>
+  String(value ?? "")
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/đ/g, "d")
+    .replace(/[^a-z0-9]+/g, "");
+
+const excelHeaderAliases: Record<string, AccountExcelKey> = Object.fromEntries(
+  accountExcelColumns.flatMap(({ key, label }) => [
+    [normalizeExcelText(label), key],
+    [normalizeExcelText(key), key],
+  ]),
+) as Record<string, AccountExcelKey>;
+
+function accountToExcelRow(account: Account): Record<string, string | number> {
+  return {
+    "Tên đơn vị": account.organization,
+    "Loại đơn vị": account.unitType,
+    "Cấp quản lý": account.managementLevel,
+    "Tỉnh/thành phố": account.province,
+    "Xã/phường quản lý": account.ward,
+    "Địa danh cũ": account.oldLocality,
+    "Họ tên người phụ trách": account.responsibleName,
+    "Chức vụ": account.position,
+    "Số điện thoại": account.phone,
+    Email: account.email,
+    "Tên đăng nhập": account.username,
+    "Vai trò": account.role,
+    "Trạng thái": account.status,
+    "Số cơ sở quản lý": account.managedFacilities,
+  };
+}
+
+function downloadWorkbook(
+  filename: string,
+  rows: Record<string, string | number>[],
+  guideRows?: Record<string, string>[],
+) {
+  const workbook = XLSX.utils.book_new();
+  const worksheet = XLSX.utils.json_to_sheet(rows);
+  worksheet["!cols"] = accountExcelColumns.map(({ label }) => ({
+    wch: Math.max(label.length + 2, 18),
+  }));
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Danh sách tài khoản");
+
+  if (guideRows) {
+    const guideSheet = XLSX.utils.json_to_sheet(guideRows);
+    guideSheet["!cols"] = [{ wch: 24 }, { wch: 72 }];
+    XLSX.utils.book_append_sheet(workbook, guideSheet, "Hướng dẫn");
+  }
+
+  XLSX.writeFile(workbook, filename);
+}
+
+function downloadAccountTemplate() {
+  downloadWorkbook(
+    "template-nhap-tai-khoan-attp.xlsx",
+    [
+      Object.fromEntries(
+        accountExcelColumns.map(({ label }) => [label, ""]),
+      ) as Record<string, string>,
+    ],
+    [
+      { "Tên trường": "Tên đơn vị", "Hướng dẫn": "Bắt buộc. Tên đơn vị quản lý." },
+      {
+        "Tên trường": "Họ tên người phụ trách",
+        "Hướng dẫn": "Bắt buộc. Họ tên cán bộ phụ trách tài khoản.",
+      },
+      {
+        "Tên trường": "Tên đăng nhập",
+        "Hướng dẫn": "Bắt buộc và duy nhất. Nếu trùng tài khoản hiện có, dữ liệu sẽ được cập nhật.",
+      },
+      {
+        "Tên trường": "Loại đơn vị",
+        "Hướng dẫn": "Ban Giám đốc Sở, Phòng chuyên môn hoặc UBND Phường/Xã.",
+      },
+      {
+        "Tên trường": "Vai trò",
+        "Hướng dẫn": "director, specialist hoặc ward. Có thể bỏ trống để hệ thống suy ra từ loại đơn vị.",
+      },
+      {
+        "Tên trường": "Trạng thái",
+        "Hướng dẫn": "Đang hoạt động hoặc Đang khóa. Mặc định là Đang hoạt động.",
+      },
+      {
+        "Tên trường": "Số cơ sở quản lý",
+        "Hướng dẫn": "Số nguyên không âm. Các cột còn lại là thông tin bổ sung.",
+      },
+      {
+        "Tên trường": "Lưu ý",
+        "Hướng dẫn": "Không nhập mật khẩu trong file Excel. Mật khẩu được thiết lập riêng trong hệ thống.",
+      },
+    ],
+  );
+}
+
+function readExcelRows(file: File): Promise<unknown[][]> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const workbook = XLSX.read(reader.result, { type: "array" });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        if (!firstSheet) {
+          reject(new Error("File không có sheet dữ liệu."));
+          return;
+        }
+        resolve(
+          XLSX.utils.sheet_to_json<unknown[]>(firstSheet, {
+            header: 1,
+            defval: "",
+            raw: false,
+          }),
+        );
+      } catch {
+        reject(new Error("Không thể đọc file Excel. Vui lòng kiểm tra định dạng."));
+      }
+    };
+    reader.onerror = () => reject(new Error("Không thể tải file lên."));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function roleFromImportedRow(row: AccountExcelRow): AccountRole {
+  const role = normalizeExcelText(row.role);
+  const unitType = normalizeExcelText(row.unitType);
+  if (role.includes("director") || role.includes("giamdoc")) return "director";
+  if (role.includes("specialist") || role.includes("chuyenvien")) {
+    return "specialist";
+  }
+  if (unitType.includes("bangiamdoc")) return "director";
+  if (unitType.includes("phongchuyenmon")) return "specialist";
+  return "ward";
+}
+
+function parseAccountImport(
+  rows: unknown[][],
+  currentAccounts: Account[],
+): {
+  accounts: Account[];
+  imported: number;
+  updated: number;
+  errors: string[];
+} {
+  const headerRow = rows.find((row) =>
+    row.some((cell) => normalizeExcelText(cell) === "tendonvi"),
+  );
+  if (!headerRow) {
+    throw new Error("Không tìm thấy dòng tiêu đề “Tên đơn vị” trong file.");
+  }
+
+  const headerMap = headerRow.reduce<Record<number, AccountExcelKey>>(
+    (map, cell, index) => {
+      const key = excelHeaderAliases[normalizeExcelText(cell)];
+      if (key) map[index] = key;
+      return map;
+    },
+    {},
+  );
+  const missingHeaders = accountExcelColumns
+    .filter(({ key, required }) => required && !Object.values(headerMap).includes(key))
+    .map(({ label }) => label);
+  if (missingHeaders.length) {
+    throw new Error(`Thiếu cột bắt buộc: ${missingHeaders.join(", ")}.`);
+  }
+
+  const headerIndex = rows.indexOf(headerRow);
+  const nextAccounts = [...currentAccounts];
+  const errors: string[] = [];
+  const seenUsernames = new Set<string>();
+  let imported = 0;
+  let updated = 0;
+
+  rows.slice(headerIndex + 1).forEach((rawRow, rowOffset) => {
+    const rowNumber = headerIndex + rowOffset + 2;
+    const row = Object.entries(headerMap).reduce<AccountExcelRow>(
+      (result, [index, key]) => {
+        result[key] = String(rawRow[Number(index)] ?? "").trim();
+        return result;
+      },
+      {},
+    );
+    if (!Object.values(row).some(Boolean)) return;
+
+    const organization = row.organization?.trim() || "";
+    const responsibleName = row.responsibleName?.trim() || "";
+    const username = row.username?.trim() || "";
+    if (!organization || !responsibleName || !username) {
+      errors.push(`Dòng ${rowNumber}: thiếu tên đơn vị, người phụ trách hoặc tên đăng nhập.`);
+      return;
+    }
+
+    const usernameKey = username.toLowerCase();
+    if (seenUsernames.has(usernameKey)) {
+      errors.push(`Dòng ${rowNumber}: tên đăng nhập “${username}” bị lặp trong file.`);
+      return;
+    }
+    seenUsernames.add(usernameKey);
+
+    const role = roleFromImportedRow(row);
+    const existingIndex = nextAccounts.findIndex(
+      (account) => account.username.toLowerCase() === usernameKey,
+    );
+    const existing = existingIndex >= 0 ? nextAccounts[existingIndex] : undefined;
+    const managedFacilitiesValue = Number(
+      (row.managedFacilities || "").replace(/[.,\s]/g, ""),
+    );
+    const managedFacilities = Number.isFinite(managedFacilitiesValue) && managedFacilitiesValue >= 0
+      ? Math.floor(managedFacilitiesValue)
+      : existing?.managedFacilities || 0;
+    const importedAccount: Account = {
+      id: existing?.id || `acct-${Date.now()}-${rowNumber}`,
+      organization,
+      unitType: row.unitType || (role === "director" ? "Ban Giám đốc Sở" : role === "specialist" ? "Phòng chuyên môn" : "UBND Phường/Xã"),
+      managementLevel: row.managementLevel || (role === "ward" ? "Phường/Xã" : role === "specialist" ? "Phòng chuyên môn" : "Cấp tỉnh/TP"),
+      province: row.province || "TP. Hồ Chí Minh",
+      ward: row.ward || "Tất cả xã/phường",
+      oldLocality: row.oldLocality || "",
+      responsibleName,
+      position: row.position || "",
+      phone: row.phone || "",
+      email: row.email || "",
+      username,
+      role,
+      status: normalizeExcelText(row.status).includes("khoa") ? "Đang khóa" : "Đang hoạt động",
+      permissions: makePermissions(role),
+      managedFacilities,
+      lastLogin: existing?.lastLogin || "Chưa đăng nhập",
+      schools: existing?.schools || [],
+    };
+
+    if (existingIndex >= 0) {
+      nextAccounts[existingIndex] = importedAccount;
+      updated += 1;
+    } else {
+      nextAccounts.unshift(importedAccount);
+      imported += 1;
+    }
+  });
+
+  return { accounts: nextAccounts, imported, updated, errors };
+}
+
 function accountToForm(account?: Account): AccountForm {
   if (account) {
     return {
@@ -495,6 +769,12 @@ export function AdminAccountsPage() {
   const [formError, setFormError] = useState("");
   const [notice, setNotice] = useState("");
   const [deletePending, setDeletePending] = useState(false);
+  const [importReport, setImportReport] = useState<{
+    imported: number;
+    updated: number;
+    errors: string[];
+  } | null>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     localStorage.setItem("attp-admin-accounts", JSON.stringify(accounts));
@@ -534,6 +814,7 @@ export function AdminAccountsPage() {
     setForm(accountToForm());
     setFormError("");
     setNotice("");
+    setImportReport(null);
     setView("create");
   };
 
@@ -542,6 +823,7 @@ export function AdminAccountsPage() {
     setForm(accountToForm(account));
     setFormError("");
     setNotice("");
+    setImportReport(null);
     setView("create");
   };
 
@@ -612,6 +894,41 @@ export function AdminAccountsPage() {
 
   const resetPassword = (account: Account) => {
     setNotice(`Đã tạo yêu cầu đặt lại mật khẩu cho ${account.username}.`);
+  };
+
+  const exportAccounts = () => {
+    downloadWorkbook(
+      `danh-sach-tai-khoan-attp-${new Date().toISOString().slice(0, 10)}.xlsx`,
+      filteredAccounts.map(accountToExcelRow),
+    );
+    setNotice(`Đã xuất ${filteredAccounts.length} tài khoản theo bộ lọc hiện tại.`);
+  };
+
+  const importAccounts = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    try {
+      const rows = await readExcelRows(file);
+      const result = parseAccountImport(rows, accounts);
+      setAccounts(result.accounts);
+      setImportReport({
+        imported: result.imported,
+        updated: result.updated,
+        errors: result.errors,
+      });
+      setNotice(
+        `Đã nhập ${result.imported} tài khoản mới, cập nhật ${result.updated} tài khoản.`,
+      );
+    } catch (error) {
+      setImportReport(null);
+      setNotice(
+        error instanceof Error
+          ? error.message
+          : "Không thể nhập file Excel. Vui lòng kiểm tra lại file.",
+      );
+    }
   };
 
   const changeUnitType = (value: string) => {
@@ -1095,7 +1412,7 @@ export function AdminAccountsPage() {
   return (
     <AdminShell>
       <main className="mx-auto max-w-[1400px] px-5 py-6 lg:px-10">
-        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-orange-500">
               Hệ thống quản trị
@@ -1108,14 +1425,47 @@ export function AdminAccountsPage() {
               từng cấp quản lý.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={openCreate}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 text-sm font-extrabold text-white shadow-lg shadow-orange-500/20 hover:bg-orange-600"
-            data-testid="button-create-account"
-          >
-            <Plus size={17} /> Tạo tài khoản mới
-          </button>
+            <div className="flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={downloadAccountTemplate}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-extrabold text-slate-600 hover:bg-slate-50"
+                data-testid="button-account-template"
+              >
+                <FileDown size={16} /> Tải template
+              </button>
+              <label
+                className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-3.5 text-xs font-extrabold text-orange-700 hover:bg-orange-100"
+                data-testid="label-account-import-excel"
+              >
+                <Upload size={16} /> Nhập Excel
+                <input
+                  ref={importInputRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  className="sr-only"
+                  onChange={importAccounts}
+                  data-testid="input-account-import-excel"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={exportAccounts}
+                disabled={!filteredAccounts.length}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 text-xs font-extrabold text-emerald-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+                data-testid="button-account-export-excel"
+              >
+                <Download size={16} /> Xuất Excel
+              </button>
+              <button
+                type="button"
+                onClick={openCreate}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 text-xs font-extrabold text-white shadow-lg shadow-orange-500/20 hover:bg-orange-600"
+                data-testid="button-create-account"
+              >
+                <Plus size={16} /> Tạo tài khoản
+              </button>
+            </div>
         </div>
 
         <section className="mb-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_4px_18px_rgba(15,23,42,.035)]">
@@ -1187,6 +1537,37 @@ export function AdminAccountsPage() {
               <X size={16} />
             </button>
           </div>
+        )}
+
+        {importReport && (
+          <section className="mb-5 rounded-2xl border border-sky-200 bg-sky-50/70 p-4 text-sm text-sky-900">
+            <div className="flex items-start gap-3">
+              <FileSpreadsheet size={18} className="mt-0.5 shrink-0 text-sky-600" />
+              <div className="min-w-0">
+                <p className="font-extrabold">Kết quả nhập file Excel</p>
+                <p className="mt-1 text-xs leading-5 text-sky-800">
+                  Thêm mới {importReport.imported} tài khoản · Cập nhật{" "}
+                  {importReport.updated} tài khoản
+                  {importReport.errors.length
+                    ? ` · ${importReport.errors.length} dòng chưa nhập`
+                    : ""}
+                </p>
+                {importReport.errors.length > 0 && (
+                  <ul className="mt-2 space-y-1 text-xs text-rose-700">
+                    {importReport.errors.slice(0, 5).map((error) => (
+                      <li key={error}>• {error}</li>
+                    ))}
+                    {importReport.errors.length > 5 && (
+                      <li>
+                        • Còn {importReport.errors.length - 5} lỗi khác. Vui lòng
+                        sửa file và nhập lại.
+                      </li>
+                    )}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </section>
         )}
 
         <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_4px_18px_rgba(15,23,42,.035)]">
