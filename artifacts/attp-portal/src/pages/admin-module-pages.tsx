@@ -16,12 +16,15 @@ import {
   FileSpreadsheet,
   Flame,
   FileText,
+  Mail,
   MapPin,
   PieChart,
   Search,
+  ShieldCheck,
   SlidersHorizontal,
   TriangleAlert,
   Utensils,
+  UserRound,
   X,
 } from "lucide-react";
 import { Link } from "wouter";
@@ -33,7 +36,12 @@ import {
   SectionHeading,
   StatusPill,
 } from "@/components/portal-ui";
-import { applications } from "@/lib/mock-data";
+import {
+  applications,
+  getCriteriaSet,
+  type Application,
+  type ApplicationType,
+} from "@/lib/mock-data";
 
 type FacilityCategory =
   | "Trường học có bếp ăn bán trú"
@@ -136,6 +144,7 @@ type FacilityManagementRow = {
   category?: string;
   updated: string;
   applicationId?: string;
+  storedAccount?: StoredFacilityAccount;
 };
 
 const facilityManagementData: Record<
@@ -312,6 +321,138 @@ const facilityTabLabels: Record<FacilityManagementTab, string> = {
   schools: "Cơ sở giáo dục",
   food: "Cơ sở cung cấp thực phẩm",
   applications: "Hồ sơ đăng ký",
+};
+
+type StoredFacilityAccount = {
+  email?: string;
+  username?: string;
+  registration?: {
+    type?: ApplicationType;
+    submittedAt?: string;
+    fields?: Record<string, unknown>;
+    files?: Array<{
+      name: string;
+      kind?: string;
+      size?: number;
+      fieldKey?: string;
+    }>;
+  };
+};
+
+const readStoredFacilityAccounts = (): StoredFacilityAccount[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    return JSON.parse(
+      window.localStorage.getItem("attp-facility-accounts") || "[]",
+    ) as StoredFacilityAccount[];
+  } catch {
+    return [];
+  }
+};
+
+const getFacilityRegistrant = (
+  application?: Application,
+  storedAccount?: StoredFacilityAccount,
+) => {
+  if (!application && !storedAccount) return null;
+  const applicationName = application?.applicantName.trim().toLowerCase();
+  const linkedAccount =
+    storedAccount ??
+    (applicationName
+      ? readStoredFacilityAccounts().find((account) => {
+          const fields = account.registration?.fields ?? {};
+          return (
+            String(fields.applicantName ?? "").trim().toLowerCase() ===
+            applicationName
+          );
+        })
+      : undefined);
+  const data = application?.data ?? linkedAccount?.registration?.fields ?? {};
+  return {
+    name: String(
+      data.representative ??
+        data.contactPerson ??
+        data.foodSafetyLeadName ??
+        application?.applicantName ??
+        data.applicantName ??
+        "—",
+    ),
+    phone: String(
+      data.representativePhone ?? data.contact ?? application?.contact ?? "—",
+    ),
+    email: String(
+      linkedAccount?.email ?? data.email ?? "Chưa cập nhật",
+    ),
+    username: String(
+      linkedAccount?.username ?? linkedAccount?.email ?? "Tài khoản hồ sơ",
+    ),
+    submittedAt:
+      linkedAccount?.registration?.submittedAt ??
+      application?.submittedAt ??
+      new Date().toISOString(),
+    isLinked: Boolean(linkedAccount),
+  };
+};
+
+const getRegistrationCategory = (type?: ApplicationType) =>
+  type === "food-supplier"
+    ? "Cơ sở cung cấp thực phẩm"
+    : type === "meal-provider"
+      ? "Cơ sở cung cấp suất ăn"
+      : "Cơ sở giáo dục";
+
+const getStoredRegistrationRows = (): FacilityManagementRow[] =>
+  readStoredFacilityAccounts()
+    .map((account, index): FacilityManagementRow | null => {
+      const fields = account.registration?.fields ?? {};
+      const name = String(fields.applicantName ?? "").trim();
+      if (!name) return null;
+      const address = [
+        fields.addressDetail,
+        fields.addressWard,
+        fields.addressProvince,
+      ]
+        .map((value) => String(value ?? "").trim())
+        .filter(Boolean)
+        .join(", ");
+      return {
+        id: `stored-application-${account.username ?? account.email ?? index}`,
+        name,
+        province: String(fields.addressProvince ?? "TP. Hồ Chí Minh"),
+        ward: String(fields.addressWard ?? "—"),
+        address: address || "—",
+        contact: String(fields.contact ?? "—"),
+        status: "pending",
+        capacity: 0,
+        category: getRegistrationCategory(account.registration?.type),
+        updated: account.registration?.submittedAt
+          ? new Intl.DateTimeFormat("vi-VN").format(
+              new Date(account.registration.submittedAt),
+            )
+          : "—",
+        storedAccount: account,
+      } satisfies FacilityManagementRow;
+    })
+    .filter((row): row is FacilityManagementRow => row !== null);
+
+const formatManagementAnswer = (value: unknown): string => {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) =>
+        typeof item === "object" && item !== null
+          ? Object.entries(item)
+              .map(([key, entry]) => `${key}: ${formatManagementAnswer(entry)}`)
+              .join(" · ")
+          : String(item),
+      )
+      .join(", ");
+  }
+  if (typeof value === "object" && value !== null) {
+    return Object.entries(value)
+      .map(([key, entry]) => `${key}: ${formatManagementAnswer(entry)}`)
+      .join(" · ");
+  }
+  return String(value ?? "—");
 };
 
 function managementStatusLabel(
@@ -2220,26 +2361,31 @@ export function AdminFacilitiesPage() {
     useState<FacilityManagementRow | null>(null);
   const [notice, setNotice] = useState("");
 
-  const applicationRows: FacilityManagementRow[] = applications.map((app) => ({
-    id: `application-${app.id}`,
-    name: app.applicantName,
-    province: String(app.data.addressProvince ?? "TP. Hồ Chí Minh"),
-    ward: String(app.data.addressWard ?? "—"),
-    address: app.address,
-    contact: app.contact,
-    status: app.status === "rejected" ? "stopped" : app.status,
-    capacity: 0,
-    category:
-      app.type === "food-supplier"
-        ? "Cơ sở cung cấp thực phẩm"
-        : app.type === "meal-provider"
-          ? "Cơ sở cung cấp suất ăn"
-          : "Cơ sở giáo dục",
-    updated: new Intl.DateTimeFormat("vi-VN").format(
-      new Date(app.submittedAt),
+  const applicationRows: FacilityManagementRow[] = [
+    ...applications.map((app) => ({
+      id: `application-${app.id}`,
+      name: app.applicantName,
+      province: String(app.data.addressProvince ?? "TP. Hồ Chí Minh"),
+      ward: String(app.data.addressWard ?? "—"),
+      address: app.address,
+      contact: app.contact,
+      status: app.status === "rejected" ? "stopped" : app.status,
+      capacity: 0,
+      category: getRegistrationCategory(app.type),
+      updated: new Intl.DateTimeFormat("vi-VN").format(
+        new Date(app.submittedAt),
+      ),
+      applicationId: app.id,
+    })),
+    ...getStoredRegistrationRows().filter(
+      (row) =>
+        !applications.some(
+          (application) =>
+            application.applicantName.trim().toLowerCase() ===
+            row.name.trim().toLowerCase(),
+        ),
     ),
-    applicationId: app.id,
-  }));
+  ];
 
   const rows = useMemo(() => {
     const source =
@@ -2277,6 +2423,36 @@ export function AdminFacilitiesPage() {
     typeof value === "number" && value > 0
       ? new Intl.NumberFormat("vi-VN").format(value)
       : "—";
+  const selectedStoredAccount = selectedRow?.storedAccount;
+  const selectedApplication = selectedRow?.applicationId
+    ? applications.find((item) => item.id === selectedRow.applicationId)
+    : undefined;
+  const selectedRegistrant = getFacilityRegistrant(
+    selectedApplication,
+    selectedStoredAccount,
+  );
+  const selectedRegistrationFields =
+    selectedApplication?.data ?? selectedStoredAccount?.registration?.fields;
+  const selectedRegistrationFiles =
+    selectedApplication?.attachments ?? selectedStoredAccount?.registration?.files ?? [];
+  const selectedRegistrationType =
+    selectedApplication?.type ?? selectedStoredAccount?.registration?.type;
+  const selectedCriteria = selectedApplication
+    ? selectedApplication.criteriaSnapshot
+        .filter((item) => item.active)
+        .sort((a, b) => a.order - b.order)
+    : selectedRegistrationType
+      ? getCriteriaSet(selectedRegistrationType).criteria
+          .filter((item) => item.active)
+          .sort((a, b) => a.order - b.order)
+    : [];
+  const selectedGroups = selectedApplication
+    ? selectedApplication.criteriaGroups.slice().sort((a, b) => a.order - b.order)
+    : selectedRegistrationType
+      ? getCriteriaSet(selectedRegistrationType).groups
+          .slice()
+          .sort((a, b) => a.order - b.order)
+    : [];
 
   const exportFacilities = () => {
     downloadExcelTable(
@@ -2547,23 +2723,14 @@ export function AdminFacilitiesPage() {
                         <StatusPill status={managementStatusLabel(row.status)} />
                       </td>
                       <td className="px-5 py-4 text-right">
-                        {row.applicationId ? (
-                          <Link
-                            href={`/admin/applications/${row.applicationId}`}
-                            className="inline-flex items-center gap-1 rounded-lg border border-primary/30 px-2.5 py-1.5 text-[10px] font-extrabold text-primary hover:bg-primary hover:text-primary-foreground"
-                            data-testid={`link-facility-application-${row.applicationId}`}
-                          >
-                            Xem hồ sơ <ArrowUpRight size={13} />
-                          </Link>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setSelectedRow(row)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-primary/30 px-2.5 py-1.5 text-[10px] font-extrabold text-primary hover:bg-primary hover:text-primary-foreground"
-                          >
-                            Xem chi tiết <ChevronRight size={13} />
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedRow(row)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-primary/30 px-2.5 py-1.5 text-[10px] font-extrabold text-primary hover:bg-primary hover:text-primary-foreground"
+                          data-testid={`button-view-facility-detail-${row.id}`}
+                        >
+                          Xem chi tiết <ChevronRight size={13} />
+                        </button>
                       </td>
                     </tr>
                   );
@@ -2604,7 +2771,7 @@ export function AdminFacilitiesPage() {
                 <X size={18} />
               </button>
             </div>
-            <dl className="mt-5 grid gap-x-6 gap-y-4 sm:grid-cols-2">
+            <dl className="mt-5 grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
               {[
                 ["Tỉnh/thành phố", selectedRow.province],
                 ["Xã/phường", selectedRow.ward],
@@ -2622,9 +2789,132 @@ export function AdminFacilitiesPage() {
                 </div>
               ))}
             </dl>
-            {selectedRow.applicationId && (
-              <Link href={`/admin/applications/${selectedRow.applicationId}`} className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground">
-                Mở toàn bộ hồ sơ đăng ký <ArrowUpRight size={16} />
+            {selectedRegistrant && (
+              <section className="mt-7 rounded-2xl border border-primary/15 bg-secondary/45 p-4 sm:p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                      <UserRound size={18} />
+                    </span>
+                    <div>
+                      <p className="text-[11px] font-extrabold uppercase tracking-wider text-primary">
+                        Người dùng đăng ký hồ sơ
+                      </p>
+                      <h3 className="mt-1 text-base font-extrabold">
+                        {selectedRegistrant.name}
+                      </h3>
+                    </div>
+                  </div>
+                  <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${selectedRegistrant.isLinked ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
+                    <ShieldCheck size={13} />
+                    {selectedRegistrant.isLinked ? "Đã liên kết tài khoản" : "Tài khoản mẫu"}
+                  </span>
+                </div>
+                <dl className="mt-5 grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
+                  {[
+                    ["Tên đăng nhập", selectedRegistrant.username],
+                    ["Email", selectedRegistrant.email],
+                    ["Số điện thoại", selectedRegistrant.phone],
+                    ["Ngày nộp hồ sơ", new Intl.DateTimeFormat("vi-VN").format(new Date(selectedRegistrant.submittedAt))],
+                  ].map(([label, value]) => (
+                    <div key={label} className="min-w-0">
+                      <dt className="flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">
+                        {label === "Email" ? <Mail size={12} /> : null}
+                        {label}
+                      </dt>
+                      <dd className="mt-1 break-words text-sm font-bold">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            )}
+            {selectedRegistrationFields && selectedRegistrationType && (
+              <section className="mt-7">
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                  <div>
+                    <p className="mono-label text-primary">NỘI DUNG HỒ SƠ</p>
+                    <h3 className="mt-1 text-lg font-extrabold">
+                      Thông tin người dùng đã khai báo
+                    </h3>
+                  </div>
+                  <span className="rounded-full bg-secondary px-3 py-1 text-xs font-bold text-primary">
+                    {selectedApplication
+                      ? `${selectedApplication.reference} · ${selectedApplication.score}/100`
+                      : "Hồ sơ mới · Chờ duyệt"}
+                  </span>
+                </div>
+                <div className="mt-4 space-y-5 rounded-2xl border border-border bg-background p-4 sm:p-5">
+                  {selectedGroups.map((group) => {
+                    const groupCriteria = selectedCriteria.filter(
+                      (item) => item.groupId === group.id,
+                    );
+                    if (!groupCriteria.length) return null;
+                    return (
+                      <div key={group.id}>
+                        <h4 className="border-b border-border pb-2 text-sm font-extrabold text-primary">
+                          {group.name}
+                        </h4>
+                        <dl className="mt-3 grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+                          {groupCriteria.map((item) => {
+                            const value =
+                              item.answerType === "file"
+                                ? selectedRegistrationFiles
+                                    .filter((file) => file.fieldKey === item.key)
+                                    .map((file) => file.name)
+                                    .join(", ") || "—"
+                                : formatManagementAnswer(
+                                    selectedRegistrationFields[item.key],
+                                  );
+                            return (
+                              <div key={item.key} className="min-w-0">
+                                <dt className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">
+                                  {item.label}
+                                </dt>
+                                <dd className="mt-1 break-words text-sm font-semibold">
+                                  {value}
+                                </dd>
+                              </div>
+                            );
+                          })}
+                        </dl>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+            {selectedRegistrationFields && (
+              <section className="mt-6 rounded-2xl border border-border bg-background p-4 sm:p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-extrabold">Tệp minh chứng</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {selectedRegistrationFiles.length} tệp đã nộp cùng hồ sơ
+                    </p>
+                  </div>
+                  <FileText size={18} className="text-primary" />
+                </div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {selectedRegistrationFiles.length ? (
+                    selectedRegistrationFiles.map((file) => (
+                      <div key={file.name} className="flex min-w-0 items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 text-sm">
+                        <FileText size={15} className="shrink-0 text-primary" />
+                        <span className="truncate font-semibold">{file.name}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Chưa có tệp minh chứng.</p>
+                  )}
+                </div>
+              </section>
+            )}
+            {selectedApplication && (
+              <Link
+                href={`/admin/applications/${selectedApplication.id}`}
+                className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground"
+                data-testid={`link-open-full-application-${selectedApplication.id}`}
+              >
+                Mở toàn bộ hồ sơ để xét duyệt <ArrowUpRight size={16} />
               </Link>
             )}
           </div>

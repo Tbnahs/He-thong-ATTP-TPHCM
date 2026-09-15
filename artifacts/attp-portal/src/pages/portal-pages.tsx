@@ -986,9 +986,7 @@ export function HomePage() {
                 CHUYÊN NGÀNH
               </div>
               <h2 className="display-tight text-4xl font-extrabold leading-[1.05] tracking-tight md:text-6xl lg:text-[4.8rem]">
-                Sở An Toàn Thực Phẩm.
-                <br />
-                <span className="text-primary">Thành Phố Hồ Chí Minh.</span>
+                Hệ thống quản lý chuyên ngành về suất ăn trong cơ sở giáo dục
               </h2>
               <p className="mt-8 max-w-xl text-base leading-8 text-muted-foreground md:text-lg">
                 Tra cứu nhanh các cơ sở đã được Sở An toàn thực phẩm Thành phố
