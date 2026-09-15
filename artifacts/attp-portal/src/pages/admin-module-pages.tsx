@@ -150,6 +150,9 @@ type FacilityManagementRow = {
   updated: string;
   applicationId?: string;
   storedAccount?: StoredFacilityAccount;
+  detailFields?: Array<{ label: string; value: string }>;
+  detailCompleteness?: "complete" | "partial";
+  missingFields?: string[];
 };
 
 const facilityManagementData: Record<
@@ -320,6 +323,264 @@ const facilityManagementData: Record<
     },
   ],
 };
+
+type FacilitySeedGroup = Exclude<FacilityManagementTab, "all">;
+
+const createFacilityRow = (
+  group: FacilitySeedGroup,
+  index: number,
+  seed: Pick<
+    FacilityManagementRow,
+    "name" | "ward" | "address" | "contact" | "capacity"
+  > &
+    Partial<FacilityManagementRow>,
+): FacilityManagementRow => ({
+  ...seed,
+  id: `fm-${group.slice(0, -1)}-${String(index).padStart(3, "0")}`,
+  province: "TP. Hồ Chí Minh",
+  status: seed.status ?? "approved",
+  capacity: seed.capacity,
+  updated: seed.updated ?? "09/09/2026",
+  category:
+    seed.category ??
+    (group === "schools"
+      ? "Trường học có bếp ăn bán trú"
+      : group === "food"
+        ? "Cơ sở cung cấp thực phẩm"
+        : "Cơ sở cung cấp suất ăn"),
+});
+
+const additionalFacilityRows: Record<FacilitySeedGroup, FacilityManagementRow[]> = {
+  suppliers: [
+    createFacilityRow("suppliers", 5, {
+      name: "Công ty Dinh dưỡng Hưng Phát",
+      ward: "Tân Định",
+      address: "102 Hai Bà Trưng, P. Tân Định",
+      contact: "028 3820 7711",
+      capacity: 1800,
+      serving: 1640,
+    }),
+    createFacilityRow("suppliers", 6, {
+      name: "Công ty Suất ăn Việt Xanh",
+      ward: "Tân Hưng",
+      address: "33 Nguyễn Hữu Thọ, P. Tân Hưng",
+      contact: "028 3771 2288",
+      capacity: 2200,
+      serving: 2160,
+    }),
+    createFacilityRow("suppliers", 7, {
+      name: "Bếp ăn công nghiệp Phúc An",
+      ward: "Tân Bình",
+      address: "75 Âu Cơ, P. Tân Sơn",
+      contact: "0907 234 567",
+      capacity: 1250,
+      serving: 1120,
+      status: "warning",
+    }),
+    createFacilityRow("suppliers", 8, {
+      name: "Cơ sở Suất ăn Thành Công",
+      ward: "Bình Thạnh",
+      address: "19 Xô Viết Nghệ Tĩnh, P. Bình Thạnh",
+      contact: "0918 345 678",
+      capacity: 1700,
+      serving: 1510,
+      status: "approved",
+    }),
+    createFacilityRow("suppliers", 9, {
+      name: "Công ty Bếp ăn Hòa Bình",
+      ward: "Phú Nhuận",
+      address: "41 Phan Đăng Lưu, P. Cầu Kiệu",
+      contact: "028 3991 8822",
+      capacity: 1400,
+      serving: 1280,
+      status: "approved",
+    }),
+    createFacilityRow("suppliers", 10, {
+      name: "Đơn vị Suất ăn An Khang",
+      ward: "Thủ Đức",
+      address: "208 Võ Văn Ngân, P. Thủ Đức",
+      contact: "0909 456 789",
+      capacity: 1900,
+      serving: 1820,
+      status: "stopped",
+    }),
+  ],
+  schools: [
+    createFacilityRow("schools", 5, {
+      name: "Trường Tiểu học Bến Thành",
+      ward: "Bến Thành",
+      address: "12 Lê Thánh Tôn, P. Bến Thành",
+      contact: "028 3822 0005",
+      capacity: 540,
+      students: 540,
+      demand: 540,
+      level: "Cấp 1",
+      mealOrganization: "Tự tổ chức nấu ăn",
+    }),
+    createFacilityRow("schools", 6, {
+      name: "Trường Mầm non Sơn Ca",
+      ward: "Tân Phú",
+      address: "68 Thoại Ngọc Hầu, P. Phú Thạnh",
+      contact: "028 3860 0006",
+      capacity: 360,
+      students: 360,
+      demand: 360,
+      level: "Mầm non",
+      mealOrganization: "Sử dụng suất ăn từ bên ngoài",
+    }),
+    createFacilityRow("schools", 7, {
+      name: "Trường Tiểu học Đa Kao",
+      ward: "Đa Kao",
+      address: "21 Đinh Tiên Hoàng, P. Đa Kao",
+      contact: "028 3822 0007",
+      capacity: 610,
+      students: 610,
+      demand: 580,
+      level: "Cấp 1",
+      mealOrganization: "Sử dụng suất ăn từ bên ngoài",
+      status: "warning",
+    }),
+    createFacilityRow("schools", 8, {
+      name: "Trường THCS Cầu Kiệu",
+      ward: "Cầu Kiệu",
+      address: "90 Phan Đình Phùng, P. Cầu Kiệu",
+      contact: "028 3844 0008",
+      capacity: 720,
+      students: 720,
+      demand: 720,
+      level: "Cấp 2",
+      mealOrganization: "Tự tổ chức nấu ăn",
+    }),
+    createFacilityRow("schools", 9, {
+      name: "Trường Tiểu học Nguyễn Bỉnh Khiêm",
+      ward: "Sài Gòn",
+      address: "2 Nguyễn Bỉnh Khiêm, P. Sài Gòn",
+      contact: "028 3822 0009",
+      capacity: 680,
+      students: 680,
+      demand: 680,
+      level: "Cấp 1",
+      mealOrganization: "Sử dụng suất ăn từ bên ngoài",
+    }),
+    createFacilityRow("schools", 10, {
+      name: "Trường Mầm non Tuổi Thơ",
+      ward: "Vĩnh Hội",
+      address: "17 Hoàng Diệu, P. Vĩnh Hội",
+      contact: "028 3940 0010",
+      capacity: 300,
+      students: 300,
+      demand: 250,
+      level: "Mầm non",
+      mealOrganization: "Tự tổ chức nấu ăn",
+      status: "stopped",
+    }),
+  ],
+  food: [
+    createFacilityRow("food", 5, {
+      name: "Công ty Thực phẩm Tân Việt",
+      ward: "Tân Thuận",
+      address: "11 Huỳnh Tấn Phát, P. Tân Thuận",
+      contact: "0906 123 890",
+      capacity: 4400,
+      category: "Thịt, cá và trứng",
+    }),
+    createFacilityRow("food", 6, {
+      name: "Công ty Nông sản Đồng Xanh",
+      ward: "Bình Chánh",
+      address: "205 Quốc lộ 50, xã Bình Hưng",
+      contact: "0907 654 321",
+      capacity: 7300,
+      category: "Rau củ quả",
+    }),
+    createFacilityRow("food", 7, {
+      name: "Cơ sở Gạo sạch Miền Nam",
+      ward: "Tân Phú",
+      address: "48 Lũy Bán Bích, P. Tân Thới Hòa",
+      contact: "0908 222 333",
+      capacity: 3100,
+      category: "Gạo và ngũ cốc",
+      status: "warning",
+    }),
+    createFacilityRow("food", 8, {
+      name: "Công ty Trứng sạch Thành Đạt",
+      ward: "Hóc Môn",
+      address: "76 Nguyễn Ảnh Thủ, xã Bà Điểm",
+      contact: "0909 333 444",
+      capacity: 2800,
+      category: "Trứng và chế phẩm",
+    }),
+    createFacilityRow("food", 9, {
+      name: "Công ty Sữa học đường An Việt",
+      ward: "Bình Thạnh",
+      address: "39 Ung Văn Khiêm, P. Bình Thạnh",
+      contact: "028 3512 7788",
+      capacity: 3900,
+      category: "Sữa và chế phẩm từ sữa",
+    }),
+    createFacilityRow("food", 10, {
+      name: "Cơ sở Hải sản Biển Đông",
+      ward: "Cát Lái",
+      address: "15 Nguyễn Thị Định, P. Cát Lái",
+      contact: "0905 888 999",
+      capacity: 1850,
+      category: "Hải sản",
+      status: "stopped",
+    }),
+  ],
+};
+
+const withFacilityDetails = (
+  row: FacilityManagementRow,
+): FacilityManagementRow => {
+  const code = row.id.match(/\d+/g)?.join("").slice(-3) ?? "001";
+  const isComplete = row.status === "approved";
+  const missingFields =
+    row.status === "warning"
+      ? ["Giấy chứng nhận ATTP", "Hồ sơ minh chứng"]
+      : row.status === "stopped"
+        ? ["Mã số thuế", "Người đại diện", "Giấy chứng nhận ATTP", "Hồ sơ minh chứng"]
+        : [];
+  const missing = new Set(missingFields);
+  const value = (label: string, completeValue: string) =>
+    missing.has(label) ? "Chưa cập nhật" : completeValue;
+
+  return {
+    ...row,
+    detailCompleteness: isComplete ? "complete" : "partial",
+    missingFields,
+    detailFields: [
+      { label: "Mã cơ sở", value: `CS-${code}` },
+      { label: "Mã số thuế", value: value("Mã số thuế", `031${code}6789`) },
+      {
+        label: "Người đại diện",
+        value: value("Người đại diện", `Nguyễn Minh ${code}`),
+      },
+      {
+        label: "Email hồ sơ",
+        value: value("Email hồ sơ", `hoso.cs${code}@attp.hochiminh.gov.vn`),
+      },
+      {
+        label: "Giấy chứng nhận ATTP",
+        value: value("Giấy chứng nhận ATTP", `GCN-ATTP-${code}/2026`),
+      },
+      {
+        label: "Ngày cấp",
+        value: value("Ngày cấp", "15/01/2026"),
+      },
+      {
+        label: "Hồ sơ minh chứng",
+        value: value("Hồ sơ minh chứng", "Đủ 4/4 tệp"),
+      },
+    ],
+  };
+};
+
+(Object.keys(facilityManagementData) as FacilitySeedGroup[]).forEach((group) => {
+  facilityManagementData[group] = [
+    ...facilityManagementData[group],
+    ...additionalFacilityRows[group],
+  ].map(withFacilityDetails);
+});
 
 const facilityTabLabels: Record<FacilityManagementTab, string> = {
   all: "Tất cả cơ sở",
@@ -3021,6 +3282,64 @@ export function AdminFacilitiesPage() {
                 </div>
               ))}
             </dl>
+            {selectedRow.detailFields && (
+              <section className="mt-6 rounded-2xl border border-primary/15 bg-secondary/30 p-4 sm:p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="mono-label text-primary">HỒ SƠ CƠ SỞ</p>
+                    <h3 className="mt-1 text-lg font-extrabold">
+                      Thông tin đăng ký và pháp lý
+                    </h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Các trường dưới đây phản ánh mức độ đầy đủ của hồ sơ cơ sở.
+                    </p>
+                  </div>
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-extrabold ${
+                      selectedRow.detailCompleteness === "complete"
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "bg-amber-100 text-amber-800"
+                    }`}
+                  >
+                    {selectedRow.detailCompleteness === "complete" ? (
+                      <CheckCircle2 size={14} />
+                    ) : (
+                      <TriangleAlert size={14} />
+                    )}
+                    {selectedRow.detailCompleteness === "complete"
+                      ? "Đủ thông tin · Đạt"
+                      : "Chưa đủ thông tin"}
+                  </span>
+                </div>
+                <dl className="mt-5 grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
+                  {selectedRow.detailFields.map((field) => (
+                    <div key={field.label}>
+                      <dt className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                        {field.label}
+                      </dt>
+                      <dd
+                        className={`mt-1 text-sm font-bold ${
+                          field.value === "Chưa cập nhật"
+                            ? "text-amber-700"
+                            : "text-foreground"
+                        }`}
+                      >
+                        {field.value}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+                {selectedRow.missingFields?.length ? (
+                  <div className="mt-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-sm text-amber-900">
+                    <Info size={17} className="mt-0.5 shrink-0" />
+                    <p>
+                      <strong>Còn thiếu:</strong>{" "}
+                      {selectedRow.missingFields.join(", ")}.
+                    </p>
+                  </div>
+                ) : null}
+              </section>
+            )}
             {selectedRegistrant && (
               <section className="mt-7 rounded-2xl border border-primary/15 bg-secondary/45 p-4 sm:p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
