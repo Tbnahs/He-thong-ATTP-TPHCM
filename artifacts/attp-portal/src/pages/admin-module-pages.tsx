@@ -13,9 +13,13 @@ import {
   CircleDollarSign,
   ClipboardCheck,
   Download,
+  Eye,
   FileSpreadsheet,
   Flame,
   FileText,
+  ImagePlus,
+  Info,
+  Layers3,
   Mail,
   MapPin,
   PieChart,
@@ -123,10 +127,10 @@ const categoryOptions: Array<"Tất cả" | FacilityCategory> = [
 ];
 
 type FacilityManagementTab =
+  | "all"
   | "suppliers"
   | "schools"
-  | "food"
-  | "applications";
+  | "food";
 type FacilityManagementRow = {
   id: string;
   name: string;
@@ -148,7 +152,7 @@ type FacilityManagementRow = {
 };
 
 const facilityManagementData: Record<
-  Exclude<FacilityManagementTab, "applications">,
+  Exclude<FacilityManagementTab, "all">,
   FacilityManagementRow[]
 > = {
   suppliers: [
@@ -317,10 +321,10 @@ const facilityManagementData: Record<
 };
 
 const facilityTabLabels: Record<FacilityManagementTab, string> = {
+  all: "Tất cả cơ sở",
   suppliers: "Cơ sở cung cấp suất ăn",
   schools: "Cơ sở giáo dục",
   food: "Cơ sở cung cấp thực phẩm",
-  applications: "Hồ sơ đăng ký",
 };
 
 type StoredFacilityAccount = {
@@ -2353,7 +2357,7 @@ function LegacyAdminFacilitiesPage() {
 
 export function AdminFacilitiesPage() {
   const [activeTab, setActiveTab] =
-    useState<FacilityManagementTab>("suppliers");
+    useState<FacilityManagementTab>("all");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("Tất cả trạng thái");
   const [importedRows, setImportedRows] = useState<FacilityManagementRow[]>([]);
@@ -2389,10 +2393,18 @@ export function AdminFacilitiesPage() {
 
   const rows = useMemo(() => {
     const source =
-      activeTab === "applications"
-        ? applicationRows
+      activeTab === "all"
+        ? [
+            ...facilityManagementData.suppliers,
+            ...facilityManagementData.schools,
+            ...facilityManagementData.food,
+            ...applicationRows,
+            ...importedRows,
+          ]
         : [
-            ...facilityManagementData[activeTab],
+            ...facilityManagementData[
+              activeTab as Exclude<FacilityManagementTab, "all">
+            ],
             ...importedRows.filter((row) => {
               if (activeTab === "food")
                 return row.category === "Cơ sở cung cấp thực phẩm";
@@ -2413,10 +2425,15 @@ export function AdminFacilitiesPage() {
   }, [activeTab, importedRows, search, statusFilter]);
 
   const tabCounts = {
+    all:
+      facilityManagementData.suppliers.length +
+      facilityManagementData.schools.length +
+      facilityManagementData.food.length +
+      applicationRows.length +
+      importedRows.length,
     suppliers: facilityManagementData.suppliers.length,
     schools: facilityManagementData.schools.length,
     food: facilityManagementData.food.length,
-    applications: applicationRows.length,
   };
 
   const formatNumber = (value?: number) =>
@@ -2602,10 +2619,10 @@ export function AdminFacilitiesPage() {
         <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {(
             [
+              ["all", "Tất cả", Layers3],
               ["suppliers", "Cơ sở cung cấp suất ăn", Utensils],
               ["schools", "Cơ sở giáo dục", Building2],
               ["food", "Cơ sở cung cấp thực phẩm", FileText],
-              ["applications", "Hồ sơ đăng ký", ClipboardCheck],
             ] as const
           ).map(([value, label, Icon]) => (
             <button
@@ -2663,13 +2680,7 @@ export function AdminFacilitiesPage() {
                 <tr>
                   <th className="px-5 py-3">Cơ sở</th>
                   <th className="px-4 py-3">Địa chỉ</th>
-                  {activeTab === "applications" ? (
-                    <>
-                      <th className="px-4 py-3">Loại hình</th>
-                      <th className="px-4 py-3">Ngày nộp</th>
-                      <th className="px-4 py-3 text-right">Điểm</th>
-                    </>
-                  ) : activeTab === "schools" ? (
+                  {activeTab === "schools" ? (
                     <>
                       <th className="px-4 py-3">Cấp học</th>
                       <th className="px-4 py-3 text-right">Học sinh</th>
@@ -2687,11 +2698,7 @@ export function AdminFacilitiesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {rows.map((row) => {
-                  const application = row.applicationId
-                    ? applications.find((item) => item.id === row.applicationId)
-                    : undefined;
-                  return (
+                {rows.map((row) => (
                     <tr key={row.id} className="transition-colors hover:bg-secondary/30">
                       <td className="px-5 py-4 font-bold">
                         {row.name}
@@ -2700,13 +2707,7 @@ export function AdminFacilitiesPage() {
                         </span>
                       </td>
                       <td className="px-4 py-4 text-muted-foreground">{row.address}</td>
-                      {activeTab === "applications" ? (
-                        <>
-                          <td className="px-4 py-4">{row.category}</td>
-                          <td className="px-4 py-4">{row.updated}</td>
-                          <td className="px-4 py-4 text-right font-bold">{application?.score ?? "—"}/100</td>
-                        </>
-                      ) : activeTab === "schools" ? (
+                      {activeTab === "schools" ? (
                         <>
                           <td className="px-4 py-4">{row.level}</td>
                           <td className="px-4 py-4 text-right font-bold">{formatNumber(row.students)}</td>
@@ -2733,8 +2734,7 @@ export function AdminFacilitiesPage() {
                         </button>
                       </td>
                     </tr>
-                  );
-                })}
+                  ))}
               </tbody>
             </table>
           </div>
@@ -2758,19 +2758,77 @@ export function AdminFacilitiesPage() {
           onClick={() => setSelectedRow(null)}
         >
           <div
-            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-t-3xl bg-card p-5 shadow-2xl sm:rounded-3xl sm:p-7"
+            className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-t-3xl bg-card p-5 shadow-2xl sm:rounded-3xl sm:p-7"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4 border-b border-border pb-4">
-              <div>
-                <p className="mono-label text-primary">THÔNG TIN CƠ SỞ</p>
-                <h2 className="mt-1 text-xl font-extrabold">{selectedRow.name}</h2>
-                <p className="mt-1 text-xs text-muted-foreground">{selectedRow.category ?? facilityTabLabels[activeTab]}</p>
+              <div className="min-w-0">
+                <p className="mono-label text-primary">
+                  {selectedApplication
+                    ? "CHI TIẾT HỒ SƠ ĐĂNG KÝ"
+                    : "THÔNG TIN CƠ SỞ"}
+                </p>
+                <h2 className="mt-1 truncate text-xl font-extrabold">
+                  {selectedRow.name}
+                </h2>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {selectedRow.category ?? facilityTabLabels[activeTab]}
+                </p>
               </div>
               <button type="button" onClick={() => setSelectedRow(null)} className="rounded-xl bg-secondary p-2 text-muted-foreground" aria-label="Đóng">
                 <X size={18} />
               </button>
             </div>
+            {selectedApplication && (
+              <section className="mt-5 overflow-hidden rounded-2xl bg-[#123d36] text-white">
+                <div className="flex flex-col gap-5 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-[#f4c95d]">
+                      <span>{selectedApplication.reference}</span>
+                      <span className="text-white/35">•</span>
+                      <span>{getRegistrationCategory(selectedApplication.type)}</span>
+                      <span className="text-white/35">•</span>
+                      <span>
+                        {selectedApplication.published
+                          ? "Đã công bố"
+                          : "Chưa công bố"}
+                      </span>
+                    </div>
+                    <h3 className="mt-2 truncate text-2xl font-extrabold">
+                      {selectedApplication.applicantName}
+                    </h3>
+                    <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm text-white/70">
+                      <span>{selectedApplication.address}</span>
+                      <span>•</span>
+                      <span>{selectedApplication.contact}</span>
+                    </p>
+                  </div>
+                  <div className="grid shrink-0 grid-cols-2 gap-2 sm:min-w-[250px]">
+                    <div className="rounded-xl bg-white/10 p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-white/55">
+                        Ngày nộp
+                      </p>
+                      <p className="mt-1 text-sm font-bold">
+                        {selectedApplication.submittedAt
+                          ? new Intl.DateTimeFormat("vi-VN").format(
+                              new Date(selectedApplication.submittedAt),
+                            )
+                          : "—"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-white/10 p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-white/55">
+                        Đánh giá
+                      </p>
+                      <p className="mt-1 text-sm font-bold text-[#f4c95d]">
+                        {managementStatusLabel(selectedRow.status)} ·{" "}
+                        {selectedApplication.score}/100
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
             <dl className="mt-5 grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
               {[
                 ["Tỉnh/thành phố", selectedRow.province],
@@ -2832,18 +2890,31 @@ export function AdminFacilitiesPage() {
               <section className="mt-7">
                 <div className="flex flex-wrap items-end justify-between gap-3">
                   <div>
-                    <p className="mono-label text-primary">NỘI DUNG HỒ SƠ</p>
-                    <h3 className="mt-1 text-lg font-extrabold">
-                      Thông tin người dùng đã khai báo
+                    <p className="mono-label text-primary">
+                      {selectedApplication
+                        ? "PHẦN 01 · TIẾP NHẬN"
+                        : "NỘI DUNG HỒ SƠ"}
+                    </p>
+                    <h3 className="mt-1 text-2xl font-extrabold">
+                      {selectedApplication
+                        ? "Thông tin cơ sở đã khai báo"
+                        : "Thông tin người dùng đã khai báo"}
                     </h3>
+                    {selectedApplication && (
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Nội dung được giữ nguyên theo form mà cơ sở đã điền khi
+                        đăng ký.
+                      </p>
+                    )}
                   </div>
-                  <span className="rounded-full bg-secondary px-3 py-1 text-xs font-bold text-primary">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-xs font-bold text-muted-foreground">
+                    <CheckCircle2 size={14} className="text-emerald-600" />
                     {selectedApplication
-                      ? `${selectedApplication.reference} · ${selectedApplication.score}/100`
+                      ? `Đã tiếp nhận ${new Intl.DateTimeFormat("vi-VN").format(new Date(selectedApplication.submittedAt))}`
                       : "Hồ sơ mới · Chờ duyệt"}
                   </span>
                 </div>
-                <div className="mt-4 space-y-5 rounded-2xl border border-border bg-background p-4 sm:p-5">
+                <div className="mt-4 space-y-7 rounded-2xl border border-border bg-background p-4 sm:p-6">
                   {selectedGroups.map((group) => {
                     const groupCriteria = selectedCriteria.filter(
                       (item) => item.groupId === group.id,
@@ -2854,7 +2925,7 @@ export function AdminFacilitiesPage() {
                         <h4 className="border-b border-border pb-2 text-sm font-extrabold text-primary">
                           {group.name}
                         </h4>
-                        <dl className="mt-3 grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+                        <dl className="mt-3 grid gap-x-7 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
                           {groupCriteria.map((item) => {
                             const value =
                               item.answerType === "file"
@@ -2867,10 +2938,10 @@ export function AdminFacilitiesPage() {
                                   );
                             return (
                               <div key={item.key} className="min-w-0">
-                                <dt className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">
+                                <dt className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                                   {item.label}
                                 </dt>
-                                <dd className="mt-1 break-words text-sm font-semibold">
+                                <dd className="mt-1.5 break-words text-sm font-bold">
                                   {value}
                                 </dd>
                               </div>
@@ -2881,29 +2952,80 @@ export function AdminFacilitiesPage() {
                     );
                   })}
                 </div>
+                {selectedApplication?.reviewNote && (
+                  <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                    <Info size={17} className="mt-0.5 shrink-0" />
+                    <p>
+                      <strong>Ghi chú đang lưu:</strong>{" "}
+                      {selectedApplication.reviewNote}
+                    </p>
+                  </div>
+                )}
               </section>
             )}
             {selectedRegistrationFields && (
-              <section className="mt-6 rounded-2xl border border-border bg-background p-4 sm:p-5">
-                <div className="flex items-center justify-between gap-3">
+              <section className="mt-6 rounded-2xl border border-border bg-background p-4 sm:p-6">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-extrabold">Tệp minh chứng</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {selectedRegistrationFiles.length} tệp đã nộp cùng hồ sơ
-                    </p>
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary text-primary">
+                        <ImagePlus size={19} />
+                      </span>
+                      <div>
+                        <p className="text-lg font-extrabold">
+                          Thư viện minh chứng
+                        </p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          Bấm vào ảnh hoặc file để xem chi tiết.
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <FileText size={18} className="text-primary" />
+                  <span className="rounded-full bg-secondary px-3 py-1 text-xs font-bold text-muted-foreground">
+                    {selectedRegistrationFiles.length} tệp
+                  </span>
                 </div>
-                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {selectedRegistrationFiles.length ? (
                     selectedRegistrationFiles.map((file) => (
-                      <div key={file.name} className="flex min-w-0 items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 text-sm">
-                        <FileText size={15} className="shrink-0 text-primary" />
-                        <span className="truncate font-semibold">{file.name}</span>
-                      </div>
+                      <button
+                        type="button"
+                        key={`${file.fieldKey ?? "attachment"}-${file.name}`}
+                        onClick={() =>
+                          setNotice(`Tệp minh chứng: ${file.name}`)
+                        }
+                        className="group flex min-w-0 items-center gap-3 rounded-xl border border-border bg-card p-3 text-left transition hover:border-primary/30 hover:bg-secondary/30"
+                        data-testid={`button-preview-facility-attachment-${file.name}`}
+                      >
+                        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-secondary">
+                          {file.kind?.startsWith("image/") ? (
+                            <div className="flex h-full items-center justify-center text-primary">
+                              <ImagePlus size={22} />
+                            </div>
+                          ) : (
+                            <div className="flex h-full items-center justify-center text-primary">
+                              <FileText size={23} />
+                            </div>
+                          )}
+                        </div>
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-bold">
+                            {file.name}
+                          </span>
+                          <span className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                            <Eye size={13} />{" "}
+                            {file.size
+                              ? `${(file.size / 1024 / 1024).toFixed(1)}MB`
+                              : "Dung lượng chưa cập nhật"}{" "}
+                            · Xem
+                          </span>
+                        </span>
+                      </button>
                     ))
                   ) : (
-                    <p className="text-sm text-muted-foreground">Chưa có tệp minh chứng.</p>
+                    <p className="text-sm text-muted-foreground">
+                      Chưa có tệp minh chứng.
+                    </p>
                   )}
                 </div>
               </section>
