@@ -1246,8 +1246,8 @@ export function IncidentDetailPage() {
                 <p className="mt-0.5 text-xs text-[#64748b]">Đang chờ dữ liệu cập nhật từ phía nhà trường</p>
               </div>
             </div>
-             {incident.schoolUpdate ? (
-               <SchoolUpdateSummary incidentId={incident.id} update={incident.schoolUpdate} reviewStatus={incident.reviewStatus} supplementRequest={incident.supplementRequest} />
+               {incident.schoolUpdate ? (
+                <SchoolUpdateSummary incidentId={incident.id} facility={incident.facility} update={incident.schoolUpdate} reviewStatus={incident.reviewStatus} supplementRequest={incident.supplementRequest} />
              ) : (
                <div className="flex min-h-[280px] flex-col items-center justify-center px-6 py-16 text-center">
                  <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#eff6ff] text-[#1e40af]"><Info size={28} /></span>
@@ -1427,11 +1427,13 @@ function IncidentTextModal({
 
 function SchoolUpdateSummary({
   incidentId,
+  facility,
   update,
   reviewStatus,
   supplementRequest,
 }: {
   incidentId: string;
+  facility: string;
   update: SchoolIncidentUpdate;
   reviewStatus: IncidentReviewStatus;
   supplementRequest?: string;
@@ -1471,7 +1473,7 @@ function SchoolUpdateSummary({
         </div>
       )}
       {update.attachments.length > 0 && <div className="flex flex-wrap gap-3">{update.attachments.map((file) => <AttachmentPreview key={file} file={file} compact />)}</div>}
-      <section className="rounded-2xl border border-[#dbe5ed] bg-[#f8fafc] p-4 sm:p-5" data-testid="section-saved-meal-records">
+       <section className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-4 sm:p-5" data-testid="section-saved-meal-records">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-[.05em] text-[#64748b]">Hồ sơ lưu mẫu</p>
@@ -1481,23 +1483,68 @@ function SchoolUpdateSummary({
         </div>
         <div className="mt-4 grid gap-4 lg:grid-cols-3">
           {menus.map((menu) => (
-            <article key={menu.id} className="overflow-hidden rounded-xl border border-[#e2e8f0] bg-white shadow-sm">
-              <div className="relative h-32 overflow-hidden bg-[#0f3f5b]">
-                <img src={foodPhotoPath} alt={`Ảnh minh họa ${menu.name}`} className="absolute inset-0 h-full w-full object-cover opacity-80" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a]/80 to-transparent" />
-                <div className="absolute right-4 top-4 rounded-full bg-[#dcfce7] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[.1em] text-[#16a34a]">Đã cập nhật</div>
+             <article key={menu.id} className="overflow-hidden rounded-2xl border border-[#f3f4f6] bg-white shadow-[0_10px_15px_-3px_rgba(0,0,0,0.1),0_4px_6px_-4px_rgba(0,0,0,0.1)]">
+               <div className="relative flex h-56 items-center overflow-hidden bg-[#f9fafb]">
+                 <img src={foodPhotoPath} alt={`Ảnh minh họa ${menu.name}`} className="h-full w-full object-cover" />
+                 <div className="absolute left-4 top-4 rounded-full bg-[#dcfce7] px-3 py-2 text-[11px] font-bold uppercase tracking-[.1em] text-[#16a34a]">
+                   {menu.menuType.split(" ")[0]}
+                 </div>
               </div>
-              <div className="space-y-3 p-4">
-                <h4 className="font-bold text-[#0f172a]">{menu.name}</h4>
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[.08em] text-[#64748b]">Mã thực đơn</p>
-                  <p className="mt-1 text-lg font-extrabold text-[#0f172a]">{menu.code}</p>
+               <div className="space-y-4 p-6">
+                 <div className="space-y-1">
+                   <h4 className="text-xl font-bold leading-7 text-[#1f2937]">{menu.name}</h4>
+                   <p className="text-xs leading-4 text-[#64748b]">Mã món: {menu.code}</p>
+                   <p className="text-xs leading-4 text-[#64748b]">Trường: {facility}</p>
                 </div>
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div><p className="text-[#64748b]">Trạng thái</p><p className="mt-1 font-semibold text-[#16a34a]">{menu.status}</p></div>
-                  <div><p className="text-[#64748b]">Chế biến</p><p className="mt-1 font-semibold text-[#0f172a]">{menu.processedAt}</p></div>
+                 <div className="space-y-4">
+                   <div className="flex flex-wrap justify-center gap-2">
+                     {["Cá basa", "Cà chua"].map((ingredient) => (
+                       <span key={ingredient} className="inline-flex items-center gap-2 rounded-lg border border-[#f3f4f6] bg-[#f9fafb] px-2 py-2 text-xs font-medium text-[#0f172a]">
+                         <span className="h-2 w-2 rounded-full bg-[#f26522]" />
+                         {ingredient}
+                       </span>
+                     ))}
+                   </div>
+                   <div className="space-y-3 pt-2">
+                     {[
+                       "Sơ chế cá, rau, cà chua, thơm",
+                       "Phi thơm, nấu nước dùng 15 phút",
+                       "Cho cá vào nấu chín, nêm gia vị",
+                     ].map((step, index) => (
+                       <div key={step} className="flex items-center gap-3">
+                         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#f26522] text-[10px] font-bold text-white">{index + 1}</span>
+                         <span className="text-xs font-medium text-[#4b5563]">{step}</span>
+                       </div>
+                     ))}
+                   </div>
+                 </div>
+                 <div className="space-y-2 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-4 text-[13px] leading-5">
+                   <div className="flex items-center justify-between gap-4">
+                     <span className="text-[#64748b]">Thời gian chế biến:</span>
+                     <span className="font-medium text-[#0f172a]">{menu.processAt.split(" ")[0]}</span>
+                   </div>
+                   <div className="flex items-center justify-between gap-4">
+                     <span className="text-[#64748b]">Thời gian phục vụ:</span>
+                     <span className="font-medium text-[#0f172a]">{menu.processedAt.split(" ")[0]}</span>
+                   </div>
+                   <div className="flex items-center justify-between gap-4">
+                     <span className="text-[#64748b]">Số suất:</span>
+                     <span className="font-medium text-[#0f172a]">450</span>
+                   </div>
+                   <div className="flex items-center justify-between gap-4">
+                     <span className="text-[#64748b]">Tình trạng:</span>
+                     <span className="font-medium text-[#0f172a]">{menu.status}</span>
+                   </div>
+                   <div className="flex items-center justify-between gap-4">
+                     <span className="text-[#64748b]">Số lượng còn lại:</span>
+                     <span className="font-medium text-[#0f172a]">12 kg</span>
+                   </div>
+                   <div className="flex items-center justify-between gap-4">
+                     <span className="text-[#64748b]">Vị trí lưu giữ:</span>
+                     <span className="font-medium text-[#0f172a]">Kho lạnh 01</span>
+                   </div>
                 </div>
-                <button type="button" onClick={() => setIsTraceOpen(true)} className="inline-flex w-full items-center justify-center rounded-lg bg-[#1b6c98] px-3 py-2.5 text-sm font-bold text-white transition-colors hover:bg-[#155777]" data-testid={`button-view-sample-record-${menu.id}`}>
+                 <button type="button" onClick={() => setIsTraceOpen(true)} className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-[#1b6c98] px-3 text-sm font-bold text-white transition-colors hover:bg-[#155777]" data-testid={`button-view-sample-record-${menu.id}`}>
                   Xem hồ sơ lưu mẫu
                 </button>
               </div>
