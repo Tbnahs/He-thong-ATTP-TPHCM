@@ -1455,7 +1455,6 @@ function SchoolUpdateSummary({
         {[
           ["Người cập nhật", `${update.contactName} · ${update.contactRole}`],
           ["Món ăn đã truy xuất", update.tracedMeals],
-          ["Biện pháp đã thực hiện", update.actionsTaken],
         ].map(([label, value]) => (
           <div key={label} className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
             <p className="text-xs font-bold uppercase tracking-[.05em] text-[#94a3b8]">{label}</p>
