@@ -297,6 +297,12 @@ export function AdminMonitoringDashboard() {
   type MonitoringStatus = "Đạt" | "Cảnh báo" | "Chưa đạt";
   type SchoolLevel = "Mầm non" | "Cấp 1" | "Cấp 2" | "Cấp 3";
   type MealOrganization = "Tự tổ chức nấu ăn" | "Sử dụng suất ăn từ bên ngoài";
+  type SchoolSupplier = {
+    name: string;
+    address: string;
+    taxCode: string;
+    capacity: number;
+  };
   type SupplierRecord = {
     name: string;
     ward: string;
@@ -315,7 +321,7 @@ export function AdminMonitoringDashboard() {
     students: number;
     demand: number;
     supply: number;
-    suppliers: number;
+    suppliers: SchoolSupplier[];
     status: MonitoringStatus;
     updated: string;
   };
@@ -393,6 +399,38 @@ export function AdminMonitoringDashboard() {
       updated: "06/09/2026",
     },
   ];
+  const schoolSuppliers: Record<string, SchoolSupplier> = {
+    abc: {
+      name: "Công ty TNHH ABC",
+      address: "18 Nguyễn Huệ, P. Bến Nghé",
+      taxCode: "0312345678",
+      capacity: 3000,
+    },
+    minhTam: {
+      name: "Công ty Suất ăn Minh Tâm",
+      address: "52 Điện Biên Phủ, P. Đa Kao",
+      taxCode: "0312456789",
+      capacity: 2500,
+    },
+    cauOngLanh: {
+      name: "Bếp ăn tập thể Cầu Ông Lãnh",
+      address: "116 Nguyễn Thái Học, P. Cầu Ông Lãnh",
+      taxCode: "0313567890",
+      capacity: 1500,
+    },
+    nguyenCuTrinh: {
+      name: "Cơ sở Suất ăn Nguyễn Cư Trinh",
+      address: "24 Trần Hưng Đạo, P. Nguyễn Cư Trinh",
+      taxCode: "0314678901",
+      capacity: 2000,
+    },
+    greenFood: {
+      name: "Công ty TNHH Dinh dưỡng GreenFood",
+      address: "88 Lý Tự Trọng, P. Bến Nghé",
+      taxCode: "0315789012",
+      capacity: 1800,
+    },
+  };
   const schoolRows: SchoolRecord[] = [
     {
       name: "Trường Mầm non Hoa Mai",
@@ -402,7 +440,7 @@ export function AdminMonitoringDashboard() {
       students: 420,
       demand: 420,
       supply: 420,
-      suppliers: 1,
+      suppliers: [],
       status: "Đạt",
       updated: "08/09/2026",
     },
@@ -414,7 +452,7 @@ export function AdminMonitoringDashboard() {
       students: 650,
       demand: 650,
       supply: 650,
-      suppliers: 2,
+      suppliers: [schoolSuppliers.minhTam, schoolSuppliers.abc],
       status: "Đạt",
       updated: "08/09/2026",
     },
@@ -426,7 +464,7 @@ export function AdminMonitoringDashboard() {
       students: 780,
       demand: 780,
       supply: 760,
-      suppliers: 1,
+      suppliers: [schoolSuppliers.cauOngLanh],
       status: "Cảnh báo",
       updated: "07/09/2026",
     },
@@ -438,9 +476,105 @@ export function AdminMonitoringDashboard() {
       students: 800,
       demand: 800,
       supply: 800,
-      suppliers: 2,
+      suppliers: [],
       status: "Đạt",
       updated: "06/09/2026",
+    },
+    {
+      name: "Trường Mầm non Hoa Sen",
+      level: "Mầm non",
+      mealOrganization: "Sử dụng suất ăn từ bên ngoài",
+      ward: "Bến Nghé",
+      students: 310,
+      demand: 310,
+      supply: 310,
+      suppliers: [schoolSuppliers.greenFood],
+      status: "Đạt",
+      updated: "05/09/2026",
+    },
+    {
+      name: "Trường Tiểu học Lê Lợi",
+      level: "Cấp 1",
+      mealOrganization: "Tự tổ chức nấu ăn",
+      ward: "Đa Kao",
+      students: 590,
+      demand: 590,
+      supply: 590,
+      suppliers: [],
+      status: "Đạt",
+      updated: "05/09/2026",
+    },
+    {
+      name: "Trường THCS Trần Hưng Đạo",
+      level: "Cấp 2",
+      mealOrganization: "Sử dụng suất ăn từ bên ngoài",
+      ward: "Cầu Ông Lãnh",
+      students: 720,
+      demand: 720,
+      supply: 700,
+      suppliers: [schoolSuppliers.nguyenCuTrinh],
+      status: "Cảnh báo",
+      updated: "04/09/2026",
+    },
+    {
+      name: "Trường THPT Nguyễn Thị Minh Khai",
+      level: "Cấp 3",
+      mealOrganization: "Sử dụng suất ăn từ bên ngoài",
+      ward: "Nguyễn Cư Trinh",
+      students: 910,
+      demand: 910,
+      supply: 910,
+      suppliers: [schoolSuppliers.abc],
+      status: "Đạt",
+      updated: "04/09/2026",
+    },
+    {
+      name: "Trường Mầm non Ánh Dương",
+      level: "Mầm non",
+      mealOrganization: "Sử dụng suất ăn từ bên ngoài",
+      ward: "Bến Nghé",
+      students: 280,
+      demand: 280,
+      supply: 280,
+      suppliers: [schoolSuppliers.minhTam],
+      status: "Đạt",
+      updated: "03/09/2026",
+    },
+    {
+      name: "Trường Tiểu học Bến Thành",
+      level: "Cấp 1",
+      mealOrganization: "Tự tổ chức nấu ăn",
+      ward: "Bến Nghé",
+      students: 610,
+      demand: 610,
+      supply: 610,
+      suppliers: [],
+      status: "Đạt",
+      updated: "03/09/2026",
+    },
+    {
+      name: "Trường THCS Chu Văn An",
+      level: "Cấp 2",
+      mealOrganization: "Sử dụng suất ăn từ bên ngoài",
+      ward: "Đa Kao",
+      students: 840,
+      demand: 840,
+      supply: 820,
+      suppliers: [schoolSuppliers.abc, schoolSuppliers.greenFood],
+      status: "Cảnh báo",
+      updated: "02/09/2026",
+    },
+    {
+      name: "Trường THPT Lê Quý Đôn",
+      level: "Cấp 3",
+      mealOrganization: "Sử dụng suất ăn từ bên ngoài",
+      ward: "Nguyễn Cư Trinh",
+      students: 980,
+      demand: 980,
+      supply: 980,
+      suppliers: [schoolSuppliers.nguyenCuTrinh],
+      status: "Đạt",
+      updated: "01/09/2026",
     },
   ];
   const summaries: Record<string, Summary> = {
@@ -946,7 +1080,12 @@ export function AdminMonitoringDashboard() {
                         key={school.name}
                         className="transition-colors hover:bg-secondary/30"
                       >
-                        <td className="px-5 py-4 font-bold">{school.name}</td>
+                        <td className="px-5 py-4 font-bold">
+                          <span className="block">{school.name}</span>
+                          <span className="mt-1 block text-[10px] font-medium text-muted-foreground">
+                            {school.mealOrganization}
+                          </span>
+                        </td>
                         <td className="px-4 py-4 text-muted-foreground">
                           P. {school.ward}, Quận 1
                         </td>
@@ -962,7 +1101,19 @@ export function AdminMonitoringDashboard() {
                           {formatNumber(school.demand)}
                         </td>
                         <td className="px-4 py-4 text-center font-bold">
-                          {school.suppliers}
+                          {school.suppliers.length === 0 ? (
+                            <span>0</span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedSchool(school)}
+                              className="rounded-lg px-2 py-1 text-primary underline decoration-primary/40 underline-offset-2 hover:bg-secondary"
+                              aria-label={`Xem ${school.suppliers.length} nhà cung cấp của ${school.name}`}
+                              data-testid={`button-school-suppliers-${school.name}`}
+                            >
+                              {school.suppliers.length}
+                            </button>
+                          )}
                         </td>
                         <td className="px-4 py-4">
                           <StatusPill status={statusTone(school.status)} />
@@ -1187,6 +1338,14 @@ export function AdminMonitoringDashboard() {
                         <strong>Cấp học:</strong> {selectedSchool.level}
                       </p>
                       <p>
+                        <strong>Hình thức bữa ăn:</strong>{" "}
+                        {selectedSchool.mealOrganization}
+                      </p>
+                      <p>
+                        <strong>Nhà cung cấp:</strong>{" "}
+                        {selectedSchool.suppliers.length} đơn vị
+                      </p>
+                      <p>
                         <strong>Số học sinh:</strong>{" "}
                         {formatNumber(selectedSchool.students)}
                       </p>
@@ -1210,36 +1369,35 @@ export function AdminMonitoringDashboard() {
                     Nhà cung cấp suất ăn
                   </h3>
                   <div className="mt-3 divide-y divide-border rounded-xl border border-border">
-                    {supplierRows
-                      .slice(0, selectedSchool.suppliers)
-                      .map((supplier) => (
-                        <button
-                          key={supplier.name}
-                          type="button"
-                          onClick={() => {
-                            setSelectedSchool(null);
-                            setSelectedSupplier(supplier);
-                          }}
-                          className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left text-xs hover:bg-secondary/50"
-                        >
-                          <span>
+                    {selectedSchool.suppliers.length ? (
+                      selectedSchool.suppliers.map((supplier) => (
+                        <div key={supplier.name} className="px-3 py-3 text-xs">
+                          <div className="flex items-start justify-between gap-3">
                             <strong>{supplier.name}</strong>
-                            <span className="mt-1 block text-muted-foreground">
-                              {formatNumber(
-                                Math.round(
-                                  selectedSchool.demand /
-                                    selectedSchool.suppliers,
-                                ),
-                              )}{" "}
-                              suất cung cấp · 01/09/2026 → nay
+                            <span className="shrink-0 rounded-full bg-secondary px-2 py-1 text-[10px] font-bold text-primary">
+                              {formatNumber(supplier.capacity)} suất/ngày
                             </span>
-                          </span>
-                          <ChevronRight
-                            size={14}
-                            className="shrink-0 text-primary"
-                          />
-                        </button>
-                      ))}
+                          </div>
+                          <p className="mt-2 text-muted-foreground">
+                            <strong className="text-foreground">
+                              Địa chỉ:
+                            </strong>{" "}
+                            {supplier.address}
+                          </p>
+                          <p className="mt-1 text-muted-foreground">
+                            <strong className="text-foreground">
+                              Mã số thuế:
+                            </strong>{" "}
+                            {supplier.taxCode}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="px-3 py-4 text-xs text-muted-foreground">
+                        Trường tự tổ chức nấu ăn, không sử dụng đơn vị cung cấp
+                        bên ngoài.
+                      </p>
+                    )}
                   </div>
                   <p className="mt-3 text-right text-xs font-extrabold text-primary">
                     Tổng: {formatNumber(selectedSchool.supply)} suất/ngày
