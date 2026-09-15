@@ -3801,6 +3801,79 @@ export function AdminFacilityDetailPage() {
   const detailIsComplete =
     row.detailCompleteness === "complete" ||
     !detailMissingFields.length;
+  const firstRegistrationValue = (...keys: string[]) =>
+    keys.map((key) => registrationValue(key)).find(Boolean) ?? "";
+  const basicDetailFields: Array<[string, string]> = [
+    [
+      "Tên cơ sở",
+      firstRegistrationValue("applicantName") || row.name,
+    ],
+    [
+      "Loại cơ sở",
+      registrationType ? getRegistrationCategory(registrationType) : "Chưa cập nhật",
+    ],
+    [
+      "Tỉnh/thành phố",
+      firstRegistrationValue("addressProvince") || row.province,
+    ],
+    ["Xã/phường", firstRegistrationValue("addressWard") || row.ward],
+    [
+      "Địa chỉ",
+      firstRegistrationValue("addressDetail", "address") || row.address,
+    ],
+    ["Số điện thoại", firstRegistrationValue("contact") || row.contact],
+  ];
+  if (registrationType === "school") {
+    basicDetailFields.push(
+      ["Cấp học", firstRegistrationValue("schoolLevel") || row.level || "—"],
+      [
+        "Hình thức tổ chức bữa ăn",
+        firstRegistrationValue("mealModel") || row.mealOrganization || "—",
+      ],
+      [
+        "Số học sinh",
+        firstRegistrationValue("students", "studentCount") ||
+          formatDetailNumber(row.students),
+      ],
+      [
+        "Nhu cầu suất ăn/ngày",
+        firstRegistrationValue("demand", "dailyDemand") ||
+          formatDetailNumber(row.demand),
+      ],
+    );
+  } else if (registrationType === "meal-provider") {
+    basicDetailFields.push(
+      [
+        "Tổng nhân viên chế biến",
+        firstRegistrationValue("staffTotal") || "—",
+      ],
+      [
+        "Công suất suất ăn/ngày",
+        firstRegistrationValue("dailyCapacity") ||
+          formatDetailNumber(row.capacity),
+      ],
+      [
+        "Số trường / đơn vị đang phục vụ",
+        firstRegistrationValue("servingUnits") || formatDetailNumber(row.serving),
+      ],
+      ["Phương tiện giao suất ăn", firstRegistrationValue("vehicleType") || "—"],
+    );
+  } else {
+    basicDetailFields.push(
+      [
+        "Nhóm sản phẩm",
+        firstRegistrationValue("productGroups") || row.category || "—",
+      ],
+      [
+        "Vùng trồng / nuôi / khai thác",
+        firstRegistrationValue("origin") || "—",
+      ],
+      [
+        "Truy xuất nguồn gốc",
+        firstRegistrationValue("traceability") || "—",
+      ],
+    );
+  }
   const submittedAt = application?.submittedAt
     ? new Intl.DateTimeFormat("vi-VN").format(new Date(application.submittedAt))
     : row.updated;
@@ -4034,18 +4107,7 @@ export function AdminFacilityDetailPage() {
             <p className="mono-label text-primary">HỒ SƠ CƠ SỞ</p>
             <h2 className="mt-1 text-xl font-extrabold">Thông tin cơ bản</h2>
             <dl className="mt-5 grid gap-x-6 gap-y-5 sm:grid-cols-2">
-              {[
-                ["Tên cơ sở", row.name],
-                ["Loại cơ sở", row.category ?? "—"],
-                ["Tỉnh/thành phố", row.province],
-                ["Xã/phường", row.ward],
-                ["Địa chỉ", row.address],
-                ["Số điện thoại", row.contact],
-                ["Công suất/ngày", formatDetailNumber(row.capacity)],
-                ["Cấp học", row.level ?? "—"],
-                ["Học sinh", formatDetailNumber(row.students)],
-                ["Nhu cầu suất ăn/ngày", formatDetailNumber(row.demand)],
-              ].map(([label, value]) => (
+              {basicDetailFields.map(([label, value]) => (
                 <div key={label}>
                   <dt className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{label}</dt>
                   <dd className="mt-1 text-sm font-bold">{value}</dd>
