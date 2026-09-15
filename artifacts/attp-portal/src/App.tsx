@@ -25,6 +25,7 @@ import {
   AdminMealManagementPage,
   AdminMonitoringDashboard,
 } from "@/pages/admin-module-pages";
+import { AdminAccountsPage } from "@/pages/account-management-page";
 import {
   FacilityIncidentDetailPage,
   FacilityIncidentListPage,
@@ -104,7 +105,7 @@ function Router() {
         </Route>
         <Route path="/admin/accounts">
           <AdminGuard>
-            <AdminPlaceholder kind="accounts" />
+            <AdminAccountsPage />
           </AdminGuard>
         </Route>
         <Route path="/admin/reports">
