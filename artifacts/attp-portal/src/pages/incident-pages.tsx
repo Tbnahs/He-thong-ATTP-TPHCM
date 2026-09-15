@@ -90,7 +90,85 @@ type SchoolIncidentUpdate = {
   sampleHandling: string;
   notes: string;
   attachments: string[];
+  menus?: MealLifecycle[];
 };
+
+type MealLifecycle = {
+  id: string;
+  code: string;
+  name: string;
+  processedAt: string;
+  status: "Đang theo dõi" | "Đã hoàn tất";
+  menuType: string;
+  description: string;
+  traceCode: string;
+  chef: string;
+  processCode: string;
+  processAt: string;
+  ingredients: Array<{ name: string; supplier: string; batch: string; unit: string }>;
+};
+
+const demoMealLifecycles: MealLifecycle[] = [
+  {
+    id: "canh-chua-ca-basa",
+    code: "MA-00452",
+    name: "Canh chua cá basa",
+    processedAt: "12:43 12/06/2025",
+    status: "Đang theo dõi",
+    menuType: "Đặc (nấu chín)",
+    description: "Món ăn được theo dõi trong 24h từ lúc bắt đầu chế biến.",
+    traceCode: "1753402417699",
+    chef: "Đầu bếp Checkee",
+    processCode: "MTHS-001",
+    processAt: "12:35 15/07/2025",
+    ingredients: [
+      { name: "Tôm sú", supplier: "Công ty TNHH Thương mại quốc tế Hải sản Hoàng Gia", batch: "2025071008", unit: "Gram" },
+      { name: "Cải thìa xanh", supplier: "Khu A5-013 Chợ Bình Điền", batch: "2025070512", unit: "Kg" },
+      { name: "Mì gói", supplier: "Nhà cung cấp sỉ & lẻ Minh Hằng", batch: "20250708", unit: "Gói" },
+      { name: "Trứng gà", supplier: "Trang trại Bình An", batch: "2025070911", unit: "Quả" },
+    ],
+  },
+  {
+    id: "mi-tron-hai-san",
+    code: "MTHS-002",
+    name: "Mì trộn hải sản",
+    processedAt: "12:11 10/06/2025",
+    status: "Đã hoàn tất",
+    menuType: "Khô (trộn)",
+    description: "Món ăn đã hoàn tất theo dõi và được lưu đầy đủ hồ sơ.",
+    traceCode: "1753402417700",
+    chef: "Đầu bếp Checkee",
+    processCode: "MTHS-002",
+    processAt: "11:55 10/06/2025",
+    ingredients: [
+      { name: "Mì trứng", supplier: "Nhà cung cấp Minh Hằng", batch: "2025061002", unit: "Gói" },
+      { name: "Tôm sú", supplier: "Hải sản Hoàng Gia", batch: "2025061008", unit: "Gram" },
+      { name: "Rau cải", supplier: "Chợ Bình Điền", batch: "2025060512", unit: "Kg" },
+    ],
+  },
+  {
+    id: "com-thit-kho-trung",
+    code: "CTKT-003",
+    name: "Cơm thịt kho trứng",
+    processedAt: "11:50 08/06/2025",
+    status: "Đã hoàn tất",
+    menuType: "Đặc (nấu chín)",
+    description: "Món ăn được lưu mẫu sau khi hoàn tất chế biến tại trường.",
+    traceCode: "1753402417701",
+    chef: "Đầu bếp Checkee",
+    processCode: "CTKT-003",
+    processAt: "11:30 08/06/2025",
+    ingredients: [
+      { name: "Thịt heo", supplier: "Công ty Thực phẩm sạch Bình Minh", batch: "2025060804", unit: "Kg" },
+      { name: "Trứng gà", supplier: "Trang trại Bình An", batch: "2025060809", unit: "Quả" },
+      { name: "Gạo thơm", supplier: "Nông sản An Phú", batch: "2025060107", unit: "Kg" },
+    ],
+  },
+];
+
+function getMealLifecycles(update?: SchoolIncidentUpdate) {
+  return update?.menus?.length ? update.menus : demoMealLifecycles;
+}
 
 const STORAGE_KEY = "attp-food-safety-incidents";
 
