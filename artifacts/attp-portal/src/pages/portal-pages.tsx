@@ -624,13 +624,10 @@ function HomeRegionalDirectory() {
                           (item) => item.id === facility.id,
                         );
                         const owner = record?.metadata["Chủ cơ sở"];
-                        const certificateNumber = record?.metadata["Số GCN"];
-                        const certificateIssued = record?.metadata["Ngày cấp"];
                         return (
                           <div className="mt-2 space-y-1.5 text-xs leading-5 text-muted-foreground">
                             <p><strong className="text-foreground">Tên cơ sở:</strong> {facility.name}</p>
                             <p><strong className="text-foreground">Chủ cơ sở:</strong> {owner ?? "—"}</p>
-                            <p><strong className="text-foreground">Số GCN:</strong> {certificateNumber ?? "—"} <span className="mx-1">·</span> <strong className="text-foreground">Ngày cấp:</strong> {certificateIssued ?? "—"}</p>
                             <p className="flex items-start gap-2">
                               <MapPin size={14} className="mt-0.5 shrink-0" />
                               <span><strong className="text-foreground">Địa chỉ:</strong> {record?.metadata["Địa chỉ"] ?? facility.address}</span>
@@ -1290,13 +1287,6 @@ function RecordRow({
                 {item.metadata["Chủ cơ sở"] ?? "—"}
               </p>
               <p>
-                <strong className="text-foreground">Số GCN:</strong>{" "}
-                {item.metadata["Số GCN"] ?? "—"}
-                <span className="mx-1">·</span>
-                <strong className="text-foreground">Ngày cấp:</strong>{" "}
-                {item.metadata["Ngày cấp"] ?? "—"}
-              </p>
-              <p>
                 <strong className="text-foreground">Địa chỉ:</strong>{" "}
                 {item.metadata["Địa chỉ"] ?? item.location}
               </p>
@@ -1647,7 +1637,6 @@ function LegacyFacilityProfilePage() {
     phone: string;
     email: string;
     licenseNumber: string;
-    licenseIssued: string;
     licenseExpires: string;
     productGroups: string;
     origin: string;
@@ -1666,7 +1655,6 @@ function LegacyFacilityProfilePage() {
     phone: "0908 123 456",
     email: "",
     licenseNumber: "ATTP-2026-088",
-    licenseIssued: "2026-06-12",
     licenseExpires: "2027-06-12",
     productGroups: "Rau củ quả, Thịt gia súc",
     origin: "Hợp tác xã rau sạch Củ Chi",
@@ -1743,7 +1731,6 @@ function LegacyFacilityProfilePage() {
       "representative",
       "phone",
       "licenseNumber",
-      "licenseIssued",
       "licenseExpires",
       "productGroups",
     ];
@@ -1859,13 +1846,6 @@ function LegacyFacilityProfilePage() {
                 value={profile.licenseNumber}
                 onChange={(value) => update("licenseNumber", value)}
                 test="input-facility-license-number"
-              />
-              <Field
-                label="Ngày cấp *"
-                value={profile.licenseIssued}
-                onChange={(value) => update("licenseIssued", value)}
-                test="input-facility-license-issued"
-                type="date"
               />
               <Field
                 label="Ngày hết hạn *"
@@ -2494,24 +2474,7 @@ function ApplicationForm({
           >
             {formFields
               .filter((item) => item.groupId === group.id)
-              .map((item, index, groupFields) => {
-                if (item.key === "certificateIssued") return null;
-                if (item.key === "certificateNumber") {
-                  const issued = groupFields.find(
-                    (field) => field.key === "certificateIssued",
-                  );
-                  return issued ? (
-                    <div
-                      key={`${item.id}-certificate-row`}
-                      className="grid gap-4 md:grid-cols-2"
-                    >
-                      {renderQuestion(item)}
-                      {renderQuestion(issued)}
-                    </div>
-                  ) : (
-                    <Fragment key={item.id}>{renderQuestion(item)}</Fragment>
-                  );
-                }
+              .map((item, index) => {
                 return <Fragment key={`${item.id}-${index}`}>{renderQuestion(item)}</Fragment>;
               })}
           </FormSection>
@@ -3132,20 +3095,6 @@ function MealProviderFields({
             value={fields.staffTotal}
             onChange={(v) => update("staffTotal", v)}
             test="input-staff-total"
-            type="number"
-          />
-          <Field
-            label="Có chứng chỉ tập huấn ATTP *"
-            value={fields.staffTrained}
-            onChange={(v) => update("staffTrained", v)}
-            test="input-staff-trained"
-            type="number"
-          />
-          <Field
-            label="Có khám sức khỏe còn hiệu lực *"
-            value={fields.staffHealth}
-            onChange={(v) => update("staffHealth", v)}
-            test="input-staff-health"
             type="number"
           />
         </div>
