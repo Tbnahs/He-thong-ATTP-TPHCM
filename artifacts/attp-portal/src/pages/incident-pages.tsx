@@ -1261,6 +1261,43 @@ export function IncidentDetailPage() {
                </div>
              )}
           </section>
+
+           <section className="overflow-hidden rounded-xl border border-[#e2e8f0] bg-white shadow-sm" data-testid="section-incident-conclusion">
+             <div className="flex items-center gap-4 border-b border-[#e2e8f0] px-5 py-5 sm:px-6">
+               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#eff6ff] text-[#1e40af]"><Check size={17} /></span>
+               <div>
+                 <h2 className="text-lg font-bold uppercase tracking-[.03em] text-[#0f172a]">Kết luận &amp; đóng hồ sơ</h2>
+                 <p className="mt-0.5 text-xs text-[#64748b]">
+                   {incident.status === "Đã đóng" ? `Đã đóng lúc ${formatDate(incident.closedAt ?? incident.reportedAt)}` : "Ghi nhận kết luận xử lý trước khi đóng hồ sơ"}
+                 </p>
+               </div>
+             </div>
+             <div className="p-5 sm:p-6">
+               <label className="block text-sm font-bold text-[#334155]" htmlFor="incident-conclusion">
+                 Kết luận cuối cùng
+               </label>
+               {incident.status === "Đã đóng" ? (
+                 <div id="incident-conclusion" className="mt-3 rounded-lg border border-[#a7f3d0] bg-[#ecfdf5] p-4 text-sm leading-6 text-[#065f46]" data-testid="text-incident-conclusion">
+                   {incident.conclusion || "Chưa cập nhật kết luận."}
+                 </div>
+               ) : (
+                 <>
+                   <textarea
+                     id="incident-conclusion"
+                     value={conclusion}
+                     onChange={(event) => setConclusion(event.target.value)}
+                     className={`${designAreaClass} mt-3 min-h-[112px]`}
+                     placeholder="Nhập kết luận xử lý trước khi đóng hồ sơ..."
+                     aria-describedby="incident-conclusion-help"
+                     data-testid="textarea-incident-conclusion"
+                   />
+                   <p id="incident-conclusion-help" className="mt-2 text-xs text-[#64748b]">
+                     Nội dung này sẽ được lưu vào lịch sử xử lý và hiển thị sau khi hồ sơ được đóng.
+                   </p>
+                 </>
+               )}
+             </div>
+           </section>
         </main>
 
         <footer className="border-t border-[#e2e8f0] bg-white px-5 py-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,.08)] sm:px-8">
