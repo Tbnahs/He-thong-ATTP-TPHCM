@@ -675,8 +675,24 @@ const getRowRegistrationType = (
   if (row.category === "Cơ sở cung cấp thực phẩm") return "food-supplier";
   if (row.category === "Cơ sở cung cấp suất ăn") return "meal-provider";
   if (row.category === "Trường học có bếp ăn bán trú") return "school";
+  const normalizedCategory = row.category?.toLowerCase() ?? "";
+  if (normalizedCategory.includes("suất ăn")) return "meal-provider";
+  if (
+    normalizedCategory.includes("trường") ||
+    normalizedCategory.includes("giáo dục")
+  ) {
+    return "school";
+  }
+  if (normalizedCategory.includes("thực phẩm")) return "food-supplier";
+  const rowId = row.id.toLowerCase();
+  if (rowId.startsWith("fm-food-")) return "food-supplier";
+  if (rowId.startsWith("fm-supplier-")) return "meal-provider";
+  if (rowId.startsWith("fm-school-")) return "school";
   return undefined;
 };
+
+const getFacilityRegistrationLabel = (row: FacilityManagementRow) =>
+  getRegistrationCategory(getRowRegistrationType(row) ?? "food-supplier");
 
 const getStoredRegistrationRows = (): FacilityManagementRow[] =>
   readStoredFacilityAccounts()
@@ -3098,7 +3114,9 @@ export function AdminFacilitiesPage() {
                       </td>
                       {activeTab === "all" ? (
                         <>
-                          <td className="px-4 py-4">{row.category ?? "—"}</td>
+                          <td className="px-4 py-4">
+                            {getFacilityRegistrationLabel(row)}
+                          </td>
                           <td className="px-4 py-4 text-muted-foreground">{row.address}</td>
                           <td className="px-4 py-4 text-muted-foreground">{row.contact}</td>
                         </>
@@ -3897,31 +3915,6 @@ export function AdminFacilityDetailPage() {
         </section>
 
         <section className="mt-6 space-y-6">
-          <div className="rounded-2xl border border-primary/15 bg-secondary/40 p-5 shadow-sm sm:p-6">
-            <div className="flex items-start gap-3">
-              <Mail className="mt-0.5 shrink-0 text-primary" size={19} />
-              <div className="w-full">
-                <p className="text-sm font-bold">Tài khoản đăng nhập</p>
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                  Thông tin này dùng để đăng nhập vào khu vực hồ sơ cơ sở.
-                </p>
-                <div className="mt-4 grid gap-4 md:grid-cols-2">
-                  <div>
-                    <p className="mb-2 text-sm font-semibold">Email *</p>
-                    <div className="flex min-h-11 items-center rounded-xl border border-input bg-background px-3 text-sm">
-                      {registrant.email}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="mb-2 text-sm font-semibold">Mật khẩu *</p>
-                    <div className="flex min-h-11 items-center rounded-xl border border-input bg-background px-3 text-sm text-muted-foreground">
-                      •••••••• · Đã thiết lập
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
           <div className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
             <p className="block text-sm font-bold">
               Loại cơ sở đăng ký <span className="text-destructive">*</span>
@@ -4113,64 +4106,6 @@ export function AdminFacilityDetailPage() {
             ))}
           </dl>
         </section>
-
-        {registrationType && (
-          <section className="mt-6 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
-            <p className="mono-label text-primary">NỘI DUNG ĐÃ KHAI BÁO</p>
-            <h2 className="mt-1 text-xl font-extrabold">Thông tin hồ sơ đăng ký</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Toàn bộ nội dung cơ sở đã khai báo trong biểu mẫu đăng ký.
-            </p>
-            <div className="mt-5 space-y-7 rounded-2xl border border-border bg-background p-4 sm:p-6">
-              {detailGroups.map((group) => {
-                const groupCriteria = detailCriteria.filter(
-                  (item) => item.groupId === group.id,
-                );
-                if (!groupCriteria.length) return null;
-                return (
-                  <div key={group.id}>
-                    <h3 className="border-b border-border pb-2 text-sm font-extrabold text-primary">
-                      {group.name}
-                    </h3>
-                    <dl className="mt-3 grid gap-x-7 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
-                      {groupCriteria.map((item) => {
-                        const value =
-                          item.answerType === "file"
-                            ? registrationFiles
-                                .filter((file) => file.fieldKey === item.key)
-                                .map((file) => file.name)
-                                .join(", ") || "—"
-                            : formatManagementAnswer(registrationFields[item.key]);
-                        return (
-                          <div key={item.key} className="min-w-0">
-                            <dt className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                              {item.label}
-                            </dt>
-                            <dd className="mt-1 break-words text-sm font-bold">
-                              {value}
-                            </dd>
-                          </div>
-                        );
-                      })}
-                    </dl>
-                  </div>
-                );
-              })}
-              {!detailGroups.length && (
-                <dl className="grid gap-x-7 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
-                  {Object.entries(registrationFields)
-                    .filter(([key]) => !["applicantName", "addressProvince", "addressWard", "addressDetail", "contact"].includes(key))
-                    .map(([key, value]) => (
-                      <div key={key} className="min-w-0">
-                        <dt className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{key}</dt>
-                        <dd className="mt-1 break-words text-sm font-bold">{formatManagementAnswer(value)}</dd>
-                      </div>
-                    ))}
-                </dl>
-              )}
-            </div>
-          </section>
-        )}
 
         <section className="mt-6 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
           <div className="flex items-center justify-between gap-3">
