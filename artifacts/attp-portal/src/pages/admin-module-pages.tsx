@@ -313,6 +313,16 @@ export function AdminMonitoringDashboard() {
     schools: number;
     updated: string;
   };
+  type FoodSupplierRecord = {
+    name: string;
+    ward: string;
+    address: string;
+    category: string;
+    status: MonitoringStatus;
+    capacity: number;
+    buyers: number;
+    updated: string;
+  };
   type SchoolRecord = {
     name: string;
     level: SchoolLevel;
@@ -335,9 +345,9 @@ export function AdminMonitoringDashboard() {
     status: Record<MonitoringStatus, number>;
   };
 
-  const [activeTab, setActiveTab] = useState<"suppliers" | "schools">(
-    "suppliers",
-  );
+  const [activeTab, setActiveTab] = useState<
+    "suppliers" | "schools" | "food"
+  >("suppliers");
   const [area, setArea] = useState("Quận 1");
   const [district, setDistrict] = useState("Quận 1");
   const [ward, setWard] = useState("Tất cả phường/xã");
@@ -397,6 +407,68 @@ export function AdminMonitoringDashboard() {
       serving: 1860,
       schools: 2,
       updated: "06/09/2026",
+    },
+  ];
+  const foodSupplierRows: FoodSupplierRecord[] = [
+    {
+      name: "Công ty TNHH Nông sản An Phú",
+      ward: "Bến Nghé",
+      address: "184 Nguyễn Văn Linh, P. Bến Nghé",
+      category: "Rau củ quả",
+      status: "Đạt",
+      capacity: 5200,
+      buyers: 14,
+      updated: "08/09/2026",
+    },
+    {
+      name: "Công ty Thực phẩm Tân Hưng",
+      ward: "Tân Hưng",
+      address: "42 Nguyễn Hữu Thọ, P. Tân Hưng",
+      category: "Thịt, cá và trứng",
+      status: "Cảnh báo",
+      capacity: 3600,
+      buyers: 9,
+      updated: "07/09/2026",
+    },
+    {
+      name: "Hợp tác xã Rau sạch Củ Chi",
+      ward: "Củ Chi",
+      address: "Đường Tỉnh lộ 8, xã Tân An Hội",
+      category: "Rau củ quả",
+      status: "Đạt",
+      capacity: 6800,
+      buyers: 18,
+      updated: "07/09/2026",
+    },
+    {
+      name: "Công ty TNHH Thực phẩm Bình Minh",
+      ward: "Đa Kao",
+      address: "66 Phan Kế Bính, P. Đa Kao",
+      category: "Thực phẩm khô",
+      status: "Đạt",
+      capacity: 2900,
+      buyers: 7,
+      updated: "06/09/2026",
+    },
+    {
+      name: "Cơ sở Hải sản Tươi Sài Gòn",
+      ward: "Cầu Ông Lãnh",
+      address: "128 Đề Thám, P. Cầu Ông Lãnh",
+      category: "Hải sản",
+      status: "Chưa đạt",
+      capacity: 2100,
+      buyers: 5,
+      updated: "05/09/2026",
+    },
+    {
+      name: "Công ty TNHH Sữa học đường Việt",
+      ward: "Nguyễn Cư Trinh",
+      address: "15 Cống Quỳnh, P. Nguyễn Cư Trinh",
+      category: "Sữa và chế phẩm từ sữa",
+      status: "Đạt",
+      capacity: 4100,
+      buyers: 11,
+      updated: "04/09/2026",
     },
   ];
   const schoolSuppliers: Record<string, SchoolSupplier> = {
@@ -598,37 +670,73 @@ export function AdminMonitoringDashboard() {
     },
   };
   const summary = summaries[area] ?? summaries["Quận 1"];
-  const visibleSuppliers = supplierRows.filter((item) => {
-    const matchesWard = ward === "Tất cả phường/xã" || item.ward === ward;
-    const matchesStatus =
-      status === "Tất cả trạng thái" || item.status === status;
-    const matchesSearch = `${item.name} ${item.address}`
+  const districtByWard: Record<string, string> = {
+    "Bến Nghé": "Quận 1",
+    "Đa Kao": "Quận 1",
+    "Cầu Ông Lãnh": "Quận 1",
+    "Nguyễn Cư Trinh": "Quận 1",
+    "Tân Hưng": "Quận 7",
+    "Củ Chi": "Củ Chi",
+  };
+  const districtOptions =
+    area === "Quận 1"
+      ? ["Quận 1"]
+      : ["Tất cả quận/huyện", "Quận 1", "Quận 7", "Củ Chi"];
+  const wardOptions = Object.entries(districtByWard)
+    .filter(
+      ([, itemDistrict]) =>
+        (area === "Toàn thành phố" || itemDistrict === area) &&
+        (district === "Tất cả quận/huyện" || itemDistrict === district),
+    )
+    .map(([itemWard]) => itemWard);
+  const matchesLocation = (itemWard: string) => {
+    const itemDistrict = districtByWard[itemWard];
+    return (
+      (area === "Toàn thành phố" || itemDistrict === area) &&
+      (district === "Tất cả quận/huyện" || itemDistrict === district) &&
+      (ward === "Tất cả phường/xã" || itemWard === ward)
+    );
+  };
+  const matchesCommonFilters = (item: {
+    name: string;
+    ward: string;
+    address: string;
+    status: MonitoringStatus;
+  }) =>
+    matchesLocation(item.ward) &&
+    (status === "Tất cả trạng thái" || item.status === status) &&
+    `${item.name} ${item.address}`
       .toLowerCase()
       .includes(search.toLowerCase());
-    return matchesWard && matchesStatus && matchesSearch;
+  const visibleSuppliers = supplierRows.filter((item) => {
+    return matchesCommonFilters(item);
+  });
+  const visibleFoodSuppliers = foodSupplierRows.filter((item) => {
+    return matchesCommonFilters(item);
   });
   const visibleSchools = schoolRows.filter((item) => {
-    const matchesWard = ward === "Tất cả phường/xã" || item.ward === ward;
     const matchesLevel =
       schoolLevel === "Tất cả cấp học" || item.level === schoolLevel;
     const matchesMealOrganization =
       mealOrganization === "Tất cả" ||
       item.mealOrganization === mealOrganization;
-    const matchesStatus =
-      status === "Tất cả trạng thái" || item.status === status;
-    const matchesSearch = `${item.name} ${item.ward}`
-      .toLowerCase()
-      .includes(search.toLowerCase());
     return (
-      matchesWard &&
+      matchesCommonFilters(item) &&
       matchesLevel &&
-      matchesMealOrganization &&
-      matchesStatus &&
-      matchesSearch
+      matchesMealOrganization
     );
   });
   const visibleRows =
-    activeTab === "suppliers" ? visibleSuppliers : visibleSchools;
+    activeTab === "suppliers"
+      ? visibleSuppliers
+      : activeTab === "schools"
+        ? visibleSchools
+        : visibleFoodSuppliers;
+  const tabCounts = {
+    suppliers: visibleSuppliers.length,
+    schools: visibleSchools.length,
+    food: visibleFoodSuppliers.length,
+  };
   const visibleStatus = visibleRows.reduce(
     (counts, item) => ({ ...counts, [item.status]: counts[item.status] + 1 }),
     { Đạt: 0, "Cảnh báo": 0, "Chưa đạt": 0 } as Record<
@@ -637,6 +745,8 @@ export function AdminMonitoringDashboard() {
     >,
   );
   const hasFilters =
+    area !== "Quận 1" ||
+    district !== "Quận 1" ||
     ward !== "Tất cả phường/xã" ||
     status !== "Tất cả trạng thái" ||
     Boolean(search) ||
@@ -647,12 +757,26 @@ export function AdminMonitoringDashboard() {
     (sum, value) => sum + value,
     0,
   );
+  const foodCapacity = visibleFoodSuppliers.reduce(
+    (total, item) => total + item.capacity,
+    0,
+  );
+  const foodDemand = visibleFoodSuppliers.reduce(
+    (total, item) => total + item.buyers,
+    0,
+  );
   const currentCapacity =
     activeTab === "suppliers"
       ? summary.supplierCapacity
-      : summary.supplierDemand;
+      : activeTab === "schools"
+        ? summary.supplierDemand
+        : foodCapacity;
   const currentDemand =
-    activeTab === "suppliers" ? summary.supplierDemand : summary.schoolDemand;
+    activeTab === "suppliers"
+      ? summary.supplierDemand
+      : activeTab === "schools"
+        ? summary.schoolDemand
+        : foodDemand;
   const balance = currentCapacity - currentDemand;
   const formatNumber = (value: number) => value.toLocaleString("vi-VN");
   const closeDetail = () => {
@@ -712,11 +836,15 @@ export function AdminMonitoringDashboard() {
               <span className="mb-1.5 block">Quận/Huyện</span>
               <select
                 value={district}
-                onChange={(event) => setDistrict(event.target.value)}
+                onChange={(event) => {
+                  setDistrict(event.target.value);
+                  setWard("Tất cả phường/xã");
+                }}
                 className="h-10 w-full rounded-xl border border-input bg-card px-3 text-sm font-semibold"
               >
-                <option>Quận 1</option>
-                <option>Tất cả quận/huyện</option>
+                {districtOptions.map((item) => (
+                  <option key={item}>{item}</option>
+                ))}
               </select>
             </label>
             <label className="text-xs font-bold text-muted-foreground">
@@ -728,21 +856,25 @@ export function AdminMonitoringDashboard() {
                 data-testid="select-dashboard-ward"
               >
                 <option>Tất cả phường/xã</option>
-                {["Bến Nghé", "Đa Kao", "Cầu Ông Lãnh", "Nguyễn Cư Trinh"].map(
-                  (item) => (
-                    <option key={item}>{item}</option>
-                  ),
-                )}
+                {wardOptions.map((item) => (
+                  <option key={item}>{item}</option>
+                ))}
               </select>
             </label>
             <label className="text-xs font-bold text-muted-foreground">
-              <span className="mb-1.5 block">Cấp học</span>
+              <span className="mb-1.5 block">
+                Cấp học
+                {activeTab !== "schools" && (
+                  <span className="ml-1 font-normal">(chỉ áp dụng trường)</span>
+                )}
+              </span>
               <select
                 value={schoolLevel}
                 onChange={(event) =>
                   setSchoolLevel(event.target.value as typeof schoolLevel)
                 }
-                className="h-10 w-full rounded-xl border border-input bg-card px-3 text-sm font-semibold"
+                disabled={activeTab !== "schools"}
+                className="h-10 w-full rounded-xl border border-input bg-card px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
                 data-testid="select-dashboard-school-level"
               >
                 {["Tất cả cấp học", "Mầm non", "Cấp 1", "Cấp 2", "Cấp 3"].map(
@@ -772,6 +904,21 @@ export function AdminMonitoringDashboard() {
                   ].map((item) => (
                     <option key={item}>{item}</option>
                   ))}
+                </select>
+              </label>
+            )}
+            {activeTab !== "schools" && (
+              <label className="text-xs font-bold text-muted-foreground">
+                <span className="mb-1.5 block">
+                  Hình thức tổ chức bữa ăn
+                  <span className="ml-1 font-normal">(chỉ áp dụng trường)</span>
+                </span>
+                <select
+                  value={mealOrganization}
+                  disabled
+                  className="h-10 w-full cursor-not-allowed rounded-xl border border-input bg-card px-3 text-sm font-semibold opacity-50"
+                >
+                  <option>Không áp dụng</option>
                 </select>
               </label>
             )}
@@ -823,7 +970,7 @@ export function AdminMonitoringDashboard() {
             <h2 className="mt-1 text-2xl font-extrabold">{area}</h2>
           </div>
           <div
-            className="grid grid-cols-2 rounded-xl bg-secondary p-1 sm:w-auto"
+            className="grid grid-cols-3 rounded-xl bg-secondary p-1 sm:w-auto"
             role="tablist"
             aria-label="Đối tượng giám sát"
           >
@@ -831,6 +978,7 @@ export function AdminMonitoringDashboard() {
               [
                 ["suppliers", "Cơ sở cung cấp suất ăn"],
                 ["schools", "Cơ sở giáo dục"],
+                ["food", "Cơ sở cung cấp thực phẩm"],
               ] as const
             ).map(([value, label]) => (
               <button
@@ -842,7 +990,14 @@ export function AdminMonitoringDashboard() {
                 className={`rounded-lg px-3 py-2.5 text-left text-xs font-bold transition-colors sm:px-5 ${activeTab === value ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
                 data-testid={`tab-dashboard-${value}`}
               >
-                {label}
+                <span className="flex items-center gap-2">
+                  {label}
+                  <span
+                    className={`rounded-full px-1.5 py-0.5 text-[10px] leading-none ${activeTab === value ? "bg-white/15 text-white" : "bg-background text-foreground"}`}
+                  >
+                    {tabCounts[value]}
+                  </span>
+                </span>
               </button>
             ))}
           </div>
@@ -876,7 +1031,7 @@ export function AdminMonitoringDashboard() {
                 tone="green"
               />
             </>
-          ) : (
+          ) : activeTab === "schools" ? (
             <>
               <MetricCard
                 label="Tổng cơ sở giáo dục"
@@ -899,6 +1054,33 @@ export function AdminMonitoringDashboard() {
               <MetricCard
                 label="Trường đã kết nối nhà cung cấp"
                 value="81"
+                icon={CheckCircle2}
+                tone="green"
+              />
+            </>
+          ) : (
+            <>
+              <MetricCard
+                label="Tổng cơ sở cung cấp thực phẩm"
+                value={`${visibleFoodSuppliers.length}`}
+                icon={Building2}
+                tone="green"
+              />
+              <MetricCard
+                label="Công suất cung ứng"
+                value={formatNumber(foodCapacity)}
+                icon={Utensils}
+                tone="blue"
+              />
+              <MetricCard
+                label="Đơn vị đang sử dụng"
+                value={formatNumber(foodDemand)}
+                icon={ClipboardCheck}
+                tone="gold"
+              />
+              <MetricCard
+                label="Còn dư công suất"
+                value={`+${formatNumber(foodCapacity - foodDemand)}`}
                 icon={CheckCircle2}
                 tone="green"
               />
@@ -933,8 +1115,10 @@ export function AdminMonitoringDashboard() {
               <p className="mono-label text-primary">TRẠNG THÁI</p>
               <h2 className="mt-1 text-lg font-extrabold">
                 {activeTab === "suppliers"
-                  ? "Cơ sở cung cấp tại "
-                  : "Cơ sở giáo dục tại "}
+                  ? "Cơ sở cung cấp suất ăn tại "
+                  : activeTab === "schools"
+                    ? "Cơ sở giáo dục tại "
+                    : "Cơ sở cung cấp thực phẩm tại "}
                 {area}
               </h2>
             </div>
@@ -1001,12 +1185,18 @@ export function AdminMonitoringDashboard() {
               <h2 className="mt-1 text-lg font-extrabold">
                 {activeTab === "suppliers"
                   ? `Cơ sở cung cấp suất ăn tại ${area}`
-                  : `Cơ sở giáo dục tại ${area}`}
+                  : activeTab === "schools"
+                    ? `Cơ sở giáo dục tại ${area}`
+                    : `Cơ sở cung cấp thực phẩm tại ${area}`}
               </h2>
             </div>
             <span className="text-xs font-semibold text-muted-foreground">
               {visibleRows.length} mẫu hiển thị ·{" "}
-              {activeTab === "suppliers" ? summary.suppliers : summary.schools}{" "}
+              {activeTab === "suppliers"
+                ? summary.suppliers
+                : activeTab === "schools"
+                  ? summary.schools
+                  : foodSupplierRows.length}{" "}
               tổng cộng
             </span>
           </div>
@@ -1023,7 +1213,7 @@ export function AdminMonitoringDashboard() {
                     <th className="px-4 py-3">Trạng thái</th>
                     <th className="px-5 py-3 text-right">Chi tiết</th>
                   </tr>
-                ) : (
+                ) : activeTab === "schools" ? (
                   <tr>
                     <th className="px-5 py-3">Cơ sở giáo dục</th>
                     <th className="px-4 py-3">Địa chỉ</th>
@@ -1031,6 +1221,16 @@ export function AdminMonitoringDashboard() {
                     <th className="px-4 py-3 text-right">Học sinh</th>
                     <th className="px-4 py-3 text-right">Nhu cầu suất ăn</th>
                     <th className="px-4 py-3">Nhà cung cấp</th>
+                    <th className="px-4 py-3">Trạng thái</th>
+                    <th className="px-5 py-3 text-right">Chi tiết</th>
+                  </tr>
+                ) : (
+                  <tr>
+                    <th className="px-5 py-3">Cơ sở cung cấp thực phẩm</th>
+                    <th className="px-4 py-3">Địa chỉ</th>
+                    <th className="px-4 py-3">Nhóm thực phẩm</th>
+                    <th className="px-4 py-3 text-right">Công suất/ngày</th>
+                    <th className="px-4 py-3 text-center">Đang sử dụng</th>
                     <th className="px-4 py-3">Trạng thái</th>
                     <th className="px-5 py-3 text-right">Chi tiết</th>
                   </tr>
@@ -1075,7 +1275,7 @@ export function AdminMonitoringDashboard() {
                         </td>
                       </tr>
                     ))
-                  : visibleSchools.map((school) => (
+                  : activeTab === "schools" ? visibleSchools.map((school) => (
                       <tr
                         key={school.name}
                         className="transition-colors hover:bg-secondary/30"
@@ -1122,6 +1322,41 @@ export function AdminMonitoringDashboard() {
                           <button
                             type="button"
                             onClick={() => setSelectedSchool(school)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-primary/30 px-2.5 py-1.5 text-[10px] font-extrabold text-primary hover:bg-primary hover:text-primary-foreground"
+                          >
+                            Xem chi tiết <ChevronRight size={13} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  : visibleFoodSuppliers.map((supplier) => (
+                      <tr
+                        key={supplier.name}
+                        className="transition-colors hover:bg-secondary/30"
+                      >
+                        <td className="px-5 py-4 font-bold">
+                          {supplier.name}
+                          <span className="mt-1 block text-[10px] font-medium text-muted-foreground">
+                            {supplier.ward}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 text-muted-foreground">
+                          {supplier.address}
+                        </td>
+                        <td className="px-4 py-4">{supplier.category}</td>
+                        <td className="px-4 py-4 text-right font-bold">
+                          {formatNumber(supplier.capacity)}
+                        </td>
+                        <td className="px-4 py-4 text-center font-bold">
+                          {supplier.buyers} cơ sở
+                        </td>
+                        <td className="px-4 py-4">
+                          <StatusPill status={statusTone(supplier.status)} />
+                        </td>
+                        <td className="px-5 py-4 text-right">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedFoodSupplier(supplier)}
                             className="inline-flex items-center gap-1 rounded-lg border border-primary/30 px-2.5 py-1.5 text-[10px] font-extrabold text-primary hover:bg-primary hover:text-primary-foreground"
                           >
                             Xem chi tiết <ChevronRight size={13} />

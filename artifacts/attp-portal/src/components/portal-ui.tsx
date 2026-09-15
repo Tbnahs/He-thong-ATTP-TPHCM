@@ -527,7 +527,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
               </button>
             </div>
             <div className="admin-shell__page-title hidden min-w-0 lg:block">
-              <h1>{adminPageTitle}</h1>
+             
             </div>
             <div className="admin-shell__actions flex items-center gap-4">
               <Link
@@ -549,9 +549,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
               <div className="admin-shell__profile">
                 <div className="admin-shell__profile-copy">
                   <strong>Trần Anh Tuấn</strong>
-                  <span>Quản trị viên ATTP</span>
                 </div>
-                <div className="admin-shell__avatar" aria-hidden="true">TA</div>
+               
               </div>
               <button
                 onClick={logout}

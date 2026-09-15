@@ -1,0 +1,847 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Dashboard giám sát an toàn suất ăn học đường</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F2F3F1;
+    --panel:#FFFFFF;
+    --ink:#1C2B33;
+    --ink-soft:#516670;
+    --line:#DCE1E0;
+    --line-strong:#B9C2C1;
+    --navy:#1B3A4B;
+    --navy-deep:#12262F;
+    --good:#2F7D5C;
+    --good-bg:#E4F1EA;
+    --warn:#B9791E;
+    --warn-bg:#FBF0DE;
+    --bad:#B03A3A;
+    --bad-bg:#F8E7E7;
+    --accent:#3E6E8E;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', -apple-system, sans-serif;
+    font-size:14px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .num{font-family:'IBM Plex Mono', monospace; font-variant-numeric:tabular-nums; letter-spacing:-0.01em;}
+
+  /* ---------- shell ---------- */
+  .shell{max-width:1180px; margin:0 auto; padding:0 24px 64px;}
+  .topbar{
+    background:var(--navy-deep);
+    color:#EDEFEE;
+    padding:22px 24px 20px;
+  }
+  .topbar-inner{max-width:1180px; margin:0 auto;}
+  .eyebrow-row{display:flex; align-items:baseline; justify-content:space-between; gap:16px; flex-wrap:wrap;}
+  .title{font-size:19px; font-weight:600; margin:0; letter-spacing:-0.01em;}
+  .subtitle{color:#9FB0B8; font-size:12.5px; margin-top:4px;}
+  .updated{color:#8FA2AB; font-size:12px; white-space:nowrap;}
+  .updated b{color:#D7DEE1; font-weight:600;}
+
+  /* ---------- filter bar ---------- */
+  .filterbar{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:3px;
+    margin-top:14px;
+    padding:16px 18px;
+    display:grid;
+    grid-template-columns:repeat(6, 1fr);
+    gap:12px;
+    box-shadow:0 1px 2px rgba(18,38,47,0.06);
+    position:relative;
+    z-index:2;
+  }
+  .field label{
+    display:block;
+    font-size:11px;
+    color:var(--ink-soft);
+    margin-bottom:5px;
+    font-weight:500;
+  }
+  .field select, .field input{
+    width:100%;
+    border:1px solid var(--line-strong);
+    background:#fff;
+    border-radius:2px;
+    padding:7px 8px;
+    font-size:13px;
+    color:var(--ink);
+    font-family:inherit;
+  }
+  .field select:focus, .field input:focus{
+    outline:2px solid var(--accent);
+    outline-offset:1px;
+    border-color:var(--accent);
+  }
+  @media (max-width:900px){ .filterbar{grid-template-columns:repeat(2,1fr);} }
+
+  .scope-line{
+    margin-top:14px;
+    font-size:12.5px;
+    color:var(--ink-soft);
+  }
+  .scope-line b{color:var(--ink); font-weight:600;}
+
+  /* ---------- tabs ---------- */
+  .tabs{
+    display:flex;
+    gap:2px;
+    margin-top:24px;
+    border-bottom:1px solid var(--line);
+  }
+  .tabs.tabs-top{
+    margin-top:0;
+    padding-top:14px;
+    border-bottom:none;
+  }
+  .tab{
+    padding:10px 4px;
+    margin-right:22px;
+    font-size:13.5px;
+    font-weight:600;
+    color:var(--ink-soft);
+    cursor:pointer;
+    border-bottom:2px solid transparent;
+    background:none;
+    border-top:none; border-left:none; border-right:none;
+    font-family:inherit;
+  }
+  .tabs-top .tab{
+    font-size:15px;
+    padding-bottom:12px;
+  }
+  .tab.active{color:var(--navy); border-bottom-color:var(--navy);}
+  .tab .count{font-family:'IBM Plex Mono',monospace; font-weight:500; color:var(--ink-soft); margin-left:6px; font-size:12px;}
+
+  /* ---------- kpi row ---------- */
+  .kpi-row{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:1px;
+    background:var(--line);
+    border:1px solid var(--line);
+    margin-top:20px;
+  }
+  .kpi{background:var(--panel); padding:16px 18px;}
+  .kpi-label{font-size:11.5px; color:var(--ink-soft); margin-bottom:8px;}
+  .kpi-value{font-size:24px; font-weight:600; font-family:'IBM Plex Mono',monospace;}
+  .kpi-value.small{font-size:20px;}
+  .kpi-sub{font-size:11.5px; color:var(--ink-soft); margin-top:4px;}
+  @media (max-width:900px){ .kpi-row{grid-template-columns:repeat(2,1fr);} }
+
+  /* ---------- section ---------- */
+  .section{margin-top:28px;}
+  .section-head{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:12px;}
+  .section-title{font-size:14px; font-weight:600; color:var(--navy);}
+  .section-note{font-size:12px; color:var(--ink-soft);}
+
+  /* ---------- status bar ---------- */
+  .status-card{background:var(--panel); border:1px solid var(--line); padding:16px 18px;}
+  .status-track{
+    display:flex; height:10px; border-radius:2px; overflow:hidden; background:var(--line);
+    margin:10px 0 12px;
+  }
+  .seg-good{background:var(--good);}
+  .seg-warn{background:var(--warn);}
+  .seg-bad{background:var(--bad);}
+  .status-legend{display:flex; gap:22px; flex-wrap:wrap;}
+  .legend-item{display:flex; align-items:center; gap:7px; font-size:12.5px;}
+  .dot{width:9px; height:9px; border-radius:1px; display:inline-block;}
+  .legend-item b{font-family:'IBM Plex Mono',monospace; font-weight:600;}
+  .rate-pill{
+    margin-left:auto;
+    font-size:12px; color:var(--ink-soft);
+  }
+  .rate-pill b{color:var(--navy); font-family:'IBM Plex Mono',monospace; font-size:15px;}
+
+  /* ---------- table ---------- */
+  .table-wrap{
+    background:var(--panel); border:1px solid var(--line); overflow:auto; max-height:420px;
+  }
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  thead th{
+    position:sticky; top:0;
+    background:#F6F7F6;
+    text-align:left;
+    font-weight:600;
+    font-size:11.5px;
+    color:var(--ink-soft);
+    padding:9px 12px;
+    border-bottom:1px solid var(--line);
+    white-space:nowrap;
+  }
+  tbody td{
+    padding:9px 12px;
+    border-bottom:1px solid var(--line);
+    vertical-align:top;
+  }
+  tbody tr:hover{background:#FAFBFA;}
+  .name-primary{font-weight:600; color:var(--ink);}
+  .name-secondary{color:var(--ink-soft); font-size:12px; margin-top:1px;}
+  .badge{
+    display:inline-block; padding:2px 7px; border-radius:2px; font-size:11px; font-weight:600;
+  }
+  .badge-pass{background:var(--good-bg); color:var(--good);}
+  .badge-warn{background:var(--warn-bg); color:var(--warn);}
+  .badge-fail{background:var(--bad-bg); color:var(--bad);}
+  .link-btn{color:var(--accent); font-size:12.5px; font-weight:600; cursor:pointer; background:none; border:none; font-family:inherit; padding:0;}
+  .table-foot{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:9px 12px; font-size:12px; color:var(--ink-soft); border-top:1px solid var(--line);
+    background:#FAFBFA;
+  }
+  .table-foot button{
+    font-family:inherit; font-size:12px; border:1px solid var(--line-strong); background:#fff;
+    padding:4px 10px; border-radius:2px; cursor:pointer; color:var(--ink);
+  }
+  .table-foot button:disabled{opacity:0.4; cursor:default;}
+
+  /* ---------- balance ---------- */
+  .balance-card{background:var(--panel); border:1px solid var(--line); padding:18px;}
+  .balance-top{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px;}
+  .balance-headline{font-size:26px; font-weight:600; font-family:'IBM Plex Mono',monospace;}
+  .balance-headline.surplus{color:var(--good);}
+  .balance-headline.deficit{color:var(--bad);}
+  .balance-label{font-size:12px; color:var(--ink-soft);}
+  .bar-outer{height:22px; background:#EEF0EF; border-radius:2px; overflow:hidden; position:relative; margin:10px 0 8px;}
+  .bar-fill{height:100%; background:var(--navy);}
+  .bar-fill.over{background:var(--bad);}
+  .bar-ticks{display:flex; justify-content:space-between; font-size:11.5px; color:var(--ink-soft);}
+
+  /* ---------- reconcile ---------- */
+  .reconcile{
+    margin-top:12px; padding:11px 13px; border-radius:2px; font-size:12.5px;
+    display:flex; gap:9px; align-items:flex-start;
+  }
+  .reconcile.ok{background:var(--good-bg); color:#245C44;}
+  .reconcile.mismatch{background:var(--warn-bg); color:#8A5A14;}
+  .reconcile b{font-family:'IBM Plex Mono',monospace;}
+
+  .two-col{display:grid; grid-template-columns:1.3fr 1fr; gap:16px;}
+  @media (max-width:900px){ .two-col{grid-template-columns:1fr;} }
+
+  ::-webkit-scrollbar{height:8px; width:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--line-strong); border-radius:4px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="eyebrow-row">
+      <div>
+        <p class="title">Dashboard giám sát suất ăn học đường</p>
+        <p class="subtitle">Theo dõi công suất cung cấp, nhu cầu suất ăn và trạng thái an toàn theo địa bàn</p>
+      </div>
+      <div class="updated">Cập nhật dữ liệu: <b>08/09/2026</b></div>
+    </div>
+  </div>
+</div>
+
+<div class="shell">
+  <div class="tabs tabs-top">
+    <button class="tab active" data-tab="supplier">Cơ sở cung cấp suất ăn <span class="count" id="tab-count-supplier"></span></button>
+    <button class="tab" data-tab="school">Cơ sở giáo dục <span class="count" id="tab-count-school"></span></button>
+  </div>
+
+  <div class="filterbar">
+    <div class="field">
+      <label for="f-quan">Quận / Huyện</label>
+      <select id="f-quan"></select>
+    </div>
+    <div class="field">
+      <label for="f-phuong">Phường / Xã</label>
+      <select id="f-phuong"></select>
+    </div>
+    <div class="field">
+      <label for="f-capho">Cấp học</label>
+      <select id="f-capho">
+        <option value="all">Tất cả cấp học</option>
+        <option value="Mầm non">Mầm non</option>
+        <option value="Cấp 1">Cấp 1</option>
+        <option value="Cấp 2">Cấp 2</option>
+        <option value="Cấp 3">Cấp 3</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="f-hinhthuc">Hình thức tổ chức bữa ăn</label>
+      <select id="f-hinhthuc">
+        <option value="all">Tất cả</option>
+        <option value="internal">Tự tổ chức nấu ăn</option>
+        <option value="external">Suất ăn từ bên ngoài</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="f-status">Trạng thái</label>
+      <select id="f-status">
+        <option value="all">Tất cả trạng thái</option>
+        <option value="pass">Đạt</option>
+        <option value="warn">Cảnh báo</option>
+        <option value="fail">Chưa đạt</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="f-search">Tìm kiếm cơ sở</label>
+      <input id="f-search" type="text" placeholder="Tên cơ sở...">
+    </div>
+  </div>
+
+  <p class="scope-line">
+    Địa bàn đang xem: <b id="scope-text">Quận 1 · Toàn bộ phường/xã</b> —
+    số liệu bên dưới được tính trên <b id="scope-count">—</b> cơ sở khớp bộ lọc, không phải theo trang đang hiển thị.
+  </p>
+
+  <!-- SUPPLIER TAB -->
+  <div id="panel-supplier">
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="kpi-label">Tổng cơ sở cung cấp (khớp lọc)</div>
+        <div class="kpi-value" id="s-kpi-total">—</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Tổng công suất / ngày</div>
+        <div class="kpi-value" id="s-kpi-capacity">—</div>
+        <div class="kpi-sub">suất ăn</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Đang cung cấp thực tế</div>
+        <div class="kpi-value" id="s-kpi-serving">—</div>
+        <div class="kpi-sub">suất ăn / ngày</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Số trường đang nhận</div>
+        <div class="kpi-value" id="s-kpi-schools">—</div>
+        <div class="kpi-sub">trường</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Trạng thái cơ sở cung cấp</div>
+        <div class="section-note">Tính trên toàn bộ tập đã lọc, không phải trang hiển thị</div>
+      </div>
+      <div class="status-card">
+        <div class="status-track" id="s-status-track"></div>
+        <div class="status-legend" id="s-status-legend"></div>
+      </div>
+    </div>
+
+    <div class="section two-col">
+      <div>
+        <div class="section-head">
+          <div class="section-title">Danh sách cơ sở cung cấp</div>
+          <div class="section-note" id="s-table-note"></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Cơ sở cung cấp</th>
+                <th>Địa chỉ</th>
+                <th>Công suất/ngày</th>
+                <th>Đang cung cấp</th>
+                <th>Số trường</th>
+                <th>Trạng thái</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="s-table-body"></tbody>
+          </table>
+        </div>
+        <div class="table-foot">
+          <span id="s-page-info"></span>
+          <div>
+            <button id="s-prev">‹ Trước</button>
+            <button id="s-next">Sau ›</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-head">
+          <div class="section-title">Cân bằng công suất</div>
+        </div>
+        <div class="balance-card">
+          <div class="balance-top">
+            <div>
+              <div class="balance-headline" id="s-bal-headline">—</div>
+              <div class="balance-label">chênh lệch công suất so với đang cung cấp</div>
+            </div>
+            <div class="balance-label" id="s-bal-pct">—</div>
+          </div>
+          <div class="bar-outer"><div class="bar-fill" id="s-bal-bar"></div></div>
+          <div class="bar-ticks">
+            <span id="s-bal-serving-label">—</span>
+            <span id="s-bal-capacity-label">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCHOOL TAB -->
+  <div id="panel-school" style="display:none;">
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="kpi-label">Tổng cơ sở giáo dục (khớp lọc)</div>
+        <div class="kpi-value" id="e-kpi-total">—</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Tổng số học sinh</div>
+        <div class="kpi-value" id="e-kpi-students">—</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Tổng nhu cầu suất ăn</div>
+        <div class="kpi-value" id="e-kpi-demand">—</div>
+        <div class="kpi-sub">suất/ngày · gồm cả trường tự nấu</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Đã kết nối nhà cung cấp</div>
+        <div class="kpi-value" id="e-kpi-connected">—</div>
+        <div class="kpi-sub" id="e-kpi-connected-sub"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Trạng thái cơ sở giáo dục</div>
+        <div class="section-note">Tính trên toàn bộ tập đã lọc, không phải trang hiển thị</div>
+      </div>
+      <div class="status-card">
+        <div class="status-track" id="e-status-track"></div>
+        <div class="status-legend" id="e-status-legend"></div>
+      </div>
+    </div>
+
+    <div class="section two-col">
+      <div>
+        <div class="section-head">
+          <div class="section-title">Danh sách cơ sở giáo dục</div>
+          <div class="section-note" id="e-table-note"></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Cơ sở giáo dục</th>
+                <th>Địa chỉ</th>
+                <th>Cấp học</th>
+                <th>Học sinh</th>
+                <th>Nhu cầu suất ăn</th>
+                <th>Nhà cung cấp</th>
+                <th>Trạng thái</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="e-table-body"></tbody>
+          </table>
+        </div>
+        <div class="table-foot">
+          <span id="e-page-info"></span>
+          <div>
+            <button id="e-prev">‹ Trước</button>
+            <button id="e-next">Sau ›</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-head">
+          <div class="section-title">Cân bằng cung - cầu (nhóm dùng suất ăn ngoài)</div>
+        </div>
+        <div class="balance-card">
+          <div class="balance-top">
+            <div>
+              <div class="balance-headline" id="e-bal-headline">—</div>
+              <div class="balance-label">so với công suất nhà cung cấp trong địa bàn</div>
+            </div>
+            <div class="balance-label" id="e-bal-pct">—</div>
+          </div>
+          <div class="bar-outer"><div class="bar-fill" id="e-bal-bar"></div></div>
+          <div class="bar-ticks">
+            <span id="e-bal-demand-label">—</span>
+            <span id="e-bal-capacity-label">—</span>
+          </div>
+          <div class="reconcile" id="e-reconcile"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= DATA GENERATION (mock, deterministic) ================= */
+function mulberry32(seed){
+  return function(){
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const rnd = mulberry32(20260908);
+function pick(arr){ return arr[Math.floor(rnd()*arr.length)]; }
+function randInt(a,b){ return Math.floor(a + rnd()*(b-a+1)); }
+
+const WARDS = ["Bến Nghé","Bến Thành","Cầu Kho","Cầu Ông Lãnh","Cô Giang","Đa Kao","Nguyễn Cư Trinh","Nguyễn Thái Bình","Phạm Ngũ Lão","Tân Định"];
+const STREETS = ["Nguyễn Huệ","Lê Lợi","Đồng Khởi","Hai Bà Trưng","Nam Kỳ Khởi Nghĩa","Pasteur","Nguyễn Trãi","Trần Hưng Đạo","Lý Tự Trọng","Nguyễn Đình Chiểu","Võ Văn Kiệt","Nguyễn Công Trứ"];
+const SUPPLIER_NAMES = ["ABC","Bếp Việt","An Tâm","Hoàng Long","Bình Minh","Sao Mai","Phú Gia","Thành Đạt","Tâm An","Việt Hưng","Ngôi Sao Xanh","Đại Phát","Kim Long","Minh Phát","Hòa Bình","Đông Á"];
+const SCHOOL_LEVELS = ["Mầm non","Cấp 1","Cấp 2","Cấp 3"];
+const SCHOOL_LEVEL_NAMES = {
+  "Mầm non": ["Hoa Mai","Hoa Sen","Ánh Dương","Sơn Ca","Tuổi Thơ","Bé Ngoan","Hoa Hồng","Vàng Anh","Măng Non","Thỏ Ngọc"],
+  "Cấp 1": ["Lê Lợi","Trần Quốc Toản","Nguyễn Bỉnh Khiêm","Kim Đồng","Đinh Tiên Hoàng","Hòa Bình","Lý Thái Tổ"],
+  "Cấp 2": ["Trần Văn Ơn","Nguyễn Du","Lê Quý Đôn","Võ Trường Toản","Colette","Trần Hưng Đạo"],
+  "Cấp 3": ["Lê Quý Đôn","Nguyễn Thị Minh Khai","Trưng Vương","Marie Curie","Bùi Thị Xuân"]
+};
+
+// ---- suppliers: 28 total, capacity sums ~18,500, serving sums ~16,800 ----
+const N_SUPPLIERS = 28;
+let suppliers = [];
+let capAcc = 0, servAcc = 0, schoolLinkAcc = 0;
+for(let i=0;i<N_SUPPLIERS;i++){
+  const capacity = randInt(280,1300);
+  suppliers.push({
+    id:"S"+(i+1),
+    name:"Công ty TNHH "+pick(SUPPLIER_NAMES)+(rnd()>0.6?" "+pick(["Sài Gòn","Q1","Việt Nam","Foods"]):""),
+    ward: pick(WARDS),
+    address: randInt(2,220)+" "+pick(STREETS),
+    capacity,
+    schools: randInt(1,7)
+  });
+  capAcc += capacity;
+}
+// scale capacities to sum to 18500
+const capScale = 18500/capAcc;
+suppliers.forEach(s=>{ s.capacity = Math.round(s.capacity*capScale); });
+capAcc = suppliers.reduce((a,s)=>a+s.capacity,0);
+// diff fix on last item
+suppliers[suppliers.length-1].capacity += (18500-capAcc);
+
+suppliers.forEach(s=>{
+  const util = randInt(55,99)/100;
+  s.serving = Math.round(s.capacity*util);
+});
+servAcc = suppliers.reduce((a,s)=>a+s.serving,0);
+const servScale = 16800/servAcc;
+suppliers.forEach(s=>{ s.serving = Math.round(s.serving*servScale); });
+servAcc = suppliers.reduce((a,s)=>a+s.serving,0);
+suppliers[0].serving += (16800-servAcc);
+
+suppliers.forEach(s=>{
+  const util = s.serving/s.capacity;
+  s.status = util>0.98 ? "warn" : (util<0.35 ? "warn" : "pass");
+  // seed a couple of fails/warns for realism
+});
+// force distribution: 1 fail, 3 warn among suppliers, rest pass
+suppliers.forEach(s=>s.status="pass");
+suppliers[3].status="warn"; suppliers[11].status="warn"; suppliers[19].status="warn";
+suppliers[7].status="fail";
+schoolLinkAcc = suppliers.reduce((a,s)=>a+s.schools,0);
+
+// ---- schools: 85 total, students sum ~42,500, demand sum ~38,200, 81 connected ----
+const N_SCHOOLS = 85;
+let schools = [];
+for(let i=0;i<N_SCHOOLS;i++){
+  const level = SCHOOL_LEVELS[i % 4 === 3 ? 3 : (i%4)];
+  const students = randInt(120,650);
+  schools.push({
+    id:"E"+(i+1),
+    name:"Trường "+level+" "+pick(SCHOOL_LEVEL_NAMES[level])+(rnd()>0.75?" "+(i+1):""),
+    level,
+    ward: pick(WARDS),
+    address: pick(WARDS)+", Quận 1",
+    students,
+    mode: rnd()<0.10 ? "internal" : "external", // ~10% self-catering
+    connected: 0
+  });
+}
+let studAcc = schools.reduce((a,e)=>a+e.students,0);
+const studScale = 42500/studAcc;
+schools.forEach(e=>{ e.students = Math.round(e.students*studScale); });
+studAcc = schools.reduce((a,e)=>a+e.students,0);
+schools[0].students += (42500-studAcc);
+
+schools.forEach(e=>{ e.demand = e.students; }); // 1 meal/student/day baseline
+let demAcc = schools.reduce((a,e)=>a+e.demand,0);
+const demScale = 38200/demAcc;
+schools.forEach(e=>{ e.demand = Math.round(e.demand*demScale); });
+demAcc = schools.reduce((a,e)=>a+e.demand,0);
+schools[0].demand += (38200-demAcc);
+
+// connected count: internal schools => 0 suppliers; external => 1 (81 of 85 total have >=1 nhà cung cấp incl internal-with-backup)
+let externalSchools = schools.filter(e=>e.mode==="external");
+schools.forEach(e=>{ e.connected = e.mode==="internal" ? (rnd()<0.15?1:0) : 1; });
+// force total connected = 81
+let curConnected = schools.filter(e=>e.connected>0).length;
+let diffConn = 81 - curConnected;
+let idx=0;
+while(diffConn>0 && idx<schools.length){
+  if(schools[idx].connected===0){ schools[idx].connected=1; diffConn--; }
+  idx++;
+}
+idx=0;
+while(diffConn<0 && idx<schools.length){
+  if(schools[idx].connected>0 && schools[idx].mode==="internal"){ schools[idx].connected=0; diffConn++; }
+  idx++;
+}
+
+schools.forEach(e=>{ e.status = "pass"; });
+schools[2].status="warn"; schools[14].status="warn"; schools[40].status="warn";
+schools[9].status="fail";
+// schools with mode external but connected=0 should flag fail (data integrity)
+schools.forEach(e=>{ if(e.mode==="external" && e.connected===0) e.status="fail"; });
+
+/* ================= FORMAT HELPERS ================= */
+const fmt = n => n.toLocaleString("vi-VN");
+const fmtSigned = n => (n>=0? "+"+fmt(n) : "\u2212"+fmt(Math.abs(n)));
+
+/* ================= FILTER STATE ================= */
+const state = { quan:"Quận 1", phuong:"all", capho:"all", hinhthuc:"all", status:"all", search:"", tab:"supplier",
+  sPage:1, ePage:1, pageSize:8 };
+
+const wardSelect = document.getElementById("f-phuong");
+WARDS.forEach(w=>{
+  const o=document.createElement("option"); o.value=w; o.textContent=w; wardSelect.appendChild(o);
+});
+(function(){
+  const all=document.createElement("option"); all.value="all"; all.textContent="Tất cả phường/xã";
+  wardSelect.insertBefore(all, wardSelect.firstChild);
+  wardSelect.value="Bến Nghé"; state.phuong="Bến Nghé";
+})();
+const quanSelect = document.getElementById("f-quan");
+["Quận 1"].forEach(q=>{ const o=document.createElement("option"); o.value=q; o.textContent=q; quanSelect.appendChild(o); });
+quanSelect.value="Quận 1";
+
+function bindSelect(id, key, isPageReset=true){
+  document.getElementById(id).addEventListener("change", e=>{
+    state[key]=e.target.value;
+    if(isPageReset){ state.sPage=1; state.ePage=1; }
+    render();
+  });
+}
+bindSelect("f-quan","quan");
+bindSelect("f-phuong","phuong");
+bindSelect("f-capho","capho");
+bindSelect("f-hinhthuc","hinhthuc");
+bindSelect("f-status","status");
+document.getElementById("f-search").addEventListener("input", e=>{
+  state.search = e.target.value.trim().toLowerCase();
+  state.sPage=1; state.ePage=1;
+  render();
+});
+
+document.querySelectorAll(".tab").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    state.tab = btn.dataset.tab;
+    document.getElementById("panel-supplier").style.display = state.tab==="supplier"?"block":"none";
+    document.getElementById("panel-school").style.display = state.tab==="school"?"block":"none";
+  });
+});
+
+/* ================= FILTERING (always full-set based) ================= */
+function filteredSuppliers(){
+  return suppliers.filter(s=>{
+    if(state.phuong!=="all" && s.ward!==state.phuong) return false;
+    if(state.status!=="all" && s.status!==state.status) return false;
+    if(state.search && !s.name.toLowerCase().includes(state.search)) return false;
+    return true;
+  });
+}
+function filteredSchools(){
+  return schools.filter(e=>{
+    if(state.phuong!=="all" && e.ward!==state.phuong) return false;
+    if(state.capho!=="all" && e.level!==state.capho) return false;
+    if(state.hinhthuc!=="all" && e.mode!==state.hinhthuc) return false;
+    if(state.status!=="all" && e.status!==state.status) return false;
+    if(state.search && !e.name.toLowerCase().includes(state.search)) return false;
+    return true;
+  });
+}
+
+/* ================= RENDER ================= */
+function statusBreakdown(list){
+  const pass=list.filter(x=>x.status==="pass").length;
+  const warn=list.filter(x=>x.status==="warn").length;
+  const fail=list.filter(x=>x.status==="fail").length;
+  const total=list.length || 1;
+  return {pass,warn,fail,total,rate: list.length? Math.round(pass/list.length*100):0};
+}
+function renderStatus(list, trackId, legendId){
+  const b = statusBreakdown(list);
+  const track = document.getElementById(trackId);
+  track.innerHTML = "";
+  if(b.total>0){
+    const segs = [["seg-good",b.pass],["seg-warn",b.warn],["seg-bad",b.fail]];
+    segs.forEach(([cls,count])=>{
+      if(count>0){
+        const el=document.createElement("div");
+        el.className=cls;
+        el.style.width=(count/list.length*100)+"%";
+        track.appendChild(el);
+      }
+    });
+  }
+  document.getElementById(legendId).innerHTML = `
+    <div class="legend-item"><span class="dot" style="background:var(--good)"></span>Đạt <b>${fmt(b.pass)}</b></div>
+    <div class="legend-item"><span class="dot" style="background:var(--warn)"></span>Cảnh báo <b>${fmt(b.warn)}</b></div>
+    <div class="legend-item"><span class="dot" style="background:var(--bad)"></span>Chưa đạt <b>${fmt(b.fail)}</b></div>
+    <div class="rate-pill">Tỷ lệ đạt &nbsp;<b>${list.length? b.rate+"%":"—"}</b></div>
+  `;
+}
+function badge(status){
+  if(status==="pass") return '<span class="badge badge-pass">ĐẠT</span>';
+  if(status==="warn") return '<span class="badge badge-warn">CẢNH BÁO</span>';
+  return '<span class="badge badge-fail">CHƯA ĐẠT</span>';
+}
+
+function renderSupplierTab(){
+  const list = filteredSuppliers();
+  document.getElementById("s-kpi-total").textContent = fmt(list.length);
+  const capacity = list.reduce((a,s)=>a+s.capacity,0);
+  const serving = list.reduce((a,s)=>a+s.serving,0);
+  const schoolsServed = list.reduce((a,s)=>a+s.schools,0);
+  document.getElementById("s-kpi-capacity").textContent = fmt(capacity);
+  document.getElementById("s-kpi-serving").textContent = fmt(serving);
+  document.getElementById("s-kpi-schools").textContent = fmt(schoolsServed);
+
+  renderStatus(list, "s-status-track", "s-status-legend");
+
+  // table w/ pagination
+  const start = (state.sPage-1)*state.pageSize;
+  const pageItems = list.slice(start, start+state.pageSize);
+  document.getElementById("s-table-body").innerHTML = pageItems.map(s=>`
+    <tr>
+      <td><div class="name-primary">${s.name}</div><div class="name-secondary">${s.ward}</div></td>
+      <td>${s.address}, P. ${s.ward}</td>
+      <td class="num">${fmt(s.capacity)}</td>
+      <td class="num">${fmt(s.serving)}</td>
+      <td class="num">${s.schools} trường</td>
+      <td>${badge(s.status)}</td>
+      <td><button class="link-btn">Xem chi tiết</button></td>
+    </tr>
+  `).join("") || `<tr><td colspan="7" style="color:var(--ink-soft)">Không có cơ sở nào khớp bộ lọc.</td></tr>`;
+
+  const totalPages = Math.max(1, Math.ceil(list.length/state.pageSize));
+  if(state.sPage>totalPages) state.sPage=totalPages;
+  document.getElementById("s-page-info").textContent =
+    `Hiển thị ${list.length? start+1:0}–${Math.min(start+state.pageSize,list.length)} / ${list.length} cơ sở khớp bộ lọc`;
+  document.getElementById("s-prev").disabled = state.sPage<=1;
+  document.getElementById("s-next").disabled = state.sPage>=totalPages;
+  document.getElementById("s-table-note").textContent = "KPI phía trên luôn tính trên toàn bộ " + list.length + " cơ sở, không chỉ trang này";
+
+  // balance
+  const diff = capacity - serving;
+  const pct = capacity>0 ? Math.round(serving/capacity*100) : 0;
+  const headline = document.getElementById("s-bal-headline");
+  headline.textContent = fmtSigned(diff) + " suất";
+  headline.className = "balance-headline " + (diff>=0?"surplus":"deficit");
+  document.getElementById("s-bal-pct").textContent = "Đang dùng " + pct + "% công suất";
+  const bar = document.getElementById("s-bal-bar");
+  bar.style.width = Math.min(pct,100)+"%";
+  bar.className = "bar-fill" + (pct>100?" over":"");
+  document.getElementById("s-bal-serving-label").textContent = fmt(serving)+" đang cung cấp";
+  document.getElementById("s-bal-capacity-label").textContent = fmt(capacity)+" công suất/ngày";
+}
+
+function renderSchoolTab(){
+  const list = filteredSchools();
+  document.getElementById("e-kpi-total").textContent = fmt(list.length);
+  const students = list.reduce((a,e)=>a+e.students,0);
+  const demandAll = list.reduce((a,e)=>a+e.demand,0);
+  const connected = list.filter(e=>e.connected>0).length;
+  document.getElementById("e-kpi-students").textContent = fmt(students);
+  document.getElementById("e-kpi-demand").textContent = fmt(demandAll);
+  document.getElementById("e-kpi-connected").textContent = fmt(connected);
+  document.getElementById("e-kpi-connected-sub").textContent = list.length? Math.round(connected/list.length*100)+"% trong nhóm đang lọc" : "";
+
+  renderStatus(list, "e-status-track", "e-status-legend");
+
+  const start = (state.ePage-1)*state.pageSize;
+  const pageItems = list.slice(start, start+state.pageSize);
+  document.getElementById("e-table-body").innerHTML = pageItems.map(e=>`
+    <tr>
+      <td><div class="name-primary">${e.name}</div><div class="name-secondary">${e.mode==="internal"?"Tự tổ chức nấu ăn":"Sử dụng suất ăn từ bên ngoài"}</div></td>
+      <td>${e.address}</td>
+      <td>${e.level}</td>
+      <td class="num">${fmt(e.students)}</td>
+      <td class="num">${fmt(e.demand)}</td>
+      <td class="num">${e.connected}</td>
+      <td>${badge(e.status)}</td>
+      <td><button class="link-btn">Xem chi tiết</button></td>
+    </tr>
+  `).join("") || `<tr><td colspan="8" style="color:var(--ink-soft)">Không có cơ sở nào khớp bộ lọc.</td></tr>`;
+
+  const totalPages = Math.max(1, Math.ceil(list.length/state.pageSize));
+  if(state.ePage>totalPages) state.ePage=totalPages;
+  document.getElementById("e-page-info").textContent =
+    `Hiển thị ${list.length? start+1:0}–${Math.min(start+state.pageSize,list.length)} / ${list.length} cơ sở khớp bộ lọc`;
+  document.getElementById("e-prev").disabled = state.ePage<=1;
+  document.getElementById("e-next").disabled = state.ePage>=totalPages;
+  document.getElementById("e-table-note").textContent = "KPI phía trên luôn tính trên toàn bộ " + list.length + " cơ sở, không chỉ trang này";
+
+  // ---- correct balance: only "external" schools compared against supplier capacity in same ward scope ----
+  const externalList = list.filter(e=>e.mode==="external");
+  const externalDemand = externalList.reduce((a,e)=>a+e.demand,0);
+  const relevantSuppliers = suppliers.filter(s=> state.phuong==="all" || s.ward===state.phuong);
+  const supplyCapacity = relevantSuppliers.reduce((a,s)=>a+s.capacity,0);
+  const supplyServing = relevantSuppliers.reduce((a,s)=>a+s.serving,0);
+
+  const diff = supplyCapacity - externalDemand;
+  const pct = supplyCapacity>0 ? Math.round(externalDemand/supplyCapacity*100) : 0;
+  const headline = document.getElementById("e-bal-headline");
+  headline.textContent = fmtSigned(diff) + " suất";
+  headline.className = "balance-headline " + (diff>=0?"surplus":"deficit");
+  document.getElementById("e-bal-pct").textContent = "Nhu cầu = " + pct + "% công suất";
+  const bar = document.getElementById("e-bal-bar");
+  bar.style.width = Math.min(pct,100)+"%";
+  bar.className = "bar-fill" + (pct>100?" over":"");
+  document.getElementById("e-bal-demand-label").textContent = fmt(externalDemand)+" nhu cầu (nhóm dùng ngoài)";
+  document.getElementById("e-bal-capacity-label").textContent = fmt(supplyCapacity)+" công suất nhà cung cấp";
+
+  // ---- reconciliation check between the two tabs ----
+  const reconcileEl = document.getElementById("e-reconcile");
+  const gap = externalDemand - supplyServing;
+  if(Math.abs(gap) <= Math.max(50, supplyServing*0.03)){
+    reconcileEl.className = "reconcile ok";
+    reconcileEl.innerHTML = `✓ Khớp với tab "Cơ sở cung cấp": nhu cầu nhóm dùng ngoài (<b>${fmt(externalDemand)}</b>) gần bằng số đang được cung cấp thực tế (<b>${fmt(supplyServing)}</b>).`;
+  } else {
+    reconcileEl.className = "reconcile mismatch";
+    reconcileEl.innerHTML = `⚠ Lệch số với tab "Cơ sở cung cấp": nhu cầu nhóm dùng ngoài là <b>${fmt(externalDemand)}</b> nhưng nhà cung cấp báo đang phục vụ <b>${fmt(supplyServing)}</b> (chênh ${fmtSigned(externalDemand-supplyServing)}). Cần đối soát lại dữ liệu giữa hai phía.`;
+  }
+}
+
+function render(){
+  document.getElementById("scope-text").textContent =
+    state.quan + (state.phuong!=="all" ? " · P. "+state.phuong : " · Toàn bộ phường/xã");
+  renderSupplierTab();
+  renderSchoolTab();
+  document.getElementById("scope-count").textContent =
+    state.tab==="supplier" ? fmt(filteredSuppliers().length) : fmt(filteredSchools().length);
+  document.getElementById("tab-count-supplier").textContent = "("+filteredSuppliers().length+")";
+  document.getElementById("tab-count-school").textContent = "("+filteredSchools().length+")";
+}
+
+document.getElementById("s-prev").addEventListener("click",()=>{ if(state.sPage>1){state.sPage--; render();} });
+document.getElementById("s-next").addEventListener("click",()=>{ state.sPage++; render(); });
+document.getElementById("e-prev").addEventListener("click",()=>{ if(state.ePage>1){state.ePage--; render();} });
+document.getElementById("e-next").addEventListener("click",()=>{ state.ePage++; render(); });
+
+render();
+</script>
+</body>
+</html>
