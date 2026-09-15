@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import {
   ArrowUpRight,
+  ArrowLeft,
   BarChart3,
   Building2,
   CalendarDays,
@@ -31,7 +32,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import * as XLSX from "xlsx";
 import {
   AdminShell,
@@ -734,13 +735,7 @@ const formatManagementAnswer = (value: unknown): string => {
 function managementStatusLabel(
   status: FacilityManagementRow["status"],
 ) {
-  return {
-    approved: "Đạt",
-    warning: "Cảnh báo",
-    stopped: "Chưa đạt",
-    pending: "Chờ duyệt",
-    "needs-more-info": "Cần bổ sung",
-  }[status];
+  return status === "approved" ? "Đạt" : "Cần bổ sung";
 }
 
 const mealData = {
@@ -3050,7 +3045,7 @@ export function AdminFacilitiesPage() {
               className="focus-ring h-11 rounded-xl border border-input bg-background px-3 text-sm font-semibold"
               data-testid="select-facilities-status"
             >
-              {["Tất cả trạng thái", "Đạt", "Cảnh báo", "Chưa đạt", "Chờ duyệt", "Cần bổ sung"].map((item) => (
+              {["Tất cả trạng thái", "Đạt", "Cần bổ sung"].map((item) => (
                 <option key={item}>{item}</option>
               ))}
             </select>
@@ -3063,19 +3058,33 @@ export function AdminFacilitiesPage() {
               <thead className="bg-secondary/70 text-[10px] font-extrabold uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="px-5 py-3">Cơ sở</th>
-                  <th className="px-4 py-3">Địa chỉ</th>
+                  {activeTab === "all" ? (
+                    <>
+                      <th className="px-4 py-3">Loại cơ sở</th>
+                      <th className="px-4 py-3">Địa chỉ</th>
+                      <th className="px-4 py-3">Liên hệ</th>
+                    </>
+                  ) : (
+                    <th className="px-4 py-3">Địa chỉ</th>
+                  )}
                   {activeTab === "schools" ? (
                     <>
                       <th className="px-4 py-3">Cấp học</th>
                       <th className="px-4 py-3 text-right">Học sinh</th>
                       <th className="px-4 py-3 text-right">Nhu cầu</th>
                     </>
-                  ) : (
-                    <>
+                  ) : activeTab === "food" ? (
+                      <>
                       <th className="px-4 py-3">{activeTab === "food" ? "Nhóm thực phẩm" : "Công suất/ngày"}</th>
                       <th className="px-4 py-3 text-right">{activeTab === "food" ? "Công suất/ngày" : "Đang cung cấp"}</th>
-                      <th className="px-4 py-3 text-right">{activeTab === "food" ? "Cập nhật" : "Số trường"}</th>
+                      <th className="px-4 py-3 text-right">Cập nhật</th>
+                      </>
+                  ) : activeTab === "suppliers" ? (
+                    <>
+                      <th className="px-4 py-3">Công suất/ngày</th>
+                      <th className="px-4 py-3 text-right">Đang cung cấp</th>
                     </>
+                  ) : null
                   )}
                   <th className="px-4 py-3">Trạng thái</th>
                   <th className="px-5 py-3 text-right">Chi tiết</th>
@@ -3090,32 +3099,45 @@ export function AdminFacilitiesPage() {
                           {row.ward} · {row.contact}
                         </span>
                       </td>
-                      <td className="px-4 py-4 text-muted-foreground">{row.address}</td>
+                      {activeTab === "all" ? (
+                        <>
+                          <td className="px-4 py-4">{row.category ?? "—"}</td>
+                          <td className="px-4 py-4 text-muted-foreground">{row.address}</td>
+                          <td className="px-4 py-4 text-muted-foreground">{row.contact}</td>
+                        </>
+                      ) : (
+                        <td className="px-4 py-4 text-muted-foreground">{row.address}</td>
+                      )}
                       {activeTab === "schools" ? (
                         <>
                           <td className="px-4 py-4">{row.level}</td>
                           <td className="px-4 py-4 text-right font-bold">{formatNumber(row.students)}</td>
                           <td className="px-4 py-4 text-right font-bold">{formatNumber(row.demand)}</td>
                         </>
-                      ) : (
+                      ) : activeTab === "food" ? (
                         <>
-                          <td className="px-4 py-4">{activeTab === "food" ? row.category : formatNumber(row.capacity)}</td>
-                          <td className="px-4 py-4 text-right font-bold">{activeTab === "food" ? formatNumber(row.capacity) : formatNumber(row.serving)}</td>
-                          <td className="px-4 py-4 text-right">{activeTab === "food" ? row.updated : `${row.students ?? row.capacity ? row.students ?? "—" : "—"}`}</td>
+                          <td className="px-4 py-4">{row.category}</td>
+                          <td className="px-4 py-4 text-right font-bold">{formatNumber(row.capacity)}</td>
+                          <td className="px-4 py-4 text-right">{row.updated}</td>
                         </>
-                      )}
+                      ) : activeTab === "suppliers" ? (
+                        <>
+                          <td className="px-4 py-4">{formatNumber(row.capacity)}</td>
+                          <td className="px-4 py-4 text-right font-bold">{formatNumber(row.serving)}</td>
+                        </>
+                      ) : null}
                       <td className="px-4 py-4">
                         <StatusPill status={managementStatusLabel(row.status)} />
                       </td>
                       <td className="px-5 py-4 text-right">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedRow(row)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-primary/30 px-2.5 py-1.5 text-[10px] font-extrabold text-primary hover:bg-primary hover:text-primary-foreground"
+                        <Link
+                          href={`/admin/facilities/${row.id}`}
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
+                          aria-label={`Xem chi tiết ${row.name}`}
                           data-testid={`button-view-facility-detail-${row.id}`}
                         >
-                          Xem chi tiết <ChevronRight size={13} />
-                        </button>
+                          <Eye size={16} />
+                        </Link>
                       </td>
                     </tr>
                   ))}

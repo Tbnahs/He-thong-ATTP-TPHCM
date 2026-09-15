@@ -20,6 +20,7 @@ import {
 } from "@/pages/inspection-pages";
 import {
   AdminFacilitiesPage,
+  AdminFacilityDetailPage,
   AdminMealManagementPage,
   AdminMonitoringDashboard,
 } from "@/pages/admin-module-pages";
@@ -57,14 +58,9 @@ function Router() {
             <AdminMonitoringDashboard />
           </AdminGuard>
         </Route>
-        <Route path="/admin/applications">
+        <Route path="/admin/facilities/:facilityId">
           <AdminGuard>
-            <AdminDashboard />
-          </AdminGuard>
-        </Route>
-        <Route path="/admin/applications/pending">
-          <AdminGuard>
-            <AdminDashboard />
+            <AdminFacilityDetailPage />
           </AdminGuard>
         </Route>
         <Route path="/admin/facilities">
