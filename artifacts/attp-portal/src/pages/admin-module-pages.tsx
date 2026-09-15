@@ -3731,6 +3731,32 @@ export function AdminFacilityDetailPage() {
   const currentStatus = application?.status === "rejected"
     ? "stopped"
     : application?.status ?? detailStatus;
+  const isDetailVisible = (item: (typeof detailCriteria)[number]) => {
+    if (!item.dependsOn) return true;
+    const dependency = registrationFields[item.dependsOn.key];
+    const current = Array.isArray(dependency)
+      ? String(dependency[0] ?? "")
+      : typeof dependency === "string"
+        ? dependency
+        : "";
+    if (
+      item.dependsOn.equals !== undefined &&
+      current !== item.dependsOn.equals
+    ) {
+      return false;
+    }
+    if (
+      item.dependsOn.notEquals !== undefined &&
+      current === item.dependsOn.notEquals
+    ) {
+      return false;
+    }
+    return true;
+  };
+  const visibleDetailCriteria = detailCriteria.filter(isDetailVisible);
+  const visibleDetailGroups = detailGroups.filter((group) =>
+    visibleDetailCriteria.some((item) => item.groupId === group.id),
+  );
 
   const approve = () => {
     if (application) {
@@ -3812,7 +3838,145 @@ export function AdminFacilityDetailPage() {
           </div>
         </section>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_.8fr]">
+        <section className="mt-6 space-y-6">
+          <div className="rounded-2xl border border-primary/15 bg-secondary/40 p-5 shadow-sm sm:p-6">
+            <div className="flex items-start gap-3">
+              <Mail className="mt-0.5 shrink-0 text-primary" size={19} />
+              <div className="w-full">
+                <p className="text-sm font-bold">Tài khoản đăng nhập</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  Thông tin này dùng để đăng nhập vào khu vực hồ sơ cơ sở.
+                </p>
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <div>
+                    <p className="mb-2 text-sm font-semibold">Email *</p>
+                    <div className="flex min-h-11 items-center rounded-xl border border-input bg-background px-3 text-sm">
+                      {registrant.email}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="mb-2 text-sm font-semibold">Mật khẩu *</p>
+                    <div className="flex min-h-11 items-center rounded-xl border border-input bg-background px-3 text-sm text-muted-foreground">
+                      •••••••• · Đã thiết lập
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+            <p className="block text-sm font-bold">
+              Loại cơ sở đăng ký <span className="text-destructive">*</span>
+            </p>
+            <div className="mt-2 flex min-h-12 items-center rounded-xl border border-input bg-background px-4 text-sm font-semibold">
+              {registrationType
+                ? getRegistrationCategory(registrationType)
+                : "Chưa cập nhật"}
+            </div>
+          </div>
+          {visibleDetailGroups.map((group) => {
+            const groupCriteria = visibleDetailCriteria.filter(
+              (item) => item.groupId === group.id,
+            );
+            return (
+              <section
+                key={group.id}
+                className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6"
+              >
+                <div className="flex items-center gap-3 border-b border-border pb-3">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary text-primary">
+                    {group.name.includes("Minh chứng") ? (
+                      <ImagePlus size={18} />
+                    ) : group.name.includes("pháp lý") ? (
+                      <FileText size={18} />
+                    ) : (
+                      <UserRound size={18} />
+                    )}
+                  </span>
+                  <h2 className="text-lg font-extrabold">{group.name}</h2>
+                </div>
+                <div className="mt-5 space-y-5">
+                  {groupCriteria.map((item) => {
+                    const value = registrationFields[item.key];
+                    if (item.answerType === "repeatable") {
+                      const repeatableRows = Array.isArray(value) ? value : [];
+                      return (
+                        <div key={item.key}>
+                          <p className="text-sm font-bold">
+                            {item.label}
+                            {item.required ? " *" : ""}
+                          </p>
+                          <div className="mt-3 space-y-3">
+                            {repeatableRows.length ? (
+                              repeatableRows.map((repeatableRow, rowIndex) => (
+                                <div
+                                  key={`${item.key}-${rowIndex}`}
+                                  className="rounded-xl border border-border bg-secondary/25 p-4"
+                                >
+                                  <p className="text-xs font-extrabold uppercase tracking-wider text-primary">
+                                    {item.label} {rowIndex + 1}
+                                  </p>
+                                  <dl className="mt-3 grid gap-x-6 gap-y-4 sm:grid-cols-2">
+                                    {(item.repeatableFields ?? []).map(
+                                      (field) => (
+                                        <div key={field.key}>
+                                          <dt className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                            {field.label}
+                                          </dt>
+                                          <dd className="mt-1 break-words text-sm font-bold">
+                                            {formatManagementAnswer(
+                                              typeof repeatableRow === "object" &&
+                                                repeatableRow !== null
+                                                ? (
+                                                    repeatableRow as Record<
+                                                      string,
+                                                      unknown
+                                                    >
+                                                  )[field.key]
+                                                : undefined,
+                                            )}
+                                          </dd>
+                                        </div>
+                                      ),
+                                    )}
+                                  </dl>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+                                Chưa cập nhật
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }
+                    const displayValue =
+                      item.answerType === "file"
+                        ? registrationFiles
+                            .filter((file) => file.fieldKey === item.key)
+                            .map((file) => file.name)
+                            .join(", ") || "Chưa cập nhật"
+                        : formatManagementAnswer(value);
+                    return (
+                      <div key={item.key}>
+                        <p className="text-sm font-semibold">
+                          {item.label}
+                          {item.required ? " *" : ""}
+                        </p>
+                        <div className="mt-2 min-h-11 rounded-xl border border-input bg-background px-3 py-3 text-sm font-semibold">
+                          {displayValue || "Chưa cập nhật"}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
+        </section>
+
+        {false && <div className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_.8fr]">
           <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
             <p className="mono-label text-primary">HỒ SƠ CƠ SỞ</p>
             <h2 className="mt-1 text-xl font-extrabold">Thông tin cơ bản</h2>
@@ -3890,7 +4054,7 @@ export function AdminFacilityDetailPage() {
               </div>
             ))}
           </dl>
-        </section>
+        </section>}
 
         {registrationType && (
           <section className="mt-6 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
