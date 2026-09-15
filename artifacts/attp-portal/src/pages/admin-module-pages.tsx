@@ -294,52 +294,62 @@ function categoryShortName(category: FacilityCategory) {
 }
 
 export function AdminMonitoringDashboard() {
-  const [activeTab, setActiveTab] = useState<"suppliers" | "schools">("suppliers");
-  const [schoolLevel, setSchoolLevel] = useState("Tất cả cấp học");
+  type MonitoringStatus = "Đạt" | "Cảnh báo" | "Chưa đạt";
+  type SchoolLevel = "Mầm non" | "Cấp 1" | "Cấp 2" | "Cấp 3";
+  type SupplierRecord = {
+    name: string;
+    area: string;
+    status: MonitoringStatus;
+    capacity: number;
+    demand: number;
+    updated: string;
+  };
+  type SchoolRecord = {
+    name: string;
+    level: SchoolLevel;
+    area: string;
+    status: MonitoringStatus;
+    demand: number;
+    supply: number;
+    supplier: string;
+    updated: string;
+  };
+
+  const [activeTab, setActiveTab] = useState<"suppliers" | "schools">(
+    "suppliers",
+  );
+  const [schoolLevel, setSchoolLevel] = useState<"Tất cả cấp học" | SchoolLevel>(
+    "Tất cả cấp học",
+  );
+  const suppliers: SupplierRecord[] = [
+    { name: "Công ty Suất ăn Minh Tâm", area: "Tân Bình", status: "Đạt", capacity: 1200, demand: 980, updated: "08/09/2026" },
+    { name: "Bếp ăn tập thể An Phú", area: "Quận 7", status: "Chưa đạt", capacity: 650, demand: 420, updated: "08/09/2026" },
+    { name: "Công ty TNHH Bếp Việt", area: "Bình Thạnh", status: "Đạt", capacity: 480, demand: 360, updated: "07/09/2026" },
+    { name: "Hợp tác xã Suất ăn Xanh", area: "Thủ Đức", status: "Đạt", capacity: 320, demand: 280, updated: "06/09/2026" },
+    { name: "Cơ sở Bếp sạch Nam Sài Gòn", area: "Quận 4", status: "Cảnh báo", capacity: 270, demand: 210, updated: "05/09/2026" },
+    { name: "Công ty Suất ăn Hướng Dương", area: "Gò Vấp", status: "Đạt", capacity: 180, demand: 120, updated: "04/09/2026" },
+  ];
+  const schools: SchoolRecord[] = [
+    { name: "Trường Mầm non Hoa Sen", level: "Mầm non", area: "Phường Sài Gòn", status: "Cảnh báo", demand: 180, supply: 190, supplier: "Minh Tâm", updated: "08/09/2026" },
+    { name: "Trường Mầm non Sao Mai", level: "Mầm non", area: "Tân Bình", status: "Đạt", demand: 220, supply: 220, supplier: "Bếp Việt", updated: "08/09/2026" },
+    { name: "Trường Mầm non Mặt Trời", level: "Mầm non", area: "Quận 7", status: "Đạt", demand: 180, supply: 190, supplier: "Minh Tâm", updated: "07/09/2026" },
+    { name: "Trường Mầm non Tuổi Thơ", level: "Mầm non", area: "Gò Vấp", status: "Đạt", demand: 160, supply: 170, supplier: "Hướng Dương", updated: "07/09/2026" },
+    { name: "Trường Mầm non Bé Ngoan", level: "Mầm non", area: "Thủ Đức", status: "Chưa đạt", demand: 180, supply: 160, supplier: "An Phú", updated: "06/09/2026" },
+    { name: "Trường Tiểu học Lê Lợi", level: "Cấp 1", area: "Phường Bến Nghé", status: "Đạt", demand: 320, supply: 340, supplier: "Minh Tâm", updated: "08/09/2026" },
+    { name: "Trường Tiểu học Nguyễn Huệ", level: "Cấp 1", area: "Quận 1", status: "Cảnh báo", demand: 280, supply: 300, supplier: "Bếp Việt", updated: "08/09/2026" },
+    { name: "Trường Tiểu học Trần Hưng Đạo", level: "Cấp 1", area: "Quận 5", status: "Đạt", demand: 300, supply: 310, supplier: "Minh Tâm", updated: "07/09/2026" },
+    { name: "Trường Tiểu học Bàu Sen", level: "Cấp 1", area: "Quận 6", status: "Đạt", demand: 260, supply: 280, supplier: "Xanh", updated: "07/09/2026" },
+    { name: "Trường Tiểu học Bình Quới", level: "Cấp 1", area: "Bình Thạnh", status: "Đạt", demand: 260, supply: 280, supplier: "Hướng Dương", updated: "06/09/2026" },
+    { name: "Trường THCS Minh Khai", level: "Cấp 2", area: "Quận 3", status: "Cảnh báo", demand: 240, supply: 250, supplier: "Minh Tâm", updated: "08/09/2026" },
+    { name: "Trường THCS Võ Trường Toản", level: "Cấp 2", area: "Quận 1", status: "Đạt", demand: 220, supply: 220, supplier: "Bếp Việt", updated: "07/09/2026" },
+    { name: "Trường THCS Nguyễn Du", level: "Cấp 2", area: "Quận 10", status: "Đạt", demand: 180, supply: 190, supplier: "Xanh", updated: "06/09/2026" },
+    { name: "Trường THPT Lê Quý Đôn", level: "Cấp 3", area: "Quận 3", status: "Đạt", demand: 200, supply: 210, supplier: "Minh Tâm", updated: "08/09/2026" },
+  ];
   const alertRows = [
-    [
-      "MN Hoa Sen",
-      "Nhập nguyên liệu thiếu hóa đơn/chứng từ",
-      "08/09/2026",
-      "Khẩn cấp",
-      "urgent",
-    ],
-    [
-      "THCS Minh Khai",
-      "Số lượng suất ăn không khớp với dữ liệu thực tế",
-      "08/09/2026",
-      "Cao",
-      "high",
-    ],
-    ["MN Hoa Sen", "Chưa lưu mẫu món ăn", "08/09/2026", "Khẩn cấp", "urgent"],
-    [
-      "TH Lê Lợi",
-      "Thiếu hình ảnh/minh chứng khi lưu mẫu",
-      "08/09/2026",
-      "Cao",
-      "high",
-    ],
-    [
-      "Bếp ăn An Phú",
-      "Thiếu hình ảnh/minh chứng khi hủy mẫu",
-      "08/09/2026",
-      "Cao",
-      "high",
-    ],
-    [
-      "MN Sao Mai",
-      "Nghi ngờ ngộ độc thực phẩm (có phản ánh phụ huynh gửi tới trường)",
-      "08/09/2026",
-      "Khẩn cấp",
-      "urgent",
-    ],
-    [
-      "TH Nguyễn Huệ",
-      "Chưa kiểm tra vệ sinh khu vực bếp",
-      "08/09/2026",
-      "Cao",
-      "high",
-    ],
+    ["MN Hoa Sen", "Nhập nguyên liệu thiếu hóa đơn/chứng từ", "08/09/2026", "Khẩn cấp", "urgent"],
+    ["THCS Minh Khai", "Số lượng suất ăn không khớp với dữ liệu thực tế", "08/09/2026", "Cao", "high"],
+    ["MN Sao Mai", "Chưa lưu mẫu món ăn", "08/09/2026", "Khẩn cấp", "urgent"],
+    ["TH Lê Lợi", "Thiếu hình ảnh/minh chứng khi lưu mẫu", "08/09/2026", "Cao", "high"],
   ];
   const mapPins = [
     { left: "23%", top: "45%" },
@@ -350,17 +360,28 @@ export function AdminMonitoringDashboard() {
     { left: "43%", top: "72%" },
     { left: "79%", top: "31%" },
   ];
-  const linePoints = [
-    [0, 74],
-    [16, 55],
-    [32, 68],
-    [48, 42],
-    [64, 47],
-    [80, 24],
-    [100, 52],
-  ]
-    .map(([x, y]) => `${x},${y}`)
-    .join(" ");
+  const filteredSchools = schoolLevel === "Tất cả cấp học"
+    ? schools
+    : schools.filter((school) => school.level === schoolLevel);
+  const activeSchools = activeTab === "schools" ? filteredSchools : schools;
+  const supplierCapacity = suppliers.reduce((sum, item) => sum + item.capacity, 0);
+  const supplierDemand = suppliers.reduce((sum, item) => sum + item.demand, 0);
+  const schoolDemand = activeSchools.reduce((sum, item) => sum + item.demand, 0);
+  const schoolSupply = activeSchools.reduce((sum, school) => sum + school.supply, 0);
+  const activeStatusCounts = (records: Array<{ status: MonitoringStatus }>) =>
+    records.reduce(
+      (counts, record) => ({ ...counts, [record.status]: counts[record.status] + 1 }),
+      { Đạt: 0, "Cảnh báo": 0, "Chưa đạt": 0 },
+    );
+  const statusCounts = activeTab === "suppliers"
+    ? activeStatusCounts(suppliers)
+    : activeStatusCounts(activeSchools);
+  const balance = activeTab === "suppliers"
+    ? supplierCapacity - supplierDemand
+    : schoolSupply - schoolDemand;
+  const balancePercent = activeTab === "suppliers"
+    ? Math.round((supplierDemand / supplierCapacity) * 100)
+    : Math.min(100, Math.round((schoolSupply / Math.max(1, schoolDemand)) * 100));
   const scoreBars = [44, 52, 47, 70, 64, 82, 75];
   const riskSlices = [
     { label: "Lưu mẫu", value: "32%", color: "#f97316" },
@@ -368,38 +389,33 @@ export function AdminMonitoringDashboard() {
     { label: "Vệ sinh", value: "14%", color: "#ec4899" },
     { label: "Chứng nhận", value: "18%", color: "#6366f1" },
   ];
-  const schoolLevelStats: Record<string, { schools: string; demand: string; updated: string; alerts: string }> = {
-    "Tất cả cấp học": { schools: "14", demand: "3.180", updated: "11/14", alerts: "6" },
-    "Mầm non": { schools: "05", demand: "920", updated: "04/05", alerts: "2" },
-    "Cấp 1": { schools: "05", demand: "1.420", updated: "04/05", alerts: "3" },
-    "Cấp 2": { schools: "03", demand: "640", updated: "02/03", alerts: "1" },
-    "Cấp 3": { schools: "01", demand: "200", updated: "01/01", alerts: "0" },
-  };
   const cards = activeTab === "suppliers"
     ? [
-        ["Tổng cơ sở cung cấp", "06", "04 đạt · 01 cảnh báo · 01 chưa đạt", "text-primary", Building2],
-        ["Tổng công suất cung cấp", "1.850", "suất ăn/ngày", "text-primary", Utensils],
-        ["Tổng nhu cầu đã đăng ký", "1.620", "suất ăn/ngày", "text-sky-600", ClipboardCheck],
-        ["Cân bằng cung - nhu cầu", "+230", "Dư công suất", "text-emerald-600", CheckCircle2],
+        ["Tổng cơ sở cung cấp", suppliers.length.toString().padStart(2, "0"), "cơ sở trong hệ thống", "text-primary", Building2],
+        ["Tổng công suất cung cấp", supplierCapacity.toLocaleString("vi-VN"), "suất ăn/ngày", "text-primary", Utensils],
+        ["Tổng nhu cầu thực tế", supplierDemand.toLocaleString("vi-VN"), "suất ăn/ngày", "text-sky-600", ClipboardCheck],
+        ["Cân bằng cung - nhu cầu", `+${balance.toLocaleString("vi-VN")}`, "suất ăn/ngày còn dư", "text-emerald-600", CheckCircle2],
       ]
     : [
-        ["Tổng cơ sở giáo dục", schoolLevelStats[schoolLevel].schools, "Theo cấp học", "text-primary", Building2],
-        ["Tổng nhu cầu suất ăn", schoolLevelStats[schoolLevel].demand, "suất ăn/ngày", "text-primary", Utensils],
-        ["Đã cập nhật nhu cầu", schoolLevelStats[schoolLevel].updated, "cơ sở giáo dục", "text-sky-600", ClipboardCheck],
-        ["Cảnh báo đang mở", schoolLevelStats[schoolLevel].alerts, "Cần xử lý ngay", "text-red-600", TriangleAlert],
+        ["Tổng cơ sở giáo dục", activeSchools.length.toString().padStart(2, "0"), schoolLevel === "Tất cả cấp học" ? "toàn thành phố" : schoolLevel, "text-primary", Building2],
+        ["Tổng nhu cầu suất ăn", schoolDemand.toLocaleString("vi-VN"), "suất ăn/ngày", "text-primary", Utensils],
+        ["Công suất đã phân bổ", schoolSupply.toLocaleString("vi-VN"), "suất ăn/ngày", "text-sky-600", ClipboardCheck],
+        ["Cân bằng cung - nhu cầu", balance >= 0 ? `+${balance.toLocaleString("vi-VN")}` : balance.toLocaleString("vi-VN"), balance >= 0 ? "còn dư công suất" : "thiếu công suất", balance >= 0 ? "text-emerald-600" : "text-red-600", balance >= 0 ? CheckCircle2 : TriangleAlert],
       ];
 
   return (
     <AdminShell>
       <div className="mx-auto max-w-[1600px] px-4 py-5 sm:px-6 lg:px-8">
-        <section className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
+        <section className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="mono-label text-primary">DASHBOARD GIÁM SÁT</p>
-              <h1 className="mt-1 text-xl font-extrabold">Theo dõi cung - cầu suất ăn</h1>
-              <p className="mt-1 text-sm text-muted-foreground">Tách riêng dữ liệu cơ sở cung cấp và cơ sở giáo dục để theo dõi đúng nhu cầu quản lý.</p>
+              <h1 className="mt-1 text-2xl font-extrabold tracking-tight">Theo dõi cung - cầu suất ăn</h1>
+              <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+                Tách riêng dữ liệu cơ sở cung cấp và cơ sở giáo dục để cơ quan quản lý chủ động nhận diện nguy cơ thiếu hụt.
+              </p>
             </div>
-            <div className="flex rounded-xl bg-secondary p-1" role="tablist" aria-label="Phạm vi dashboard">
+            <div className="grid grid-cols-2 rounded-xl bg-secondary p-1" role="tablist" aria-label="Phạm vi dashboard">
               {[
                 ["suppliers", "Cơ sở cung cấp suất ăn"],
                 ["schools", "Cơ sở giáo dục"],
@@ -410,7 +426,7 @@ export function AdminMonitoringDashboard() {
                   role="tab"
                   aria-selected={activeTab === value}
                   onClick={() => setActiveTab(value as "suppliers" | "schools")}
-                  className={`rounded-lg px-3 py-2 text-xs font-bold transition-colors sm:px-4 ${activeTab === value ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                  className={`rounded-lg px-3 py-2.5 text-left text-xs font-bold transition-colors sm:px-4 ${activeTab === value ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
                   data-testid={`tab-dashboard-${value}`}
                 >
                   {label}
@@ -421,9 +437,18 @@ export function AdminMonitoringDashboard() {
           {activeTab === "schools" && (
             <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-border pt-4">
               <label htmlFor="dashboard-school-level" className="text-xs font-bold text-muted-foreground">Lọc theo cấp học</label>
-              <select id="dashboard-school-level" value={schoolLevel} onChange={(event) => setSchoolLevel(event.target.value)} className="rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold" data-testid="select-dashboard-school-level">
-                {Object.keys(schoolLevelStats).map((level) => <option key={level}>{level}</option>)}
+              <select
+                id="dashboard-school-level"
+                value={schoolLevel}
+                onChange={(event) => setSchoolLevel(event.target.value as "Tất cả cấp học" | SchoolLevel)}
+                className="rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold"
+                data-testid="select-dashboard-school-level"
+              >
+                {["Tất cả cấp học", "Mầm non", "Cấp 1", "Cấp 2", "Cấp 3"].map((level) => <option key={level}>{level}</option>)}
               </select>
+              <span className="text-xs text-muted-foreground">
+                {activeSchools.length} cơ sở · {schoolDemand.toLocaleString("vi-VN")} suất ăn/ngày cần phục vụ
+              </span>
             </div>
           )}
         </section>
@@ -456,6 +481,120 @@ export function AdminMonitoringDashboard() {
             </div>
           ))}
         </div>
+
+        <section className="mt-4 rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div>
+              <p className="mono-label text-primary">TÌNH TRẠNG HỒ SƠ</p>
+              <h2 className="mt-1 text-lg font-extrabold">
+                {activeTab === "suppliers" ? "Phân loại cơ sở cung cấp" : "Phân loại cơ sở giáo dục"}
+              </h2>
+              <p className="mt-1 text-xs text-muted-foreground">Số liệu cập nhật đến ngày 08/09/2026</p>
+            </div>
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              {([
+                ["Đạt", "bg-emerald-50 text-emerald-700", "border-emerald-100"],
+                ["Cảnh báo", "bg-amber-50 text-amber-700", "border-amber-100"],
+                ["Chưa đạt", "bg-red-50 text-red-700", "border-red-100"],
+              ] as const).map(([status, color, border]) => (
+                <div key={status} className={`min-w-[92px] rounded-xl border px-3 py-2.5 ${color} ${border}`}>
+                  <p className="text-[10px] font-bold uppercase tracking-wide">{status}</p>
+                  <p className="mt-1 text-xl font-black">{statusCounts[status]}</p>
+                  <p className="text-[10px] font-medium opacity-80">
+                    {activeTab === "suppliers" ? "cơ sở cung cấp" : "cơ sở giáo dục"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="mt-5">
+            <div className="mb-2 flex justify-between text-[11px] font-semibold text-muted-foreground">
+              <span>Tỷ lệ đạt yêu cầu</span>
+              <span>{Math.round((statusCounts["Đạt"] / Math.max(1, activeTab === "suppliers" ? suppliers.length : activeSchools.length)) * 100)}%</span>
+            </div>
+            <div className="flex h-2.5 overflow-hidden rounded-full bg-slate-100">
+              <div className="bg-emerald-500" style={{ width: `${(statusCounts["Đạt"] / Math.max(1, activeTab === "suppliers" ? suppliers.length : activeSchools.length)) * 100}%` }} />
+              <div className="bg-amber-400" style={{ width: `${(statusCounts["Cảnh báo"] / Math.max(1, activeTab === "suppliers" ? suppliers.length : activeSchools.length)) * 100}%` }} />
+              <div className="bg-red-500" style={{ width: `${(statusCounts["Chưa đạt"] / Math.max(1, activeTab === "suppliers" ? suppliers.length : activeSchools.length)) * 100}%` }} />
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-4 rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="mono-label text-primary">CÂN BẰNG CUNG - NHU CẦU</p>
+              <h2 className="mt-1 text-lg font-extrabold">Năng lực phục vụ suất ăn trong ngày</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {activeTab === "suppliers" ? "So sánh tổng công suất của các cơ sở cung cấp với nhu cầu đã đăng ký." : "So sánh công suất đã phân bổ với nhu cầu theo cấp học đang chọn."}
+              </p>
+            </div>
+            <div className={`rounded-xl px-3 py-2 text-right ${balance >= 0 ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
+              <p className="text-[10px] font-bold uppercase tracking-wide">Kết quả</p>
+              <p className="text-lg font-black">{balance >= 0 ? "Đủ nguồn cung" : "Có nguy cơ thiếu"}</p>
+            </div>
+          </div>
+          <div className="mt-5 grid gap-5 md:grid-cols-[1fr_250px] md:items-center">
+            <div>
+              <div className="mb-2 flex justify-between text-xs font-semibold text-muted-foreground">
+                <span>Công suất sử dụng dự kiến</span>
+                <span className="font-black text-foreground">{balancePercent}%</span>
+              </div>
+              <div className="relative h-5 overflow-hidden rounded-full bg-slate-100">
+                <div className={`h-full rounded-full ${balance >= 0 ? "bg-primary" : "bg-red-500"}`} style={{ width: `${Math.min(100, balancePercent)}%` }} />
+                <div className="absolute inset-y-0 left-1/2 border-l border-white/70" />
+                <div className="absolute inset-y-0 left-3/4 border-l border-white/70" />
+              </div>
+              <div className="mt-2 flex justify-between text-[10px] text-muted-foreground">
+                <span>0 suất</span><span>50%</span><span>75%</span><span>100% nhu cầu</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-center">
+              <div className="rounded-xl bg-secondary/60 p-3">
+                <p className="text-[10px] font-bold text-muted-foreground">CUNG</p>
+                <p className="mt-1 text-xl font-black text-primary">{(activeTab === "suppliers" ? supplierCapacity : schoolSupply).toLocaleString("vi-VN")}</p>
+              </div>
+              <div className="rounded-xl bg-secondary/60 p-3">
+                <p className="text-[10px] font-bold text-muted-foreground">NHU CẦU</p>
+                <p className="mt-1 text-xl font-black text-sky-700">{(activeTab === "suppliers" ? supplierDemand : schoolDemand).toLocaleString("vi-VN")}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-4 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+          <div className="flex flex-col gap-2 border-b border-border px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+            <div>
+              <p className="mono-label text-primary">DANH SÁCH THEO DÕI</p>
+              <h2 className="mt-1 text-lg font-extrabold">
+                {activeTab === "suppliers" ? "Cơ sở cung cấp suất ăn" : `Cơ sở giáo dục${schoolLevel === "Tất cả cấp học" ? "" : ` · ${schoolLevel}`}`}
+              </h2>
+            </div>
+            <span className="text-xs font-semibold text-muted-foreground">{activeTab === "suppliers" ? suppliers.length : activeSchools.length} kết quả</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] text-left text-xs">
+              <thead className="bg-secondary/70 text-[10px] font-extrabold uppercase tracking-wide text-muted-foreground">
+                {activeTab === "suppliers" ? (
+                  <tr><th className="px-5 py-3">Cơ sở cung cấp</th><th className="px-4 py-3">Khu vực</th><th className="px-4 py-3">Trạng thái</th><th className="px-4 py-3 text-right">Công suất</th><th className="px-4 py-3 text-right">Nhu cầu</th><th className="px-5 py-3 text-right">Cập nhật</th></tr>
+                ) : (
+                  <tr><th className="px-5 py-3">Cơ sở giáo dục</th><th className="px-4 py-3">Cấp học</th><th className="px-4 py-3">Khu vực</th><th className="px-4 py-3">Trạng thái</th><th className="px-4 py-3 text-right">Nhu cầu</th><th className="px-5 py-3 text-right">Cập nhật</th></tr>
+                )}
+              </thead>
+              <tbody className="divide-y divide-border">
+                {activeTab === "suppliers" ? suppliers.map((supplier) => (
+                  <tr key={supplier.name} className="transition-colors hover:bg-secondary/30">
+                    <td className="px-5 py-3.5 font-bold">{supplier.name}</td><td className="px-4 py-3.5 text-muted-foreground">{supplier.area}</td><td className="px-4 py-3.5"><StatusPill status={supplier.status === "Đạt" ? "approved" : supplier.status === "Cảnh báo" ? "warning" : "stopped"} /></td><td className="px-4 py-3.5 text-right font-bold">{supplier.capacity.toLocaleString("vi-VN")}</td><td className="px-4 py-3.5 text-right font-bold">{supplier.demand.toLocaleString("vi-VN")}</td><td className="px-5 py-3.5 text-right text-muted-foreground">{supplier.updated}</td>
+                  </tr>
+                )) : activeSchools.map((school) => (
+                  <tr key={school.name} className="transition-colors hover:bg-secondary/30">
+                    <td className="px-5 py-3.5 font-bold">{school.name}<span className="mt-1 block text-[10px] font-medium text-muted-foreground">Đơn vị cung cấp: {school.supplier}</span></td><td className="px-4 py-3.5"><span className="rounded-full bg-sky-50 px-2.5 py-1 text-[10px] font-bold text-sky-700">{school.level}</span></td><td className="px-4 py-3.5 text-muted-foreground">{school.area}</td><td className="px-4 py-3.5"><StatusPill status={school.status === "Đạt" ? "approved" : school.status === "Cảnh báo" ? "warning" : "stopped"} /></td><td className="px-4 py-3.5 text-right font-bold">{school.demand.toLocaleString("vi-VN")}</td><td className="px-5 py-3.5 text-right text-muted-foreground">{school.updated}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
 
         <div className="mt-4 grid gap-4 lg:grid-cols-[.9fr_1.7fr]">
           <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
@@ -573,9 +712,7 @@ export function AdminMonitoringDashboard() {
 
         <div className="mt-4 grid gap-4 lg:grid-cols-3">
           <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-            <h2 className="text-xs font-extrabold">
-              Kiểm thực 3 bước theo tháng
-            </h2>
+            <h2 className="text-xs font-extrabold">Kiểm thực 3 bước theo tháng</h2>
             <div className="mt-4 flex h-40 items-end gap-2 border-b border-l border-border px-2 pb-1 pt-3">
               <svg
                 viewBox="0 0 100 100"
@@ -583,18 +720,18 @@ export function AdminMonitoringDashboard() {
                 className="h-full w-full overflow-visible"
               >
                 <polyline
-                  points={linePoints}
+                  points="0,74 16,55 32,68 48,42 64,47 80,24 100,52"
                   fill="rgba(249,115,22,.12)"
                   stroke="none"
                 />
                 <polyline
-                  points={linePoints}
+                  points="0,74 16,55 32,68 48,42 64,47 80,24 100,52"
                   fill="none"
                   stroke="#f97316"
                   strokeWidth="1.5"
                   vectorEffect="non-scaling-stroke"
                 />
-                {linePoints.split(" ").map((point) => {
+                {"0,74 16,55 32,68 48,42 64,47 80,24 100,52".split(" ").map((point) => {
                   const [cx, cy] = point.split(",");
                   return (
                     <circle
