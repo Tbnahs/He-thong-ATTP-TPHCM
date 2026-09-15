@@ -255,13 +255,13 @@ function PrimaryButton({
 }
 
 export function IncidentListPage() {
-  const [, navigate] = useLocation();
-  const [incidents] = useState<Incident[]>(readIncidents);
+  const [incidents, setIncidents] = useState<Incident[]>(readIncidents);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"Tất cả" | IncidentStatus>("Tất cả");
   const [facilityQuery, setFacilityQuery] = useState("Tất cả");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("vi");
@@ -294,7 +294,7 @@ export function IncidentListPage() {
           <h1 className="text-xl font-normal leading-7 tracking-[.014em] text-[#1e293b]">Quản lý và xử lý sự cố An toàn Thực phẩm</h1>
           <p className="mt-1 text-base leading-6 text-[#64748b]">Giám sát và phản ứng nhanh với các báo cáo nghi ngờ ngộ độc thực phẩm từ các trường học</p>
         </div>
-        <PrimaryButton onClick={() => navigate("/admin/inspections/incidents/new")} testId="button-create-incident" variant="danger">
+        <PrimaryButton onClick={() => setIsCreateOpen(true)} testId="button-create-incident" variant="danger">
           <Plus size={17} /> Cảnh báo ATTP
         </PrimaryButton>
       </div>
@@ -392,6 +392,15 @@ export function IncidentListPage() {
           </div>
         </div>
       </section>
+      {isCreateOpen && (
+        <IncidentCreateModal
+          onClose={() => setIsCreateOpen(false)}
+          onCreated={(incident) => {
+            setIncidents((current) => [incident, ...current]);
+            setIsCreateOpen(false);
+          }}
+        />
+      )}
     </PageFrame>
   );
 }
@@ -401,6 +410,275 @@ const areaClass = "focus-ring mt-1.5 w-full rounded-xl border border-[#d4dfdb] b
 const designInputClass = "focus-ring mt-2 h-[50px] w-full rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-4 text-base text-[#334155] outline-none transition-colors placeholder:text-[#9ca3af] focus:border-[#2563eb]";
 const designAreaClass = "focus-ring mt-2 min-h-[98px] w-full resize-y rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3 text-base leading-6 text-[#334155] outline-none transition-colors placeholder:text-[#9ca3af] focus:border-[#2563eb]";
 const designLabelClass = "text-xs font-semibold uppercase tracking-[0.05em] text-[#64748b]";
+
+function IncidentCreateModal({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: (incident: Incident) => void;
+}) {
+  const [form, setForm] = useState({
+    title: "",
+    facilityType: "" as IncidentFacilityType | "",
+    facility: "",
+    occurredAt: "",
+    suspectedCases: "",
+    severity: "Cao" as IncidentSeverity,
+    reporter: "",
+    phone: "",
+    foods: "",
+    description: "",
+  });
+  const [submitted, setSubmitted] = useState(false);
+
+  const update = (key: string, value: string) =>
+    setForm((current) => ({ ...current, [key]: value }));
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    if (
+      !form.title ||
+      !form.facilityType ||
+      !form.facility ||
+      !form.occurredAt ||
+      !form.suspectedCases ||
+      !form.reporter ||
+      !form.description
+    ) {
+      setSubmitted(true);
+      return;
+    }
+
+    const current = readIncidents();
+    const sequence = String(current.length + 10).padStart(3, "0");
+    const now = new Date().toISOString();
+    const incident: Incident = {
+      id: `INC-2026-${sequence}`,
+      code: `INC-2026-${sequence}`,
+      title: form.title,
+      facilityType: form.facilityType,
+      facility: form.facility,
+      meals: ["Trưa"],
+      suspectedCases: Number(form.suspectedCases),
+      address: "Chưa cập nhật địa chỉ",
+      occurredAt: form.occurredAt,
+      reportedAt: now,
+      reporter: form.reporter,
+      phone: form.phone,
+      severity: form.severity,
+      status: "Đang xử lý",
+      description: form.description,
+      response: "Chưa có biện pháp xử lý được ghi nhận.",
+      foods: form.foods || "Chưa cập nhật",
+      attachments: [],
+      notifyFacility: true,
+      notifyDistrict: false,
+      timeline: [
+        {
+          time: new Intl.DateTimeFormat("vi-VN", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }).format(new Date()),
+          label: "Tiếp nhận cảnh báo",
+          detail: "Cảnh báo mới được tạo bởi cán bộ phụ trách.",
+          tone: "amber",
+        },
+      ],
+    };
+    persistIncidents([incident, ...current]);
+    onCreated(incident);
+  };
+
+  const facilities = form.facilityType
+    ? incidentFacilityOptions[form.facilityType]
+    : [];
+  const error = (value: string) =>
+    submitted && !value ? (
+      <span className="mt-1 block normal-case tracking-normal text-xs font-medium text-[#ef4444]">
+        Vui lòng nhập thông tin này.
+      </span>
+    ) : null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#0f172a]/55 p-3 sm:p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="create-incident-modal-title"
+      data-testid="dialog-create-incident"
+    >
+      <div className="my-2 w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl sm:my-6">
+        <div className="flex items-start justify-between gap-4 border-b border-[#e2e8f0] px-5 py-4 sm:px-7">
+          <div>
+            <p className="mono-label text-[#176b53]">Thanh tra, kiểm tra / Sự cố ATTP</p>
+            <h2
+              id="create-incident-modal-title"
+              className="mt-1 text-xl font-extrabold tracking-[-.02em] text-[#143b35] sm:text-2xl"
+            >
+              Tạo mới cảnh báo ATTP
+            </h2>
+            <p className="mt-1 text-sm text-[#64748b]">
+              Ghi nhận nhanh thông tin ban đầu để kích hoạt quy trình xử lý.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="focus-ring rounded-lg p-2 text-[#64748b] transition-colors hover:bg-[#f1f5f9] hover:text-[#1e293b]"
+            aria-label="Đóng popup"
+            data-testid="button-close-create-incident"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <form onSubmit={submit} className="max-h-[calc(100dvh-190px)] overflow-y-auto px-5 py-5 sm:px-7" data-testid="form-create-incident-modal">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <label className={`${designLabelClass} sm:col-span-2`}>
+              Tiêu đề sự cố <span className="text-[#ef4444]">*</span>
+              <input
+                value={form.title}
+                onChange={(event) => update("title", event.target.value)}
+                className={designInputClass}
+                placeholder="Ví dụ: Nghi ngờ ngộ độc sau bữa trưa"
+                data-testid="input-modal-incident-title"
+              />
+              {error(form.title)}
+            </label>
+            <label className={designLabelClass}>
+              Loại cơ sở <span className="text-[#ef4444]">*</span>
+              <select
+                value={form.facilityType}
+                onChange={(event) => {
+                  setForm((current) => ({
+                    ...current,
+                    facilityType: event.target.value as IncidentFacilityType,
+                    facility: "",
+                  }));
+                }}
+                className={designInputClass}
+                data-testid="select-modal-incident-facility-type"
+              >
+                <option value="">Chọn loại cơ sở</option>
+                {Object.keys(incidentFacilityOptions).map((type) => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
+              {error(form.facilityType)}
+            </label>
+            <label className={designLabelClass}>
+              Cơ sở liên quan <span className="text-[#ef4444]">*</span>
+              <select
+                value={form.facility}
+                onChange={(event) => update("facility", event.target.value)}
+                className={designInputClass}
+                disabled={!form.facilityType}
+                data-testid="select-modal-incident-facility"
+              >
+                <option value="">Chọn cơ sở</option>
+                {facilities.map((facility) => <option key={facility}>{facility}</option>)}
+              </select>
+              {error(form.facility)}
+            </label>
+            <label className={designLabelClass}>
+              Thời điểm xảy ra <span className="text-[#ef4444]">*</span>
+              <input
+                type="datetime-local"
+                value={form.occurredAt}
+                onChange={(event) => update("occurredAt", event.target.value)}
+                className={designInputClass}
+                data-testid="input-modal-incident-occurred-at"
+              />
+              {error(form.occurredAt)}
+            </label>
+            <label className={designLabelClass}>
+              Số ca nghi ngờ <span className="text-[#ef4444]">*</span>
+              <input
+                type="number"
+                min="1"
+                value={form.suspectedCases}
+                onChange={(event) => update("suspectedCases", event.target.value)}
+                className={designInputClass}
+                placeholder="0"
+                data-testid="input-modal-incident-suspected-cases"
+              />
+              {error(form.suspectedCases)}
+            </label>
+            <label className={designLabelClass}>
+              Mức độ ưu tiên
+              <select
+                value={form.severity}
+                onChange={(event) => update("severity", event.target.value)}
+                className={designInputClass}
+                data-testid="select-modal-incident-priority"
+              >
+                <option>Khẩn cấp</option>
+                <option>Cao</option>
+                <option>Trung bình</option>
+              </select>
+            </label>
+            <label className={designLabelClass}>
+              Người báo tin <span className="text-[#ef4444]">*</span>
+              <input
+                value={form.reporter}
+                onChange={(event) => update("reporter", event.target.value)}
+                className={designInputClass}
+                placeholder="Nguyễn Văn A"
+                data-testid="input-modal-incident-reporter"
+              />
+              {error(form.reporter)}
+            </label>
+            <label className={designLabelClass}>
+              Số điện thoại
+              <input
+                value={form.phone}
+                onChange={(event) => update("phone", event.target.value)}
+                className={designInputClass}
+                placeholder="0909 123 456"
+                data-testid="input-modal-incident-phone"
+              />
+            </label>
+            <label className={`${designLabelClass} sm:col-span-2`}>
+              Thực phẩm / món ăn cụ thể
+              <input
+                value={form.foods}
+                onChange={(event) => update("foods", event.target.value)}
+                className={designInputClass}
+                placeholder="Tên món ăn, nguyên liệu hoặc lô hàng..."
+                data-testid="input-modal-incident-foods"
+              />
+            </label>
+            <label className={`${designLabelClass} sm:col-span-2`}>
+              Mô tả chi tiết / ghi chú ban đầu <span className="text-[#ef4444]">*</span>
+              <textarea
+                value={form.description}
+                onChange={(event) => update("description", event.target.value)}
+                className={designAreaClass}
+                placeholder="Mô tả các biểu hiện, số người bị ảnh hưởng và biện pháp xử lý ban đầu..."
+                data-testid="textarea-modal-incident-description"
+              />
+              {error(form.description)}
+            </label>
+          </div>
+          <div className="mt-6 flex flex-col-reverse gap-3 border-t border-[#e2e8f0] pt-5 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="focus-ring inline-flex h-[50px] items-center justify-center rounded-xl border border-[#e2e8f0] px-8 text-base font-semibold text-[#64748b] transition-colors hover:border-[#94a3b8] hover:text-[#334155]"
+              data-testid="button-cancel-create-incident"
+            >
+              Hủy
+            </button>
+            <PrimaryButton type="submit" variant="danger" testId="button-submit-incident-modal">
+              <Siren size={16} /> Kích hoạt SOP & gửi thông báo
+            </PrimaryButton>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 export function IncidentCreatePage() {
   const [, navigate] = useLocation();
