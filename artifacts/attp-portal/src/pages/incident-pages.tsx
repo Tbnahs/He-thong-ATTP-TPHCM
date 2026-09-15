@@ -23,11 +23,32 @@ import { AdminShell } from "@/components/portal-ui";
 
 type IncidentStatus = "Đang xử lý" | "Đã đóng";
 type IncidentSeverity = "Khẩn cấp" | "Cao" | "Trung bình";
+type IncidentFacilityType =
+  | "Cơ sở giáo dục"
+  | "Đơn vị cung cấp thực phẩm"
+  | "Đơn vị cung cấp suất ăn";
+
+const incidentFacilityOptions: Record<IncidentFacilityType, string[]> = {
+  "Cơ sở giáo dục": [
+    "Trường Tiểu học Lê Lợi",
+    "Trường Tiểu học Thái Sơn",
+    "Trường Mầm non Hoa Sen",
+  ],
+  "Đơn vị cung cấp thực phẩm": [
+    "Công ty TNHH Nông sản An Phú",
+    "Công ty Thực phẩm sạch Bình Minh",
+  ],
+  "Đơn vị cung cấp suất ăn": [
+    "Bếp ăn tập thể An Phú",
+    "Công ty Suất ăn Minh Tâm",
+  ],
+};
 
 type Incident = {
   id: string;
   code: string;
   title: string;
+  facilityType?: IncidentFacilityType;
   facility: string;
   address: string;
   occurredAt: string;
@@ -350,6 +371,7 @@ export function IncidentCreatePage() {
   const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState({
     title: "",
+    facilityType: "" as IncidentFacilityType | "",
     facility: "",
     occurredAt: "",
     severity: "Cao" as IncidentSeverity,
@@ -366,7 +388,7 @@ export function IncidentCreatePage() {
   const handleFiles = (event: ChangeEvent<HTMLInputElement>) => setFiles(Array.from(event.target.files ?? []).map((file) => file.name));
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (!form.title || !form.facility || !form.occurredAt || !form.description || !form.reporter) {
+    if (!form.title || !form.facilityType || !form.facility || !form.occurredAt || !form.description || !form.reporter) {
       setSubmitted(true);
       return;
     }
@@ -377,6 +399,7 @@ export function IncidentCreatePage() {
       id: `INC-2026-${sequence}`,
       code: `INC-2026-${sequence}`,
       title: form.title,
+      facilityType: form.facilityType || undefined,
       facility: form.facility,
       address: "Chưa cập nhật địa chỉ",
       occurredAt: form.occurredAt,
@@ -407,7 +430,8 @@ export function IncidentCreatePage() {
             <div className="mb-5 flex items-start gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#e5f2eb] text-[#176b53]"><Siren size={18} /></div><div><h2 className="font-extrabold text-[#21453d]">Thông tin sự cố</h2><p className="mt-1 text-xs text-[#83908c]">Các trường có dấu <span className="text-[#a33b27]">*</span> là bắt buộc.</p></div></div>
             <div className="grid gap-5 md:grid-cols-2">
               <label className="md:col-span-2 text-sm font-bold text-[#31534b]">Tiêu đề sự cố <span className="text-[#a33b27]">*</span><input value={form.title} onChange={(e) => update("title", e.target.value)} className={fieldClass} placeholder="Ví dụ: Nghi ngờ ngộ độc sau bữa trưa" data-testid="input-incident-title" />{submitted && !form.title && <span className="mt-1 block text-xs font-medium text-[#a33b27]">Vui lòng nhập tiêu đề.</span>}</label>
-              <label className="text-sm font-bold text-[#31534b]">Cơ sở liên quan <span className="text-[#a33b27]">*</span><select value={form.facility} onChange={(e) => update("facility", e.target.value)} className={fieldClass} data-testid="select-incident-facility"><option value="">Chọn cơ sở</option><option>Trường Tiểu học Lê Lợi</option><option>Trường Tiểu học Thái Sơn</option><option>Trường Mầm non Hoa Sen</option><option>Bếp ăn tập thể An Phú</option><option>Công ty Suất ăn Minh Tâm</option></select>{submitted && !form.facility && <span className="mt-1 block text-xs font-medium text-[#a33b27]">Vui lòng chọn cơ sở.</span>}</label>
+               <label className="text-sm font-bold text-[#31534b]">Loại cơ sở <span className="text-[#a33b27]">*</span><select value={form.facilityType} onChange={(e) => setForm((current) => ({ ...current, facilityType: e.target.value as IncidentFacilityType | "", facility: "" }))} className={fieldClass} data-testid="select-incident-facility-type"><option value="">Chọn loại cơ sở</option>{Object.keys(incidentFacilityOptions).map((option) => <option key={option} value={option}>{option}</option>)}</select>{submitted && !form.facilityType && <span className="mt-1 block text-xs font-medium text-[#a33b27]">Vui lòng chọn loại cơ sở.</span>}</label>
+               <label className="text-sm font-bold text-[#31534b]">Tên cơ sở liên quan <span className="text-[#a33b27]">*</span><select value={form.facility} onChange={(e) => update("facility", e.target.value)} disabled={!form.facilityType} className={`${fieldClass} disabled:cursor-not-allowed disabled:bg-[#f1f5f3] disabled:text-[#8a9793]`} data-testid="select-incident-facility"><option value="">{form.facilityType ? "Chọn cơ sở" : "Chọn loại cơ sở trước"}</option>{form.facilityType && incidentFacilityOptions[form.facilityType].map((facility) => <option key={facility}>{facility}</option>)}</select>{submitted && !form.facility && <span className="mt-1 block text-xs font-medium text-[#a33b27]">Vui lòng chọn cơ sở.</span>}</label>
               <label className="text-sm font-bold text-[#31534b]">Thời điểm xảy ra <span className="text-[#a33b27]">*</span><input type="datetime-local" value={form.occurredAt} onChange={(e) => update("occurredAt", e.target.value)} className={fieldClass} data-testid="input-incident-occurred-at" />{submitted && !form.occurredAt && <span className="mt-1 block text-xs font-medium text-[#a33b27]">Vui lòng chọn thời điểm.</span>}</label>
               <label className="text-sm font-bold text-[#31534b]">Mức độ ưu tiên<select value={form.severity} onChange={(e) => update("severity", e.target.value)} className={fieldClass} data-testid="select-incident-priority"><option>Khẩn cấp</option><option>Cao</option><option>Trung bình</option></select></label>
               <label className="text-sm font-bold text-[#31534b]">Người báo tin <span className="text-[#a33b27]">*</span><input value={form.reporter} onChange={(e) => update("reporter", e.target.value)} className={fieldClass} placeholder="Họ và tên" data-testid="input-incident-reporter" />{submitted && !form.reporter && <span className="mt-1 block text-xs font-medium text-[#a33b27]">Vui lòng nhập người báo tin.</span>}</label>
@@ -458,7 +482,7 @@ export function IncidentDetailPage() {
     <PageFrame>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3"><Link href="/admin/inspections/incidents" className="focus-ring inline-flex items-center gap-2 text-sm font-bold text-[#176b53] hover:text-[#125943]" data-testid="link-back-incident-list"><ArrowLeft size={16} /> Danh sách sự cố</Link><span className="font-mono text-xs font-bold text-[#84928e]">{incident.code}</span></div>
       <div className="mb-7 flex flex-col gap-5 border-b border-[#dce5e3] pb-6 lg:flex-row lg:items-end lg:justify-between"><div><PageKicker>Hồ sơ sự cố / {incident.code}</PageKicker><h1 className="display-tight mt-2 max-w-4xl text-3xl font-extrabold tracking-[-.04em] text-[#143b35] md:text-[2.5rem]" data-testid="text-incident-detail-title">{incident.title}</h1><div className="mt-3 flex flex-wrap items-center gap-2"><span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${severityClass(incident.severity)}`}>{incident.severity}</span><span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${statusClass(incident.status)}`} data-testid="status-incident-detail">{incident.status}</span><span className="text-xs text-[#82908d]">Cập nhật lúc {formatDate(incident.reportedAt)}</span></div></div>{incident.status === "Đang xử lý" && <PrimaryButton variant="danger" onClick={closeIncident} testId="button-close-incident"><Check size={17} /> Đóng sự cố</PrimaryButton>}</div>
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-6">
           <section className="rounded-2xl border border-[#d7e2de] bg-white p-5 shadow-[0_10px_35px_rgba(21,64,53,.05)] sm:p-7"><div className="mb-5 flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#e5f2eb] text-[#176b53]"><CircleAlert size={18} /></div><h2 className="font-extrabold text-[#21453d]">Tóm tắt sự cố</h2></div><dl className="grid gap-5 sm:grid-cols-2"><div><dt className="text-xs font-bold uppercase tracking-[.08em] text-[#84928e]">Cơ sở liên quan</dt><dd className="mt-1.5 flex gap-2 text-sm font-bold text-[#31534b]"><MapPin size={15} className="mt-0.5 text-[#176b53]" />{incident.facility}</dd><p className="ml-5 mt-1 text-xs text-[#84928e]">{incident.address}</p></div><div><dt className="text-xs font-bold uppercase tracking-[.08em] text-[#84928e]">Thời điểm xảy ra</dt><dd className="mt-1.5 flex items-center gap-2 text-sm font-bold text-[#31534b]"><Clock3 size={15} className="text-[#176b53]" />{formatDate(incident.occurredAt)}</dd></div><div><dt className="text-xs font-bold uppercase tracking-[.08em] text-[#84928e]">Người báo tin</dt><dd className="mt-1.5 flex items-center gap-2 text-sm font-bold text-[#31534b]"><UserRound size={15} className="text-[#176b53]" />{incident.reporter}</dd><p className="ml-6 mt-1 text-xs text-[#84928e]">{incident.phone}</p></div><div><dt className="text-xs font-bold uppercase tracking-[.08em] text-[#84928e]">Thực phẩm liên quan</dt><dd className="mt-1.5 text-sm font-bold text-[#31534b]">{incident.foods}</dd></div></dl><div className="mt-6 border-t border-[#edf1ef] pt-5"><p className="text-xs font-bold uppercase tracking-[.08em] text-[#84928e]">Mô tả tình huống</p><p className="mt-2 text-sm leading-7 text-[#4e625d]" data-testid="text-incident-description">{incident.description}</p></div><div className="mt-5 rounded-xl bg-[#f4f8f5] p-4"><p className="text-xs font-bold uppercase tracking-[.08em] text-[#638077]">Biện pháp đã thực hiện</p><p className="mt-2 text-sm leading-6 text-[#31534b]">{incident.response}</p></div></section>
           <section className="rounded-2xl border border-[#d7e2de] bg-white p-5 shadow-[0_10px_35px_rgba(21,64,53,.05)] sm:p-7"><h2 className="font-extrabold text-[#21453d]">Dòng thời gian xử lý</h2><div className="mt-5 space-y-0">{incident.timeline.map((entry, index) => <div key={`${entry.time}-${entry.label}`} className="relative flex gap-4 pb-6 last:pb-0" data-testid={`timeline-incident-${index}`}><div className="relative z-10 mt-1 h-3 w-3 shrink-0 rounded-full border-2 border-white bg-[#176b53] shadow-[0_0_0_3px_#dcefe4]" />{index < incident.timeline.length - 1 && <div className="absolute bottom-0 left-[5px] top-4 w-px bg-[#c9ddd3]" />}<div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="text-sm font-bold text-[#31534b]">{entry.label}</p><span className="font-mono text-[11px] text-[#8a9793]">{entry.time}</span></div><p className="mt-1 text-xs leading-5 text-[#83908c]">{entry.detail}</p></div></div>)}</div></section>
