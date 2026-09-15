@@ -346,7 +346,7 @@ export function FacilityProductsPage() {
           eyebrow="Tài khoản cơ sở · coso.demo"
           title="Hồ sơ sản phẩm"
           description="Chỉ cơ sở đã đạt PASS mới được tạo hồ sơ sản phẩm. Mỗi sản phẩm là một hồ sơ riêng và có trạng thái xử lý độc lập."
-          action={<Link href="/facility/profile" className="inline-flex items-center gap-2 text-sm font-bold text-primary"><ArrowLeft size={16} /> Hồ sơ cơ sở</Link>}
+          action={<Link href="/facility/incidents" className="inline-flex items-center gap-2 text-sm font-bold text-primary"><ArrowLeft size={16} /> Cảnh báo ATTP</Link>}
         />
         <div className="mb-6 grid gap-4 md:grid-cols-3">
           <MetricCard label="Trạng thái hồ sơ cơ sở" value="PASS" icon={ShieldCheck} tone="green" />

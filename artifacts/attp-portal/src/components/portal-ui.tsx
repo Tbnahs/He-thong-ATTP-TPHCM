@@ -66,20 +66,6 @@ export function PublicHeader() {
       time: "Mới nhất",
       href: "/facility/incidents",
     },
-    {
-      id: "review-request",
-      title: "Yêu cầu bổ sung hồ sơ",
-      text: "Vui lòng rà soát ảnh khu vực bảo quản trước khi hồ sơ được duyệt.",
-      time: "Mới nhất",
-      href: "/facility/profile",
-    },
-    {
-      id: "profile-reminder",
-      title: "Cập nhật thông tin cơ sở",
-      text: "Kiểm tra lại giấy phép ATTP và thông tin người phụ trách.",
-      time: "Hôm nay",
-      href: "/facility/profile",
-    },
   ];
   const [readNotifications, setReadNotifications] = useState<string[]>(() => {
     try {
@@ -96,7 +82,6 @@ export function PublicHeader() {
         ["/", "Tổng quan"],
         ["/lookup", "Tra cứu"],
         ["/news", "Tin tức & sự kiện"],
-        ["/facility/profile", "Hồ sơ cơ sở"],
         ["/facility/incidents", "Cảnh báo ATTP"],
       ]
     : [
@@ -128,7 +113,7 @@ export function PublicHeader() {
     sessionStorage.setItem(notificationStorageKey, JSON.stringify(nextRead));
     setNotificationsOpen(false);
     const notification = notifications.find((item) => item.id === id);
-    navigate(notification?.href ?? "/facility/profile");
+    navigate(notification?.href ?? "/facility/incidents");
   };
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 shadow-[0_8px_30px_hsl(158_37%_15%/.04)] backdrop-blur-xl">
@@ -217,12 +202,12 @@ export function PublicHeader() {
                       ))}
                     </div>
                     <Link
-                      href="/facility/profile"
+                      href="/facility/incidents"
                       onClick={() => setNotificationsOpen(false)}
                       className="block border-t border-border px-4 py-3 text-center text-xs font-bold text-primary hover:bg-secondary"
-                      data-testid="link-view-facility-profile-from-notifications"
+                      data-testid="link-view-facility-alerts-from-notifications"
                     >
-                      Xem và cập nhật hồ sơ
+                      Xem cảnh báo ATTP
                     </Link>
                   </div>
                 )}

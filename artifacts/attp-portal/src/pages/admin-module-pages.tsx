@@ -1,4 +1,4 @@
-import { useMemo, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import {
   ArrowUpRight,
   BarChart3,
@@ -43,6 +43,7 @@ import {
 import {
   applications,
   getCriteriaSet,
+  regionalPublicRecords,
   type Application,
   type ApplicationType,
 } from "@/lib/mock-data";
@@ -404,6 +405,16 @@ const getRegistrationCategory = (type?: ApplicationType) =>
     : type === "meal-provider"
       ? "Cơ sở cung cấp suất ăn"
       : "Cơ sở giáo dục";
+
+const getRowRegistrationType = (
+  row?: FacilityManagementRow | null,
+): ApplicationType | undefined => {
+  if (!row) return undefined;
+  if (row.category === "Cơ sở cung cấp thực phẩm") return "food-supplier";
+  if (row.category === "Cơ sở cung cấp suất ăn") return "meal-provider";
+  if (row.category === "Trường học có bếp ăn bán trú") return "school";
+  return undefined;
+};
 
 const getStoredRegistrationRows = (): FacilityManagementRow[] =>
   readStoredFacilityAccounts()
@@ -2364,6 +2375,28 @@ export function AdminFacilitiesPage() {
   const [selectedRow, setSelectedRow] =
     useState<FacilityManagementRow | null>(null);
   const [notice, setNotice] = useState("");
+  const [reviewNote, setReviewNote] = useState("");
+  const [reviewConclusion, setReviewConclusion] = useState<
+    "" | "approved" | "needs-more-info" | "rejected"
+  >("");
+  const [reviewer, setReviewer] = useState("nguyen-minh-anh");
+
+  const selectedApplication = selectedRow?.applicationId
+    ? applications.find((item) => item.id === selectedRow.applicationId)
+    : undefined;
+
+  useEffect(() => {
+    setReviewNote(selectedApplication?.reviewNote ?? "");
+    setReviewConclusion(
+      selectedApplication?.status === "approved"
+        ? "approved"
+        : selectedApplication?.status === "needs-more-info"
+          ? "needs-more-info"
+          : selectedApplication?.status === "rejected"
+            ? "rejected"
+            : "",
+    );
+  }, [selectedApplication?.id, selectedApplication?.reviewNote, selectedApplication?.status]);
 
   const applicationRows: FacilityManagementRow[] = [
     ...applications.map((app) => ({
@@ -2441,19 +2474,46 @@ export function AdminFacilitiesPage() {
       ? new Intl.NumberFormat("vi-VN").format(value)
       : "—";
   const selectedStoredAccount = selectedRow?.storedAccount;
-  const selectedApplication = selectedRow?.applicationId
-    ? applications.find((item) => item.id === selectedRow.applicationId)
-    : undefined;
-  const selectedRegistrant = getFacilityRegistrant(
+  const linkedRegistrant = getFacilityRegistrant(
     selectedApplication,
     selectedStoredAccount,
   );
+  const selectedRegistrant =
+    linkedRegistrant ??
+    (selectedRow
+      ? {
+          name: selectedRow.name,
+          phone: selectedRow.contact,
+          email: "Chưa cập nhật",
+          username: "Tài khoản cơ sở",
+          submittedAt: selectedRow.updated,
+          isLinked: false,
+        }
+      : null);
+  const selectedRegistrationType =
+    selectedApplication?.type ??
+    selectedStoredAccount?.registration?.type ??
+    getRowRegistrationType(selectedRow);
   const selectedRegistrationFields =
-    selectedApplication?.data ?? selectedStoredAccount?.registration?.fields;
+    selectedApplication?.data ??
+    selectedStoredAccount?.registration?.fields ??
+    (selectedRow
+      ? {
+          applicantName: selectedRow.name,
+          addressProvince: selectedRow.province,
+          addressWard: selectedRow.ward,
+          addressDetail: selectedRow.address,
+          contact: selectedRow.contact,
+          capacity: selectedRow.capacity,
+          serving: selectedRow.serving,
+          students: selectedRow.students,
+          demand: selectedRow.demand,
+          category: selectedRow.category,
+          updated: selectedRow.updated,
+        }
+      : undefined);
   const selectedRegistrationFiles =
     selectedApplication?.attachments ?? selectedStoredAccount?.registration?.files ?? [];
-  const selectedRegistrationType =
-    selectedApplication?.type ?? selectedStoredAccount?.registration?.type;
   const selectedCriteria = selectedApplication
     ? selectedApplication.criteriaSnapshot
         .filter((item) => item.active)
@@ -2470,6 +2530,69 @@ export function AdminFacilitiesPage() {
           .slice()
           .sort((a, b) => a.order - b.order)
     : [];
+
+  const approveSelectedApplication = () => {
+    if (!selectedApplication) return;
+    const publishedRecord = {
+      id: `application-${selectedApplication.id}`,
+      category: "eligible-facilities" as const,
+      title: selectedApplication.applicantName,
+      subtitle: getRegistrationCategory(selectedApplication.type),
+      location: selectedApplication.address,
+      status: "active",
+      publishedAt: new Date().toISOString().slice(0, 10),
+      metadata: {
+        "Mã hồ sơ": selectedApplication.reference,
+        "Loại hình": getRegistrationCategory(selectedApplication.type),
+        "Liên hệ": selectedApplication.contact,
+        "Kết quả": "Đạt",
+      },
+      applicationData: selectedApplication.data,
+      attachments: selectedApplication.attachments,
+    };
+    const existingIndex = regionalPublicRecords.findIndex(
+      (record) => record.id === publishedRecord.id,
+    );
+    if (existingIndex >= 0) {
+      regionalPublicRecords[existingIndex] = publishedRecord;
+    } else {
+      regionalPublicRecords.unshift(publishedRecord);
+    }
+    const savedRecords = JSON.parse(
+      sessionStorage.getItem("attp-published-records") || "[]",
+    ) as typeof regionalPublicRecords;
+    sessionStorage.setItem(
+      "attp-published-records",
+      JSON.stringify([
+        ...savedRecords.filter((record) => record.id !== publishedRecord.id),
+        publishedRecord,
+      ]),
+    );
+    selectedApplication.status = "approved";
+    selectedApplication.reviewNote = null;
+    selectedApplication.published = true;
+    setReviewConclusion("approved");
+    setSelectedRow((current) =>
+      current ? { ...current, status: "approved" } : current,
+    );
+    setReviewNote("");
+    setNotice("Đã duyệt hồ sơ và công bố cơ sở trên cổng thông tin.");
+  };
+
+  const requestSupplementForSelectedApplication = () => {
+    if (!selectedApplication || !reviewNote.trim()) {
+      setNotice("Vui lòng nhập nội dung yêu cầu bổ sung.");
+      return;
+    }
+    selectedApplication.status = "needs-more-info";
+    selectedApplication.reviewNote = reviewNote.trim();
+    selectedApplication.published = false;
+    setReviewConclusion("needs-more-info");
+    setSelectedRow((current) =>
+      current ? { ...current, status: "needs-more-info" } : current,
+    );
+    setNotice("Đã lưu yêu cầu bổ sung cho hồ sơ.");
+  };
 
   const exportFacilities = () => {
     downloadExcelTable(
@@ -2779,28 +2902,31 @@ export function AdminFacilitiesPage() {
                 <X size={18} />
               </button>
             </div>
-            {selectedApplication && (
-              <section className="mt-5 overflow-hidden rounded-2xl bg-[#123d36] text-white">
+            <section className="mt-5 overflow-hidden rounded-2xl bg-[#123d36] text-white">
                 <div className="flex flex-col gap-5 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-[#f4c95d]">
-                      <span>{selectedApplication.reference}</span>
-                      <span className="text-white/35">•</span>
-                      <span>{getRegistrationCategory(selectedApplication.type)}</span>
+                      <span>{selectedApplication?.reference ?? selectedRow.id}</span>
                       <span className="text-white/35">•</span>
                       <span>
-                        {selectedApplication.published
-                          ? "Đã công bố"
-                          : "Chưa công bố"}
+                        {selectedApplication
+                          ? getRegistrationCategory(selectedApplication.type)
+                          : selectedRow.category ?? facilityTabLabels[activeTab]}
+                      </span>
+                      <span className="text-white/35">•</span>
+                      <span>
+                        {selectedApplication
+                          ? selectedApplication.published
+                            ? "Đã công bố"
+                            : "Chưa công bố"
+                          : managementStatusLabel(selectedRow.status)}
                       </span>
                     </div>
-                    <h3 className="mt-2 truncate text-2xl font-extrabold">
-                      {selectedApplication.applicantName}
-                    </h3>
+                    <h3 className="mt-2 truncate text-2xl font-extrabold">{selectedRow.name}</h3>
                     <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm text-white/70">
-                      <span>{selectedApplication.address}</span>
+                      <span>{selectedRow.address}</span>
                       <span>•</span>
-                      <span>{selectedApplication.contact}</span>
+                      <span>{selectedRow.contact}</span>
                     </p>
                   </div>
                   <div className="grid shrink-0 grid-cols-2 gap-2 sm:min-w-[250px]">
@@ -2809,11 +2935,11 @@ export function AdminFacilitiesPage() {
                         Ngày nộp
                       </p>
                       <p className="mt-1 text-sm font-bold">
-                        {selectedApplication.submittedAt
+                        {selectedApplication?.submittedAt
                           ? new Intl.DateTimeFormat("vi-VN").format(
                               new Date(selectedApplication.submittedAt),
                             )
-                          : "—"}
+                          : selectedRow.updated}
                       </p>
                     </div>
                     <div className="rounded-xl bg-white/10 p-3">
@@ -2821,14 +2947,62 @@ export function AdminFacilitiesPage() {
                         Đánh giá
                       </p>
                       <p className="mt-1 text-sm font-bold text-[#f4c95d]">
-                        {managementStatusLabel(selectedRow.status)} ·{" "}
-                        {selectedApplication.score}/100
+                        {managementStatusLabel(selectedRow.status)}
+                        {selectedApplication ? ` · ${selectedApplication.score}/100` : ""}
                       </p>
                     </div>
                   </div>
                 </div>
               </section>
-            )}
+            <section className="mt-4 rounded-2xl border border-primary/15 bg-secondary/35 p-4 sm:p-5">
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="block">
+                  <span className="mb-2 block text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
+                    Kết luận hồ sơ
+                  </span>
+                  <select
+                    value={reviewConclusion}
+                    onChange={(event) =>
+                      setReviewConclusion(
+                        event.target.value as
+                          | ""
+                          | "approved"
+                          | "needs-more-info"
+                          | "rejected",
+                      )
+                    }
+                    className="focus-ring h-11 w-full rounded-xl border border-input bg-card px-3 text-sm font-bold"
+                    data-testid="select-facility-review-conclusion"
+                  >
+                    <option value="">Chọn kết luận</option>
+                    <option value="approved">Đạt · Duyệt hồ sơ</option>
+                    <option value="needs-more-info">Cần bổ sung</option>
+                    <option value="rejected">Không đạt</option>
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
+                    Ký tên cán bộ
+                  </span>
+                  <select
+                    value={reviewer}
+                    onChange={(event) => setReviewer(event.target.value)}
+                    className="focus-ring h-11 w-full rounded-xl border border-input bg-card px-3 text-sm font-bold"
+                    data-testid="select-facility-reviewer"
+                  >
+                    <option value="nguyen-minh-anh">
+                      Nguyễn Minh Anh · Chuyên viên ATTP
+                    </option>
+                    <option value="tran-thi-bich">
+                      Trần Thị Bích · Trưởng phòng
+                    </option>
+                    <option value="le-quoc-huy">
+                      Lê Quốc Huy · Cán bộ thẩm định
+                    </option>
+                  </select>
+                </label>
+              </div>
+            </section>
             <dl className="mt-5 grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
               {[
                 ["Tỉnh/thành phố", selectedRow.province],
@@ -3031,13 +3205,67 @@ export function AdminFacilitiesPage() {
               </section>
             )}
             {selectedApplication && (
-              <Link
-                href={`/admin/applications/${selectedApplication.id}`}
-                className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground"
-                data-testid={`link-open-full-application-${selectedApplication.id}`}
-              >
-                Mở toàn bộ hồ sơ để xét duyệt <ArrowUpRight size={16} />
-              </Link>
+              <section className="mt-6 rounded-2xl border border-primary/15 bg-secondary/35 p-4 sm:p-6">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="mono-label text-primary">XỬ LÝ HỒ SƠ</p>
+                    <h3 className="mt-1 text-xl font-extrabold">
+                      Duyệt ngay tại Quản lý cơ sở
+                    </h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Không cần mở trang hồ sơ riêng. Kết quả xử lý sẽ được cập nhật
+                      ngay vào danh sách cơ sở.
+                    </p>
+                  </div>
+                  <StatusPill
+                    status={managementStatusLabel(
+                      selectedApplication.status === "rejected"
+                        ? "stopped"
+                        : selectedApplication.status,
+                    )}
+                  />
+                </div>
+                {selectedApplication.status !== "approved" && (
+                  <>
+                    <label className="mt-5 block">
+                      <span className="mb-2 block text-sm font-bold">
+                        Nội dung yêu cầu bổ sung
+                      </span>
+                      <textarea
+                        value={reviewNote}
+                        onChange={(event) => setReviewNote(event.target.value)}
+                        placeholder="Nhập giấy tờ hoặc thông tin cơ sở cần bổ sung..."
+                        className="focus-ring min-h-28 w-full rounded-xl border border-input bg-card p-3 text-sm"
+                        data-testid="textarea-facility-review-note"
+                      />
+                    </label>
+                    <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
+                      <button
+                        type="button"
+                        onClick={requestSupplementForSelectedApplication}
+                        disabled={!reviewNote.trim()}
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 text-sm font-bold text-amber-800 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        data-testid={`button-request-supplement-${selectedApplication.id}`}
+                      >
+                        <Info size={16} /> Yêu cầu bổ sung
+                      </button>
+                      <button
+                        type="button"
+                        onClick={approveSelectedApplication}
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground hover:bg-primary/90"
+                        data-testid={`button-approve-facility-${selectedApplication.id}`}
+                      >
+                        <CheckCircle2 size={16} /> Duyệt hồ sơ
+                      </button>
+                    </div>
+                  </>
+                )}
+                {selectedApplication.status === "approved" && (
+                  <p className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+                    Hồ sơ đã được duyệt và đang hiển thị trên cổng thông tin công khai.
+                  </p>
+                )}
+              </section>
             )}
           </div>
         </div>

@@ -971,9 +971,9 @@ export function HomePage() {
     sessionStorage.getItem("attp-session-role") === "facility";
   const accountAction = facilityAccount
     ? {
-        href: "/facility/profile",
-        title: "Hồ sơ cơ sở",
-        text: "Xem lại toàn bộ thông tin đã đăng ký và cập nhật khi có yêu cầu bổ sung.",
+        href: "/facility/incidents",
+        title: "Cảnh báo ATTP",
+        text: "Theo dõi các cảnh báo và gửi thông tin cập nhật cho Sở khi được yêu cầu.",
       }
     : {
         href: "/register",
@@ -1000,7 +1000,7 @@ export function HomePage() {
               <div className="mt-10 flex flex-wrap gap-3">
                 <ButtonLink href="/lookup">Bắt đầu tra cứu</ButtonLink>
                 <ButtonLink href={accountAction.href} variant="outline">
-                  {facilityAccount ? "Hồ sơ cơ sở" : "Đăng ký hồ sơ"}
+                  {facilityAccount ? "Cảnh báo ATTP" : "Đăng ký hồ sơ"}
                 </ButtonLink>
               </div>
               <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-semibold text-muted-foreground">
@@ -1864,7 +1864,7 @@ export function AdminLoginPage() {
         "attp-session-username",
         facilityAccount?.username || username.trim(),
       );
-      navigate("/facility/profile");
+       navigate("/facility/incidents");
     }
   };
 
@@ -3909,7 +3909,7 @@ export function AdminDashboard() {
               {filteredApplications.map((app) => (
                 <Link
                   key={app.id}
-                  href={`/admin/applications/${app.id}`}
+                  href="/admin/facilities"
                   className="lift flex flex-col gap-3 p-5 hover:bg-secondary/30 sm:flex-row sm:items-center sm:justify-between"
                   data-testid={`link-application-${app.id}`}
                 >
@@ -3937,7 +3937,9 @@ export function AdminDashboard() {
                       </p>
                       <p className="font-mono font-bold">{app.score}/100</p>
                     </div>
-                    <ArrowUpRight size={18} className="text-primary" />
+                    <span className="text-right text-xs font-bold text-primary">
+                      Mở Quản lý cơ sở
+                    </span>
                   </div>
                 </Link>
               ))}

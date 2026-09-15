@@ -4,11 +4,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import {
-  AdminApplicationPage,
   AdminDashboard,
   AdminLoginPage,
   AdminPlaceholder,
-  FacilityProfilePage,
   HomePage,
   LookupPage,
   NewsDetailPage,
@@ -67,11 +65,6 @@ function Router() {
         <Route path="/admin/applications/pending">
           <AdminGuard>
             <AdminDashboard />
-          </AdminGuard>
-        </Route>
-        <Route path="/admin/applications/:id">
-          <AdminGuard>
-            <AdminApplicationPage />
           </AdminGuard>
         </Route>
         <Route path="/admin/facilities">
@@ -148,11 +141,6 @@ function Router() {
           <AdminGuard>
             <IncidentListPage />
           </AdminGuard>
-        </Route>
-        <Route path="/facility/profile">
-          <FacilityGuard>
-            <FacilityProfilePage />
-          </FacilityGuard>
         </Route>
         <Route path="/facility/incidents/:id">
           <FacilityGuard>
