@@ -5,7 +5,9 @@ import {
   Building2,
   CalendarDays,
   CalendarRange,
+  ChefHat,
   CheckCircle2,
+  Clock3,
   ChevronDown,
   ChevronRight,
   CircleDollarSign,
@@ -215,6 +217,73 @@ const mealData = {
     ],
   },
 } as const;
+
+type RecipeRecord = {
+  id: string;
+  name: string;
+  code: string;
+  school: string;
+  ward: string;
+  type: "Lỏng" | "Mặn" | "Món cho trẻ";
+  ingredients: string[];
+  steps: string[];
+  updatedAt: string;
+  accent: "green" | "orange" | "purple";
+};
+
+const recipeRecords: RecipeRecord[] = [
+  {
+    id: "recipe-canh-chua-ca-basa",
+    name: "Canh chua cá basa",
+    code: "MA-00452",
+    school: "iSchool Nam Sài Gòn",
+    ward: "Phường Bến Nghé",
+    type: "Lỏng",
+    ingredients: ["Cá basa", "Cà chua", "Thơm", "Rau muống"],
+    steps: [
+      "Sơ chế cá, rau, cà chua, thơm",
+      "Phi thơm, nấu nước dùng 15 phút",
+      "Cho cá vào nấu chín, nêm gia vị",
+      "Thêm rau muống, tắt bếp.",
+    ],
+    updatedAt: "05/09/2026",
+    accent: "green",
+  },
+  {
+    id: "recipe-thit-kho-trung",
+    name: "Thịt kho trứng",
+    code: "MA-00218",
+    school: "Trường Tiểu học Lê Lợi",
+    ward: "Phường Bến Nghé",
+    type: "Mặn",
+    ingredients: ["Thịt heo", "Trứng vịt", "Nước màu", "Hành tím"],
+    steps: [
+      "Sơ chế thịt, luộc trứng và bóc vỏ",
+      "Ướp thịt với gia vị trong 20 phút",
+      "Kho thịt với nước dừa đến mềm",
+      "Cho trứng vào, đun nhỏ lửa.",
+    ],
+    updatedAt: "05/09/2026",
+    accent: "orange",
+  },
+  {
+    id: "recipe-chao-ga-rau-cu",
+    name: "Cháo gà rau củ",
+    code: "MA-00510",
+    school: "Trường Mầm non Hoa Sen",
+    ward: "Phường Sài Gòn",
+    type: "Món cho trẻ",
+    ingredients: ["Gạo tẻ", "Thịt gà", "Cà rốt", "Bí xanh"],
+    steps: [
+      "Vo gạo, sơ chế thịt gà và rau củ",
+      "Nấu gạo với nước dùng đến nhừ",
+      "Cho thịt gà và rau củ vào nấu chín",
+      "Nêm nhạt, kiểm tra trước khi chia suất.",
+    ],
+    updatedAt: "01/09/2026",
+    accent: "purple",
+  },
+];
 
 function categoryShortName(category: FacilityCategory) {
   return category === "Trường học có bếp ăn bán trú"
@@ -1107,6 +1176,142 @@ function MenuDetailDialog({
   );
 }
 
+function RecipeCard({
+  recipe,
+  onDetails,
+}: {
+  recipe: RecipeRecord;
+  onDetails: () => void;
+}) {
+  const accentClasses = {
+    green: "from-emerald-100 via-lime-50 to-orange-100",
+    orange: "from-orange-100 via-amber-50 to-rose-100",
+    purple: "from-violet-100 via-fuchsia-50 to-orange-100",
+  };
+
+  return (
+    <article className="recipe-card overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-[0_4px_20px_rgba(0,0,0,.08)] transition hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(0,0,0,.12)]">
+      <div className={`recipe-card__visual relative flex h-56 items-center justify-center overflow-hidden bg-gradient-to-br ${accentClasses[recipe.accent]}`}>
+        <div className="absolute -right-10 -top-14 h-44 w-44 rounded-full bg-white/45" />
+        <div className="absolute -bottom-16 -left-8 h-44 w-44 rounded-full bg-white/35" />
+        <div className="relative flex h-28 w-28 items-center justify-center rounded-full border-8 border-white/70 bg-white/65 text-orange-500 shadow-xl backdrop-blur-sm">
+          <ChefHat size={62} strokeWidth={1.5} />
+        </div>
+        <span className="absolute left-4 top-4 rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-extrabold uppercase tracking-[.05em] text-emerald-600">
+          {recipe.type}
+        </span>
+      </div>
+      <div className="recipe-card__body flex min-h-[542px] flex-col gap-6 p-6">
+        <div>
+          <h2 className="text-[22px] font-bold leading-7 text-[#1f2937]">{recipe.name}</h2>
+          <p className="mt-1 text-xs font-semibold leading-5 text-[#4b5563]">Mã món: {recipe.code}</p>
+          <p className="text-[13px] font-semibold leading-5 text-[#4b5563]">Trường sở hữu: {recipe.school}</p>
+        </div>
+
+        <section>
+          <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-[.025em] text-[#374151]">
+            <Utensils size={14} className="text-[#f26522]" />
+            Nguyên liệu cần giám sát
+          </h3>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            {recipe.ingredients.map((ingredient) => (
+              <div key={ingredient} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-[#f9fafb] px-3 py-3">
+                <span className="h-2 w-2 shrink-0 rounded-full bg-[#f26522]" />
+                <span className="text-sm font-medium text-[#4b5563]">{ingredient}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="border-t border-slate-100 pt-6">
+          <div className="flex items-center justify-between gap-3">
+            <button type="button" onClick={onDetails} className="inline-flex items-center gap-2 text-[15px] font-bold text-[#f26522] transition hover:text-orange-700">
+              Xem quy trình chế biến <ChevronRight size={14} />
+            </button>
+            <Clock3 size={15} className="text-slate-400" aria-label={`Cập nhật ${recipe.updatedAt}`} />
+          </div>
+          <div className="relative mt-4 space-y-4 pl-1">
+            <span className="absolute bottom-3 left-[11px] top-2 w-0.5 bg-slate-200" aria-hidden="true" />
+            {recipe.steps.map((step, index) => (
+              <div key={step} className="relative flex items-start gap-4">
+                <span className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#f26522] text-[11px] font-bold text-white">
+                  {index + 1}
+                </span>
+                <p className="pt-0.5 text-sm font-medium leading-[23px] text-[#4b5563]">{step}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-4 text-[11px] font-semibold text-slate-400">
+          <span>Cập nhật lần cuối</span>
+          <span>{recipe.updatedAt}</span>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function RecipeDetailDialog({
+  recipe,
+  onClose,
+}: {
+  recipe: RecipeRecord;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="recipe-detail-title">
+      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white px-6 py-5">
+          <div>
+            <p className="text-[11px] font-extrabold uppercase tracking-[.12em] text-[#f26522]">Quy trình chế biến</p>
+            <h2 id="recipe-detail-title" className="mt-1 text-xl font-bold text-slate-900">{recipe.name}</h2>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-lg border border-slate-200 p-2 text-slate-500 transition hover:border-orange-300 hover:text-orange-600" aria-label="Đóng quy trình chế biến">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="space-y-6 p-6">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+              <p className="text-[11px] font-semibold text-slate-500">Mã món</p>
+              <p className="mt-1 text-sm font-bold text-slate-800">{recipe.code}</p>
+            </div>
+            <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+              <p className="text-[11px] font-semibold text-slate-500">Trường sở hữu</p>
+              <p className="mt-1 text-sm font-bold text-slate-800">{recipe.school}</p>
+            </div>
+          </div>
+          <div>
+            <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-[.025em] text-slate-700">
+              <Utensils size={15} className="text-[#f26522]" /> Nguyên liệu
+            </h3>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {recipe.ingredients.map((ingredient) => (
+                <span key={ingredient} className="rounded-full bg-orange-50 px-3 py-1.5 text-xs font-bold text-orange-700">{ingredient}</span>
+              ))}
+            </div>
+          </div>
+          <div>
+            <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-[.025em] text-slate-700">
+              <ChefHat size={15} className="text-[#f26522]" /> Các bước thực hiện
+            </h3>
+            <div className="relative mt-4 space-y-4 pl-1">
+              <span className="absolute bottom-3 left-[11px] top-2 w-0.5 bg-slate-200" aria-hidden="true" />
+              {recipe.steps.map((step, index) => (
+                <div key={step} className="relative flex items-start gap-4">
+                  <span className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#f26522] text-[11px] font-bold text-white">{index + 1}</span>
+                  <p className="pt-0.5 text-sm leading-6 text-slate-600">{step}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function AdminMealManagementPage({ page }: { page: MealPageKey }) {
   const config = mealData[page];
   const Icon = config.icon;
@@ -1115,9 +1320,87 @@ export function AdminMealManagementPage({ page }: { page: MealPageKey }) {
   const [school, setSchool] = useState("Tất cả các trường");
   const [time, setTime] = useState("Chọn thời gian");
   const [selectedMenu, setSelectedMenu] = useState<MenuRecord | null>(null);
+  const [recipeWard, setRecipeWard] = useState("Tất cả Xã/Phường");
+  const [recipeType, setRecipeType] = useState("Tất cả loại món");
+  const [recipeSchool, setRecipeSchool] = useState("Tất cả các trường");
+  const [selectedRecipe, setSelectedRecipe] = useState<RecipeRecord | null>(null);
   const rows = config.rows.filter((row) =>
     row.join(" ").toLowerCase().includes(search.toLowerCase()),
   );
+
+  if (page === "recipes") {
+    const filteredRecipes = recipeRecords.filter(
+      (recipe) =>
+        (recipeType === "Tất cả loại món" || recipe.type === recipeType) &&
+        (recipeSchool === "Tất cả các trường" || recipe.school === recipeSchool) &&
+        (recipeWard === "Tất cả Xã/Phường" || recipe.ward === recipeWard) &&
+        (!search || `${recipe.name} ${recipe.code} ${recipe.school} ${recipe.type}`.toLowerCase().includes(search.toLowerCase())),
+    );
+    const clearRecipeFilters = () => {
+      setSearch("");
+      setRecipeWard("Tất cả Xã/Phường");
+      setRecipeType("Tất cả loại món");
+      setRecipeSchool("Tất cả các trường");
+    };
+
+    return (
+      <AdminShell>
+        <div className="recipe-management-page min-h-[calc(100dvh-65px)] bg-[#f9fafb]">
+          <div className="recipe-management-page__content mx-auto max-w-[1180px] px-4 pb-12 pt-8 sm:px-7 lg:px-8">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#f26522]">Quản lý bữa ăn</p>
+                <h1 className="mt-1 text-[25px] font-bold tracking-tight text-[#1f2937]">Danh sách món ăn</h1>
+                <p className="mt-1 text-sm text-[#6b7280]">Quản lý nguyên liệu và quy trình chế biến đang áp dụng tại các bếp ăn.</p>
+              </div>
+              <div className="relative w-full lg:w-80">
+                <Search size={17} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#9ca3af]" />
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Tìm kiếm tên món, mã món..."
+                  className="h-[46px] w-full rounded-xl border border-[#e5e7eb] bg-white pl-11 pr-4 text-sm text-[#374151] outline-none transition placeholder:text-[#9ca3af] focus:border-[#f26522] focus:ring-4 focus:ring-orange-100"
+                  aria-label="Tìm kiếm tên món, mã món"
+                />
+              </div>
+            </div>
+
+            <section className="recipe-filter-card mt-7 rounded-2xl border border-[#f3f4f6] bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,.05)]">
+              <div className="grid gap-5 md:grid-cols-3">
+                <MenuFilterSelect label="Xã / phường" value={recipeWard} onChange={setRecipeWard} options={["Tất cả Xã/Phường", ...Array.from(new Set(recipeRecords.map((recipe) => recipe.ward)))]} />
+                <MenuFilterSelect label="Trường học" value={recipeSchool} onChange={setRecipeSchool} options={["Tất cả các trường", ...Array.from(new Set(recipeRecords.map((recipe) => recipe.school)))]} />
+                <MenuFilterSelect label="Loại món ăn" value={recipeType} onChange={setRecipeType} options={["Tất cả loại món", "Lỏng", "Mặn", "Món cho trẻ"]} />
+              </div>
+              <div className="mt-5 flex justify-end">
+                <button type="button" onClick={clearRecipeFilters} className="inline-flex items-center gap-2 text-sm font-bold text-[#f26522] transition hover:text-orange-700">
+                  <X size={15} /> Đặt lại bộ lọc
+                </button>
+              </div>
+            </section>
+
+            <div className="mb-4 mt-8 flex items-end justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-bold text-[#1f2937]">Món ăn đang áp dụng</h2>
+                <p className="mt-1 text-xs font-medium text-[#6b7280]">{filteredRecipes.length} món ăn · Cập nhật theo hồ sơ bếp ăn</p>
+              </div>
+              <span className="hidden rounded-full bg-orange-50 px-3 py-1.5 text-xs font-bold text-orange-700 sm:inline-flex">{recipeRecords.length} hồ sơ</span>
+            </div>
+
+            {filteredRecipes.length ? (
+              <div className="grid items-start gap-5 xl:grid-cols-3">
+                {filteredRecipes.map((recipe) => (
+                  <RecipeCard key={recipe.id} recipe={recipe} onDetails={() => setSelectedRecipe(recipe)} />
+                ))}
+              </div>
+            ) : (
+              <EmptyState title="Không tìm thấy món ăn" description="Thử thay đổi từ khóa hoặc bộ lọc." />
+            )}
+          </div>
+        </div>
+        {selectedRecipe && <RecipeDetailDialog recipe={selectedRecipe} onClose={() => setSelectedRecipe(null)} />}
+      </AdminShell>
+    );
+  }
 
   if (page === "menus") {
     const filteredMenus = menuRecords.filter(

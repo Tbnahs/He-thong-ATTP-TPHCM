@@ -387,7 +387,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
     location.startsWith("/admin/meals/menus")
       ? "Danh sách món ăn"
       : location.startsWith("/admin/meals/recipes")
-        ? "Món ăn và quy trình chế biến"
+        ? "Danh sách món ăn"
         : location.startsWith("/admin/meals")
           ? "Kiểm thực 3 bước"
           : location.startsWith("/admin/facilities")
