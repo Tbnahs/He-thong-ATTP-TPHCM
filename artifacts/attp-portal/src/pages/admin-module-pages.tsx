@@ -293,6 +293,14 @@ function categoryShortName(category: FacilityCategory) {
       : "Cung cấp suất ăn";
 }
 
+const sampleWardOptions = `phường Hiệp Bình, phường Tam Bình, phường Thủ Đức, phường Linh Xuân, phường Long Bình, phường Tăng Nhơn Phú, phường Phước Long, phường Long Phước, phường Long Trường, phường An Khánh, phường Bình Trưng, phường Cát Lái, phường Tân Định, phường Sài Gòn, phường Bến Thành, phường Cầu Ông Lãnh, phường Xuân Hòa, phường Bàn Cờ, phường Nhiêu Lộc, phường Vĩnh Hội, phường Khánh Hội, phường Xóm Chiếu, phường Chợ Quán, phường An Đông, phường Chợ Lớn, phường Bình Tiên, phường Bình Tây, phường Bình Phú, phường Phú Lâm, phường Tân Mỹ, phường Tân Hưng, phường Tân Thuận, phường Phú Thuận, phường Chánh Hưng, phường Bình Đông, phường Phú Định, phường Vườn Lài, phường Diên Hồng, phường Hòa Hưng, phường Hòa Bình, phường Phú Thọ, phường Bình Thới, phường Minh Phụng, phường Đông Hưng Thuận, phường Trung Mỹ Tây, phường Tân Thới Hiệp, phường Thới An, phường An Phú Đông, phường Bình Tân, phường Bình Hưng Hòa, phường Bình Trị Đông, phường An Lạc, phường Tân Tạo, phường Gia Định, phường Bình Thạnh, phường Bình Lợi Trung, phường Thạnh Mỹ Tây, phường Bình Quới, phường Hạnh Thông, phường An Nhơn, phường Gò Vấp, phường Thông Tây Hội, phường An Hội Tây, phường An Hội Đông, phường Đức Nhuận, phường Cầu Kiệu, phường Phú Nhuận, phường Tân Sơn Hòa, phường Tân Sơn Nhất, phường Tân Hòa, phường Bảy Hiền, phường Tân Bình, phường Tân Sơn, phường Tây Thạnh, phường Tân Sơn Nhì, phường Phú Thọ Hòa, phường Phú Thạnh, phường Tân Phú, phường Vũng Tàu, phường Tam Thắng, phường Rạch Dừa, phường Phước Thắng, phường Bà Rịa, phường Long Hương, phường Tam Long, phường Phú Mỹ, phường Tân Thành, phường Tân Phước, phường Tân Hải, phường Thới Hòa, phường Đông Hòa, phường Dĩ An, phường Tân Đông Hiệp, phường Thuận An, phường Thuận Giao, phường Bình Hòa, phường Lái Thiêu, phường An Phú, phường Bình Dương, phường Chánh Hiệp, phường Thủ Dầu Một, phường Phú Lợi, phường Vĩnh Tân, phường Bình Cơ, phường Tân Uyên, phường Tân Hiệp, phường Tân Khánh, phường Phú An, phường Tây Nam, phường Long Nguyên, phường Bến Cát, phường Chánh Phú Hòa, phường Hòa Lợi, xã Vĩnh Lộc, xã Tân Vĩnh Lộc, xã Bình Lợi, xã Tân Nhựt, xã Bình Chánh, xã Hưng Long, xã Bình Hưng, xã Cần Giờ, xã An Thới Đông, xã Bình Khánh, xã Thạnh An, xã An Nhơn Tây, xã Thái Mỹ, xã Nhuận Đức, xã Tân An Hội, xã Củ Chi, xã Phú Hòa Đông, xã Bình Mỹ, xã Hóc Môn, xã Bà Điểm, xã Xuân Thới Sơn, xã Đông Thạnh, xã Nhà Bè, xã Hiệp Phước, xã Long Sơn, xã Châu Pha, xã Ngãi Giao, xã Bình Giã, xã Kim Long, xã Châu Đức, xã Xuân Sơn, xã Nghĩa Thành, xã Hòa Hiệp, xã Bình Châu, xã Hồ Tràm, xã Xuyên Mộc, xã Hòa Hội, xã Bàu Lâm, xã Đất Đỏ, xã Long Hải, xã Long Điền, xã Phước Hải, xã Bắc Tân Uyên, xã Thường Tân, xã An Long, xã Phước Thành, xã Phước Hòa, xã Phú Giáo, xã Trừ Văn Thố, xã Bàu Bàng, xã Minh Thạnh, xã Long Hòa, xã Dầu Tiếng, xã Thanh An, đặc khu Côn Đảo`
+  .split(",")
+  .map((item) => item.trim());
+
+function normalizeWardName(value: string) {
+  return value.replace(/^(phường|xã|đặc khu)\s+/i, "").trim();
+}
+
 export function AdminMonitoringDashboard() {
   type MonitoringStatus = "Đạt" | "Cảnh báo" | "Chưa đạt";
   type SchoolLevel = "Mầm non" | "Cấp 1" | "Cấp 2" | "Cấp 3";
@@ -315,6 +323,7 @@ export function AdminMonitoringDashboard() {
   };
   type FoodSupplierRecord = {
     name: string;
+    province: string;
     ward: string;
     address: string;
     category: string;
@@ -348,9 +357,9 @@ export function AdminMonitoringDashboard() {
   const [activeTab, setActiveTab] = useState<
     "suppliers" | "schools" | "food"
   >("suppliers");
-  const [area, setArea] = useState("Quận 1");
-  const [district, setDistrict] = useState("Quận 1");
-  const [ward, setWard] = useState("Tất cả phường/xã");
+  const area = "Toàn thành phố";
+  const [province, setProvince] = useState("Tất cả tỉnh/thành phố");
+  const [ward, setWard] = useState("Tất cả xã/phường");
   const [schoolLevel, setSchoolLevel] = useState<
     "Tất cả cấp học" | SchoolLevel
   >("Tất cả cấp học");
@@ -414,6 +423,7 @@ export function AdminMonitoringDashboard() {
   const foodSupplierRows: FoodSupplierRecord[] = [
     {
       name: "Công ty TNHH Nông sản An Phú",
+      province: "TP. Hồ Chí Minh",
       ward: "Bến Nghé",
       address: "184 Nguyễn Văn Linh, P. Bến Nghé",
       category: "Rau củ quả",
@@ -424,6 +434,7 @@ export function AdminMonitoringDashboard() {
     },
     {
       name: "Công ty Thực phẩm Tân Hưng",
+      province: "TP. Hồ Chí Minh",
       ward: "Tân Hưng",
       address: "42 Nguyễn Hữu Thọ, P. Tân Hưng",
       category: "Thịt, cá và trứng",
@@ -434,6 +445,7 @@ export function AdminMonitoringDashboard() {
     },
     {
       name: "Hợp tác xã Rau sạch Củ Chi",
+      province: "TP. Hồ Chí Minh",
       ward: "Củ Chi",
       address: "Đường Tỉnh lộ 8, xã Tân An Hội",
       category: "Rau củ quả",
@@ -444,6 +456,7 @@ export function AdminMonitoringDashboard() {
     },
     {
       name: "Công ty TNHH Thực phẩm Bình Minh",
+      province: "TP. Hồ Chí Minh",
       ward: "Đa Kao",
       address: "66 Phan Kế Bính, P. Đa Kao",
       category: "Thực phẩm khô",
@@ -454,6 +467,7 @@ export function AdminMonitoringDashboard() {
     },
     {
       name: "Cơ sở Hải sản Tươi Sài Gòn",
+      province: "TP. Hồ Chí Minh",
       ward: "Cầu Ông Lãnh",
       address: "128 Đề Thám, P. Cầu Ông Lãnh",
       category: "Hải sản",
@@ -464,6 +478,7 @@ export function AdminMonitoringDashboard() {
     },
     {
       name: "Công ty TNHH Sữa học đường Việt",
+      province: "TP. Hồ Chí Minh",
       ward: "Nguyễn Cư Trinh",
       address: "15 Cống Quỳnh, P. Nguyễn Cư Trinh",
       category: "Sữa và chế phẩm từ sữa",
@@ -671,32 +686,12 @@ export function AdminMonitoringDashboard() {
       status: { Đạt: 868, "Cảnh báo": 119, "Chưa đạt": 51 },
     },
   };
-  const summary = summaries[area] ?? summaries["Quận 1"];
-  const districtByWard: Record<string, string> = {
-    "Bến Nghé": "Quận 1",
-    "Đa Kao": "Quận 1",
-    "Cầu Ông Lãnh": "Quận 1",
-    "Nguyễn Cư Trinh": "Quận 1",
-    "Tân Hưng": "Quận 7",
-    "Củ Chi": "Củ Chi",
-  };
-  const districtOptions =
-    area === "Quận 1"
-      ? ["Quận 1"]
-      : ["Tất cả quận/huyện", "Quận 1", "Quận 7", "Củ Chi"];
-  const wardOptions = Object.entries(districtByWard)
-    .filter(
-      ([, itemDistrict]) =>
-        (area === "Toàn thành phố" || itemDistrict === area) &&
-        (district === "Tất cả quận/huyện" || itemDistrict === district),
-    )
-    .map(([itemWard]) => itemWard);
+  const summary = summaries["Toàn thành phố"];
+  const wardOptions = sampleWardOptions;
   const matchesLocation = (itemWard: string) => {
-    const itemDistrict = districtByWard[itemWard];
     return (
-      (area === "Toàn thành phố" || itemDistrict === area) &&
-      (district === "Tất cả quận/huyện" || itemDistrict === district) &&
-      (ward === "Tất cả phường/xã" || itemWard === ward)
+      ward === "Tất cả xã/phường" ||
+      normalizeWardName(itemWard) === normalizeWardName(ward)
     );
   };
   const matchesCommonFilters = (item: {
@@ -714,7 +709,10 @@ export function AdminMonitoringDashboard() {
     return matchesCommonFilters(item);
   });
   const visibleFoodSuppliers = foodSupplierRows.filter((item) => {
-    return matchesCommonFilters(item);
+    return (
+      matchesCommonFilters(item) &&
+      (province === "Tất cả tỉnh/thành phố" || item.province === province)
+    );
   });
   const visibleSchools = schoolRows.filter((item) => {
     const matchesLevel =
@@ -747,13 +745,12 @@ export function AdminMonitoringDashboard() {
     >,
   );
   const hasFilters =
-    area !== "Quận 1" ||
-    district !== "Quận 1" ||
-    ward !== "Tất cả phường/xã" ||
+    ward !== "Tất cả xã/phường" ||
     status !== "Tất cả trạng thái" ||
     Boolean(search) ||
     (activeTab === "schools" &&
-      (schoolLevel !== "Tất cả cấp học" || mealOrganization !== "Tất cả"));
+      (schoolLevel !== "Tất cả cấp học" || mealOrganization !== "Tất cả")) ||
+    (activeTab === "food" && province !== "Tất cả tỉnh/thành phố");
   const statusCounts = hasFilters ? visibleStatus : summary.status;
   const totalStatus = Object.values(statusCounts).reduce(
     (sum, value) => sum + value,
@@ -801,11 +798,11 @@ export function AdminMonitoringDashboard() {
                   <p className="mono-label">DASHBOARD GIÁM SÁT</p>
                 </div>
                 <h1 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">
-                  Theo dõi theo địa bàn
+                  Theo dõi theo xã/phường
                 </h1>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-white/70">
-                  Chọn địa bàn trước để xem toàn bộ cơ sở cung cấp suất ăn và cơ
-                  sở giáo dục thuộc khu vực đó.
+                  Lọc và theo dõi các cơ sở cung cấp suất ăn, cơ sở giáo dục và
+                  cơ sở cung cấp thực phẩm theo từng xã/phường.
                 </p>
               </div>
               <div className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-xs text-white/80">
@@ -848,79 +845,83 @@ export function AdminMonitoringDashboard() {
               ))}
             </div>
           </div>
-          <div className="grid gap-3 border-b border-border bg-background p-4 sm:grid-cols-2 lg:grid-cols-6">
+          <div
+            className={`grid gap-3 border-b border-border bg-background p-4 sm:grid-cols-2 sm:p-5 ${
+              activeTab === "schools"
+                ? "lg:grid-cols-5"
+                : activeTab === "food"
+                  ? "lg:grid-cols-4"
+                  : "lg:grid-cols-3"
+            }`}
+          >
+            <div className="sm:col-span-2 lg:col-span-full">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="mono-label text-primary">BỘ LỌC TRA CỨU</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {activeTab === "suppliers"
+                      ? "Cơ sở cung cấp suất ăn"
+                      : activeTab === "schools"
+                        ? "Cơ sở giáo dục"
+                        : "Cơ sở cung cấp thực phẩm"}
+                  </p>
+                </div>
+                <span className="rounded-full bg-secondary px-3 py-1 text-[11px] font-bold text-muted-foreground">
+                  {activeTab === "suppliers"
+                    ? "3 tiêu chí"
+                    : activeTab === "schools"
+                      ? "5 tiêu chí"
+                      : "4 tiêu chí"}
+                </span>
+              </div>
+            </div>
+            {activeTab === "food" && (
+              <label className="text-xs font-bold text-muted-foreground">
+                <span className="mb-1.5 block">Tỉnh/thành phố</span>
+                <select
+                  value={province}
+                  onChange={(event) => setProvince(event.target.value)}
+                  className="h-11 w-full rounded-xl border border-input bg-card px-3 text-sm font-semibold outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+                  data-testid="select-dashboard-province"
+                >
+                  <option>Tất cả tỉnh/thành phố</option>
+                  <option>TP. Hồ Chí Minh</option>
+                </select>
+              </label>
+            )}
             <label className="text-xs font-bold text-muted-foreground">
-              <span className="mb-1.5 block text-primary">Địa bàn *</span>
-              <select
-                value={area}
-                onChange={(event) => {
-                  setArea(event.target.value);
-                  setDistrict(
-                    event.target.value === "Quận 1"
-                      ? "Quận 1"
-                      : "Tất cả quận/huyện",
-                  );
-                  setWard("Tất cả phường/xã");
-                }}
-                className="h-10 w-full rounded-xl border border-primary/40 bg-card px-3 text-sm font-extrabold text-foreground"
-                data-testid="select-dashboard-area"
-              >
-                <option>Quận 1</option>
-                <option>Toàn thành phố</option>
-              </select>
-            </label>
-            <label className="text-xs font-bold text-muted-foreground">
-              <span className="mb-1.5 block">Quận/Huyện</span>
-              <select
-                value={district}
-                onChange={(event) => {
-                  setDistrict(event.target.value);
-                  setWard("Tất cả phường/xã");
-                }}
-                className="h-10 w-full rounded-xl border border-input bg-card px-3 text-sm font-semibold"
-              >
-                {districtOptions.map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
-              </select>
-            </label>
-            <label className="text-xs font-bold text-muted-foreground">
-              <span className="mb-1.5 block">Phường/Xã</span>
+              <span className="mb-1.5 block">Xã/phường</span>
               <select
                 value={ward}
                 onChange={(event) => setWard(event.target.value)}
-                className="h-10 w-full rounded-xl border border-input bg-card px-3 text-sm font-semibold"
+                className="h-11 w-full rounded-xl border border-input bg-card px-3 text-sm font-semibold outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
                 data-testid="select-dashboard-ward"
               >
-                <option>Tất cả phường/xã</option>
+                <option>Tất cả xã/phường</option>
                 {wardOptions.map((item) => (
                   <option key={item}>{item}</option>
                 ))}
               </select>
             </label>
-            <label className="text-xs font-bold text-muted-foreground">
-              <span className="mb-1.5 block">
-                Cấp học
-                {activeTab !== "schools" && (
-                  <span className="ml-1 font-normal">(chỉ áp dụng trường)</span>
-                )}
-              </span>
-              <select
-                value={schoolLevel}
-                onChange={(event) =>
-                  setSchoolLevel(event.target.value as typeof schoolLevel)
-                }
-                disabled={activeTab !== "schools"}
-                className="h-10 w-full rounded-xl border border-input bg-card px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-                data-testid="select-dashboard-school-level"
-              >
-                {["Tất cả cấp học", "Mầm non", "Cấp 1", "Cấp 2", "Cấp 3"].map(
-                  (item) => (
-                    <option key={item}>{item}</option>
-                  ),
-                )}
-              </select>
-            </label>
+            {activeTab === "schools" && (
+              <label className="text-xs font-bold text-muted-foreground">
+                <span className="mb-1.5 block">Cấp học</span>
+                <select
+                  value={schoolLevel}
+                  onChange={(event) =>
+                    setSchoolLevel(event.target.value as typeof schoolLevel)
+                  }
+                  className="h-11 w-full rounded-xl border border-input bg-card px-3 text-sm font-semibold outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+                  data-testid="select-dashboard-school-level"
+                >
+                  {["Tất cả cấp học", "Mầm non", "Cấp 1", "Cấp 2", "Cấp 3"].map(
+                    (item) => (
+                      <option key={item}>{item}</option>
+                    ),
+                  )}
+                </select>
+              </label>
+            )}
             {activeTab === "schools" && (
               <label className="text-xs font-bold text-muted-foreground">
                 <span className="mb-1.5 block">Hình thức tổ chức bữa ăn</span>
@@ -931,7 +932,7 @@ export function AdminMonitoringDashboard() {
                       event.target.value as typeof mealOrganization,
                     )
                   }
-                  className="h-10 w-full rounded-xl border border-input bg-card px-3 text-sm font-semibold"
+                  className="h-11 w-full rounded-xl border border-input bg-card px-3 text-sm font-semibold outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
                   data-testid="select-dashboard-meal-organization"
                 >
                   {[
@@ -944,21 +945,6 @@ export function AdminMonitoringDashboard() {
                 </select>
               </label>
             )}
-            {activeTab !== "schools" && (
-              <label className="text-xs font-bold text-muted-foreground">
-                <span className="mb-1.5 block">
-                  Hình thức tổ chức bữa ăn
-                  <span className="ml-1 font-normal">(chỉ áp dụng trường)</span>
-                </span>
-                <select
-                  value={mealOrganization}
-                  disabled
-                  className="h-10 w-full cursor-not-allowed rounded-xl border border-input bg-card px-3 text-sm font-semibold opacity-50"
-                >
-                  <option>Không áp dụng</option>
-                </select>
-              </label>
-            )}
             <label className="text-xs font-bold text-muted-foreground">
               <span className="mb-1.5 block">Trạng thái</span>
               <select
@@ -966,7 +952,7 @@ export function AdminMonitoringDashboard() {
                 onChange={(event) =>
                   setStatus(event.target.value as typeof status)
                 }
-                className="h-10 w-full rounded-xl border border-input bg-card px-3 text-sm font-semibold"
+                className="h-11 w-full rounded-xl border border-input bg-card px-3 text-sm font-semibold outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
               >
                 {["Tất cả trạng thái", "Đạt", "Cảnh báo", "Chưa đạt"].map(
                   (item) => (
@@ -986,7 +972,7 @@ export function AdminMonitoringDashboard() {
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Tên cơ sở..."
-                  className="h-10 w-full rounded-xl border border-input bg-card pl-9 pr-3 text-sm font-semibold outline-none focus:border-primary"
+                  className="h-11 w-full rounded-xl border border-input bg-card pl-9 pr-3 text-sm font-semibold outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
                   data-testid="input-dashboard-search"
                 />
               </span>
@@ -994,16 +980,16 @@ export function AdminMonitoringDashboard() {
           </div>
           <div className="flex flex-wrap items-center gap-2 bg-amber-50/70 px-4 py-3 text-xs text-amber-900 sm:px-6">
             <MapPin size={15} className="text-amber-700" />
-            <strong>Địa bàn đang xem:</strong>
+            <strong>Phạm vi dữ liệu:</strong>
             <span>{area}</span>
             <span className="text-amber-700/60">·</span>
-            <span>Toàn bộ số liệu bên dưới được quy về địa bàn này.</span>
+            <span>Chọn xã/phường để thu hẹp danh sách cơ sở.</span>
           </div>
         </section>
 
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="mono-label text-primary">TỔNG QUAN THEO ĐỊA BÀN</p>
+            <p className="mono-label text-primary">TỔNG QUAN GIÁM SÁT</p>
             <h2 className="mt-1 text-2xl font-extrabold">{area}</h2>
           </div>
         </div>
@@ -1400,14 +1386,20 @@ export function AdminMonitoringDashboard() {
               <div className="mb-2 flex justify-between text-xs font-bold text-muted-foreground">
                 <span>Công suất đang sử dụng</span>
                 <span>
-                  {Math.round((currentDemand / currentCapacity) * 100)}%
+                {Math.round(
+                  (currentDemand / Math.max(1, currentCapacity)) * 100,
+                )}
+                %
                 </span>
               </div>
               <div className="h-4 overflow-hidden rounded-full bg-slate-100">
                 <div
                   className="h-full rounded-full bg-primary"
                   style={{
-                    width: `${Math.min(100, (currentDemand / currentCapacity) * 100)}%`,
+                    width: `${Math.min(
+                      100,
+                      (currentDemand / Math.max(1, currentCapacity)) * 100,
+                    )}%`,
                   }}
                 />
               </div>
