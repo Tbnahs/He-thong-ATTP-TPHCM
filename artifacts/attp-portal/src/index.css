@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600;700;800&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @plugin "@tailwindcss/typography";
@@ -461,3 +461,169 @@
 .focus-ring:focus-visible { outline: 3px solid hsl(var(--accent)); outline-offset: 3px; }
 @keyframes rise-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 .rise-in { animation: rise-in .5s ease both; }
+
+/* Meal management follows the supplied admin screens: quiet gray canvas,
+   compact labels, white cards, and restrained orange/purple accents. */
+.meal-management-page {
+  color: #2c3338;
+  font-family: Inter, 'Be Vietnam Pro', sans-serif;
+}
+
+.meal-management-page__header {
+  min-height: 102px;
+}
+
+.meal-management-page__header h1 {
+  color: #1f2937;
+  letter-spacing: -0.025em;
+}
+
+.meal-management-page__header p {
+  color: #6b7280;
+}
+
+.meal-filter-card {
+  border-color: #f3f4f6;
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
+}
+
+.meal-filter-card > div:first-child {
+  min-height: 22px;
+}
+
+.meal-field-label {
+  color: #6b7280;
+  font-size: 12px;
+  letter-spacing: 0.6px;
+}
+
+.meal-field-control {
+  border-color: #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.meal-field-control:focus {
+  border-color: #f26522;
+  box-shadow: 0 0 0 3px rgb(242 101 34 / 12%);
+}
+
+.meal-menu-card {
+  border-color: #f3f4f6;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 3%);
+}
+
+.meal-menu-card:hover {
+  border-color: #e5e7eb;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 7%);
+}
+
+.meal-menu-card__meta {
+  background: #fff;
+}
+
+.meal-menu-card__body {
+  background: #fff;
+}
+
+.meal-detail-overlay {
+  background: rgb(31 41 55 / 42%);
+}
+
+.meal-detail-dialog {
+  border-radius: 8px;
+  background: #f3f4f6;
+  color: #2c3338;
+}
+
+.meal-detail-dialog__header {
+  border-color: #e5e7eb;
+  box-shadow: 0 1px 0 rgb(0 0 0 / 5%);
+}
+
+.meal-detail-dialog__header h2 {
+  color: #2c3338;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+}
+
+.meal-detail-dialog__header p {
+  color: #7e3794;
+}
+
+.meal-detail-dialog__header button {
+  border-color: #e5e7eb;
+  color: #7e3794;
+}
+
+.meal-detail-dialog__header button:hover {
+  border-color: #7e3794;
+  background: #faf5fb;
+  color: #7e3794;
+}
+
+.meal-detail-card {
+  border-color: #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 3%);
+}
+
+.meal-detail-card h3 {
+  color: #2c3338;
+}
+
+.meal-detail-card thead {
+  background: #f7f8f8;
+}
+
+.meal-detail-card th {
+  color: #6b7280;
+  font-size: 11px;
+}
+
+.meal-detail-meal-row {
+  min-height: 46px;
+  border-bottom: 1px solid #f0f0f0;
+  padding: 10px 0;
+}
+
+.meal-detail-meal-row:last-child {
+  border-bottom: 0;
+}
+
+.meal-detail-meal-row > span {
+  border-color: #ead8ef;
+  background: #faf5fb;
+  color: #7e3794;
+}
+
+.meal-detail-meal-row > p {
+  color: #444;
+  font-weight: 500;
+}
+
+.meal-detail-cost {
+  border-color: #f2d3c2;
+  background: #fff7f1;
+}
+
+@media (max-width: 640px) {
+  .meal-management-page__header {
+    min-height: auto;
+  }
+
+  .meal-detail-dialog__content {
+    padding: 12px;
+  }
+
+  .meal-detail-dialog__header h2 {
+    max-width: 240px;
+    font-size: 16px;
+    line-height: 1.4;
+  }
+}

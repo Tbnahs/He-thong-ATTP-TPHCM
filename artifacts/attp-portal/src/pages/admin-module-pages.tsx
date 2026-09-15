@@ -886,14 +886,14 @@ function MenuFilterSelect({
 }) {
   return (
     <label className="block min-w-0">
-      <span className="mb-2 block text-[10px] font-extrabold uppercase tracking-[0.08em] text-slate-500">
+      <span className="meal-field-label mb-2 block text-[10px] font-extrabold uppercase tracking-[0.08em] text-slate-500">
         {label}
       </span>
       <span className="relative block">
         <select
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="h-11 w-full appearance-none rounded-lg border border-slate-200 bg-[#fbfcfd] px-3 pr-9 text-xs font-semibold text-slate-600 outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+          className="meal-field-control h-11 w-full appearance-none rounded-lg border border-slate-200 bg-[#fbfcfd] px-3 pr-9 text-xs font-semibold text-slate-600 outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
         >
           {options.map((option) => (
             <option key={option}>{option}</option>
@@ -923,7 +923,7 @@ function MealLine({
     afternoon: "border-indigo-100 bg-indigo-50 text-indigo-700",
   };
   return (
-    <div className="flex items-start gap-3">
+      <div className="meal-detail-meal-row flex items-start gap-3">
       <span
         className={`mt-0.5 inline-flex shrink-0 items-center rounded-full border px-3 py-1.5 text-[10px] font-extrabold ${toneClasses[tone]}`}
       >
@@ -947,9 +947,9 @@ function MenuCard({
   onDetails: () => void;
 }) {
   return (
-    <article className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,.04)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(15,23,42,.09)]">
+    <article className="meal-menu-card group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,.04)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(15,23,42,.09)]">
       <div className="grid lg:grid-cols-[270px_minmax(0,1fr)]">
-        <div className="border-b border-slate-100 p-5 lg:border-b-0 lg:border-r">
+        <div className="meal-menu-card__meta border-b border-slate-100 p-5 lg:border-b-0 lg:border-r">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-[10px] font-extrabold uppercase tracking-[.12em] text-orange-600">{menu.weekday}</p>
@@ -976,7 +976,7 @@ function MenuCard({
           </div>
         </div>
 
-        <div className="p-5">
+        <div className="meal-menu-card__body p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-[10px] font-extrabold uppercase tracking-[.12em] text-slate-400">Thực đơn trong ngày</p>
@@ -1025,17 +1025,17 @@ function MenuDetailDialog({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="menu-detail-title">
-      <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-[#f6f8fa] shadow-2xl">
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4 sm:px-7">
+    <div className="meal-detail-overlay fixed inset-0 z-40 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="menu-detail-title">
+      <div className="meal-detail-dialog max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-[#f3f4f6] shadow-2xl">
+        <div className="meal-detail-dialog__header sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4 sm:px-7">
           <div>
             <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-orange-600">Chi tiết thực đơn</p>
             <h2 id="menu-detail-title" className="mt-1 text-lg font-black text-slate-900">{menu.menuName} · {menu.school}</h2>
           </div>
           <button type="button" onClick={onClose} className="rounded-lg border border-slate-200 p-2 text-slate-500 transition hover:border-orange-300 hover:text-orange-600" aria-label="Đóng chi tiết thực đơn"><X size={18} /></button>
         </div>
-        <div className="space-y-4 p-4 sm:p-7">
-          <section className="rounded-xl border border-slate-200 bg-white p-5">
+        <div className="meal-detail-dialog__content space-y-4 p-4 sm:p-7">
+          <section className="meal-detail-card rounded-xl border border-slate-200 bg-white p-5">
             <div className="grid gap-4 sm:grid-cols-4">
               {[
                 ["Ngày áp dụng", `${menu.day} ${menu.month} ${menu.year}`],
@@ -1050,7 +1050,7 @@ function MenuDetailDialog({
               ))}
             </div>
           </section>
-          <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <section className="meal-detail-card overflow-hidden rounded-xl border border-slate-200 bg-white">
             <div className="border-b border-slate-100 px-5 py-4">
               <h3 className="text-sm font-black text-slate-800">Khẩu phần trong ngày</h3>
               <p className="mt-1 text-xs text-slate-400">Các món ăn được phê duyệt cho ngày áp dụng.</p>
@@ -1061,7 +1061,7 @@ function MenuDetailDialog({
               <MealLine label="BỮA CHIỀU" value={menu.afternoon} tone="afternoon" />
             </div>
           </section>
-          <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <section className="meal-detail-card overflow-hidden rounded-xl border border-slate-200 bg-white">
             <div className="border-b border-slate-100 px-5 py-4">
               <h3 className="text-sm font-black text-slate-800">Tổng hợp dinh dưỡng</h3>
             </div>
@@ -1083,7 +1083,7 @@ function MenuDetailDialog({
               </table>
             </div>
           </section>
-          <section className="flex items-center justify-between rounded-xl border border-orange-100 bg-orange-50 px-5 py-4">
+          <section className="meal-detail-cost flex items-center justify-between rounded-xl border border-orange-100 bg-orange-50 px-5 py-4">
             <div className="flex items-center gap-3"><CircleDollarSign size={19} className="text-orange-600" /><div><p className="text-xs font-extrabold text-orange-900">Cân đối chi phí</p><p className="mt-1 text-[11px] text-orange-700/75">Tổng thu {menu.menuIncome} · Tổng chi {menu.menuExpense}</p></div></div>
             <p className="text-lg font-black text-orange-700">{menu.menuIncome}</p>
           </section>
@@ -1121,8 +1121,8 @@ export function AdminMealManagementPage({ page }: { page: MealPageKey }) {
     };
     return (
       <AdminShell>
-        <div className="min-h-[calc(100dvh-65px)] bg-[#f6f8fa]">
-          <div className="border-b border-slate-200/80 bg-white px-5 py-5 lg:px-10">
+        <div className="meal-management-page min-h-[calc(100dvh-65px)] bg-[#f9fafb]">
+          <div className="meal-management-page__header border-b border-slate-200/80 bg-white px-5 py-5 lg:px-10">
             <div className="mx-auto flex max-w-[1180px] items-end justify-between gap-4">
               <div>
                 <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold text-slate-400">
@@ -1136,8 +1136,8 @@ export function AdminMealManagementPage({ page }: { page: MealPageKey }) {
               </div>
             </div>
           </div>
-          <div className="mx-auto max-w-[1180px] px-4 py-6 sm:px-7 lg:px-10">
-            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_5px_20px_rgba(15,23,42,.035)]">
+          <div className="meal-management-page__content mx-auto max-w-[1180px] px-4 py-6 sm:px-7 lg:px-10">
+            <section className="meal-filter-card rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_5px_20px_rgba(15,23,42,.035)]">
               <div className="mb-4 flex items-center gap-2 text-xs font-extrabold text-slate-800">
                 <SlidersHorizontal size={15} className="text-orange-600" /> Bộ lọc thực đơn
                 <span className="ml-auto text-[10px] font-semibold text-slate-400">Cập nhật hôm nay</span>
@@ -1147,10 +1147,10 @@ export function AdminMealManagementPage({ page }: { page: MealPageKey }) {
                 <MenuFilterSelect label="Trường học" value={school} onChange={setSchool} options={["Tất cả các trường", ...Array.from(new Set(menuRecords.map((menu) => menu.school)))]} />
                 <MenuFilterSelect label="Thời gian" value={time} onChange={setTime} options={["Chọn thời gian", "Tháng 01 2026"]} />
                 <label className="block">
-                  <span className="mb-2 block text-[10px] font-extrabold uppercase tracking-[0.08em] text-slate-500">Tìm kiếm</span>
+                   <span className="meal-field-label mb-2 block text-[10px] font-extrabold uppercase tracking-[0.08em] text-slate-500">Tìm kiếm</span>
                   <span className="relative block">
                     <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tên trường hoặc thực đơn..." className="h-11 w-full rounded-lg border border-slate-200 bg-[#fbfcfd] pl-9 pr-3 text-xs font-semibold text-slate-700 outline-none placeholder:text-slate-400 focus:border-orange-400 focus:ring-2 focus:ring-orange-100" />
+                     <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tên trường hoặc thực đơn..." className="meal-field-control h-11 w-full rounded-lg border border-slate-200 bg-[#fbfcfd] pl-9 pr-3 text-xs font-semibold text-slate-700 outline-none placeholder:text-slate-400 focus:border-orange-400 focus:ring-2 focus:ring-orange-100" />
                   </span>
                 </label>
               </div>
@@ -1179,7 +1179,7 @@ export function AdminMealManagementPage({ page }: { page: MealPageKey }) {
   }
 
   return (
-    <AdminShell>
+       <AdminShell>
       <div className="mx-auto max-w-7xl px-5 py-9 lg:px-10">
         <SectionHeading
           eyebrow={config.eyebrow}
