@@ -425,12 +425,14 @@ function PrimaryButton({
   type = "button",
   testId,
   variant = "primary",
+  className = "",
 }: {
   children: ReactNode;
   onClick?: () => void;
   type?: "button" | "submit";
   testId: string;
   variant?: "primary" | "quiet" | "danger";
+  className?: string;
 }) {
   const styles = {
     primary: "bg-[#176b53] text-white hover:bg-[#125943]",
@@ -441,7 +443,7 @@ function PrimaryButton({
     <button
       type={type}
       onClick={onClick}
-      className={`focus-ring inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold shadow-sm transition-all hover:-translate-y-0.5 ${styles[variant]}`}
+      className={`focus-ring inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold shadow-sm transition-all hover:-translate-y-0.5 ${styles[variant]} ${className}`}
       data-testid={testId}
     >
       {children}
@@ -704,8 +706,8 @@ function IncidentCreateModal({
       aria-labelledby="create-incident-modal-title"
       data-testid="dialog-create-incident"
     >
-      <div className="my-2 w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl sm:my-6">
-        <div className="flex items-start justify-between gap-4 border-b border-[#e2e8f0] px-5 py-4 sm:px-7">
+      <div className="my-2 w-full max-w-[894px] overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white p-8 shadow-[0_12px_40px_rgba(15,23,42,.12)] sm:my-6">
+        <div className="flex items-start justify-between gap-4 border-b border-[#e2e8f0] pb-6">
           <div>
             <p className="mono-label text-[#176b53]">Thanh tra, kiểm tra / Sự cố ATTP</p>
             <h2
@@ -729,8 +731,14 @@ function IncidentCreateModal({
           </button>
         </div>
 
-        <form onSubmit={submit} className="max-h-[calc(100dvh-190px)] overflow-y-auto px-5 py-5 sm:px-7" data-testid="form-create-incident-modal">
-          <div className="grid gap-5 sm:grid-cols-2">
+        <form onSubmit={submit} className="max-h-[calc(100dvh-190px)] overflow-y-auto pt-10" data-testid="form-create-incident-modal">
+          <div className="mb-6 flex items-center gap-2">
+            <span className="h-6 w-1 rounded-full bg-[#2563eb]" />
+            <h3 className="text-sm font-bold uppercase tracking-[0.05em] text-[#1e293b]">
+              1. Thông tin sự cố
+            </h3>
+          </div>
+          <div className="grid gap-x-6 gap-y-8 sm:grid-cols-2">
             <label className={`${designLabelClass} sm:col-span-2`}>
               Tiêu đề sự cố <span className="text-[#ef4444]">*</span>
               <input
@@ -847,7 +855,7 @@ function IncidentCreateModal({
               {error(form.description)}
             </label>
           </div>
-          <div className="mt-6 flex flex-col-reverse gap-3 border-t border-[#e2e8f0] pt-5 sm:flex-row sm:justify-end">
+          <div className="mt-10 flex flex-col-reverse gap-4 border-t border-[#e2e8f0] pt-6 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={onClose}
@@ -856,7 +864,12 @@ function IncidentCreateModal({
             >
               Hủy
             </button>
-            <PrimaryButton type="submit" variant="danger" testId="button-submit-incident-modal">
+            <PrimaryButton
+              type="submit"
+              variant="danger"
+              testId="button-submit-incident-modal"
+              className="h-[50px] px-10 text-base shadow-[0_10px_15px_-3px_#fee2e2,0_4px_6px_-4px_#fee2e2]"
+            >
               <Siren size={16} /> Kích hoạt SOP & gửi thông báo
             </PrimaryButton>
           </div>
