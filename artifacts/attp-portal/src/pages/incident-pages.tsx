@@ -57,6 +57,11 @@ const incidentFacilityOptions: Record<IncidentFacilityType, string[]> = {
   ],
 };
 
+const schoolMealProviders: Record<string, string> = {
+  "Trường Tiểu học Thái Sơn": "Bếp ăn tập thể An Phú",
+  "Trường Mầm non Hoa Sen": "Công ty Suất ăn Minh Tâm",
+};
+
 type Incident = {
   id: string;
   code: string;
@@ -80,6 +85,7 @@ type Incident = {
   notifyFacility: boolean;
   notifyHealth?: boolean;
   notifyDistrict: boolean;
+  notifyPartnerSchools?: boolean;
   closedAt?: string;
   closedBy?: string;
   reviewStatus: IncidentReviewStatus;
@@ -632,6 +638,7 @@ function IncidentCreateModal({
     notifyFacility: true,
     notifyHealth: false,
     notifyDistrict: false,
+    notifyPartnerSchools: false,
   });
   const [files, setFiles] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
@@ -701,6 +708,7 @@ function IncidentCreateModal({
       notifyFacility: form.notifyFacility,
       notifyHealth: form.notifyHealth,
       notifyDistrict: form.notifyDistrict,
+      notifyPartnerSchools: Boolean(externalMealProvider && form.notifyPartnerSchools),
       reviewStatus: "Chưa cập nhật",
       timeline: [
         {
@@ -721,6 +729,9 @@ function IncidentCreateModal({
   const facilities = form.facilityType
     ? incidentFacilityOptions[form.facilityType]
     : [];
+  const externalMealProvider = form.facility
+    ? schoolMealProviders[form.facility]
+    : undefined;
   const error = (value: string) =>
     submitted && !value ? (
       <span className="mt-1 block normal-case tracking-normal text-xs font-medium text-[#ef4444]">
@@ -749,12 +760,37 @@ function IncidentCreateModal({
               </div>
               <div className="space-y-6">
                 <label className={designLabelClass}>
-                  Trường học xảy ra sự cố <span className="text-[#ef4444]">*</span>
+                  Loại cơ sở <span className="text-[#ef4444]">*</span>
+                  <span className="relative block">
+                    <select
+                      value={form.facilityType}
+                      onChange={(event) => setForm((current) => ({
+                        ...current,
+                        facilityType: event.target.value as IncidentFacilityType,
+                        facility: "",
+                        notifyPartnerSchools: false,
+                      }))}
+                      className={`${designInputClass} appearance-none pr-11`}
+                      data-testid="select-modal-incident-facility-type"
+                    >
+                      {Object.keys(incidentFacilityOptions).map((type) => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={17} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
+                  </span>
+                </label>
+                <label className={designLabelClass}>
+                  {form.facilityType === "Cơ sở giáo dục" ? "Trường học xảy ra sự cố" : "Tên cơ sở xảy ra sự cố"} <span className="text-[#ef4444]">*</span>
                   <span className="relative block">
                     <Search size={17} className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[#94a3b8]" />
                     <select
                       value={form.facility}
-                      onChange={(event) => update("facility", event.target.value)}
+                      onChange={(event) => setForm((current) => ({
+                        ...current,
+                        facility: event.target.value,
+                        notifyPartnerSchools: false,
+                      }))}
                       className={`${designInputClass} appearance-none pl-11 pr-11`}
                       data-testid="select-modal-incident-facility"
                     >
@@ -856,6 +892,21 @@ function IncidentCreateModal({
                     <span><strong className="block text-[13px] text-[#1e293b]">{title}</strong><span className="mt-1 block text-[11px] text-[#64748b]">{description}</span></span>
                   </label>
                 ))}
+                {externalMealProvider && (
+                  <label className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors md:col-span-3 ${form.notifyPartnerSchools ? "border-[#2563eb] bg-[#eff6ff]" : "border-[#e2e8f0] bg-white hover:border-[#93c5fd]"}`}>
+                    <input
+                      type="checkbox"
+                      checked={form.notifyPartnerSchools}
+                      onChange={(event) => update("notifyPartnerSchools", event.target.checked)}
+                      className="mt-0.5 h-5 w-5 accent-[#2563eb]"
+                      data-testid="checkbox-modal-notify-partner-schools"
+                    />
+                    <span>
+                      <strong className="block text-[13px] text-[#1e293b]">Các trường cùng sử dụng cơ sở cung cấp suất ăn</strong>
+                      <span className="mt-1 block text-[11px] text-[#64748b]">Gửi cảnh báo đến các trường đang sử dụng {externalMealProvider}.</span>
+                    </span>
+                  </label>
+                )}
               </div>
             </section>
           </div>
@@ -1198,6 +1249,7 @@ export function IncidentDetailPage() {
     incident.notifyFacility && "Nhà trường",
     incident.notifyHealth && "Y tế địa phương",
     incident.notifyDistrict && "Cơ quan quản lý",
+    incident.notifyPartnerSchools && "Các trường cùng sử dụng cơ sở cung cấp suất ăn",
   ].filter(Boolean) as string[];
   const canCloseIncident = hasCompleteSchoolUpdate(incident.schoolUpdate);
 
