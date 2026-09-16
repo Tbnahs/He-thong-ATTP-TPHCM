@@ -617,30 +617,58 @@ function IncidentCreateModal({
 }) {
   const [form, setForm] = useState({
     title: "",
-    facilityType: "" as IncidentFacilityType | "",
+    facilityType: "Cơ sở giáo dục" as IncidentFacilityType | "",
     facility: "",
     occurredAt: "",
+    meals: ["Trưa"],
     suspectedCases: "",
     severity: "Cao" as IncidentSeverity,
     reporter: "",
+    reporterRole: "",
     phone: "",
     foods: "",
     description: "",
+    response: "",
+    notifyFacility: true,
+    notifyHealth: false,
+    notifyDistrict: false,
   });
+  const [files, setFiles] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
 
-  const update = (key: string, value: string) =>
+  const update = (key: string, value: string | boolean | string[]) =>
     setForm((current) => ({ ...current, [key]: value }));
+
+  const toggleMeal = (meal: string) =>
+    setForm((current) => ({
+      ...current,
+      meals: current.meals.includes(meal)
+        ? current.meals.filter((item) => item !== meal)
+        : [...current.meals, meal],
+    }));
+
+  const handleFiles = (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(event.target.files ?? []);
+    const validationError = validateEvidenceFiles(selectedFiles);
+    if (validationError) {
+      window.alert(validationError);
+      event.target.value = "";
+      return;
+    }
+    setFiles(selectedFiles.map((file) => file.name));
+    event.target.value = "";
+  };
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (
-      !form.title ||
-      !form.facilityType ||
       !form.facility ||
       !form.occurredAt ||
+      !form.meals.length ||
       !form.suspectedCases ||
       !form.reporter ||
+      !form.reporterRole ||
+      !form.phone ||
       !form.description
     ) {
       setSubmitted(true);
@@ -653,24 +681,26 @@ function IncidentCreateModal({
     const incident: Incident = {
       id: `INC-2026-${sequence}`,
       code: `INC-2026-${sequence}`,
-      title: form.title,
-      facilityType: form.facilityType,
+      title: form.title || `Nghi ngờ sự cố ATTP tại ${form.facility}`,
+      facilityType: form.facilityType || undefined,
       facility: form.facility,
-      meals: ["Trưa"],
+      meals: form.meals,
       suspectedCases: Number(form.suspectedCases),
       address: "Chưa cập nhật địa chỉ",
       occurredAt: form.occurredAt,
       reportedAt: now,
       reporter: form.reporter,
+      reporterRole: form.reporterRole,
       phone: form.phone,
       severity: form.severity,
       status: "Đang xử lý",
       description: form.description,
-      response: "Chưa có biện pháp xử lý được ghi nhận.",
-      foods: form.foods || "Chưa cập nhật",
-      attachments: [],
-      notifyFacility: true,
-      notifyDistrict: false,
+      response: form.response || "Chưa có biện pháp xử lý được ghi nhận.",
+      foods: form.foods || form.meals.join(", "),
+      attachments: files,
+      notifyFacility: form.notifyFacility,
+      notifyHealth: form.notifyHealth,
+      notifyDistrict: form.notifyDistrict,
       reviewStatus: "Chưa cập nhật",
       timeline: [
         {
@@ -703,157 +733,131 @@ function IncidentCreateModal({
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#0f172a]/55 p-3 sm:p-6"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="create-incident-modal-title"
+      aria-label="Tạo mới cảnh báo ATTP"
       data-testid="dialog-create-incident"
     >
       <div className="my-2 w-full max-w-[894px] overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white p-8 shadow-[0_12px_40px_rgba(15,23,42,.12)] sm:my-6">
-        <div className="flex items-start justify-between gap-4 border-b border-[#e2e8f0] pb-6">
-          <div>
-            <p className="mono-label text-[#176b53]">Thanh tra, kiểm tra / Sự cố ATTP</p>
-            <h2
-              id="create-incident-modal-title"
-              className="mt-1 text-xl font-extrabold tracking-[-.02em] text-[#143b35] sm:text-2xl"
-            >
-              Tạo mới cảnh báo ATTP
-            </h2>
-            <p className="mt-1 text-sm text-[#64748b]">
-              Ghi nhận nhanh thông tin ban đầu để kích hoạt quy trình xử lý.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="focus-ring rounded-lg p-2 text-[#64748b] transition-colors hover:bg-[#f1f5f9] hover:text-[#1e293b]"
-            aria-label="Đóng popup"
-            data-testid="button-close-create-incident"
-          >
-            <X size={20} />
+        <form onSubmit={submit} className="max-h-[calc(100dvh-80px)] overflow-y-auto" data-testid="form-create-incident-modal">
+          <button type="button" onClick={onClose} className="sr-only" aria-label="Đóng popup" data-testid="button-close-create-incident">
+            Đóng popup
           </button>
-        </div>
+          <div className="space-y-10">
+            <section>
+              <div className="mb-6 flex items-center gap-2">
+                <span className="h-6 w-1 rounded-full bg-[#2563eb]" />
+                <h3 className="text-sm font-bold uppercase tracking-[0.05em] text-[#1e293b]">1. Thông tin sự cố</h3>
+              </div>
+              <div className="space-y-6">
+                <label className={designLabelClass}>
+                  Trường học xảy ra sự cố <span className="text-[#ef4444]">*</span>
+                  <span className="relative block">
+                    <Search size={17} className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[#94a3b8]" />
+                    <select
+                      value={form.facility}
+                      onChange={(event) => update("facility", event.target.value)}
+                      className={`${designInputClass} appearance-none pl-11 pr-11`}
+                      data-testid="select-modal-incident-facility"
+                    >
+                      <option value="">Chọn trường học</option>
+                      {facilities.map((facility) => <option key={facility}>{facility}</option>)}
+                    </select>
+                    <ChevronDown size={17} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
+                  </span>
+                  {error(form.facility)}
+                </label>
+                <div className="grid gap-6 md:grid-cols-2">
+                  <label className={designLabelClass}>
+                    Thời điểm phát hiện <span className="text-[#ef4444]">*</span>
+                    <span className="relative block">
+                      <Clock3 size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
+                      <input type="datetime-local" value={form.occurredAt} onChange={(event) => update("occurredAt", event.target.value)} className={`${designInputClass} pl-11`} data-testid="input-modal-incident-occurred-at" />
+                    </span>
+                    {error(form.occurredAt)}
+                  </label>
+                  <div>
+                    <p className={designLabelClass}>Bữa ăn liên quan <span className="text-[#64748b]">* (Được chọn nhiều)</span></p>
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      {["Sáng", "Trưa", "Chiều", "Tối"].map((meal) => {
+                        const selected = form.meals.includes(meal);
+                        return (
+                          <button type="button" key={meal} onClick={() => toggleMeal(meal)} className={`h-[50px] rounded-xl border text-sm font-medium transition-colors ${selected ? "border-[#2563eb] bg-[#eff6ff] text-[#1d4ed8]" : "border-[#e2e8f0] bg-[#f8fafc] text-[#475569] hover:border-[#93c5fd]"}`} data-testid={`button-modal-incident-meal-${meal}`}>
+                            {meal}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {submitted && !form.meals.length && <span className="mt-1 block text-xs font-medium text-[#ef4444]">Vui lòng chọn ít nhất một bữa ăn.</span>}
+                  </div>
+                </div>
+                <label className="block max-w-[calc(50%-12px)] min-w-[240px] sm:max-w-[calc(50%-12px)]">
+                  <span className={designLabelClass}>Số ca nghi ngờ <span className="text-[#ef4444]">*</span></span>
+                  <input type="number" min="1" value={form.suspectedCases} onChange={(event) => update("suspectedCases", event.target.value)} className={designInputClass} placeholder="0" data-testid="input-modal-incident-suspected-cases" />
+                  {error(form.suspectedCases)}
+                </label>
+              </div>
+            </section>
 
-        <form onSubmit={submit} className="max-h-[calc(100dvh-190px)] overflow-y-auto pt-10" data-testid="form-create-incident-modal">
-          <div className="mb-6 flex items-center gap-2">
-            <span className="h-6 w-1 rounded-full bg-[#2563eb]" />
-            <h3 className="text-sm font-bold uppercase tracking-[0.05em] text-[#1e293b]">
-              1. Thông tin sự cố
-            </h3>
-          </div>
-          <div className="grid gap-x-6 gap-y-8 sm:grid-cols-2">
-            <label className={`${designLabelClass} sm:col-span-2`}>
-              Tiêu đề sự cố <span className="text-[#ef4444]">*</span>
-              <input
-                value={form.title}
-                onChange={(event) => update("title", event.target.value)}
-                className={designInputClass}
-                placeholder="Ví dụ: Nghi ngờ ngộ độc sau bữa trưa"
-                data-testid="input-modal-incident-title"
-              />
-              {error(form.title)}
-            </label>
-            <label className={designLabelClass}>
-              Loại cơ sở <span className="text-[#ef4444]">*</span>
-              <select
-                value={form.facilityType}
-                onChange={(event) => {
-                  setForm((current) => ({
-                    ...current,
-                    facilityType: event.target.value as IncidentFacilityType,
-                    facility: "",
-                  }));
-                }}
-                className={designInputClass}
-                data-testid="select-modal-incident-facility-type"
-              >
-                <option value="">Chọn loại cơ sở</option>
-                {Object.keys(incidentFacilityOptions).map((type) => (
-                  <option key={type} value={type}>{type}</option>
+            <section>
+              <div className="mb-6 flex items-center gap-2">
+                <span className="h-6 w-1 rounded-full bg-[#94a3b8]" />
+                <h3 className="text-sm font-bold uppercase tracking-[0.05em] text-[#1e293b]">2. Thông tin người báo cáo & ghi chú</h3>
+              </div>
+              <div className="grid gap-6 md:grid-cols-3">
+                <label className={designLabelClass}>
+                  Họ và tên <span className="text-[#ef4444]">*</span>
+                  <input value={form.reporter} onChange={(event) => update("reporter", event.target.value)} className={designInputClass} placeholder="Nguyễn Văn A" data-testid="input-modal-incident-reporter" />
+                  {error(form.reporter)}
+                </label>
+                <label className={designLabelClass}>
+                  Chức vụ <span className="text-[#ef4444]">*</span>
+                  <input value={form.reporterRole} onChange={(event) => update("reporterRole", event.target.value)} className={designInputClass} placeholder="Trưởng trạm y tế" data-testid="input-modal-incident-reporter-role" />
+                  {error(form.reporterRole)}
+                </label>
+                <label className={designLabelClass}>
+                  Số điện thoại <span className="text-[#ef4444]">*</span>
+                  <input value={form.phone} onChange={(event) => update("phone", event.target.value)} className={designInputClass} placeholder="0909 123 456" data-testid="input-modal-incident-phone" />
+                  {error(form.phone)}
+                </label>
+              </div>
+              <label className={`${designLabelClass} mt-6 block`}>
+                Mô tả chi tiết
+                <textarea value={form.description} onChange={(event) => update("description", event.target.value)} className={designAreaClass} placeholder="Mô tả các biểu hiện của học sinh và các biện pháp xử lý ban đầu tại chỗ..." data-testid="textarea-modal-incident-description" />
+                {error(form.description)}
+              </label>
+            </section>
+
+            <section>
+              <div className="mb-6 flex items-center gap-2">
+                <span className="h-6 w-1 rounded-full bg-[#94a3b8]" />
+                <h3 className="text-sm font-bold uppercase tracking-[0.05em] text-[#1e293b]">3. Tải lên minh chứng / hình ảnh</h3>
+              </div>
+              <label className="flex min-h-[132px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#e2e8f0] bg-[#f8fafc] px-5 text-center transition-colors hover:border-[#93c5fd] hover:bg-[#eff6ff]" data-testid="label-upload-modal-incident-files">
+                <span className="flex h-12 w-12 items-center justify-center rounded-full border border-[#e2e8f0] bg-white text-[#2563eb] shadow-sm"><Upload size={22} /></span>
+                <span className="mt-3 text-base font-medium text-[#1e293b]">Nhấn để tải lên hoặc kéo thả hình ảnh/tài liệu</span>
+                <span className="mt-1 text-xs text-[#64748b]">Hỗ trợ JPG, PNG, PDF (Tối đa 10MB)</span>
+                <input type="file" accept={EVIDENCE_ACCEPT} multiple className="sr-only" onChange={handleFiles} data-testid="input-modal-incident-files" />
+              </label>
+              {files.length > 0 && <div className="mt-3 space-y-2">{files.map((file) => <div key={file} className="flex items-center justify-between rounded-lg bg-[#eff6ff] px-3 py-2 text-xs font-semibold text-[#1e3a8a]"><span className="flex items-center gap-2 truncate"><FileText size={14} />{file}</span><button type="button" onClick={() => setFiles((current) => current.filter((name) => name !== file))} className="focus-ring rounded p-1 text-[#64748b] hover:text-[#ef4444]" aria-label={`Xóa tệp ${file}`}><X size={14} /></button></div>)}</div>}
+            </section>
+
+            <section>
+              <div className="mb-6 flex items-center gap-2">
+                <span className="h-6 w-1 rounded-full bg-[#2563eb]" />
+                <h3 className="text-sm font-bold uppercase tracking-[0.05em] text-[#1e293b]">4. Gửi thông báo đến các bên liên quan</h3>
+              </div>
+              <div className="grid gap-4 md:grid-cols-3">
+                {[
+                  ["notifyFacility", "Nhà trường", "Thông báo qua hệ thống", form.notifyFacility, "checkbox-modal-notify-facility"],
+                  ["notifyHealth", "Trạm Y tế địa phương", "Gửi Email tự động", form.notifyHealth, "checkbox-modal-notify-health"],
+                  ["notifyDistrict", "UBND Phường/Xã", "Gửi Email tự động", form.notifyDistrict, "checkbox-modal-notify-district"],
+                ].map(([key, title, description, checked, testId]) => (
+                  <label key={String(key)} className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${checked ? "border-[#2563eb] bg-[#eff6ff]" : "border-[#e2e8f0] bg-white hover:border-[#93c5fd]"}`}>
+                    <input type="checkbox" checked={Boolean(checked)} onChange={(event) => update(String(key), event.target.checked)} className="mt-0.5 h-5 w-5 accent-[#2563eb]" data-testid={testId} />
+                    <span><strong className="block text-[13px] text-[#1e293b]">{title}</strong><span className="mt-1 block text-[11px] text-[#64748b]">{description}</span></span>
+                  </label>
                 ))}
-              </select>
-              {error(form.facilityType)}
-            </label>
-            <label className={designLabelClass}>
-              Cơ sở liên quan <span className="text-[#ef4444]">*</span>
-              <select
-                value={form.facility}
-                onChange={(event) => update("facility", event.target.value)}
-                className={designInputClass}
-                disabled={!form.facilityType}
-                data-testid="select-modal-incident-facility"
-              >
-                <option value="">Chọn cơ sở</option>
-                {facilities.map((facility) => <option key={facility}>{facility}</option>)}
-              </select>
-              {error(form.facility)}
-            </label>
-            <label className={designLabelClass}>
-              Thời điểm xảy ra <span className="text-[#ef4444]">*</span>
-              <input
-                type="datetime-local"
-                value={form.occurredAt}
-                onChange={(event) => update("occurredAt", event.target.value)}
-                className={designInputClass}
-                data-testid="input-modal-incident-occurred-at"
-              />
-              {error(form.occurredAt)}
-            </label>
-            <label className={designLabelClass}>
-              Số ca nghi ngờ <span className="text-[#ef4444]">*</span>
-              <input
-                type="number"
-                min="1"
-                value={form.suspectedCases}
-                onChange={(event) => update("suspectedCases", event.target.value)}
-                className={designInputClass}
-                placeholder="0"
-                data-testid="input-modal-incident-suspected-cases"
-              />
-              {error(form.suspectedCases)}
-            </label>
-            <label className={designLabelClass}>
-              Mức độ ưu tiên
-              <select
-                value={form.severity}
-                onChange={(event) => update("severity", event.target.value)}
-                className={designInputClass}
-                data-testid="select-modal-incident-priority"
-              >
-                <option>Khẩn cấp</option>
-                <option>Cao</option>
-                <option>Trung bình</option>
-              </select>
-            </label>
-            <label className={designLabelClass}>
-              Người báo tin <span className="text-[#ef4444]">*</span>
-              <input
-                value={form.reporter}
-                onChange={(event) => update("reporter", event.target.value)}
-                className={designInputClass}
-                placeholder="Nguyễn Văn A"
-                data-testid="input-modal-incident-reporter"
-              />
-              {error(form.reporter)}
-            </label>
-            <label className={designLabelClass}>
-              Số điện thoại
-              <input
-                value={form.phone}
-                onChange={(event) => update("phone", event.target.value)}
-                className={designInputClass}
-                placeholder="0909 123 456"
-                data-testid="input-modal-incident-phone"
-              />
-            </label>
-            <label className={`${designLabelClass} sm:col-span-2`}>
-              Mô tả chi tiết / ghi chú ban đầu <span className="text-[#ef4444]">*</span>
-              <textarea
-                value={form.description}
-                onChange={(event) => update("description", event.target.value)}
-                className={designAreaClass}
-                placeholder="Mô tả các biểu hiện, số người bị ảnh hưởng và biện pháp xử lý ban đầu..."
-                data-testid="textarea-modal-incident-description"
-              />
-              {error(form.description)}
-            </label>
+              </div>
+            </section>
           </div>
           <div className="mt-10 flex flex-col-reverse gap-4 border-t border-[#e2e8f0] pt-6 sm:flex-row sm:justify-end">
             <button
