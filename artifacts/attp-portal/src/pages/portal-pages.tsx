@@ -2376,7 +2376,7 @@ function ApplicationForm({
     initialSnapshot?.type || "food-supplier",
   );
   const [fields, setFields] = useState<Record<string, CriteriaValue>>(
-    normalizeRegistrationFields(initialSnapshot?.fields || {}),
+    initialSnapshot?.fields || {},
   );
   const [files, setFiles] = useState<Attachment[]>(
     initialSnapshot?.files || [],
@@ -2385,6 +2385,7 @@ function ApplicationForm({
   const [accountPassword, setAccountPassword] = useState("");
   const [accountPasswordConfirm, setAccountPasswordConfirm] = useState("");
   const [notice, setNotice] = useState("");
+  const [submitAttempted, setSubmitAttempted] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [credentials, setCredentials] = useState<{
     email: string;
@@ -2507,12 +2508,11 @@ function ApplicationForm({
         .filter((item) => item.active && isVisible(item))
         .sort((a, b) => a.order - b.order) ?? [];
     const missing = formFields.filter((item) => {
-      if (!item.required) return false;
       if (item.answerType === "repeatable") {
         const rows = Array.isArray(fields[item.key])
           ? (fields[item.key] as RepeatableValue)
           : [];
-        if (rows.length === 0) return true;
+        if (item.required && rows.length === 0) return true;
         return rows.some((row, index) =>
           (item.repeatableFields ?? []).some((field) => {
             if (!field.required) return false;
@@ -2527,6 +2527,7 @@ function ApplicationForm({
           }),
         );
       }
+      if (!item.required) return false;
       if (item.answerType === "file")
         return !files.some((file) => file.fieldKey === item.key);
       const answer = fields[item.key] ?? "";
@@ -2535,11 +2536,27 @@ function ApplicationForm({
         : !String(answer).trim();
     });
     if (missing.length) {
+      const missingSchoolRows =
+        type === "meal-provider" && Array.isArray(fields.servingSchools)
+          ? (fields.servingSchools as RepeatableValue)
+              .map((row, index) => ({
+                index,
+                missing: !files.some(
+                  (file) =>
+                    file.fieldKey ===
+                    `servingSchools.${index}.evidence`,
+                ),
+              }))
+              .filter((row) => row.missing)
+              .map((row) => row.index + 1)
+          : [];
       setNotice(
-        `Vui lòng hoàn thiện: ${missing
-          .slice(0, 3)
-          .map((item) => item.label)
-          .join(", ")}${missing.length > 3 ? "…" : ""}.`,
+        missingSchoolRows.length
+          ? `Vui lòng bổ sung ít nhất 1 file minh chứng cho dòng trường: ${missingSchoolRows.join(", ")}.`
+          : `Vui lòng hoàn thiện: ${missing
+              .slice(0, 3)
+              .map((item) => item.label)
+              .join(", ")}${missing.length > 3 ? "…" : ""}.`,
       );
       return;
     }
@@ -2572,6 +2589,15 @@ function ApplicationForm({
       data.vehicleType = vehicleTypes;
       data.ownershipType =
         ownershipTypes.length === 1 ? ownershipTypes[0] : ownershipTypes;
+      const schoolRows = Array.isArray(fields.servingSchools)
+        ? (fields.servingSchools as RepeatableValue)
+        : [];
+      data.servingSchools = schoolRows.map((row, index) => ({
+        ...row,
+        evidenceFiles: files
+          .filter((file) => file.fieldKey === `servingSchools.${index}.evidence`)
+          .map((file) => file.name),
+      }));
     }
     const asText = (value: CriteriaValue | undefined) => {
       if (typeof value === "string") return value;
@@ -2640,6 +2666,7 @@ function ApplicationForm({
     }
     void input;
     setSubmitted(true);
+    setSubmitAttempted(false);
     setNotice(
       mode === "register"
         ? "Đăng ký thành công. Hãy lưu lại tài khoản và mật khẩu bên dưới."
@@ -2762,6 +2789,7 @@ function ApplicationForm({
       onFiles={(event) => addFilesFor(item.key, event)}
       onFilesFor={addFilesFor}
       onRemoveFile={(name, fieldKey) => removeFile(name, fieldKey ?? item.key)}
+      showValidationErrors={submitAttempted}
     />
   );
   return (
@@ -2980,6 +3008,7 @@ function DynamicQuestion({
   onFiles,
   onFilesFor,
   onRemoveFile,
+  showValidationErrors,
 }: {
   item: CriteriaDefinition;
   value: CriteriaValue;
@@ -2990,6 +3019,7 @@ function DynamicQuestion({
   onFiles: (event: ChangeEvent<HTMLInputElement>) => void;
   onFilesFor: (fieldKey: string, event: ChangeEvent<HTMLInputElement>) => void;
   onRemoveFile: (name: string, fieldKey?: string) => void;
+  showValidationErrors: boolean;
 }) {
   return (
     <DynamicQuestionControl
@@ -3002,6 +3032,7 @@ function DynamicQuestion({
       onFiles={onFiles}
       onFilesFor={onFilesFor}
       onRemoveFile={onRemoveFile}
+      showValidationErrors={showValidationErrors}
     />
   );
 }
@@ -3016,6 +3047,7 @@ function DynamicQuestionControl({
   onFiles,
   onFilesFor,
   onRemoveFile,
+  showValidationErrors,
 }: {
   item: CriteriaDefinition;
   value: CriteriaValue;
@@ -3026,6 +3058,7 @@ function DynamicQuestionControl({
   onFiles: (event: ChangeEvent<HTMLInputElement>) => void;
   onFilesFor: (fieldKey: string, event: ChangeEvent<HTMLInputElement>) => void;
   onRemoveFile: (name: string, fieldKey?: string) => void;
+  showValidationErrors: boolean;
 }) {
   const options =
     item.key === "supplierId"
@@ -3088,6 +3121,7 @@ function DynamicQuestionControl({
         onChange={onChange}
         onFilesFor={onFilesFor}
         onRemoveFile={onRemoveFile}
+        showValidationErrors={showValidationErrors}
       />
     );
   if (item.answerType === "file")
@@ -3266,6 +3300,7 @@ function RepeatableQuestion({
   onChange,
   onFilesFor,
   onRemoveFile,
+  showValidationErrors,
 }: {
   item: CriteriaDefinition;
   value: CriteriaValue;
@@ -3274,6 +3309,7 @@ function RepeatableQuestion({
   onChange: (value: CriteriaValue) => void;
   onFilesFor: (fieldKey: string, event: ChangeEvent<HTMLInputElement>) => void;
   onRemoveFile: (name: string, fieldKey?: string) => void;
+  showValidationErrors: boolean;
 }) {
   const rows: Record<string, string | string[]>[] =
     Array.isArray(value) &&
@@ -3333,7 +3369,16 @@ function RepeatableQuestion({
         {rows.map((row, rowIndex) => (
           <div
             key={`${item.key}-${rowIndex}`}
-            className="rounded-xl border border-border bg-secondary/20 p-4"
+            className={`rounded-xl border bg-secondary/20 p-4 ${
+              showValidationErrors &&
+              item.key === "servingSchools" &&
+              !files.some(
+                (file) =>
+                  file.fieldKey === `${item.key}.${rowIndex}.evidence`,
+              )
+                ? "border-destructive/60"
+                : "border-border"
+            }`}
           >
             <div className="mb-4 flex items-center justify-between gap-3">
               <p className="text-sm font-bold">
@@ -3346,13 +3391,18 @@ function RepeatableQuestion({
               </p>
               <button
                 type="button"
-                className="text-xs font-bold text-muted-foreground hover:text-destructive"
+                className="focus-ring rounded-full p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                 onClick={() => removeRow(rowIndex)}
+                aria-label={`Xóa dòng ${rowIndex + 1}`}
               >
-                Xóa dòng
+                <X size={16} />
               </button>
             </div>
-            <div className="grid gap-4 md:grid-cols-2">
+            <div
+              className={`grid gap-4 ${
+                item.key === "deliveryVehicles" ? "md:grid-cols-3" : "md:grid-cols-2"
+              }`}
+            >
               {fields.map((field) => {
                 const fieldKey = `${item.key}.${rowIndex}.${field.key}`;
                 const fieldValue = row[field.key] ?? "";
@@ -3368,8 +3418,11 @@ function RepeatableQuestion({
                           <span className="text-destructive"> *</span>
                         )}
                       </p>
-                      <label className="focus-ring flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-dashed border-primary/35 bg-background px-4 text-sm font-semibold text-primary hover:bg-secondary">
-                        <Plus size={16} /> Chọn tệp
+                      <p className="mb-2 text-xs text-muted-foreground">
+                        PDF, JPG hoặc PNG · tối đa {EVIDENCE_MAX_SIZE_LABEL}/tệp · có thể chọn nhiều tệp
+                      </p>
+                      <label className="focus-ring flex min-h-16 cursor-pointer items-center gap-3 rounded-xl border border-dashed border-primary/35 bg-secondary/30 px-4 text-sm font-semibold text-primary hover:bg-secondary">
+                        <Plus size={16} /> Chọn tệp minh chứng
                         <input
                           type="file"
                           accept={EVIDENCE_ACCEPT}
@@ -3379,6 +3432,18 @@ function RepeatableQuestion({
                           data-testid={`input-criteria-${fieldKey}`}
                         />
                       </label>
+                      {item.key === "servingSchools" && (
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          VD: hợp đồng cung cấp suất ăn, xác nhận hợp tác, hoặc email/văn bản trao đổi
+                        </p>
+                      )}
+                      {showValidationErrors &&
+                        item.key === "servingSchools" &&
+                        rowFiles.length === 0 && (
+                          <p className="mt-2 text-xs font-semibold text-destructive" role="alert">
+                            Vui lòng chọn ít nhất 1 file minh chứng cho trường này.
+                          </p>
+                        )}
                       {rowFiles.map((file) => (
                         <div
                           key={file.name}
@@ -3456,6 +3521,30 @@ function RepeatableQuestion({
                         </fieldset>
                       );
                     }
+                    if (
+                      item.key === "servingSchools" &&
+                      field.key === "schoolId"
+                    ) {
+                      return (
+                        <SchoolPicker
+                          key={field.key}
+                          value={String(fieldValue)}
+                          schools={schools}
+                          excludedSchoolIds={rows
+                            .filter((_, index) => index !== rowIndex)
+                            .map((otherRow) => otherRow.schoolId)
+                            .filter(
+                              (schoolId): schoolId is string =>
+                                typeof schoolId === "string",
+                            )}
+                          onChange={(nextValue) =>
+                            updateRow(rowIndex, field.key, nextValue)
+                          }
+                          fieldKey={fieldKey}
+                          required={field.required}
+                        />
+                      );
+                    }
                     return (
                       <label key={field.key} className="block">
                         <span className="mb-2 block text-sm font-semibold">
@@ -3482,8 +3571,6 @@ function RepeatableQuestion({
                               key={optionValues[optionIndex]}
                               value={optionValues[optionIndex]}
                               disabled={
-                                (item.key === "servingSchools" &&
-                                  field.key === "schoolId") ||
                                 (item.key === "deliveryVehicles" &&
                                   field.key === "vehicleType") &&
                                 optionValues[optionIndex] !== fieldValue &&
@@ -3502,15 +3589,25 @@ function RepeatableQuestion({
                     );
                   }
                 return (
-                  <label key={field.key} className="block">
+                  <label
+                    key={field.key}
+                    className={`block ${
+                      item.key === "deliveryVehicles" && field.key === "quantity"
+                        ? "relative"
+                        : ""
+                    }`}
+                  >
                     <span className="mb-2 block text-sm font-semibold">
                       {field.label}
                       {field.required && (
                         <span className="text-destructive"> *</span>
                       )}
                     </span>
+                    <span className="relative block">
                     <input
                       type={field.answerType === "number" ? "number" : "text"}
+                      min={field.answerType === "number" ? 1 : undefined}
+                      step={field.answerType === "number" ? 1 : undefined}
                       value={
                         Array.isArray(fieldValue)
                           ? fieldValue.join(", ")
@@ -3522,14 +3619,154 @@ function RepeatableQuestion({
                       className="focus-ring h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
                       data-testid={`input-criteria-${fieldKey}`}
                     />
+                    {item.key === "deliveryVehicles" &&
+                      field.key === "quantity" && (
+                        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground">
+                          xe
+                        </span>
+                      )}
+                    </span>
                   </label>
                 );
               })}
             </div>
+            {item.key === "deliveryVehicles" &&
+              showValidationErrors &&
+              (typeof row.vehicleType !== "string" ||
+                !row.vehicleType ||
+                typeof row.ownershipType !== "string" ||
+                !row.ownershipType ||
+                !String(row.quantity ?? "").trim()) && (
+                <p className="mt-3 text-xs font-semibold text-destructive" role="alert">
+                  Vui lòng hoàn thiện loại phương tiện, hình thức sở hữu và số lượng.
+                </p>
+              )}
           </div>
         ))}
       </div>
+      {item.key === "servingSchools" && (
+        <p className="mt-4 rounded-xl bg-secondary/50 px-4 py-3 text-sm font-semibold text-primary">
+          Đang phục vụ: {rows.length} trường
+        </p>
+      )}
+      {item.key === "deliveryVehicles" && (
+        <p className="mt-4 rounded-xl bg-secondary/50 px-4 py-3 text-sm font-semibold text-primary">
+          Tổng cộng:{" "}
+          {rows.reduce(
+            (total, row) =>
+              total + Math.max(0, Number.parseInt(String(row.quantity ?? "0"), 10) || 0),
+            0,
+          )}{" "}
+          phương tiện —{" "}
+          {rows
+            .filter((row) => row.ownershipType === "Chuyên dụng")
+            .reduce(
+              (total, row) =>
+                total + Math.max(0, Number.parseInt(String(row.quantity ?? "0"), 10) || 0),
+              0,
+            )}{" "}
+          chuyên dụng,{" "}
+          {rows
+            .filter((row) => row.ownershipType === "Thuê ngoài")
+            .reduce(
+              (total, row) =>
+                total + Math.max(0, Number.parseInt(String(row.quantity ?? "0"), 10) || 0),
+              0,
+            )}{" "}
+          thuê ngoài
+        </p>
+      )}
     </div>
+  );
+}
+
+function SchoolPicker({
+  value,
+  schools,
+  excludedSchoolIds,
+  onChange,
+  fieldKey,
+  required,
+}: {
+  value: string;
+  schools: readonly { id: string; name: string }[];
+  excludedSchoolIds: string[];
+  onChange: (value: string) => void;
+  fieldKey: string;
+  required?: boolean;
+}) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const selectedSchool = schools.find((school) => school.id === value);
+  const searchValue = open ? query : selectedSchool?.name ?? "";
+  const options = schools.filter(
+    (school) =>
+      !excludedSchoolIds.includes(school.id) &&
+      school.name.toLowerCase().includes(query.trim().toLowerCase()),
+  );
+  return (
+    <label className="relative block">
+      <span className="mb-2 block text-sm font-semibold">
+        Tên trường
+        {required && <span className="text-destructive"> *</span>}
+      </span>
+      <input
+        value={searchValue}
+        onFocus={() => {
+          setQuery(selectedSchool?.name ?? "");
+          setOpen(true);
+        }}
+        onChange={(event) => {
+          setQuery(event.target.value);
+          setOpen(true);
+        }}
+        placeholder="Tìm trường đã đăng ký"
+        className="focus-ring h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
+        role="combobox"
+        aria-expanded={open}
+        aria-controls={`school-options-${fieldKey}`}
+        data-testid={`input-criteria-${fieldKey}`}
+      />
+      {open && (
+        <div
+          id={`school-options-${fieldKey}`}
+          className="absolute inset-x-0 top-full z-20 mt-1 max-h-56 overflow-auto rounded-xl border border-border bg-card p-1 shadow-xl"
+          role="listbox"
+        >
+          {options.length > 0 ? (
+            options.map((school) => (
+              <button
+                type="button"
+                key={school.id}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  onChange(school.id);
+                  setQuery("");
+                  setOpen(false);
+                }}
+                className="focus-ring block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-secondary"
+                role="option"
+                aria-selected={school.id === value}
+              >
+                {school.name}
+              </button>
+            ))
+          ) : (
+            <p className="px-3 py-2 text-sm text-muted-foreground">
+              Không tìm thấy trường trong danh sách đã đăng ký.
+            </p>
+          )}
+        </div>
+      )}
+      {open && (
+        <button
+          type="button"
+          className="fixed inset-0 z-10 cursor-default"
+          aria-label="Đóng danh sách trường"
+          onClick={() => setOpen(false)}
+        />
+      )}
+    </label>
   );
 }
 
