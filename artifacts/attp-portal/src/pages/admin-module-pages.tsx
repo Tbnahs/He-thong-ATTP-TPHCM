@@ -3795,6 +3795,20 @@ export function AdminFacilityDetailPage() {
     !detailMissingFields.length;
   const firstRegistrationValue = (...keys: string[]) =>
     keys.map((key) => registrationValue(key)).find(Boolean) ?? "";
+  const deliveryVehicleSummary = Array.isArray(
+    registrationFields.deliveryVehicles,
+  )
+    ? registrationFields.deliveryVehicles
+        .map((vehicle) => {
+          if (typeof vehicle !== "object" || vehicle === null) return "";
+          const entry = vehicle as Record<string, unknown>;
+          return [entry.vehicleType, entry.ownershipType]
+            .filter((value): value is string => typeof value === "string" && Boolean(value))
+            .join(" · ");
+        })
+        .filter(Boolean)
+        .join(", ")
+    : "";
   const basicDetailFields: Array<[string, string]> = [
     [
       "Tên cơ sở",
@@ -3848,7 +3862,12 @@ export function AdminFacilityDetailPage() {
         "Số trường / đơn vị đang phục vụ",
         firstRegistrationValue("servingUnits") || formatDetailNumber(row.serving),
       ],
-      ["Phương tiện giao suất ăn", firstRegistrationValue("vehicleType") || "—"],
+      [
+        "Phương tiện giao suất ăn",
+        deliveryVehicleSummary ||
+          firstRegistrationValue("vehicleType") ||
+          "—",
+      ],
     );
   } else {
     basicDetailFields.push(

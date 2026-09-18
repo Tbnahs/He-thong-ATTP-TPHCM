@@ -2376,7 +2376,7 @@ function ApplicationForm({
     initialSnapshot?.type || "food-supplier",
   );
   const [fields, setFields] = useState<Record<string, CriteriaValue>>(
-    initialSnapshot?.fields || {},
+    normalizeRegistrationFields(initialSnapshot?.fields || {}),
   );
   const [files, setFiles] = useState<Attachment[]>(
     initialSnapshot?.files || [],
@@ -2551,6 +2551,28 @@ function ApplicationForm({
           .filter((file) => file.fieldKey === item.key)
           .map((file) => file.name);
       });
+    if (type === "meal-provider") {
+      const vehicleRows = Array.isArray(fields.deliveryVehicles)
+        ? (fields.deliveryVehicles as RepeatableValue)
+        : [];
+      const vehicleTypes = vehicleRows
+        .map((row) => row.vehicleType)
+        .filter((value): value is string => typeof value === "string" && Boolean(value));
+      const ownershipTypes = [
+        ...new Set(
+          vehicleRows
+            .map((row) => row.ownershipType)
+            .filter(
+              (value): value is string =>
+                typeof value === "string" && Boolean(value),
+            ),
+        ),
+      ];
+      data.deliveryVehicles = vehicleRows;
+      data.vehicleType = vehicleTypes;
+      data.ownershipType =
+        ownershipTypes.length === 1 ? ownershipTypes[0] : ownershipTypes;
+    }
     const asText = (value: CriteriaValue | undefined) => {
       if (typeof value === "string") return value;
       if (Array.isArray(value)) {
@@ -2888,31 +2910,6 @@ function ApplicationForm({
                       renderQuestion={renderQuestion}
                     />
                   );
-                }
-                if (
-                  type === "meal-provider" &&
-                  group.id === "meal-provider-group-6" &&
-                  item.key === "vehicleType"
-                ) {
-                  const ownershipField = groupFields.find(
-                    (field) => field.key === "ownershipType",
-                  );
-                  return (
-                    <div
-                      key={`${item.id}-${index}`}
-                      className="grid gap-4 md:grid-cols-2"
-                    >
-                      {renderQuestion(item)}
-                      {ownershipField && renderQuestion(ownershipField)}
-                    </div>
-                  );
-                }
-                if (
-                  type === "meal-provider" &&
-                  group.id === "meal-provider-group-6" &&
-                  item.key === "ownershipType"
-                ) {
-                  return null;
                 }
                 return (
                   <Fragment key={`${item.id}-${index}`}>
@@ -3420,6 +3417,45 @@ function RepeatableQuestion({
                       item.key === "servingSchools" && field.key === "schoolId"
                         ? schools.map((school) => school.id)
                         : options;
+                    if (
+                      item.key === "deliveryVehicles" &&
+                      field.key === "ownershipType"
+                    ) {
+                      const selected =
+                        Array.isArray(fieldValue)
+                          ? (fieldValue[0] ?? "")
+                          : fieldValue;
+                      return (
+                        <fieldset key={field.key} className="block">
+                          <legend className="mb-2 block text-sm font-semibold">
+                            {field.label}
+                            {field.required && (
+                              <span className="text-destructive"> *</span>
+                            )}
+                          </legend>
+                          <div className="inline-flex w-full rounded-xl border border-input bg-background p-1">
+                            {options.map((option) => (
+                              <button
+                                key={option}
+                                type="button"
+                                onClick={() =>
+                                  updateRow(rowIndex, field.key, option)
+                                }
+                                className={`min-h-9 flex-1 rounded-lg px-3 text-sm font-semibold transition-colors ${
+                                  selected === option
+                                    ? "bg-secondary text-primary shadow-sm"
+                                    : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+                                }`}
+                                aria-pressed={selected === option}
+                                data-testid={`input-criteria-${fieldKey}-${option}`}
+                              >
+                                {option}
+                              </button>
+                            ))}
+                          </div>
+                        </fieldset>
+                      );
+                    }
                     return (
                       <label key={field.key} className="block">
                         <span className="mb-2 block text-sm font-semibold">
@@ -3446,8 +3482,10 @@ function RepeatableQuestion({
                               key={optionValues[optionIndex]}
                               value={optionValues[optionIndex]}
                               disabled={
-                                item.key === "servingSchools" &&
-                                field.key === "schoolId" &&
+                                (item.key === "servingSchools" &&
+                                  field.key === "schoolId") ||
+                                (item.key === "deliveryVehicles" &&
+                                  field.key === "vehicleType") &&
                                 optionValues[optionIndex] !== fieldValue &&
                                 rows.some(
                                   (otherRow, otherIndex) =>
