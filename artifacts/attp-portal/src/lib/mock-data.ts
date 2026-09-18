@@ -676,14 +676,15 @@ const criteria: Record<ApplicationType, CriteriaSet> = {
       criterion(
         "meal-provider",
         "sampleCabinetPhoto",
-        "Ảnh tủ lưu mẫu",
+        "Minh chứng hình ảnh tủ lưu mẫu",
         "meal-provider-group-6",
         "file",
         0,
         [],
         {
           order: 22,
-          required: false,
+          required: true,
+          description: "Tải ảnh hoặc file minh chứng cho tủ lưu mẫu thức ăn.",
           dependsOn: { key: "hasSampleCabinet", equals: "Có" },
         },
       ),

@@ -1,0 +1,45 @@
+CẬP NHẬT CÁC TRANG LIÊN QUAN — do thay đổi form đăng ký "Đơn vị cung cấp suất ăn"
+(danh sách phương tiện nhiều dòng + minh chứng hợp tác theo từng trường)
+================================================================
+
+------------------------------------------------
+1. BƯỚC 3 "ĐÁNH GIÁ NĂNG LỰC" — BIÊN BẢN KIỂM TRA
+   (sửa khối "DỮ LIỆU THAM CHIẾU TỪ HỒ SƠ ĐĂNG KÝ" đã thiết kế ở prompt trước)
+------------------------------------------------
+
+SỬA dòng "Hình thức sở hữu: [1 giá trị]" — thay bằng bảng nhỏ liệt kê từng dòng phương
+tiện đã khai báo (đọc từ danh sách "Phương tiện giao suất ăn" trong hồ sơ), gồm cột:
+Loại phương tiện | Hình thức sở hữu | Số lượng — kèm dòng tổng cuối bảng:
+"Tổng: [X] phương tiện — [A] chuyên dụng, [B] thuê ngoài"
+
+GIỮ NGUYÊN dòng "Số trường đang phục vụ (theo hệ thống): [N]" và "Tỷ lệ phương tiện/trường".
+
+THÊM MỚI: ngay dưới dòng "Số trường đang phục vụ", thêm 1 nút nhỏ dạng link:
+"Xem minh chứng hợp tác (N trường)" — bấm vào mở popup/expand liệt kê từng trường kèm
+link tải file minh chứng đã upload ở form đăng ký (mục 7 trước đó), để cán bộ đối chiếu
+ngay tại chỗ khi kiểm tra thực địa mà không cần lục hồ sơ khác.
+
+------------------------------------------------
+2. TRANG CHI TIẾT CƠ SỞ (Admin nội bộ) — tab "Trường học đang phục vụ"
+   (đã thiết kế ở Phần 3 prompt trước)
+------------------------------------------------
+
+Mỗi dòng trường trong danh sách, THÊM 1 cột/icon nhỏ cuối dòng: icon file/kẹp giấy,
+bấm vào mở/tải file minh chứng hợp tác tương ứng với trường đó (dùng dữ liệu đã lưu
+theo bản ghi quan hệ chuỗi cung ứng, không cần API mới — chỉ hiển thị lại field đã có).
+
+Thêm 1 tab con hoặc section riêng "Phương tiện vận chuyển" trong cùng trang chi tiết
+cơ sở này, hiển thị đúng danh sách phương tiện đã khai (Loại | Hình thức sở hữu |
+Số lượng), dạng bảng đọc, không chỉnh sửa được ở màn Admin xem (chỉ xem, sửa phải qua
+cơ sở tự cập nhật lại hồ sơ hoặc qua yêu cầu bổ sung hồ sơ).
+
+------------------------------------------------
+3. LUỒNG "TẠO MỚI CẢNH BÁO ATTP" (khối "Các cơ sở liên quan cùng chuỗi cung ứng")
+------------------------------------------------
+
+Ở khối danh sách trường tự động hiện ra (đã thiết kế ở prompt "Cảnh báo ATTP chuỗi cung
+ứng"), THÊM 1 icon nhỏ kẹp giấy cạnh mỗi tên trường trong danh sách — bấm vào xem nhanh
+file minh chứng hợp tác giữa đơn vị và trường đó, giúp cán bộ xác minh ngay quan hệ này
+có thật/còn hiệu lực trước khi quyết định gửi cảnh báo hàng loạt.
+
+Xuất ra: UI cập nhật cho cả 3 mục trên, dùng đúng component/style đã có trong từng màn tương ứng.
