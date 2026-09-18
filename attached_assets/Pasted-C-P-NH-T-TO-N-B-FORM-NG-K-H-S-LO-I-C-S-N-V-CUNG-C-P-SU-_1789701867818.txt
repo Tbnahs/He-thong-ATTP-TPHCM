@@ -1,0 +1,97 @@
+CẬP NHẬT TOÀN BỘ FORM ĐĂNG KÝ HỒ SƠ — LOẠI CƠ SỞ "ĐƠN VỊ CUNG CẤP SUẤT ĂN"
+(Portal công khai — Sở An toàn thực phẩm TPHCM)
+================================================================
+
+Giữ nguyên 100% style hiện có: khung card bo góc viền xám nhạt, icon tròn nền xanh nhạt + tiêu đề section, label chữ đậm nhỏ + dấu * đỏ khi bắt buộc, input/dropdown bo góc nền xám nhạt, nút "+ Thêm..." viền xanh bo tròn, khung upload viền đứt nét "+ Chọn tệp minh chứng". Không đổi màu sắc/token, không đổi các section không được nhắc tới dưới đây.
+
+THỨ TỰ SECTION SAU KHI CẬP NHẬT (giữ nguyên vị trí các mục không đổi, chỉ thêm/sửa đúng 2 mục được đánh dấu MỚI/SỬA):
+
+  1. Tài khoản đăng nhập                        — GIỮ NGUYÊN
+  2. Loại cơ sở đăng ký                          — GIỮ NGUYÊN
+  3. Thông tin pháp nhân                         — GIỮ NGUYÊN
+  4. Hồ sơ pháp lý                               — GIỮ NGUYÊN
+  5. Nhân lực                                    — GIỮ NGUYÊN, KHÔNG THÊM nút "+ Thêm nhân viên"
+     (chỉ giữ đúng: Tổng số nhân viên chế biến (field số) + Người phụ trách quản lý ATTP
+     (1 người duy nhất: Họ tên/Chức vụ/SĐT) + Chứng chỉ tập huấn ATTP — không liệt kê
+     danh sách từng nhân viên, vì cán bộ sẽ xác minh trực tiếp tại Biên bản kiểm tra)
+  6. Nguồn nhập – Nhà cung cấp thực phẩm         — GIỮ NGUYÊN
+  7. ➕ Trường học đang phục vụ                   — MỚI (chi tiết bên dưới)
+  8. Năng lực cung ứng & vận chuyển               — SỬA (chi tiết bên dưới)
+  9. Minh chứng – Ảnh khu chế biến, thiết bị      — GIỮ NGUYÊN
+  10. Nút "Tạo tài khoản & nộp hồ sơ"             — GIỮ NGUYÊN vị trí cuối form
+
+
+======================================================
+MỤC 7 (MỚI) — SECTION "TRƯỜNG HỌC ĐANG PHỤC VỤ"
+======================================================
+
+Copy đúng cấu trúc UI của section "Nguồn nhập" đang có (chỉ đổi nội dung):
+
+- Icon + tiêu đề: "Trường học đang phục vụ"
+- Dòng phụ nhỏ màu xám: "Có thể thêm nhiều trường."
+- Nút "+ Thêm trường" — góc phải cùng hàng tiêu đề, style giống nút "+ Thêm nhà cung cấp"
+- Trạng thái rỗng ban đầu: "Chưa có dòng nào. Nhấn 'Thêm' để khai báo."
+
+Khi bấm "+ Thêm trường", mở ra 1 dòng/card mới gồm:
+  a. Ô tìm kiếm/chọn TÊN TRƯỜNG — autocomplete từ danh sách trường ĐÃ CÓ SẴN trong hệ thống
+     (KHÔNG cho gõ tay tên tự do, để đảm bảo liên kết đúng id hồ sơ trường đã đăng ký)
+  b. Ngay dưới, field upload: "Minh chứng hợp tác với trường này *"
+     Hỗ trợ: PDF, JPG hoặc PNG · tối đa 5MB/tệp · có thể chọn nhiều tệp
+     Gợi ý nhỏ màu xám: "VD: hợp đồng cung cấp suất ăn, xác nhận hợp tác, hoặc email/văn bản trao đổi"
+     (dùng đúng style khung upload viền đứt nét đang có)
+  c. Nút xóa (x) riêng cho từng dòng/card trường
+
+VALIDATION: bắt buộc có ít nhất 1 file minh chứng cho MỖI dòng trường trước khi submit —
+nút "Tạo tài khoản & nộp hồ sơ" chặn submit nếu có dòng thiếu file, báo lỗi ngay tại dòng đó.
+
+Cuối danh sách, hiển thị dòng tổng TỰ ĐỘNG (không cho sửa tay, không phải input):
+  "Đang phục vụ: [N] trường"  (N = số dòng hiện có, tự cập nhật khi thêm/xóa)
+
+LƯU DATA: mỗi dòng tạo 1 bản ghi quan hệ chuỗi cung ứng (cơ sở nguồn = đơn vị đang đăng ký,
+cơ sở đích = trường đã chọn), file minh chứng gắn theo từng bản ghi quan hệ này — không lưu
+chung vào khối "Minh chứng" tổng ở mục 9.
+
+
+======================================================
+MỤC 8 (SỬA) — SECTION "NĂNG LỰC CUNG ỨNG & VẬN CHUYỂN"
+======================================================
+
+GIỮ NGUYÊN không đổi: "Công suất suất ăn mỗi ngày", "Ảnh phương tiện giao suất ăn"
+(dùng chung cho cả danh sách phương tiện bên dưới, không tách theo từng dòng), "Tủ lưu mẫu
+thức ăn – Có/Không tủ lưu mẫu".
+
+THAY THẾ 2 field rời hiện có ("Phương tiện giao suất ăn – Loại phương tiện" và
+"Phương tiện giao suất ăn – Số lượng phương tiện") bằng 1 DANH SÁCH ĐỘNG — vì 1 cơ sở có
+thể có nhiều loại phương tiện, kết hợp cả xe chuyên dụng lẫn xe thuê ngoài cùng lúc:
+
+- Label khối: "Phương tiện giao suất ăn *"
+- Nút "+ Thêm phương tiện" — góc phải, style giống các nút Thêm khác
+- Trạng thái rỗng: "Chưa có dòng nào. Nhấn 'Thêm' để khai báo."
+
+Mỗi dòng/card khi bấm Thêm gồm 3 field trên cùng 1 hàng (responsive 1 cột trên mobile):
+  - "Loại phương tiện" — dropdown (giữ đúng danh sách lựa chọn cũ: xe tải nhỏ/xe bảo ôn/
+    xe máy/khác...)
+  - "Hình thức sở hữu" — segmented control/toggle 2 lựa chọn liền nhau trong 1 khung bo góc:
+    "Chuyên dụng" | "Thuê ngoài" (nút đang chọn tô nền xanh nhạt đậm hơn) — KHÔNG thêm field
+    phụ "Tên đơn vị cho thuê xe"
+  - "Số lượng" — input số nguyên, đơn vị "xe"
+  Mỗi dòng có nút xóa (x) riêng
+
+Cuối danh sách, dòng tổng TỰ ĐỘNG tính (không cho sửa tay):
+  "Tổng cộng: [X] phương tiện — [A] chuyên dụng, [B] thuê ngoài"
+
+LƯU DATA: mỗi dòng là 1 bản ghi trong bảng con phương tiện (id_co_so, loai_phuong_tien,
+hinh_thuc_so_huu, so_luong) — không lưu dạng field đơn trong bảng cơ sở chính.
+
+
+======================================================
+GHI CHÚ LIÊN QUAN (không cần sửa code thêm, chỉ để dev hiểu bối cảnh)
+======================================================
+- Số liệu "Đang phục vụ: N trường" (mục 7) và "Tổng cộng phương tiện" (mục 8) sẽ được dùng
+  làm dữ liệu tham chiếu tự động trong Bước 3 "Đánh giá năng lực" của Biên bản kiểm tra —
+  đã thiết kế ở phần riêng, không cần lặp lại ở đây.
+- Nhóm tiêu chí "F · Phương tiện vận chuyển" trong "Cấu hình tiêu chí đánh giá" cần Hân/Hiền
+  cập nhật lại cách diễn giải tiêu chí "Hình thức sở hữu phù hợp" để phù hợp với việc 1 cơ
+  sở có thể có NHIỀU dòng phương tiện thay vì 1 giá trị đơn — không phải việc của prompt này.
+
+Xuất ra: toàn bộ form "Đơn vị cung cấp suất ăn" đã cập nhật đầy đủ theo đúng thứ tự 10 mục ở trên.
