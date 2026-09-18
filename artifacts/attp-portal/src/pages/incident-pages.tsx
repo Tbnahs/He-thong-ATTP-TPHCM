@@ -57,10 +57,101 @@ const incidentFacilityOptions: Record<IncidentFacilityType, string[]> = {
   ],
 };
 
-const schoolMealProviders: Record<string, string> = {
-  "Trường Tiểu học Thái Sơn": "Bếp ăn tập thể An Phú",
-  "Trường Mầm non Hoa Sen": "Công ty Suất ăn Minh Tâm",
+const schoolMealProviders: Record<string, string[]> = {
+  "Trường Tiểu học Lê Lợi": ["Bếp ăn tập thể An Phú"],
+  "Trường Tiểu học Thái Sơn": ["Bếp ăn tập thể An Phú"],
+  "Trường Mầm non Hoa Sen": ["Công ty Suất ăn Minh Tâm"],
 };
+
+const mealProviderSchools: Record<string, string[]> = {
+  "Bếp ăn tập thể An Phú": [
+    "Trường Tiểu học Lê Lợi",
+    "Trường Tiểu học Thái Sơn",
+  ],
+  "Công ty Suất ăn Minh Tâm": ["Trường Mầm non Hoa Sen"],
+};
+
+function getRecordedMealProviderSchools() {
+  const graph = Object.fromEntries(
+    Object.entries(mealProviderSchools).map(([provider, schools]) => [
+      provider,
+      [...schools],
+    ]),
+  ) as Record<string, string[]>;
+  if (typeof window === "undefined") return graph;
+  try {
+    const schoolLinks = JSON.parse(
+      window.localStorage.getItem("attp-school-meal-provider-links") || "[]",
+    ) as Array<{ schoolName?: string; providerName?: string }>;
+    for (const link of schoolLinks) {
+      if (!link.schoolName || !link.providerName) continue;
+      graph[link.providerName] = Array.from(
+        new Set([...(graph[link.providerName] ?? []), link.schoolName]),
+      );
+    }
+    const mealProviderLinks = JSON.parse(
+      window.localStorage.getItem("attp-meal-provider-school-links") || "[]",
+    ) as Array<{ sourceUnitId?: string; targetSchoolId?: string }>;
+    const accounts = JSON.parse(
+      window.localStorage.getItem("attp-facility-accounts") || "[]",
+    ) as Array<{
+      username?: string;
+      registration?: { fields?: Record<string, unknown> };
+    }>;
+    const schoolNames: Record<string, string> = {
+      "school-001": "Trường Mầm non Hoa Mai",
+      "school-002": "Trường Tiểu học Nguyễn Du",
+      "school-003": "Trường THCS ABC",
+      "school-004": "Trường THPT XYZ",
+      "school-005": "Trường Mầm non Hoa Sen",
+    };
+    for (const link of mealProviderLinks) {
+      const provider = accounts.find(
+        (account) => account.username === link.sourceUnitId,
+      );
+      const providerName = provider?.registration?.fields?.applicantName;
+      const schoolName = link.targetSchoolId
+        ? schoolNames[link.targetSchoolId]
+        : undefined;
+      if (typeof providerName !== "string" || !schoolName) continue;
+      graph[providerName] = Array.from(
+        new Set([...(graph[providerName] ?? []), schoolName]),
+      );
+    }
+  } catch {
+    // Seed relationships remain the safe, recorded demo source.
+  }
+  return graph;
+}
+
+function getRelatedFacilities(
+  facilityType: IncidentFacilityType | "",
+  facility: string,
+) {
+  const recordedRelationships = getRecordedMealProviderSchools();
+  const schoolsByProvider = recordedRelationships;
+  const providersBySchool = Object.entries(recordedRelationships).reduce<
+    Record<string, string[]>
+  >((result, [provider, schools]) => {
+    schools.forEach((school) => {
+      result[school] = [...(result[school] ?? []), provider];
+    });
+    return result;
+  }, {});
+  if (facilityType === "Cơ sở giáo dục") {
+    const providers = providersBySchool[facility] ?? [];
+    return Array.from(
+      new Set([
+        facility,
+        ...providers.flatMap((provider) => schoolsByProvider[provider] ?? []),
+      ]),
+    );
+  }
+  if (facilityType === "Đơn vị cung cấp suất ăn") {
+    return schoolsByProvider[facility] ?? [];
+  }
+  return [];
+}
 
 type Incident = {
   id: string;
@@ -86,6 +177,7 @@ type Incident = {
   notifyHealth?: boolean;
   notifyDistrict: boolean;
   notifyPartnerSchools?: boolean;
+  notifiedFacilities?: string[];
   closedAt?: string;
   closedBy?: string;
   reviewStatus: IncidentReviewStatus;
@@ -639,6 +731,7 @@ function IncidentCreateModal({
     notifyHealth: false,
     notifyDistrict: false,
     notifyPartnerSchools: false,
+    notifiedFacilities: [] as string[],
   });
   const [files, setFiles] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
@@ -676,7 +769,8 @@ function IncidentCreateModal({
       !form.reporter ||
       !form.reporterRole ||
       !form.phone ||
-      !form.description
+      !form.description ||
+      (relatedFacilities.length > 0 && form.notifiedFacilities.length === 0)
     ) {
       setSubmitted(true);
       return;
@@ -709,6 +803,7 @@ function IncidentCreateModal({
       notifyHealth: form.notifyHealth,
       notifyDistrict: form.notifyDistrict,
       notifyPartnerSchools: Boolean(externalMealProvider && form.notifyPartnerSchools),
+      notifiedFacilities: form.notifiedFacilities,
       reviewStatus: "Chưa cập nhật",
       timeline: [
         {
@@ -732,6 +827,14 @@ function IncidentCreateModal({
   const externalMealProvider = form.facility
     ? schoolMealProviders[form.facility]
     : undefined;
+  const relatedFacilities = getRelatedFacilities(form.facilityType, form.facility);
+  const toggleRelatedFacility = (name: string) =>
+    setForm((current) => ({
+      ...current,
+      notifiedFacilities: current.notifiedFacilities.includes(name)
+        ? current.notifiedFacilities.filter((item) => item !== name)
+        : [...current.notifiedFacilities, name],
+    }));
   const error = (value: string) =>
     submitted && !value ? (
       <span className="mt-1 block normal-case tracking-normal text-xs font-medium text-[#ef4444]">
@@ -769,6 +872,7 @@ function IncidentCreateModal({
                         facilityType: event.target.value as IncidentFacilityType,
                         facility: "",
                         notifyPartnerSchools: false,
+                        notifiedFacilities: [],
                       }))}
                       className={`${designInputClass} appearance-none pr-11`}
                       data-testid="select-modal-incident-facility-type"
@@ -790,6 +894,7 @@ function IncidentCreateModal({
                         ...current,
                         facility: event.target.value,
                         notifyPartnerSchools: false,
+                        notifiedFacilities: [],
                       }))}
                       className={`${designInputClass} appearance-none pl-11 pr-11`}
                       data-testid="select-modal-incident-facility"
@@ -801,6 +906,26 @@ function IncidentCreateModal({
                   </span>
                   {error(form.facility)}
                 </label>
+                {relatedFacilities.length > 0 && (
+                  <section className="rounded-xl border border-[#bfdbfe] bg-[#eff6ff] p-4">
+                    <div className="flex items-start gap-3">
+                      <Info size={17} className="mt-0.5 shrink-0 text-[#2563eb]" />
+                      <div>
+                        <p className="text-sm font-bold text-[#1e3a8a]">Cơ sở liên quan được truy xuất từ quan hệ đã ghi nhận</p>
+                        <p className="mt-1 text-xs leading-5 text-[#475569]">Danh sách này chỉ để cán bộ xem xét, không đồng nghĩa tất cả đều có sự cố. Hãy tích chọn đúng phạm vi cần gửi cảnh báo.</p>
+                      </div>
+                    </div>
+                    <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                      {relatedFacilities.map((name) => (
+                        <label key={name} className="flex cursor-pointer items-center gap-3 rounded-lg border border-[#dbeafe] bg-white px-3 py-3 text-sm font-semibold text-[#334155]">
+                          <input type="checkbox" checked={form.notifiedFacilities.includes(name)} onChange={() => toggleRelatedFacility(name)} className="h-4 w-4 accent-[#2563eb]" data-testid={`checkbox-modal-related-facility-${name}`} />
+                          {name}
+                        </label>
+                      ))}
+                    </div>
+                    {submitted && form.notifiedFacilities.length === 0 && <p className="mt-2 text-xs font-semibold text-[#dc2626]">Vui lòng tích chọn ít nhất một cơ sở cần cảnh báo.</p>}
+                  </section>
+                )}
                 <div className="grid gap-6 md:grid-cols-2">
                   <label className={designLabelClass}>
                     Thời điểm phát hiện <span className="text-[#ef4444]">*</span>
@@ -955,6 +1080,7 @@ export function IncidentCreatePage() {
     notifyFacility: true,
     notifyHealth: false,
     notifyDistrict: false,
+    notifiedFacilities: [] as string[],
   });
 
   const update = (key: string, value: string | boolean | string[]) => setForm((current) => ({ ...current, [key]: value }));
@@ -977,7 +1103,7 @@ export function IncidentCreatePage() {
   }));
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (!form.title || !form.facilityType || !form.facility || !form.meals.length || !form.suspectedCases || !form.occurredAt || !form.description || !form.reporter || !form.reporterRole) {
+    if (!form.title || !form.facilityType || !form.facility || !form.meals.length || !form.suspectedCases || !form.occurredAt || !form.description || !form.reporter || !form.reporterRole || (relatedFacilities.length > 0 && form.notifiedFacilities.length === 0)) {
       setSubmitted(true);
       return;
     }
@@ -1007,12 +1133,21 @@ export function IncidentCreatePage() {
       notifyFacility: form.notifyFacility,
       notifyHealth: form.notifyHealth,
       notifyDistrict: form.notifyDistrict,
+      notifiedFacilities: form.notifiedFacilities,
       reviewStatus: "Chưa cập nhật",
       timeline: [{ time: new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit" }).format(new Date()), label: "Tiếp nhận cảnh báo", detail: "Cảnh báo mới được tạo bởi cán bộ phụ trách.", tone: "amber" }],
     };
     persistIncidents([incident, ...current]);
     navigate(`/admin/inspections/incidents/${incident.id}`);
   };
+  const relatedFacilities = getRelatedFacilities(form.facilityType, form.facility);
+  const toggleRelatedFacility = (name: string) =>
+    setForm((current) => ({
+      ...current,
+      notifiedFacilities: current.notifiedFacilities.includes(name)
+        ? current.notifiedFacilities.filter((item) => item !== name)
+        : [...current.notifiedFacilities, name],
+    }));
 
   return (
     <PageFrame>
@@ -1035,19 +1170,39 @@ export function IncidentCreatePage() {
                 {submitted && !form.title && <span className="mt-1 block normal-case tracking-normal text-xs font-medium text-[#ef4444]">Vui lòng nhập tiêu đề.</span>}
               </label>
               <label className={designLabelClass}>Loại cơ sở <span className="text-[#ef4444]">*</span>
-                <select value={form.facilityType} onChange={(e) => setForm((current) => ({ ...current, facilityType: e.target.value as IncidentFacilityType | "", facility: "" }))} className={designInputClass} data-testid="select-incident-facility-type">
+                <select value={form.facilityType} onChange={(e) => setForm((current) => ({ ...current, facilityType: e.target.value as IncidentFacilityType | "", facility: "", notifiedFacilities: [] }))} className={designInputClass} data-testid="select-incident-facility-type">
                   <option value="">Chọn loại cơ sở</option>
                   {Object.keys(incidentFacilityOptions).map((option) => <option key={option} value={option}>{option}</option>)}
                 </select>
                 {submitted && !form.facilityType && <span className="mt-1 block normal-case tracking-normal text-xs font-medium text-[#ef4444]">Vui lòng chọn loại cơ sở.</span>}
               </label>
               <label className={designLabelClass}>Tên cơ sở liên quan <span className="text-[#ef4444]">*</span>
-                <select value={form.facility} onChange={(e) => update("facility", e.target.value)} disabled={!form.facilityType} className={`${designInputClass} disabled:cursor-not-allowed disabled:bg-[#f1f5f9] disabled:text-[#94a3b8]`} data-testid="select-incident-facility">
+                <select value={form.facility} onChange={(e) => setForm((current) => ({ ...current, facility: e.target.value, notifiedFacilities: [] }))} disabled={!form.facilityType} className={`${designInputClass} disabled:cursor-not-allowed disabled:bg-[#f1f5f9] disabled:text-[#94a3b8]`} data-testid="select-incident-facility">
                   <option value="">{form.facilityType ? "Chọn cơ sở" : "Chọn loại cơ sở trước"}</option>
                   {form.facilityType && incidentFacilityOptions[form.facilityType].map((facility) => <option key={facility}>{facility}</option>)}
                 </select>
                 {submitted && !form.facility && <span className="mt-1 block normal-case tracking-normal text-xs font-medium text-[#ef4444]">Vui lòng chọn cơ sở.</span>}
               </label>
+              {relatedFacilities.length > 0 && (
+                <section className="rounded-xl border border-[#bfdbfe] bg-[#eff6ff] p-4">
+                  <div className="flex items-start gap-3">
+                    <Info size={17} className="mt-0.5 shrink-0 text-[#2563eb]" />
+                    <div>
+                      <p className="text-sm font-bold text-[#1e3a8a]">Cơ sở liên quan được truy xuất từ quan hệ đã ghi nhận</p>
+                      <p className="mt-1 text-xs leading-5 text-[#475569]">Danh sách này chỉ để cán bộ xem xét, không đồng nghĩa tất cả đều có sự cố. Hãy tích chọn đúng phạm vi cần gửi cảnh báo.</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    {relatedFacilities.map((name) => (
+                      <label key={name} className="flex cursor-pointer items-center gap-3 rounded-lg border border-[#dbeafe] bg-white px-3 py-3 text-sm font-semibold text-[#334155]">
+                        <input type="checkbox" checked={form.notifiedFacilities.includes(name)} onChange={() => toggleRelatedFacility(name)} className="h-4 w-4 accent-[#2563eb]" data-testid={`checkbox-related-facility-${name}`} />
+                        {name}
+                      </label>
+                    ))}
+                  </div>
+                  {submitted && form.notifiedFacilities.length === 0 && <p className="mt-2 text-xs font-semibold text-[#dc2626]">Vui lòng tích chọn ít nhất một cơ sở cần cảnh báo.</p>}
+                </section>
+              )}
               <div className="grid gap-6 md:grid-cols-2">
                 <label className={designLabelClass}>Thời điểm phát hiện <span className="text-[#ef4444]">*</span>
                   <input type="datetime-local" value={form.occurredAt} onChange={(e) => update("occurredAt", e.target.value)} className={designInputClass} data-testid="input-incident-occurred-at" />

@@ -1,0 +1,267 @@
+# 1. Luồng đăng ký cơ sở
+
+Hệ thống quản lý 03 loại cơ sở:
+
+* Cơ sở cung cấp thực phẩm.
+* Cơ sở cung cấp suất ăn.
+* Cơ sở giáo dục.
+
+Khi cơ sở thực hiện đăng ký trên **Form đăng ký tại Portal**, toàn bộ thông tin cơ sở khai báo sẽ được đẩy vào chức năng **Quản lý cơ sở** để cán bộ tiếp nhận, kiểm tra và duyệt hồ sơ.
+
+## 1.1. Giao diện Chi tiết hồ sơ đối với cán bộ
+
+Khi cán bộ truy cập vào một hồ sơ đăng ký, giao diện **Chi tiết hồ sơ** gồm 03 phần:
+
+### Phần 1 – Thông tin đăng ký
+
+Hiển thị **toàn bộ thông tin mà cơ sở đã khai báo trên Form đăng ký**.
+
+* Thông tin phải được hiển thị **y nguyên theo Form đăng ký**.
+* Không gộp các trường thông tin.
+* Không tách các trường thông tin.
+* Không chỉnh sửa thông tin tại phần này.
+
+Mục đích là để cán bộ có thể kiểm tra chính xác những thông tin mà cơ sở đã khai báo khi đăng ký.
+
+### Phần 2 – Đối chiếu hồ sơ hệ thống và Checklist
+
+Cán bộ thực hiện đối chiếu thông tin đăng ký với hồ sơ/dữ liệu trên hệ thống.
+
+Checklist hiển thị các đầu mục cần kiểm tra và xác định các nội dung:
+
+* Đã đầy đủ.
+* Còn thiếu.
+* Cần bổ sung/kiểm tra thêm.
+
+### Phần 3 – Kết luận của cán bộ
+
+Cán bộ ghi nhận kết quả xử lý hồ sơ và kết luận sau khi hoàn tất quá trình kiểm tra, đối chiếu.
+
+---
+
+## 1.2. Form đăng ký Cơ sở cung cấp thực phẩm
+
+Giữ nguyên Form đăng ký hiện tại.
+
+Đồng thời bổ sung thông tin:
+
+**“Đơn vị được cung cấp thực phẩm”**
+
+Cho phép cơ sở khai báo các đơn vị mà mình đang cung cấp thực phẩm.
+
+Thông tin này **không bắt buộc**.
+
+Do đó:
+
+* Cơ sở có thể đăng ký khi đã có đơn vị được cung cấp thực phẩm.
+* Cơ sở cũng có thể đăng ký khi chưa có hoặc chưa khai báo đơn vị được cung cấp thực phẩm.
+
+---
+
+## 1.3. Form đăng ký Cơ sở cung cấp suất ăn
+
+Giữ nguyên Form đăng ký hiện tại.
+
+Thông tin liên kết với **Cơ sở giáo dục** là **không bắt buộc**.
+
+Cơ sở cung cấp suất ăn có thể:
+
+* Đăng ký và khai báo các cơ sở giáo dục đang sử dụng dịch vụ.
+* Hoặc đăng ký khi chưa có cơ sở giáo dục liên kết.
+
+Quan hệ giữa Cơ sở cung cấp suất ăn và Cơ sở giáo dục có thể được hình thành/cập nhật sau hoặc được đồng bộ từ hệ thống khác.
+
+Ví dụ: dữ liệu có thể được đẩy từ hệ thống **iSchool** vào hệ thống.
+
+---
+
+## 1.4. Form đăng ký Cơ sở giáo dục
+
+Bổ sung thông tin:
+
+**“Đơn vị cung cấp suất ăn”**
+
+Cho phép cơ sở giáo dục lựa chọn **một hoặc nhiều đơn vị cung cấp suất ăn**.
+
+Thông tin này **không bắt buộc**.
+
+Do đó:
+
+* Cơ sở giáo dục có thể đăng ký và lựa chọn một hoặc nhiều đơn vị cung cấp suất ăn nếu đã có thông tin.
+* Cơ sở giáo dục cũng có thể đăng ký khi chưa có hoặc chưa khai báo đơn vị cung cấp suất ăn.
+
+### Nguyên tắc liên kết
+
+Cơ sở giáo dục và Cơ sở cung cấp suất ăn **đăng ký độc lập**, không yêu cầu một bên phải tồn tại trước thì bên còn lại mới được đăng ký.
+
+Quan hệ liên kết giữa hai bên được hình thành khi có thông tin liên kết tương ứng trên hệ thống hoặc được đồng bộ từ hệ thống khác.
+
+---
+
+# 2. Quản lý và xử lý sự cố ATTP
+
+Chức năng **Cảnh báo ATTP** cho phép cán bộ lựa chọn cơ sở phát sinh sự cố/cảnh báo và truy xuất các cơ sở có liên quan thông qua quan hệ cung cấp suất ăn đã được ghi nhận trên hệ thống.
+
+## 2.1. Cảnh báo xuất phát từ Cơ sở giáo dục
+
+Luồng xử lý:
+
+**Chọn loại cơ sở:** Cơ sở giáo dục
+→ **Chọn tên cơ sở giáo dục**
+→ Hệ thống truy xuất **các đơn vị cung cấp suất ăn đang liên kết với cơ sở giáo dục được chọn**
+→ Từ các đơn vị cung cấp suất ăn này, hệ thống tiếp tục truy xuất **các cơ sở giáo dục khác mà các đơn vị đó đang cung cấp suất ăn**
+→ Hệ thống hiển thị danh sách các cơ sở có liên quan
+→ Cán bộ **tích chọn phạm vi cơ sở cần cảnh báo**
+→ **Gửi cảnh báo**.
+
+### Ví dụ
+
+Trường A phát hiện sự cố ATTP.
+
+Hệ thống truy xuất:
+
+**Trường A**
+→ Công ty X, Công ty Y là các đơn vị cung cấp suất ăn.
+
+Tiếp tục truy xuất:
+
+**Công ty X**
+→ Trường A, Trường B, Trường C.
+
+**Công ty Y**
+→ Trường A, Trường D.
+
+Hệ thống xác định danh sách các cơ sở có liên quan để cán bộ xem xét và lựa chọn phạm vi cảnh báo.
+
+> Việc hệ thống truy xuất các cơ sở liên quan **không đồng nghĩa với việc tất cả các cơ sở đó đều được xác định là có sự cố**. Cán bộ là người lựa chọn đối tượng thực tế cần gửi cảnh báo.
+
+---
+
+## 2.2. Cảnh báo xuất phát từ Cơ sở cung cấp suất ăn
+
+Luồng xử lý:
+
+**Chọn loại cơ sở:** Cơ sở cung cấp suất ăn
+→ **Chọn tên cơ sở cung cấp suất ăn**
+→ Hệ thống truy xuất **danh sách các cơ sở giáo dục mà đơn vị đang cung cấp suất ăn**
+→ Hệ thống hiển thị danh sách các cơ sở liên quan
+→ Cán bộ **tích chọn một hoặc nhiều cơ sở cần cảnh báo**
+→ **Gửi cảnh báo**.
+
+### Ví dụ
+
+Công ty X phát sinh cảnh báo ATTP.
+
+Hệ thống truy xuất:
+
+**Công ty X**
+→ Trường A
+→ Trường B
+→ Trường C
+
+Cán bộ có thể lựa chọn:
+
+* ☑ Trường A
+* ☑ Trường B
+* ☐ Trường C
+
+→ Gửi cảnh báo đến các cơ sở đã được lựa chọn.
+
+---
+
+## 2.3. Nguyên tắc truy xuất trong cảnh báo
+
+Hệ thống hỗ trợ truy xuất quan hệ theo hai chiều:
+
+**Cơ sở giáo dục**
+→ **Cơ sở cung cấp suất ăn**
+→ **Các cơ sở giáo dục có liên quan**
+
+và:
+
+**Cơ sở cung cấp suất ăn**
+→ **Các cơ sở giáo dục đang được cung cấp suất ăn**.
+
+Hệ thống chỉ truy xuất dựa trên **các quan hệ đã được ghi nhận trên hệ thống**.
+
+Nếu cơ sở chưa khai báo hoặc chưa có dữ liệu liên kết thì hệ thống **không tự suy đoán quan hệ**.
+
+---
+
+# 3. Portal Tra cứu
+
+Portal Tra cứu cho phép **khách vãng lai/phụ huynh** tra cứu thông tin các cơ sở đủ điều kiện và xem thông tin liên quan giữa các cơ sở trong hệ thống.
+
+## 3.1. Tra cứu cơ sở đủ điều kiện
+
+Người dùng có thể tra cứu danh sách **03 loại cơ sở**:
+
+* Cơ sở cung cấp thực phẩm.
+* Cơ sở cung cấp suất ăn.
+* Cơ sở giáo dục.
+
+Danh sách cơ sở **đủ điều kiện** được xác định dựa trên kết quả đánh giá/kiểm tra của cán bộ.
+
+### Cập nhật trạng thái theo kết quả kiểm tra
+
+Khi cán bộ thực hiện kiểm tra và kết luận **Đạt**, cơ sở đủ điều kiện sẽ được hiển thị trên Portal Tra cứu.
+
+Ví dụ:
+
+**Lần kiểm tra 1 → Đạt**
+→ Cơ sở được hiển thị trong danh sách đủ điều kiện.
+
+Khi thực hiện kiểm tra định kỳ/đột xuất lần tiếp theo và kết luận **Không đạt**:
+
+**Lần kiểm tra 2 → Không đạt**
+→ Cơ sở không còn được hiển thị trong danh sách **cơ sở đủ điều kiện**.
+
+Do đó, trạng thái hiển thị trên Portal cần được cập nhật theo **kết quả kiểm tra có hiệu lực**, thay vì chỉ dựa trên việc cơ sở từng đạt trong quá khứ.
+
+---
+
+## 3.2. Tra cứu mối quan hệ giữa các cơ sở
+
+Ngoài thông tin cơ bản và trạng thái đủ điều kiện, người dùng có thể xem các mối quan hệ cung cấp đã được khai báo/ghi nhận trên hệ thống.
+
+### Đối với Cơ sở giáo dục
+
+Có thể xem:
+
+**Cơ sở giáo dục → Các đơn vị cung cấp suất ăn cho trường.**
+
+Ví dụ:
+
+> Trường A sử dụng suất ăn từ Công ty X và Công ty Y.
+
+### Đối với Cơ sở cung cấp suất ăn
+
+Có thể xem:
+
+**Cơ sở cung cấp suất ăn → Các cơ sở giáo dục mà đơn vị đang cung cấp.**
+
+Ví dụ:
+
+> Công ty X cung cấp suất ăn cho Trường A, Trường B và Trường C.
+
+### Đối với Cơ sở cung cấp thực phẩm
+
+Có thể xem:
+
+**Cơ sở cung cấp thực phẩm → Các đơn vị mà cơ sở đang cung cấp thực phẩm.**
+
+Các đơn vị này có thể là:
+
+* Cơ sở giáo dục.
+* Cơ sở cung cấp suất ăn.
+* Hoặc các đơn vị khác theo dữ liệu liên kết được khai báo trên hệ thống.
+
+---
+
+## 3.3. Nguyên tắc hiển thị quan hệ trên Portal
+
+Chỉ hiển thị **các mối quan hệ đã được khai báo, xác nhận hoặc đồng bộ vào hệ thống**.
+
+Trường hợp cơ sở không khai báo đơn vị liên kết thì vẫn có thể được đăng ký và quản lý bình thường, nhưng **không hiển thị quan hệ cung cấp tương ứng trên Portal**.
+
+Như vậy, Portal vừa cung cấp khả năng **tra cứu cơ sở đủ điều kiện**, vừa giúp người dùng **xem được mạng lưới quan hệ cung cấp thực phẩm/suất ăn giữa các cơ sở** trong phạm vi dữ liệu hệ thống.

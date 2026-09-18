@@ -209,6 +209,7 @@ const criteria: Record<ApplicationType, CriteriaSet> = {
       "Hồ sơ pháp lý",
       "Nguồn gốc sản phẩm",
       "Cơ sở vật chất",
+      "Đơn vị được cung cấp thực phẩm",
     ]),
     criteria: [
       criterion(
@@ -354,6 +355,45 @@ const criteria: Record<ApplicationType, CriteriaSet> = {
               answerType: "yes-no",
               options: ["Có", "Không"],
               required: true,
+            },
+          ],
+        },
+      ),
+      criterion(
+        "food-supplier",
+        "suppliedUnits",
+        "Đơn vị được cung cấp thực phẩm",
+        "food-supplier-group-5",
+        "repeatable",
+        0,
+        [],
+        {
+          order: 10,
+          required: false,
+          description:
+            "Không bắt buộc. Có thể khai báo một hoặc nhiều đơn vị đang được cung cấp thực phẩm.",
+          repeatableFields: [
+            {
+              key: "unitType",
+              label: "Loại đơn vị",
+              answerType: "select",
+              options: [
+                "Cơ sở giáo dục",
+                "Cơ sở cung cấp suất ăn",
+                "Đơn vị khác",
+              ],
+              required: true,
+            },
+            {
+              key: "name",
+              label: "Tên đơn vị",
+              answerType: "text",
+              required: true,
+            },
+            {
+              key: "taxCode",
+              label: "Mã số thuế (nếu có)",
+              answerType: "text",
             },
           ],
         },
@@ -954,41 +994,44 @@ const criteria: Record<ApplicationType, CriteriaSet> = {
       ),
       criterion(
         "school",
-        "linkedMealProviderName",
-        "Tên đơn vị cung cấp suất ăn",
+        "linkedMealProviders",
+        "Đơn vị cung cấp suất ăn",
         "school-group-4",
-        "text",
+        "repeatable",
         0,
         [],
         {
           order: 22,
-          dependsOn: { key: "mealModel", equals: "Liên kết đơn vị suất ăn" },
-        },
-      ),
-      criterion(
-        "school",
-        "linkedMealProviderTaxCode",
-        "Mã số thuế đơn vị cung cấp suất ăn",
-        "school-group-4",
-        "text",
-        0,
-        [],
-        {
-          order: 23,
-          dependsOn: { key: "mealModel", equals: "Liên kết đơn vị suất ăn" },
-        },
-      ),
-      criterion(
-        "school",
-        "linkedMealProviderContract",
-        "Hợp đồng",
-        "school-group-4",
-        "file",
-        0,
-        [],
-        {
-          order: 24,
-          dependsOn: { key: "mealModel", equals: "Liên kết đơn vị suất ăn" },
+          required: false,
+          description:
+            "Không bắt buộc. Có thể chọn một hoặc nhiều đơn vị đã có trên hệ thống, hoặc nhập đơn vị chưa có dữ liệu liên kết.",
+          dependsOn: { key: "mealModel", notEquals: "Tự nấu" },
+          repeatableFields: [
+            {
+              key: "source",
+              label: "Nguồn thông tin",
+              answerType: "select",
+              options: ["Đơn vị đã đăng ký", "Nhập trực tiếp"],
+              required: true,
+            },
+            {
+              key: "providerId",
+              label: "Đơn vị cung cấp suất ăn",
+              answerType: "select",
+              required: false,
+            },
+            {
+              key: "providerName",
+              label: "Tên đơn vị",
+              answerType: "text",
+              required: true,
+            },
+            {
+              key: "taxCode",
+              label: "Mã số thuế (nếu có)",
+              answerType: "text",
+            },
+          ],
         },
       ),
       criterion(

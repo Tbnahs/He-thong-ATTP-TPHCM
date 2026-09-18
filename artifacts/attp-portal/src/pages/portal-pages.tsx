@@ -533,8 +533,16 @@ type MealProviderSchoolLink = {
   direction: "meal-provider-to-school";
   createdAt: string;
 };
+type SchoolMealProviderLink = {
+  id: string;
+  schoolName: string;
+  providerName: string;
+  providerId?: string;
+  createdAt: string;
+};
 const facilityAccountsStorageKey = "attp-facility-accounts";
 const mealProviderSchoolLinksStorageKey = "attp-meal-provider-school-links";
+const schoolMealProviderLinksStorageKey = "attp-school-meal-provider-links";
 const readFacilityAccounts = (): FacilityAccount[] => {
   if (typeof window === "undefined") return [];
   try {
@@ -578,6 +586,36 @@ const saveMealProviderSchoolLinks = (
   }));
   window.localStorage.setItem(
     mealProviderSchoolLinksStorageKey,
+    JSON.stringify([...existing, ...nextLinks]),
+  );
+};
+const saveSchoolMealProviderLinks = (
+  schoolName: string,
+  rows: RepeatableValue,
+) => {
+  const existing = (() => {
+    try {
+      return JSON.parse(
+        window.localStorage.getItem(schoolMealProviderLinksStorageKey) || "[]",
+      ) as SchoolMealProviderLink[];
+    } catch {
+      return [];
+    }
+  })().filter((link) => link.schoolName !== schoolName);
+  const createdAt = new Date().toISOString();
+  const nextLinks = rows
+    .map((row, index) => ({
+      id: `${schoolName}-${index}-${row.providerId ?? row.providerName ?? "manual"}`,
+      schoolName,
+      providerName:
+        typeof row.providerName === "string" ? row.providerName : "",
+      providerId:
+        typeof row.providerId === "string" ? row.providerId : undefined,
+      createdAt,
+    }))
+    .filter((link) => link.providerName || link.providerId);
+  window.localStorage.setItem(
+    schoolMealProviderLinksStorageKey,
     JSON.stringify([...existing, ...nextLinks]),
   );
 };
@@ -2646,6 +2684,12 @@ function ApplicationForm({
           : [];
         saveMealProviderSchoolLinks(email, schoolIds);
       }
+      if (type === "school") {
+        const providerRows = Array.isArray(fields.linkedMealProviders)
+          ? (fields.linkedMealProviders as RepeatableValue)
+          : [];
+        saveSchoolMealProviderLinks(asText(fields.applicantName), providerRows);
+      }
       setCredentials({ email, password: accountPassword });
     } else if (account) {
       saveFacilityAccounts(
@@ -2662,6 +2706,12 @@ function ApplicationForm({
               .filter((schoolId): schoolId is string => typeof schoolId === "string")
           : [];
         saveMealProviderSchoolLinks(account.username, schoolIds);
+      }
+      if (type === "school") {
+        const providerRows = Array.isArray(fields.linkedMealProviders)
+          ? (fields.linkedMealProviders as RepeatableValue)
+          : [];
+        saveSchoolMealProviderLinks(asText(fields.applicantName), providerRows);
       }
     }
     void input;
@@ -3117,6 +3167,7 @@ function DynamicQuestionControl({
         item={item}
         value={value}
         files={files}
+        suppliers={suppliers}
         schools={schools}
         onChange={onChange}
         onFilesFor={onFilesFor}
@@ -3305,6 +3356,7 @@ function RepeatableQuestion({
   item: CriteriaDefinition;
   value: CriteriaValue;
   files: Attachment[];
+  suppliers: { id: string; name: string; taxCode: string }[];
   schools: readonly { id: string; name: string }[];
   onChange: (value: CriteriaValue) => void;
   onFilesFor: (fieldKey: string, event: ChangeEvent<HTMLInputElement>) => void;
@@ -3357,6 +3409,10 @@ function RepeatableQuestion({
             ? "sản phẩm"
             : item.key === "servingSchools"
               ? "trường"
+              : item.key === "suppliedUnits"
+                ? "đơn vị"
+                : item.key === "linkedMealProviders"
+                  ? "đơn vị suất ăn"
               : "nhà cung cấp"}
         </Button>
       </div>
@@ -3477,11 +3533,17 @@ function RepeatableQuestion({
                     const options =
                       item.key === "servingSchools" && field.key === "schoolId"
                         ? schools.map((school) => school.name)
-                        : (field.options ?? []);
+                        : item.key === "linkedMealProviders" &&
+                            field.key === "providerId"
+                          ? suppliers.map((supplier) => supplier.name)
+                          : (field.options ?? []);
                     const optionValues =
                       item.key === "servingSchools" && field.key === "schoolId"
                         ? schools.map((school) => school.id)
-                        : options;
+                        : item.key === "linkedMealProviders" &&
+                            field.key === "providerId"
+                          ? suppliers.map((supplier) => supplier.id)
+                          : options;
                     if (
                       item.key === "deliveryVehicles" &&
                       field.key === "ownershipType"
@@ -4351,7 +4413,7 @@ export function AdminDashboard() {
               {filteredApplications.map((app) => (
                 <Link
                   key={app.id}
-                  href="/admin/facilities"
+                  href={`/admin/applications/${app.id}`}
                   className="lift flex flex-col gap-3 p-5 hover:bg-secondary/30 sm:flex-row sm:items-center sm:justify-between"
                   data-testid={`link-application-${app.id}`}
                 >
@@ -5388,7 +5450,17 @@ function PreviewQuestion({
 }
 
 function formatAnswer(value: unknown) {
-  if (Array.isArray(value)) return value.join(", ");
+  if (Array.isArray(value)) {
+    return value
+      .map((item) =>
+        typeof item === "object" && item !== null
+          ? Object.values(item as Record<string, unknown>)
+              .filter((entry) => entry !== undefined && entry !== "")
+              .join(" · ")
+          : String(item),
+      )
+      .join(", ");
+  }
   if (value === undefined || value === null || value === "") return "—";
   return String(value);
 }
@@ -6449,6 +6521,9 @@ export function AdminApplicationPage() {
   const [evaluation, setEvaluation] = useState<"" | "passed" | "failed">("");
   const [supplementNote, setSupplementNote] = useState("");
   const [notice, setNotice] = useState("");
+  const [checklist, setChecklist] = useState<
+    Record<string, "complete" | "missing" | "verify">
+  >({});
   useEffect(() => {
     if (!application) return;
     setEvaluation(
@@ -6467,6 +6542,22 @@ export function AdminApplicationPage() {
   const formGroups = (application?.criteriaGroups ?? [])
     .slice()
     .sort((a, b) => a.order - b.order);
+  const checklistItems = criteria.filter((item) => item.maxScore >= 0);
+  const removePublishedRecord = () => {
+    if (!application) return;
+    const recordId = `application-${application.id}`;
+    const savedRecords = JSON.parse(
+      sessionStorage.getItem("attp-published-records") || "[]",
+    ) as PublicRecord[];
+    sessionStorage.setItem(
+      "attp-published-records",
+      JSON.stringify(savedRecords.filter((record) => record.id !== recordId)),
+    );
+    const regionalIndex = regionalPublicRecords.findIndex(
+      (record) => record.id === recordId,
+    );
+    if (regionalIndex >= 0) regionalPublicRecords.splice(regionalIndex, 1);
+  };
   const publish = () => {
     if (!application || evaluation !== "passed") return;
     const publishedRecord: PublicRecord = {
@@ -6515,6 +6606,7 @@ export function AdminApplicationPage() {
     application.status = "needs-more-info";
     application.reviewNote = supplementNote.trim();
     application.published = false;
+    removePublishedRecord();
     setEvaluation("failed");
     setNotice(
       "Đã lưu yêu cầu bổ sung và chuyển hồ sơ về trạng thái cần bổ sung.",
@@ -6653,6 +6745,63 @@ export function AdminApplicationPage() {
                 </p>
               </div>
             )}
+          </div>
+        </section>
+        <section className="mt-6 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+          <p className="text-xs font-bold uppercase tracking-[.16em] text-[#16604f]">
+            PHẦN 02 · ĐỐI CHIẾU
+          </p>
+          <h2 className="mt-2 text-2xl font-extrabold text-slate-900">
+            Đối chiếu hồ sơ hệ thống và checklist
+          </h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+            Cán bộ đối chiếu từng nội dung với hồ sơ và dữ liệu hệ thống. Việc
+            đánh dấu không làm thay đổi thông tin cơ sở đã khai báo.
+          </p>
+          <div className="mt-6 space-y-3">
+            {checklistItems.map((item) => {
+              const current = checklist[item.key] ?? "verify";
+              return (
+                <div
+                  key={`check-${item.key}`}
+                  className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 lg:grid-cols-[minmax(0,1fr)_220px]"
+                >
+                  <div className="min-w-0">
+                    <p className="font-bold text-slate-800">{item.label}</p>
+                    <p className="mt-1 break-words text-sm text-slate-500">
+                      Khai báo:{" "}
+                      {item.answerType === "file"
+                        ? application.attachments
+                            .filter((file) => file.fieldKey === item.key)
+                            .map((file) => file.name)
+                            .join(", ") || "Chưa có tệp"
+                        : formatAnswer(application.data?.[item.key])}
+                    </p>
+                  </div>
+                  <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Kết quả đối chiếu
+                    <select
+                      value={current}
+                      onChange={(event) =>
+                        setChecklist((values) => ({
+                          ...values,
+                          [item.key]: event.target.value as
+                            | "complete"
+                            | "missing"
+                            | "verify",
+                        }))
+                      }
+                      className="focus-ring mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-slate-700"
+                      data-testid={`select-checklist-${item.key}`}
+                    >
+                      <option value="complete">Đã đầy đủ</option>
+                      <option value="missing">Còn thiếu</option>
+                      <option value="verify">Cần bổ sung / kiểm tra thêm</option>
+                    </select>
+                  </label>
+                </div>
+              );
+            })}
           </div>
         </section>
         <section className="mt-6 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">

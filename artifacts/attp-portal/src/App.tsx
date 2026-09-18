@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import {
   AdminDashboard,
+  AdminApplicationPage,
   AdminLoginPage,
   AdminPlaceholder,
   HomePage,
@@ -56,6 +57,11 @@ function Router() {
         <Route path="/admin">
           <AdminGuard>
             <AdminMonitoringDashboard />
+          </AdminGuard>
+        </Route>
+        <Route path="/admin/applications/:id">
+          <AdminGuard>
+            <AdminApplicationPage />
           </AdminGuard>
         </Route>
         <Route path="/admin/facilities/:facilityId">
