@@ -71,6 +71,7 @@ import {
   getPublicRecords,
   newsItems,
   regionalPublicRecords,
+  schoolOptions,
   suppliers,
   type Application,
   type ApplicationStatus,
@@ -525,7 +526,15 @@ type FacilityAccount = {
   username: string;
   registration: RegistrationSnapshot;
 };
+type MealProviderSchoolLink = {
+  id: string;
+  sourceUnitId: string;
+  targetSchoolId: string;
+  direction: "meal-provider-to-school";
+  createdAt: string;
+};
 const facilityAccountsStorageKey = "attp-facility-accounts";
+const mealProviderSchoolLinksStorageKey = "attp-meal-provider-school-links";
 const readFacilityAccounts = (): FacilityAccount[] => {
   if (typeof window === "undefined") return [];
   try {
@@ -540,6 +549,36 @@ const saveFacilityAccounts = (accounts: FacilityAccount[]) => {
   window.localStorage.setItem(
     facilityAccountsStorageKey,
     JSON.stringify(accounts),
+  );
+};
+const readMealProviderSchoolLinks = (): MealProviderSchoolLink[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    return JSON.parse(
+      window.localStorage.getItem(mealProviderSchoolLinksStorageKey) || "[]",
+    ) as MealProviderSchoolLink[];
+  } catch {
+    return [];
+  }
+};
+const saveMealProviderSchoolLinks = (
+  sourceUnitId: string,
+  schoolIds: string[],
+) => {
+  const existing = readMealProviderSchoolLinks().filter(
+    (link) => link.sourceUnitId !== sourceUnitId,
+  );
+  const createdAt = new Date().toISOString();
+  const nextLinks = schoolIds.map((targetSchoolId) => ({
+    id: `${sourceUnitId}-${targetSchoolId}`,
+    sourceUnitId,
+    targetSchoolId,
+    direction: "meal-provider-to-school" as const,
+    createdAt,
+  }));
+  window.localStorage.setItem(
+    mealProviderSchoolLinksStorageKey,
+    JSON.stringify([...existing, ...nextLinks]),
   );
 };
 const answerTypeLabels: Record<CriteriaAnswerType, string> = {
@@ -2551,6 +2590,14 @@ function ApplicationForm({
         registration: snapshot,
       };
       saveFacilityAccounts([...readFacilityAccounts(), accountRecord]);
+      if (type === "meal-provider") {
+        const schoolIds = Array.isArray(fields.servingSchools)
+          ? (fields.servingSchools as RepeatableValue)
+              .map((row) => row.schoolId)
+              .filter((schoolId): schoolId is string => typeof schoolId === "string")
+          : [];
+        saveMealProviderSchoolLinks(email, schoolIds);
+      }
       setCredentials({ email, password: accountPassword });
     } else if (account) {
       saveFacilityAccounts(
@@ -2560,6 +2607,14 @@ function ApplicationForm({
             : item,
         ),
       );
+      if (type === "meal-provider") {
+        const schoolIds = Array.isArray(fields.servingSchools)
+          ? (fields.servingSchools as RepeatableValue)
+              .map((row) => row.schoolId)
+              .filter((schoolId): schoolId is string => typeof schoolId === "string")
+          : [];
+        saveMealProviderSchoolLinks(account.username, schoolIds);
+      }
     }
     void input;
     setSubmitted(true);
@@ -2680,6 +2735,7 @@ function ApplicationForm({
           file.fieldKey?.startsWith(`${item.key}.`),
       )}
       suppliers={suppliers ?? []}
+      schools={schoolOptions}
       onChange={(value) => update(item.key, value)}
       onFiles={(event) => addFilesFor(item.key, event)}
       onFilesFor={addFilesFor}
@@ -2800,6 +2856,12 @@ function ApplicationForm({
           <FormSection
             key={group.id}
             title={group.name}
+            description={
+              type === "meal-provider" &&
+              group.id === "meal-provider-group-5"
+                ? "Có thể thêm nhiều trường."
+                : undefined
+            }
             icon={
               group.name.includes("Minh chứng")
                 ? ImagePlus
@@ -2826,6 +2888,31 @@ function ApplicationForm({
                       renderQuestion={renderQuestion}
                     />
                   );
+                }
+                if (
+                  type === "meal-provider" &&
+                  group.id === "meal-provider-group-6" &&
+                  item.key === "vehicleType"
+                ) {
+                  const ownershipField = groupFields.find(
+                    (field) => field.key === "ownershipType",
+                  );
+                  return (
+                    <div
+                      key={`${item.id}-${index}`}
+                      className="grid gap-4 md:grid-cols-2"
+                    >
+                      {renderQuestion(item)}
+                      {ownershipField && renderQuestion(ownershipField)}
+                    </div>
+                  );
+                }
+                if (
+                  type === "meal-provider" &&
+                  group.id === "meal-provider-group-6" &&
+                  item.key === "ownershipType"
+                ) {
+                  return null;
                 }
                 return (
                   <Fragment key={`${item.id}-${index}`}>
@@ -2891,6 +2978,7 @@ function DynamicQuestion({
   value,
   files,
   suppliers,
+  schools,
   onChange,
   onFiles,
   onFilesFor,
@@ -2900,6 +2988,7 @@ function DynamicQuestion({
   value: CriteriaValue;
   files: Attachment[];
   suppliers: { id: string; name: string; taxCode: string }[];
+  schools: readonly { id: string; name: string }[];
   onChange: (value: CriteriaValue) => void;
   onFiles: (event: ChangeEvent<HTMLInputElement>) => void;
   onFilesFor: (fieldKey: string, event: ChangeEvent<HTMLInputElement>) => void;
@@ -2911,6 +3000,7 @@ function DynamicQuestion({
       value={value}
       files={files}
       suppliers={suppliers}
+      schools={schools}
       onChange={onChange}
       onFiles={onFiles}
       onFilesFor={onFilesFor}
@@ -2924,6 +3014,7 @@ function DynamicQuestionControl({
   value,
   files,
   suppliers,
+  schools,
   onChange,
   onFiles,
   onFilesFor,
@@ -2933,6 +3024,7 @@ function DynamicQuestionControl({
   value: CriteriaValue;
   files: Attachment[];
   suppliers: { id: string; name: string; taxCode: string }[];
+  schools: readonly { id: string; name: string }[];
   onChange: (value: CriteriaValue) => void;
   onFiles: (event: ChangeEvent<HTMLInputElement>) => void;
   onFilesFor: (fieldKey: string, event: ChangeEvent<HTMLInputElement>) => void;
@@ -2948,6 +3040,40 @@ function DynamicQuestionControl({
   const requiredMark = item.required ? (
     <span className="text-destructive"> *</span>
   ) : null;
+  if (item.key === "ownershipType") {
+    const selected =
+      typeof value === "string"
+        ? value
+        : Array.isArray(value) && typeof value[0] === "string"
+          ? value[0]
+          : "";
+    return (
+      <fieldset className="mt-5 first:mt-0">
+        <legend className="mb-2 block text-sm font-semibold">
+          {item.label}
+          {requiredMark}
+        </legend>
+        <div className="inline-flex w-full rounded-xl border border-input bg-background p-1">
+          {item.options.map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => onChange(option)}
+              className={`min-h-9 flex-1 rounded-lg px-3 text-sm font-semibold transition-colors ${
+                selected === option
+                  ? "bg-secondary text-primary shadow-sm"
+                  : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+              }`}
+              aria-pressed={selected === option}
+              data-testid={`input-criteria-${item.key}-${option}`}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      </fieldset>
+    );
+  }
   const sourceNote =
     item.sourceMaterials.length > 0 ? (
       <div className="mt-2 rounded-lg border border-primary/10 bg-secondary/50 px-3 py-2 text-xs text-muted-foreground">
@@ -2961,6 +3087,7 @@ function DynamicQuestionControl({
         item={item}
         value={value}
         files={files}
+        schools={schools}
         onChange={onChange}
         onFilesFor={onFilesFor}
         onRemoveFile={onRemoveFile}
@@ -3138,6 +3265,7 @@ function RepeatableQuestion({
   item,
   value,
   files,
+  schools,
   onChange,
   onFilesFor,
   onRemoveFile,
@@ -3145,6 +3273,7 @@ function RepeatableQuestion({
   item: CriteriaDefinition;
   value: CriteriaValue;
   files: Attachment[];
+  schools: readonly { id: string; name: string }[];
   onChange: (value: CriteriaValue) => void;
   onFilesFor: (fieldKey: string, event: ChangeEvent<HTMLInputElement>) => void;
   onRemoveFile: (name: string, fieldKey?: string) => void;
@@ -3191,12 +3320,16 @@ function RepeatableQuestion({
           data-testid={`button-add-${item.key}`}
         >
           <Plus size={14} /> Thêm{" "}
-          {item.key === "products" ? "sản phẩm" : "nhà cung cấp"}
+          {item.key === "products"
+            ? "sản phẩm"
+            : item.key === "servingSchools"
+              ? "trường"
+              : "nhà cung cấp"}
         </Button>
       </div>
       {rows.length === 0 && (
         <div className="rounded-xl border border-dashed border-primary/25 bg-secondary/20 px-4 py-4 text-sm text-muted-foreground">
-          Chưa có dòng nào. Nhấn “Thêm” để khai báo.
+          Chưa có dòng nào. Nhấn 'Thêm' để khai báo.
         </div>
       )}
       <div className="space-y-4">
@@ -3207,7 +3340,11 @@ function RepeatableQuestion({
           >
             <div className="mb-4 flex items-center justify-between gap-3">
               <p className="text-sm font-bold">
-                {item.key === "products" ? "Sản phẩm" : "Nhà cung cấp"}{" "}
+                {item.key === "products"
+                  ? "Sản phẩm"
+                  : item.key === "servingSchools"
+                    ? "Trường học"
+                    : "Nhà cung cấp"}{" "}
                 {rowIndex + 1}
               </p>
               <button
@@ -3274,35 +3411,58 @@ function RepeatableQuestion({
                   field.answerType === "select" ||
                   field.answerType === "yes-no"
                 )
-                  return (
-                    <label key={field.key} className="block">
-                      <span className="mb-2 block text-sm font-semibold">
-                        {field.label}
-                        {field.required && (
-                          <span className="text-destructive"> *</span>
-                        )}
-                      </span>
-                      <select
-                        value={
-                          Array.isArray(fieldValue)
-                            ? (fieldValue[0] ?? "")
-                            : fieldValue
-                        }
-                        onChange={(event) =>
-                          updateRow(rowIndex, field.key, event.target.value)
-                        }
-                        className="focus-ring h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
-                        data-testid={`input-criteria-${fieldKey}`}
-                      >
-                        <option value="">Chọn một phương án</option>
-                        {(field.options ?? []).map((option) => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  );
+                  {
+                    const options =
+                      item.key === "servingSchools" && field.key === "schoolId"
+                        ? schools.map((school) => school.name)
+                        : (field.options ?? []);
+                    const optionValues =
+                      item.key === "servingSchools" && field.key === "schoolId"
+                        ? schools.map((school) => school.id)
+                        : options;
+                    return (
+                      <label key={field.key} className="block">
+                        <span className="mb-2 block text-sm font-semibold">
+                          {field.label}
+                          {field.required && (
+                            <span className="text-destructive"> *</span>
+                          )}
+                        </span>
+                        <select
+                          value={
+                            Array.isArray(fieldValue)
+                              ? (fieldValue[0] ?? "")
+                              : fieldValue
+                          }
+                          onChange={(event) =>
+                            updateRow(rowIndex, field.key, event.target.value)
+                          }
+                          className="focus-ring h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                          data-testid={`input-criteria-${fieldKey}`}
+                        >
+                          <option value="">Chọn trường từ danh sách đã đăng ký</option>
+                          {options.map((option, optionIndex) => (
+                            <option
+                              key={optionValues[optionIndex]}
+                              value={optionValues[optionIndex]}
+                              disabled={
+                                item.key === "servingSchools" &&
+                                field.key === "schoolId" &&
+                                optionValues[optionIndex] !== fieldValue &&
+                                rows.some(
+                                  (otherRow, otherIndex) =>
+                                    otherIndex !== rowIndex &&
+                                    otherRow.schoolId === optionValues[optionIndex],
+                                )
+                              }
+                            >
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    );
+                  }
                 return (
                   <label key={field.key} className="block">
                     <span className="mb-2 block text-sm font-semibold">
@@ -3337,10 +3497,12 @@ function RepeatableQuestion({
 
 function FormSection({
   title,
+  description,
   icon: Icon,
   children,
 }: {
   title: string;
+  description?: string;
   icon: typeof UserRound;
   children: ReactNode;
 }) {
@@ -3350,7 +3512,12 @@ function FormSection({
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-primary">
           <Icon size={18} />
         </div>
-        <h2 className="text-lg font-extrabold">{title}</h2>
+        <div>
+          <h2 className="text-lg font-extrabold">{title}</h2>
+          {description && (
+            <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+          )}
+        </div>
       </div>
       {children}
     </section>

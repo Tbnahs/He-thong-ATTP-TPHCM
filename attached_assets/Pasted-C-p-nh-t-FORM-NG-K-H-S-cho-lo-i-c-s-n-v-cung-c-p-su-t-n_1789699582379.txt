@@ -1,0 +1,45 @@
+Cập nhật FORM ĐĂNG KÝ HỒ SƠ cho loại cơ sở "Đơn vị cung cấp suất ăn" (Portal công khai, Sở An toàn thực phẩm TPHCM). Giữ nguyên 100% style hiện có của các section (khung bo góc viền xám nhạt, icon tròn nền xanh nhạt + tiêu đề, label có dấu * đỏ khi bắt buộc, input bo góc nền xám nhạt, nút "+ Thêm..." bo tròn viền xanh). Không đổi bất kỳ field/section nào ngoài những chỗ liệt kê dưới đây.
+
+======================================================
+THAY ĐỔI 1 — THÊM SECTION MỚI "TRƯỜNG HỌC ĐANG PHỤC VỤ"
+======================================================
+
+VỊ TRÍ: chèn ngay SAU section "Nguồn nhập" (chứa field "Nhà cung cấp thực phẩm"), và TRƯỚC section "Năng lực cung ứng & vận chuyển". Thứ tự sau khi sửa:
+
+  Nhân lực
+  Nguồn nhập  (giữ nguyên)
+  ➕ Trường học đang phục vụ  (MỚI — chèn ở đây)
+  Năng lực cung ứng & vận chuyển  (giữ nguyên)
+  Minh chứng  (giữ nguyên)
+
+NỘI DUNG SECTION MỚI — copy chính xác cấu trúc/UI của section "Nguồn nhập" đang có (chỉ đổi nội dung, giữ nguyên layout, spacing, kiểu nút, kiểu khung rỗng):
+
+- Icon + tiêu đề: "Trường học đang phục vụ" (dùng icon người giống các section khác, hoặc icon trường học nếu bộ icon đang có sẵn loại này)
+- Dòng phụ nhỏ màu xám dưới tiêu đề: "Có thể thêm nhiều trường."
+- Nút "+ Thêm trường" đặt góc phải cùng hàng với tiêu đề — style giống hệt nút "+ Thêm nhà cung cấp"
+- Khi bấm "+ Thêm trường": mở ô tìm kiếm/chọn theo TÊN TRƯỜNG TỪ DANH SÁCH CÓ SẴN TRONG HỆ THỐNG (autocomplete/select, KHÔNG cho gõ tay tên tự do) — để đảm bảo liên kết đúng với hồ sơ trường đã đăng ký trên hệ thống, không tạo bản ghi trùng/sai tên
+- Mỗi trường được thêm hiển thị thành 1 dòng/card trong danh sách, có nút xóa (x) để bỏ khỏi danh sách, style giống các list item động khác trong form (nếu có)
+- Trạng thái rỗng ban đầu: hiển thị đúng dòng "Chưa có dòng nào. Nhấn 'Thêm' để khai báo." như section "Nguồn nhập" đang làm
+- Cuối danh sách (chỉ hiện khi đã thêm ít nhất 1 trường): 1 dòng nhỏ, không phải input, chỉ là text hiển thị tự động đếm: "Đang phục vụ: [N] trường" (N = số dòng hiện có trong danh sách, tự cập nhật theo realtime khi thêm/xóa, không cho sửa tay)
+
+======================================================
+THAY ĐỔI 2 — SECTION "NĂNG LỰC CUNG ỨNG & VẬN CHUYỂN"
+======================================================
+
+Giữ nguyên toàn bộ 5 field đang có: "Công suất suất ăn mỗi ngày", "Phương tiện giao suất ăn – Loại phương tiện", "Phương tiện giao suất ăn – Số lượng phương tiện", "Ảnh phương tiện giao suất ăn", "Tủ lưu mẫu thức ăn".
+
+CHÈN THÊM 1 field mới, đặt NGAY CẠNH field "Phương tiện giao suất ăn – Loại phương tiện" trên cùng 1 hàng (2 cột, responsive xuống 1 cột trên mobile) — không tách thành khối riêng, không dùng radio card to:
+
+  Label: "Hình thức sở hữu"
+  Kiểu: segmented control / toggle 2 lựa chọn dạng inline gọn (không phải dropdown, không phải radio to) — 2 nút liền nhau trong 1 khung bo góc: "Chuyên dụng" | "Thuê ngoài", nút đang chọn tô nền xanh nhạt đậm hơn, còn lại nền trong suốt
+  Không thêm field phụ nào khác (không thêm "Tên đơn vị cho thuê xe")
+
+KHÔNG THÊM field "Số trường đang phục vụ" dạng input riêng ở section này — số liệu này đã lấy tự động từ section "Trường học đang phục vụ" ở Thay đổi 1, không lặp lại ở đây.
+
+======================================================
+LƯU DATA
+======================================================
+- Mỗi trường được chọn trong "Trường học đang phục vụ" tạo 1 bản ghi quan hệ đơn vị-nguồn → trường-đích (bảng chuỗi cung ứng đã có sẵn trong hệ thống, chiều ngược lại với "Nguồn nhập")
+- Field "Hình thức sở hữu" lưu vào hồ sơ cơ sở (co_so hoặc bảng mở rộng liên kết theo id_co_so)
+
+Xuất ra: toàn bộ form "Đơn vị cung cấp suất ăn" đã cập nhật đầy đủ theo đúng thứ tự section ở trên.

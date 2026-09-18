@@ -1,0 +1,50 @@
+PHẦN 1 — MÀN "CẤU HÌNH TIÊU CHÍ ĐÁNH GIÁ" (Admin)
+================================================================
+
+KHÔNG CẦN SỬA CODE MÀN HÌNH — cơ chế "+ Thêm nhóm tiêu chí" đã có sẵn. Chỉ cần đảm bảo Hân/Hiền nhập được đúng nhóm sau (nếu cần seed dữ liệu mẫu thì thêm đúng nội dung này):
+
+Nhóm mới: "F · Phương tiện vận chuyển" — áp dụng cho loại hình cơ sở "Đơn vị cung cấp suất ăn"
+Tiêu chí:
+  - "Hình thức sở hữu phương tiện phù hợp với quy mô phục vụ" — trọng số 8đ
+    (cán bộ đối chiếu: nếu "Thuê ngoài" mà phục vụ nhiều trường → yêu cầu xuất trình hợp đồng thuê xe tại chỗ)
+  - "Số lượng phương tiện đủ đáp ứng số trường đang phục vụ, không quá tải" — trọng số 8đ
+  - "Phương tiện đảm bảo điều kiện vệ sinh, bảo ôn khi vận chuyển" — trọng số 6đ
+
+======================================================
+PHẦN 2 — BƯỚC "ĐÁNH GIÁ NĂNG LỰC" TRONG "BIÊN BẢN KIỂM TRA"
+================================================================
+
+Khi cán bộ mở Bước 3 (Đánh giá năng lực) cho 1 "Đơn vị cung cấp suất ăn", accordion nhóm "F · Phương tiện vận chuyển" tự động xuất hiện (đọc động từ Phần 1, không cần sửa code). 
+
+BỔ SUNG: ngay phía trên danh sách tiêu chí của nhóm F, thêm 1 khối nhỏ "DỮ LIỆU THAM CHIẾU TỪ HỒ SƠ ĐĂNG KÝ" (nền xám nhạt, chỉ đọc, không phải input) để cán bộ có số liệu đối chiếu ngay tại chỗ mà không phải mở tab khác:
+  - Hình thức sở hữu: [lấy từ field "Hình thức sở hữu" đã khai báo]
+  - Số lượng phương tiện đã khai báo: [lấy từ field "Số lượng phương tiện"]
+  - Số trường đang phục vụ (theo hệ thống): [đếm tự động từ danh sách "Trường học đang phục vụ"]
+  - Tỷ lệ: [số phương tiện] / [số trường] — hiển thị kèm nhãn cảnh báo nhỏ màu cam nếu tỷ lệ vượt ngưỡng hợp lý (ngưỡng cụ thể để Sở quyết định sau, tạm để dạng cấu hình được, không hard-code số)
+
+Cán bộ dựa vào khối tham chiếu này để chấm Đạt/Không đạt cho từng tiêu chí bên dưới, không đổi cơ chế chấm điểm đã có.
+
+======================================================
+PHẦN 3 — TRANG CHI TIẾT CƠ SỞ (Admin nội bộ)
+================================================================
+
+Thêm 1 tab hoặc section mới "Trường học đang phục vụ" trong trang chi tiết 1 đơn vị cung cấp suất ăn, giữ đúng style card/list đang dùng trong hệ thống:
+  - Danh sách trường (tên trường, địa chỉ rút gọn, trạng thái hợp tác: Đang hợp tác/Tạm ngừng/Đã chấm dứt — badge màu tương ứng)
+  - Mỗi dòng bấm vào → điều hướng sang trang chi tiết trường đó
+  - Hiển thị tổng số ở đầu: "Đang phục vụ: N trường"
+
+======================================================
+PHẦN 4 — PORTAL TRA CỨU CÔNG KHAI (Cơ sở)
+================================================================
+
+CHỈ hiển thị SỐ LƯỢNG, KHÔNG hiển thị danh sách tên trường cụ thể (tránh lộ thông tin quan hệ thương mại của đơn vị ra công khai khi chưa có sự đồng ý):
+  - Thêm 1 dòng nhỏ trong card chi tiết cơ sở: "Đang phục vụ [N] trường học trên địa bàn"
+  - Không thêm link/nút xem chi tiết danh sách trường ở màn Portal
+
+======================================================
+PHẦN 5 — XÁC NHẬN LẠI LUỒNG "CẢNH BÁO ATTP" (đã làm ở các lượt trước — KHÔNG CẦN SỬA CODE)
+================================================================
+
+Ghi chú xác nhận (không phải yêu cầu code mới): sau khi có Phần 1 của bản cập nhật này (section "Trường học đang phục vụ" trong form đăng ký), luồng "Tạo mới cảnh báo ATTP" đã thiết kế trước đó (dropdown "Nghi vấn từ đơn vị cung cấp suất ăn nào?" → tự động liệt kê các trường cùng chuỗi cung ứng) sẽ CÓ ĐỦ DỮ LIỆU để hoạt động đúng — trước đây thiếu vì form đăng ký chưa có chiều dữ liệu Đơn vị→Trường. Không cần sửa gì thêm ở màn Cảnh báo ATTP.
+
+Xuất ra: UI cho Phần 1 (màn Cấu hình tiêu chí, nhóm F), Phần 2 (Bước 3 Biên bản kiểm tra với khối dữ liệu tham chiếu), Phần 3 (tab mới trong trang chi tiết cơ sở Admin), Phần 4 (dòng bổ sung trong card Portal).
