@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { Link, useLocation, useParams } from "wouter";
 import { AdminShell, PublicShell } from "@/components/portal-ui";
+import { suppliers } from "@/lib/mock-data";
 import foodPhotoPath from "../../../../attached_assets/0_List_Of_Nucleic_Acid_Foods_1788929888254.jpg";
 import {
   EVIDENCE_ACCEPT,
@@ -55,12 +56,6 @@ const incidentFacilityOptions: Record<IncidentFacilityType, string[]> = {
     "Bếp ăn tập thể An Phú",
     "Công ty Suất ăn Minh Tâm",
   ],
-};
-
-const schoolMealProviders: Record<string, string[]> = {
-  "Trường Tiểu học Lê Lợi": ["Bếp ăn tập thể An Phú"],
-  "Trường Tiểu học Thái Sơn": ["Bếp ăn tập thể An Phú"],
-  "Trường Mầm non Hoa Sen": ["Công ty Suất ăn Minh Tâm"],
 };
 
 const mealProviderSchools: Record<string, string[]> = {
@@ -124,6 +119,82 @@ function getRecordedMealProviderSchools() {
   return graph;
 }
 
+function readRegisteredFacilityAccounts() {
+  if (typeof window === "undefined") return [];
+  try {
+    return JSON.parse(
+      window.localStorage.getItem("attp-facility-accounts") || "[]",
+    ) as Array<{
+      registration?: {
+        type?: string;
+        fields?: Record<string, unknown>;
+      };
+    }>;
+  } catch {
+    return [];
+  }
+}
+
+function getIncidentFacilityOptions(): Record<IncidentFacilityType, string[]> {
+  const options = Object.fromEntries(
+    Object.entries(incidentFacilityOptions).map(([type, names]) => [
+      type,
+      [...names],
+    ]),
+  ) as Record<IncidentFacilityType, string[]>;
+
+  for (const account of readRegisteredFacilityAccounts()) {
+    const type =
+      account.registration?.type === "school"
+        ? "Cơ sở giáo dục"
+        : account.registration?.type === "food-supplier"
+          ? "Đơn vị cung cấp thực phẩm"
+          : account.registration?.type === "meal-provider"
+            ? "Đơn vị cung cấp suất ăn"
+            : undefined;
+    const name = account.registration?.fields?.applicantName;
+    if (
+      type &&
+      typeof name === "string" &&
+      name.trim() &&
+      !options[type].includes(name.trim())
+    ) {
+      options[type].push(name.trim());
+    }
+  }
+
+  return options;
+}
+
+function getFoodSupplierMealProviders() {
+  const graph: Record<string, string[]> = {};
+  const supplierNamesById = Object.fromEntries(
+    suppliers.map((supplier) => [supplier.id, supplier.name]),
+  );
+
+  for (const account of readRegisteredFacilityAccounts()) {
+    if (account.registration?.type !== "meal-provider") continue;
+    const fields = account.registration.fields ?? {};
+    const providerName = fields.applicantName;
+    const supplierId = fields.supplierId;
+    const supplierName =
+      typeof supplierId === "string" ? supplierNamesById[supplierId] : undefined;
+    if (
+      typeof supplierName !== "string" ||
+      !supplierName ||
+      typeof providerName !== "string" ||
+      !providerName.trim()
+    ) {
+      continue;
+    }
+    graph[supplierName] = Array.from(
+      new Set([...(graph[supplierName] ?? []), providerName.trim()]),
+    );
+  }
+
+  return graph;
+}
+
 function getRelatedFacilities(
   facilityType: IncidentFacilityType | "",
   facility: string,
@@ -139,18 +210,40 @@ function getRelatedFacilities(
     return result;
   }, {});
   if (facilityType === "Cơ sở giáo dục") {
-    const providers = providersBySchool[facility] ?? [];
-    return Array.from(
-      new Set([
-        facility,
-        ...providers.flatMap((provider) => schoolsByProvider[provider] ?? []),
-      ]),
-    );
+    return Array.from(new Set(providersBySchool[facility] ?? []));
   }
   if (facilityType === "Đơn vị cung cấp suất ăn") {
-    return schoolsByProvider[facility] ?? [];
+    return Array.from(new Set(schoolsByProvider[facility] ?? []));
+  }
+  if (facilityType === "Đơn vị cung cấp thực phẩm") {
+    return Array.from(new Set(getFoodSupplierMealProviders()[facility] ?? []));
   }
   return [];
+}
+
+function getRelatedFacilitiesCopy(facilityType: IncidentFacilityType | "") {
+  if (facilityType === "Cơ sở giáo dục") {
+    return {
+      title: "Nhà cung cấp suất ăn của trường",
+      description:
+        "Danh sách được lấy từ các đơn vị cung cấp suất ăn đã liên kết trong hồ sơ của trường.",
+      empty: "Chưa ghi nhận đơn vị cung cấp suất ăn nào cho trường này.",
+    };
+  }
+  if (facilityType === "Đơn vị cung cấp suất ăn") {
+    return {
+      title: "Các trường đang sử dụng đơn vị",
+      description:
+        "Danh sách được lấy từ các trường đã khai báo đang sử dụng đơn vị cung cấp suất ăn này.",
+      empty: "Chưa ghi nhận trường nào đang sử dụng đơn vị này.",
+    };
+  }
+  return {
+    title: "Các cơ sở nhận hàng từ đơn vị",
+    description:
+      "Danh sách được lấy từ các đơn vị cung cấp suất ăn đã khai báo sử dụng nhà cung cấp thực phẩm này.",
+    empty: "Chưa ghi nhận cơ sở nào nhận hàng từ đơn vị này.",
+  };
 }
 
 type Incident = {
@@ -727,10 +820,8 @@ function IncidentCreateModal({
     foods: "",
     description: "",
     response: "",
-    notifyFacility: true,
     notifyHealth: false,
     notifyDistrict: false,
-    notifyPartnerSchools: false,
     notifiedFacilities: [] as string[],
   });
   const [files, setFiles] = useState<string[]>([]);
@@ -799,10 +890,10 @@ function IncidentCreateModal({
       response: form.response || "Chưa có biện pháp xử lý được ghi nhận.",
       foods: form.foods || form.meals.join(", "),
       attachments: files,
-      notifyFacility: form.notifyFacility,
+      notifyFacility: form.notifiedFacilities.length > 0,
       notifyHealth: form.notifyHealth,
       notifyDistrict: form.notifyDistrict,
-      notifyPartnerSchools: Boolean(externalMealProvider && form.notifyPartnerSchools),
+      notifyPartnerSchools: false,
       notifiedFacilities: form.notifiedFacilities,
       reviewStatus: "Chưa cập nhật",
       timeline: [
@@ -821,13 +912,12 @@ function IncidentCreateModal({
     onCreated(incident);
   };
 
+  const facilityOptions = getIncidentFacilityOptions();
   const facilities = form.facilityType
-    ? incidentFacilityOptions[form.facilityType]
+    ? facilityOptions[form.facilityType]
     : [];
-  const externalMealProvider = form.facility
-    ? schoolMealProviders[form.facility]
-    : undefined;
   const relatedFacilities = getRelatedFacilities(form.facilityType, form.facility);
+  const relatedCopy = getRelatedFacilitiesCopy(form.facilityType);
   const toggleRelatedFacility = (name: string) =>
     setForm((current) => ({
       ...current,
@@ -871,7 +961,6 @@ function IncidentCreateModal({
                         ...current,
                         facilityType: event.target.value as IncidentFacilityType,
                         facility: "",
-                        notifyPartnerSchools: false,
                         notifiedFacilities: [],
                       }))}
                       className={`${designInputClass} appearance-none pr-11`}
@@ -893,7 +982,6 @@ function IncidentCreateModal({
                       onChange={(event) => setForm((current) => ({
                         ...current,
                         facility: event.target.value,
-                        notifyPartnerSchools: false,
                         notifiedFacilities: [],
                       }))}
                       className={`${designInputClass} appearance-none pl-11 pr-11`}
@@ -906,23 +994,30 @@ function IncidentCreateModal({
                   </span>
                   {error(form.facility)}
                 </label>
-                {relatedFacilities.length > 0 && (
+                {form.facility && (
                   <section className="rounded-xl border border-[#bfdbfe] bg-[#eff6ff] p-4">
                     <div className="flex items-start gap-3">
                       <Info size={17} className="mt-0.5 shrink-0 text-[#2563eb]" />
                       <div>
-                        <p className="text-sm font-bold text-[#1e3a8a]">Cơ sở liên quan được truy xuất từ quan hệ đã ghi nhận</p>
-                        <p className="mt-1 text-xs leading-5 text-[#475569]">Danh sách này chỉ để cán bộ xem xét, không đồng nghĩa tất cả đều có sự cố. Hãy tích chọn đúng phạm vi cần gửi cảnh báo.</p>
+                        <p className="text-sm font-bold text-[#1e3a8a]">{relatedCopy.title}</p>
+                        <p className="mt-1 text-xs leading-5 text-[#475569]">{relatedCopy.description} Hệ thống không tự gửi hàng loạt; cán bộ phải tích chọn từng đơn vị cần nhận cảnh báo.</p>
                       </div>
                     </div>
-                    <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                      {relatedFacilities.map((name) => (
-                        <label key={name} className="flex cursor-pointer items-center gap-3 rounded-lg border border-[#dbeafe] bg-white px-3 py-3 text-sm font-semibold text-[#334155]">
-                          <input type="checkbox" checked={form.notifiedFacilities.includes(name)} onChange={() => toggleRelatedFacility(name)} className="h-4 w-4 accent-[#2563eb]" data-testid={`checkbox-modal-related-facility-${name}`} />
-                          {name}
-                        </label>
-                      ))}
-                    </div>
+                    {relatedFacilities.length > 0 ? (
+                      <>
+                        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                          {relatedFacilities.map((name) => (
+                            <label key={name} className="flex cursor-pointer items-center gap-3 rounded-lg border border-[#dbeafe] bg-white px-3 py-3 text-sm font-semibold text-[#334155]">
+                              <input type="checkbox" checked={form.notifiedFacilities.includes(name)} onChange={() => toggleRelatedFacility(name)} className="h-4 w-4 accent-[#2563eb]" data-testid={`checkbox-modal-related-facility-${name}`} />
+                              <span>{name}</span>
+                            </label>
+                          ))}
+                        </div>
+                        <p className="mt-3 text-xs font-semibold text-[#1e40af]">Đã chọn {form.notifiedFacilities.length}/{relatedFacilities.length} đơn vị nhận cảnh báo.</p>
+                      </>
+                    ) : (
+                      <p className="mt-4 rounded-lg border border-dashed border-[#93c5fd] bg-white px-3 py-3 text-sm text-[#64748b]">{relatedCopy.empty}</p>
+                    )}
                     {submitted && form.notifiedFacilities.length === 0 && <p className="mt-2 text-xs font-semibold text-[#dc2626]">Vui lòng tích chọn ít nhất một cơ sở cần cảnh báo.</p>}
                   </section>
                 )}
@@ -1008,7 +1103,6 @@ function IncidentCreateModal({
               </div>
               <div className="grid gap-4 md:grid-cols-3">
                 {[
-                  ["notifyFacility", "Nhà trường", "Thông báo qua hệ thống", form.notifyFacility, "checkbox-modal-notify-facility"],
                   ["notifyHealth", "Trạm Y tế địa phương", "Gửi Email tự động", form.notifyHealth, "checkbox-modal-notify-health"],
                   ["notifyDistrict", "UBND Phường/Xã", "Gửi Email tự động", form.notifyDistrict, "checkbox-modal-notify-district"],
                 ].map(([key, title, description, checked, testId]) => (
@@ -1017,21 +1111,6 @@ function IncidentCreateModal({
                     <span><strong className="block text-[13px] text-[#1e293b]">{title}</strong><span className="mt-1 block text-[11px] text-[#64748b]">{description}</span></span>
                   </label>
                 ))}
-                {externalMealProvider && (
-                  <label className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors md:col-span-3 ${form.notifyPartnerSchools ? "border-[#2563eb] bg-[#eff6ff]" : "border-[#e2e8f0] bg-white hover:border-[#93c5fd]"}`}>
-                    <input
-                      type="checkbox"
-                      checked={form.notifyPartnerSchools}
-                      onChange={(event) => update("notifyPartnerSchools", event.target.checked)}
-                      className="mt-0.5 h-5 w-5 accent-[#2563eb]"
-                      data-testid="checkbox-modal-notify-partner-schools"
-                    />
-                    <span>
-                      <strong className="block text-[13px] text-[#1e293b]">Các trường cùng sử dụng cơ sở cung cấp suất ăn</strong>
-                      <span className="mt-1 block text-[11px] text-[#64748b]">Gửi cảnh báo đến các trường đang sử dụng {externalMealProvider}.</span>
-                    </span>
-                  </label>
-                )}
               </div>
             </section>
           </div>
@@ -1077,7 +1156,6 @@ export function IncidentCreatePage() {
     foods: "",
     description: "",
     response: "",
-    notifyFacility: true,
     notifyHealth: false,
     notifyDistrict: false,
     notifiedFacilities: [] as string[],
@@ -1130,7 +1208,7 @@ export function IncidentCreatePage() {
       response: form.response || "Chưa có biện pháp xử lý được ghi nhận.",
       foods: form.foods || form.meals.join(", "),
       attachments: files,
-      notifyFacility: form.notifyFacility,
+       notifyFacility: form.notifiedFacilities.length > 0,
       notifyHealth: form.notifyHealth,
       notifyDistrict: form.notifyDistrict,
       notifiedFacilities: form.notifiedFacilities,
@@ -1140,7 +1218,9 @@ export function IncidentCreatePage() {
     persistIncidents([incident, ...current]);
     navigate(`/admin/inspections/incidents/${incident.id}`);
   };
+  const facilityOptions = getIncidentFacilityOptions();
   const relatedFacilities = getRelatedFacilities(form.facilityType, form.facility);
+  const relatedCopy = getRelatedFacilitiesCopy(form.facilityType);
   const toggleRelatedFacility = (name: string) =>
     setForm((current) => ({
       ...current,
@@ -1179,27 +1259,34 @@ export function IncidentCreatePage() {
               <label className={designLabelClass}>Tên cơ sở liên quan <span className="text-[#ef4444]">*</span>
                 <select value={form.facility} onChange={(e) => setForm((current) => ({ ...current, facility: e.target.value, notifiedFacilities: [] }))} disabled={!form.facilityType} className={`${designInputClass} disabled:cursor-not-allowed disabled:bg-[#f1f5f9] disabled:text-[#94a3b8]`} data-testid="select-incident-facility">
                   <option value="">{form.facilityType ? "Chọn cơ sở" : "Chọn loại cơ sở trước"}</option>
-                  {form.facilityType && incidentFacilityOptions[form.facilityType].map((facility) => <option key={facility}>{facility}</option>)}
+                  {form.facilityType && facilityOptions[form.facilityType].map((facility) => <option key={facility}>{facility}</option>)}
                 </select>
                 {submitted && !form.facility && <span className="mt-1 block normal-case tracking-normal text-xs font-medium text-[#ef4444]">Vui lòng chọn cơ sở.</span>}
               </label>
-              {relatedFacilities.length > 0 && (
+               {form.facility && (
                 <section className="rounded-xl border border-[#bfdbfe] bg-[#eff6ff] p-4">
                   <div className="flex items-start gap-3">
                     <Info size={17} className="mt-0.5 shrink-0 text-[#2563eb]" />
                     <div>
-                      <p className="text-sm font-bold text-[#1e3a8a]">Cơ sở liên quan được truy xuất từ quan hệ đã ghi nhận</p>
-                      <p className="mt-1 text-xs leading-5 text-[#475569]">Danh sách này chỉ để cán bộ xem xét, không đồng nghĩa tất cả đều có sự cố. Hãy tích chọn đúng phạm vi cần gửi cảnh báo.</p>
+                       <p className="text-sm font-bold text-[#1e3a8a]">{relatedCopy.title}</p>
+                       <p className="mt-1 text-xs leading-5 text-[#475569]">{relatedCopy.description} Hệ thống không tự gửi hàng loạt; cán bộ phải tích chọn từng đơn vị cần nhận cảnh báo.</p>
                     </div>
                   </div>
-                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                    {relatedFacilities.map((name) => (
-                      <label key={name} className="flex cursor-pointer items-center gap-3 rounded-lg border border-[#dbeafe] bg-white px-3 py-3 text-sm font-semibold text-[#334155]">
-                        <input type="checkbox" checked={form.notifiedFacilities.includes(name)} onChange={() => toggleRelatedFacility(name)} className="h-4 w-4 accent-[#2563eb]" data-testid={`checkbox-related-facility-${name}`} />
-                        {name}
-                      </label>
-                    ))}
-                  </div>
+                   {relatedFacilities.length > 0 ? (
+                     <>
+                       <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                         {relatedFacilities.map((name) => (
+                           <label key={name} className="flex cursor-pointer items-center gap-3 rounded-lg border border-[#dbeafe] bg-white px-3 py-3 text-sm font-semibold text-[#334155]">
+                             <input type="checkbox" checked={form.notifiedFacilities.includes(name)} onChange={() => toggleRelatedFacility(name)} className="h-4 w-4 accent-[#2563eb]" data-testid={`checkbox-related-facility-${name}`} />
+                             <span>{name}</span>
+                           </label>
+                         ))}
+                       </div>
+                       <p className="mt-3 text-xs font-semibold text-[#1e40af]">Đã chọn {form.notifiedFacilities.length}/{relatedFacilities.length} đơn vị nhận cảnh báo.</p>
+                     </>
+                   ) : (
+                     <p className="mt-4 rounded-lg border border-dashed border-[#93c5fd] bg-white px-3 py-3 text-sm text-[#64748b]">{relatedCopy.empty}</p>
+                   )}
                   {submitted && form.notifiedFacilities.length === 0 && <p className="mt-2 text-xs font-semibold text-[#dc2626]">Vui lòng tích chọn ít nhất một cơ sở cần cảnh báo.</p>}
                 </section>
               )}
@@ -1282,7 +1369,6 @@ export function IncidentCreatePage() {
             </div>
             <div className="grid gap-4 md:grid-cols-3">
               {[
-                ["notifyFacility", "Nhà trường", "Thông báo qua hệ thống", form.notifyFacility, "checkbox-notify-facility"],
                 ["notifyHealth", "Trạm Y tế địa phương", "Gửi Email tự động", form.notifyHealth, "checkbox-notify-health"],
                 ["notifyDistrict", "UBND Phường/Xã", "Gửi Email tự động", form.notifyDistrict, "checkbox-notify-district"],
               ].map(([key, title, description, checked, testId]) => (
@@ -1401,10 +1487,11 @@ export function IncidentDetailPage() {
   ];
   const completedSteps = incident.status === "Đã đóng" ? processSteps.length : incident.schoolUpdate ? 6 : 3;
   const selectedNotifications = [
-    incident.notifyFacility && "Nhà trường",
+    incident.notifiedFacilities?.length
+      ? `Đơn vị nhận cảnh báo: ${incident.notifiedFacilities.join(", ")}`
+      : incident.notifyFacility && "Nhà trường",
     incident.notifyHealth && "Y tế địa phương",
     incident.notifyDistrict && "Cơ quan quản lý",
-    incident.notifyPartnerSchools && "Các trường cùng sử dụng cơ sở cung cấp suất ăn",
   ].filter(Boolean) as string[];
   const canCloseIncident = hasCompleteSchoolUpdate(incident.schoolUpdate);
 
