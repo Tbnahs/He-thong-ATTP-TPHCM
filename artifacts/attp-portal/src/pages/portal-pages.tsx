@@ -99,6 +99,7 @@ import {
   EVIDENCE_MAX_SIZE_LABEL,
   validateEvidenceFiles,
 } from "@/lib/file-upload";
+import { syncApprovedFacility } from "@/lib/approved-facilities";
 
 const categoryNames: Record<string, string> = {
   "eligible-facilities": "Cơ sở đủ điều kiện",
@@ -6596,6 +6597,7 @@ export function AdminApplicationPage() {
     application.status = "approved";
     application.reviewNote = null;
     application.published = true;
+    syncApprovedFacility(application);
     setNotice("Đã lưu hồ sơ đạt và công bố trên cổng thông tin.");
   };
   const requestSupplement = () => {

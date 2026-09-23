@@ -51,6 +51,7 @@ const incidentFacilityOptions: Record<IncidentFacilityType, string[]> = {
   "Đơn vị cung cấp thực phẩm": [
     "Công ty TNHH Nông sản An Phú",
     "Công ty Thực phẩm sạch Bình Minh",
+    "Hợp tác xã Rau sạch Củ Chi",
   ],
   "Đơn vị cung cấp suất ăn": [
     "Bếp ăn tập thể An Phú",
@@ -384,15 +385,16 @@ function hasCompleteSchoolUpdate(update?: SchoolIncidentUpdate) {
   ].every((value) => Boolean(value?.trim()));
 }
 
-const STORAGE_KEY = "attp-food-safety-incidents";
+const STORAGE_KEY = "attp-food-safety-incidents-v2";
 
 const seedIncidents: Incident[] = [
   {
     id: "INC-2026-009",
     code: "INC-2026-009",
     title: "Nghi ngờ ngộ độc thực phẩm sau bữa trưa",
-    facility: "Trường Tiểu học Thái Sơn",
-    address: "12 Nguyễn Trãi, phường Bến Thành, TP.HCM",
+    facilityType: "Đơn vị cung cấp suất ăn",
+    facility: "Công ty Suất ăn Minh Tâm",
+    address: "Khu công nghiệp Tân Bình, TP.HCM",
     occurredAt: "2026-09-18T11:45",
     reportedAt: "2026-09-18T13:08",
     reporter: "Nguyễn Thị Minh Anh",
@@ -432,8 +434,9 @@ const seedIncidents: Incident[] = [
     id: "INC-2026-008",
     code: "INC-2026-008",
     title: "Phát hiện côn trùng trong khu vực sơ chế",
-    facility: "Trường Mầm non Hoa Sen",
-    address: "35 Nguyễn Du, phường Sài Gòn, TP.HCM",
+    facilityType: "Đơn vị cung cấp thực phẩm",
+    facility: "Công ty Thực phẩm sạch Bình Minh",
+    address: "32 Nguyễn Thị Thập, phường Tân Phong, TP.HCM",
     occurredAt: "2026-09-17T08:20",
     reportedAt: "2026-09-17T09:02",
     reporter: "Trần Minh Hoàng",

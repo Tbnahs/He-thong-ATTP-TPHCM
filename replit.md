@@ -31,7 +31,7 @@ Cổng thông tin an toàn thực phẩm TP.HCM với tra cứu công khai, đă
 - Inspection criteria use a single 100-point score and classify results at 100% (PASS), 80–99% (warning / temporary suspension), and below 80% (stop operation).
 - The admin navigation keeps incident management as a reserved submenu entry while schedule, minutes, and criteria configuration have dedicated screens.
 - Product declarations are intentionally a frontend prototype: self-declared products publish immediately, while registered declarations move through review, request-for-more-information, rejection, and approval/receipt-number states. Published records are added to the existing public lookup session data.
-- Facility approval and facility profiles are separate admin modules: “Duyệt cơ sở” handles the application queue, while “Hồ sơ cơ sở” lists approved facilities and groups delivery history plus records from “Quản lý và xử lý sự cố ATTP” by facility. The current implementation uses typed demo records and browser localStorage for incident records, and shows both direct portal data and external-system API data sources; a production API contract is still needed for real synchronization.
+- Facility approval and facility profiles are separate admin modules: “Duyệt cơ sở” handles the application queue, while “Hồ sơ cơ sở” is populated only from approved supplier/meal-provider application snapshots. The profile detail keeps four tabs for the approved registration data, inbound suppliers, outgoing recipients, and ATTP alert history. Approved snapshots and incident records use versioned browser localStorage for the frontend demo; a production API contract is still needed for durable synchronization.
 
 ## Product
 
