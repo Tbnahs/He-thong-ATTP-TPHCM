@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Clock3,
   FileCheck2,
+  FileText,
   History,
   Link2,
   MapPin,
@@ -16,12 +17,15 @@ import {
   ShieldAlert,
   Truck,
   Utensils,
+  X,
+  ZoomIn,
 } from "lucide-react";
 import { Link, useParams } from "wouter";
 import { AdminShell, EmptyState, MetricCard, SectionHeading } from "@/components/portal-ui";
 import { readIncidents, type Incident } from "@/pages/incident-pages";
 import { readApprovedFacilities, type ApprovedFacility } from "@/lib/approved-facilities";
 import type { ApplicationType } from "@/lib/mock-data";
+import heroFoodImage from "@assets/1788940094256_5613377993845818882_5613377993845818882_1e47059ddc5db7e9cbacbeb3495b9f36.jpg";
 
 type DeliveryKind = "Thức ăn" | "Nguyên liệu";
 type DeliveryFlow = "Nhập hàng" | "Xuất hàng";
@@ -61,7 +65,7 @@ type FacilityProfile = {
   reviewer: string;
   personInCharge: string;
   mealsPerDay: string;
-  documents: string[];
+  documents: { name: string; kind: string; previewUrl?: string }[];
   deliveries: DeliveryRecord[];
   registrationFields: { label: string; value: RegistrationValue }[];
   relatedFacilities: RelatedFacility[];
@@ -178,7 +182,13 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
     reviewer: approval.reviewer,
     personInCharge,
     mealsPerDay: capacity,
-    documents: attachments.map((file) => file.name),
+    documents: attachments.map((file) => ({
+      name: file.name,
+      kind: file.kind,
+      previewUrl:
+        file.previewUrl ??
+        (file.kind.startsWith("image/") ? heroFoodImage : undefined),
+    })),
     registrationFields: [
       { label: "Mã hồ sơ", value: application.reference },
       ...registrationFields,
@@ -298,6 +308,48 @@ function DeliveryHistoryTable({
   );
 }
 
+function DocumentPreviewDialog({
+  document,
+  onClose,
+}: {
+  document: { name: string; url: string };
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm"
+      role="presentation"
+      onClick={onClose}
+    >
+      <div
+        className="relative flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Xem minh chứng ${document.name}`}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center justify-between gap-4 border-b border-border px-5 py-4">
+          <div className="min-w-0">
+            <p className="text-xs font-bold uppercase tracking-[.14em] text-primary">MINH CHỨNG HỒ SƠ</p>
+            <h2 className="mt-1 truncate font-extrabold">{document.name}</h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
+            aria-label="Đóng xem minh chứng"
+          >
+            <X size={20} />
+          </button>
+        </div>
+        <div className="flex min-h-[22rem] items-center justify-center overflow-auto bg-slate-100 p-5 sm:p-8">
+          <img src={document.url} alt={document.name} className="max-h-[70vh] max-w-full rounded-xl object-contain shadow-lg" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function FacilityProfilesPage() {
   const profiles = useMemo(getFacilityProfiles, []);
   const [search, setSearch] = useState("");
@@ -343,6 +395,7 @@ export function FacilityProfileDetailPage() {
   const profiles = useMemo(getFacilityProfiles, []);
   const [activeTab, setActiveTab] = useState<"info" | "suppliers" | "outgoing" | "incidents">("info");
   const [deliveryKind, setDeliveryKind] = useState<"Tất cả" | DeliveryKind>("Tất cả");
+  const [previewDocument, setPreviewDocument] = useState<{ name: string; url: string } | null>(null);
   const profile = profiles.find((item) => item.id === facilityId);
 
   if (!profile) {
@@ -366,14 +419,15 @@ export function FacilityProfileDetailPage() {
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><MetricCard label="Ngày duyệt" value={profile.approvedAt} icon={BadgeCheck} /><MetricCard label="Bản ghi giao nhận" value={profile.deliveries.length} tone="blue" icon={Truck} /><MetricCard label="Cảnh báo ATTP" value={incidents.length} tone="orange" icon={ShieldAlert} /><MetricCard label="Quy mô hoạt động" value={profile.mealsPerDay} tone="gold" icon={Utensils} /></div>
         <div className="mt-6 overflow-x-auto rounded-2xl border border-border bg-card p-2 shadow-sm"><div className="flex min-w-max gap-1" role="tablist" aria-label="Các nội dung trong hồ sơ cơ sở">{tabs.map((tab) => { const Icon = tab.icon; const isActive = activeTab === tab.id; return <button key={tab.id} type="button" role="tab" aria-selected={isActive} onClick={() => setActiveTab(tab.id)} className={`inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-colors ${isActive ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}><Icon size={16} />{tab.label}</button>; })}</div></div>
 
-        {activeTab === "info" ? <section className="mt-6 grid gap-6 xl:grid-cols-[1.2fr_.8fr]">
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm"><div className="flex items-center gap-2"><FileCheck2 size={18} className="text-primary" /><div><h2 className="font-extrabold">Toàn bộ thông tin từ form đăng ký</h2><p className="mt-1 text-xs text-muted-foreground">Snapshot được khóa tại thời điểm cán bộ duyệt đạt.</p></div></div><dl className="mt-4 divide-y divide-border text-sm">{profile.registrationFields.map(({ label, value }) => <div key={label} className="grid gap-2 py-3 sm:grid-cols-[260px_1fr]"><dt className="text-muted-foreground">{label}</dt><dd className="font-semibold text-foreground">{Array.isArray(value) ? <div className="flex flex-wrap gap-1.5">{value.map((item) => <span key={item} className="rounded-full bg-secondary px-2.5 py-1 text-xs">{item}</span>)}</div> : value}</dd></div>)}</dl></div>
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm"><div className="flex items-center gap-2"><FileCheck2 size={18} className="text-primary" /><h2 className="font-extrabold">Minh chứng đã duyệt</h2></div><div className="mt-4 space-y-2">{profile.documents.map((document) => <div key={document} className="flex items-center gap-3 rounded-xl border border-border bg-secondary/30 p-3 text-sm"><FileCheck2 size={16} className="shrink-0 text-primary" /><span className="min-w-0 truncate font-semibold">{document}</span></div>)}</div><div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4"><div className="flex items-center gap-2 text-sm font-extrabold text-emerald-950"><CheckCircle2 size={16} /> Trạng thái liên thông</div><p className="mt-1 text-sm text-emerald-900">Hồ sơ đã duyệt đạt và được đưa vào danh sách theo dõi.</p><p className="mt-2 text-xs text-emerald-800">Cán bộ duyệt: {profile.reviewer}</p></div></div>
+        {activeTab === "info" ? <section className="mt-6 space-y-6">
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm"><div className="flex items-center gap-2"><FileCheck2 size={18} className="text-primary" /><div><h2 className="font-extrabold">Toàn bộ thông tin từ form đăng ký</h2><p className="mt-1 text-xs text-muted-foreground">Snapshot được khóa tại thời điểm cán bộ duyệt đạt.</p></div></div><dl className="mt-4 divide-y divide-border text-sm">{profile.registrationFields.map(({ label, value }) => <div key={label} className="grid gap-2 py-3 sm:grid-cols-[260px_1fr]"><dt className="text-muted-foreground">{label}</dt><dd className="font-semibold text-foreground">{Array.isArray(value) ? <div className="flex flex-wrap gap-1.5">{value.map((item, itemIndex) => <span key={`${label}-${itemIndex}`} className="rounded-full bg-secondary px-2.5 py-1 text-xs">{displayValue(item)}</span>)}</div> : value}</dd></div>)}</dl></div>
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm"><div className="flex items-center gap-2"><FileCheck2 size={18} className="text-primary" /><div><h2 className="font-extrabold">Minh chứng đã duyệt</h2><p className="mt-1 text-xs text-muted-foreground">Ảnh minh họa có thể bấm để xem phóng to; tài liệu được giữ nguyên theo hồ sơ.</p></div></div><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{profile.documents.map((document, documentIndex) => document.previewUrl ? <button key={`${document.name}-${documentIndex}`} type="button" onClick={() => setPreviewDocument({ name: document.name, url: document.previewUrl! })} className="group overflow-hidden rounded-xl border border-border bg-secondary/30 text-left transition hover:border-primary/40 hover:shadow-md"><div className="relative aspect-[4/3] overflow-hidden bg-muted"><img src={document.previewUrl} alt={`Minh họa ${document.name}`} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" /><span className="absolute inset-0 flex items-center justify-center bg-slate-950/45 text-white opacity-0 transition group-hover:opacity-100"><ZoomIn size={24} /></span></div><span className="block truncate px-3 py-2.5 text-sm font-semibold" title={document.name}>{document.name}</span></button> : <div key={`${document.name}-${documentIndex}`} className="flex items-center gap-3 rounded-xl border border-border bg-secondary/30 p-3 text-sm"><FileText size={18} className="shrink-0 text-primary" /><span className="min-w-0 truncate font-semibold" title={document.name}>{document.name}</span></div>)}</div><div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4"><div className="flex items-center gap-2 text-sm font-extrabold text-emerald-950"><CheckCircle2 size={16} /> Trạng thái liên thông</div><p className="mt-1 text-sm text-emerald-900">Hồ sơ đã duyệt đạt và được đưa vào danh sách theo dõi.</p><p className="mt-2 text-xs text-emerald-800">Cán bộ duyệt: {profile.reviewer}</p></div></div>
         </section> : null}
 
         {activeTab === "suppliers" ? <DeliveryHistoryTable title="Nhà cung cấp đầu vào" description="Lịch sử nhập nguyên liệu/thức ăn từ các đơn vị được ghi nhận trong hồ sơ." deliveries={filteredDeliveries.filter((delivery) => delivery.flow === "Nhập hàng")} deliveryKind={deliveryKind} onDeliveryKindChange={setDeliveryKind} emptyDescription="Chưa có lịch sử nhập hàng từ nhà cung cấp." /> : null}
         {activeTab === "outgoing" ? <DeliveryHistoryTable title="Cơ sở nhận hàng" description="Lịch sử xuất thực phẩm hoặc suất ăn cho các đơn vị liên quan." deliveries={filteredDeliveries.filter((delivery) => delivery.flow === "Xuất hàng")} deliveryKind={deliveryKind} onDeliveryKindChange={setDeliveryKind} emptyDescription="Chưa có lịch sử xuất hàng cho cơ sở khác." /> : null}
         {activeTab === "incidents" ? <section className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm"><div className="flex items-center gap-2 border-b border-border px-5 py-4"><ShieldAlert size={18} className="text-orange-600" /><div><h2 className="font-extrabold">Lịch sử cảnh báo ATTP</h2><p className="mt-1 text-sm text-muted-foreground">Mọi cảnh báo có cùng tên cơ sở trong module xử lý sự cố sẽ được lưu tại đây.</p></div></div>{incidents.length ? <div className="divide-y divide-border">{incidents.map((incident) => <article key={incident.id} className="grid gap-4 px-5 py-5 lg:grid-cols-[145px_1fr_auto]"><div><p className="flex items-center gap-1.5 text-sm font-bold"><CalendarDays size={15} className="text-muted-foreground" /> {formatIncidentDate(incident.occurredAt)}</p><span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${incidentSeverityClass[incident.severity]}`}>{incident.severity}</span></div><div><div className="flex flex-wrap items-center gap-2"><h3 className="font-extrabold">{incident.title}</h3><span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-700">{incident.code}</span></div><p className="mt-1 text-sm text-muted-foreground">{incident.description}</p><div className="mt-3 rounded-xl bg-secondary/45 p-3 text-sm"><span className="font-bold">Biện pháp xử lý: </span>{incident.response}{incident.conclusion ? <p className="mt-1"><span className="font-bold">Kết luận: </span>{incident.conclusion}</p> : null}</div></div><div className="lg:text-right"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${incident.status === "Đã đóng" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-900"}`}>{incident.status}</span><p className="mt-2 text-xs text-muted-foreground">Mã {incident.code}</p></div></article>)}</div> : <div className="flex items-center gap-3 p-6 text-sm text-emerald-800"><CheckCircle2 size={19} /> Cơ sở chưa có cảnh báo ATTP nào được ghi nhận.</div>}</section> : null}
+        {previewDocument ? <DocumentPreviewDialog document={previewDocument} onClose={() => setPreviewDocument(null)} /> : null}
       </div>
     </AdminShell>
   );
