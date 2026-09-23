@@ -705,7 +705,7 @@ export function FacilityProfileDetailPage() {
                         </div>
                       </div>
                       <span className="shrink-0 rounded-full bg-blue-100 px-2.5 py-1 text-[11px] font-bold text-blue-800">
-                        {relation.direction}
+                        {relation.direction === "Cung cấp vào" ? "Cung cấp" : relation.direction}
                       </span>
                     </div>
                     <div className="mt-4 rounded-xl border border-border bg-card p-3">
