@@ -24,7 +24,7 @@ import { Link, useParams } from "wouter";
 import { AdminShell, EmptyState, MetricCard, SectionHeading } from "@/components/portal-ui";
 import { readIncidents, type Incident } from "@/pages/incident-pages";
 import { readApprovedFacilities, type ApprovedFacility } from "@/lib/approved-facilities";
-import type { ApplicationType } from "@/lib/mock-data";
+import { getCriteriaSet, type ApplicationType, type CriteriaDefinition } from "@/lib/mock-data";
 import heroFoodImage from "@assets/1788940094256_5613377993845818882_5613377993845818882_1e47059ddc5db7e9cbacbeb3495b9f36.jpg";
 
 type DeliveryKind = "Thức ăn" | "Nguyên liệu";
@@ -103,6 +103,49 @@ const readRows = (value: unknown): Record<string, unknown>[] =>
     ? value.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === "object"))
     : [];
 
+const completeCriteria = (application: ApprovedFacility["application"]) => {
+  const snapshot = application.criteriaSnapshot ?? [];
+  const snapshotKeys = new Set(snapshot.map((item) => item.key));
+  return [
+    ...snapshot,
+    ...getCriteriaSet(application.type).criteria.filter((item) => !snapshotKeys.has(item.key)),
+  ]
+    .filter((item) => item.active)
+    .sort((a, b) => a.order - b.order);
+};
+
+const registrationFieldValue = (
+  item: CriteriaDefinition,
+  fields: Record<string, unknown>,
+  attachments: ApprovedFacility["application"]["attachments"],
+): string | string[] => {
+  if (item.answerType === "file") {
+    return attachments
+      .filter((file) => file.fieldKey === item.key)
+      .map((file) => file.name);
+  }
+  if (item.answerType === "repeatable") {
+    const rows = readRows(fields[item.key]);
+    if (!rows.length) return "Chưa khai báo";
+    return rows.map((row, rowIndex) =>
+      (item.repeatableFields ?? [])
+        .map((field) => {
+          const rowFiles = attachments
+            .filter((file) => file.fieldKey === `${item.key}.${rowIndex}.${field.key}`)
+            .map((file) => file.name);
+          const rawValue = field.answerType === "file"
+            ? rowFiles.length
+              ? rowFiles.join(", ")
+              : displayValue(row[field.key])
+            : displayValue(row[field.key]);
+          return `${field.label}: ${rawValue}`;
+        })
+        .join(" · "),
+    );
+  }
+  return displayValue(fields[item.key]);
+};
+
 const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfile => {
   const application = approval.application;
   const fields = application.data;
@@ -142,19 +185,10 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
           direction: "Cung cấp" as const,
         }));
 
-  const registrationFields = application.criteriaSnapshot
-    .slice()
-    .sort((a, b) => a.order - b.order)
-    .filter((item) => item.active)
-    .map((item) => {
-      const files = attachments
-        .filter((file) => file.fieldKey === item.key)
-        .map((file) => file.name);
-      return {
-        label: item.label,
-        value: files.length ? files : displayValue(fields[item.key]),
-      };
-    });
+  const registrationFields = completeCriteria(application).map((item) => ({
+    label: item.label,
+    value: registrationFieldValue(item, fields, attachments),
+  }));
 
   const firstRelated =
     type === "meal-provider"
@@ -229,7 +263,6 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
 
 const getFacilityProfiles = () =>
   readApprovedFacilities()
-    .filter((approval) => approval.application.type !== "school")
     .slice(0, 5)
     .map(buildProfile);
 
@@ -379,12 +412,12 @@ export function FacilityProfilesPage() {
         <section className="mt-6 rounded-2xl border border-border bg-card p-4 shadow-sm">
           <div className="grid gap-3 lg:grid-cols-[1fr_280px]">
             <label className="relative block"><span className="sr-only">Tìm cơ sở</span><Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm theo tên, mã số thuế hoặc địa chỉ..." className="h-11 w-full rounded-xl border border-input bg-background pl-10 pr-3 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10" /></label>
-            <select value={category} onChange={(event) => setCategory(event.target.value)} className="h-11 rounded-xl border border-input bg-background px-3 text-sm font-semibold outline-none focus:border-primary" aria-label="Lọc theo loại hình"><option>Tất cả loại hình</option><option>Cơ sở cung cấp thực phẩm</option><option>Cơ sở cung cấp suất ăn</option></select>
+            <select value={category} onChange={(event) => setCategory(event.target.value)} className="h-11 rounded-xl border border-input bg-background px-3 text-sm font-semibold outline-none focus:border-primary" aria-label="Lọc theo loại hình"><option>Tất cả loại hình</option><option>Cơ sở cung cấp thực phẩm</option><option>Cơ sở cung cấp suất ăn</option><option>Cơ sở giáo dục</option></select>
           </div>
         </section>
-        <section className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-          <div className="flex flex-col gap-2 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="font-extrabold text-foreground">Danh sách cơ sở đã duyệt</h2><p className="mt-1 text-sm text-muted-foreground">{filteredProfiles.length} / {profiles.length} cơ sở đang hiển thị</p></div><span className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground"><Clock3 size={14} /> Dữ liệu đồng bộ theo lần duyệt</span></div>
-          {filteredProfiles.length ? <div className="divide-y divide-border">{filteredProfiles.map((profile) => <div key={profile.id} className="flex flex-col gap-4 px-5 py-5 transition-colors hover:bg-secondary/30 lg:flex-row lg:items-center lg:justify-between"><div className="flex min-w-0 gap-3"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">{profile.applicationType === "meal-provider" ? <Utensils size={21} /> : <PackageCheck size={21} />}</div><div className="min-w-0"><h3 className="font-extrabold text-foreground">{profile.name}</h3><p className="mt-1 flex items-start gap-1.5 text-sm text-muted-foreground"><MapPin size={15} className="mt-0.5 shrink-0" /> {profile.address}</p><div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-muted-foreground"><span>{profile.category}</span><span>Duyệt ngày {profile.approvedAt}</span><span>{profile.deliveries.length} giao nhận · {getFacilityIncidents(profile).length} cảnh báo</span></div></div></div><Link href={`/admin/facility-profiles/${profile.id}`} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90" data-testid={`link-facility-profile-${profile.id}`}>Xem hồ sơ <ArrowRight size={16} /></Link></div>)}</div> : <div className="p-5"><EmptyState title="Không có cơ sở phù hợp" description="Thử thay đổi từ khóa hoặc bộ lọc loại hình." /></div>}
+         <section className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+           <div className="flex flex-col gap-2 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="font-extrabold text-foreground">Danh sách cơ sở đã duyệt</h2><p className="mt-1 text-sm text-muted-foreground">{filteredProfiles.length} / {profiles.length} cơ sở đang hiển thị</p></div><span className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground"><Clock3 size={14} /> Dữ liệu đồng bộ theo lần duyệt</span></div>
+           {filteredProfiles.length ? <div className="divide-y divide-border">{filteredProfiles.map((profile) => <div key={profile.id} className="flex flex-col gap-4 px-5 py-5 transition-colors hover:bg-secondary/30 lg:flex-row lg:items-center lg:justify-between"><div className="flex min-w-0 gap-3"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">{profile.applicationType === "meal-provider" ? <Utensils size={21} /> : profile.applicationType === "school" ? <Building2 size={21} /> : <PackageCheck size={21} />}</div><div className="min-w-0"><h3 className="font-extrabold text-foreground">{profile.name}</h3><p className="mt-1 flex items-start gap-1.5 text-sm text-muted-foreground"><MapPin size={15} className="mt-0.5 shrink-0" /> {profile.address}</p><div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-muted-foreground"><span>{profile.category}</span><span>Duyệt ngày {profile.approvedAt}</span><span>{profile.deliveries.length} giao nhận · {getFacilityIncidents(profile).length} cảnh báo</span></div></div></div><Link href={`/admin/facility-profiles/${profile.id}`} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90" data-testid={`link-facility-profile-${profile.id}`}>Xem hồ sơ <ArrowRight size={16} /></Link></div>)}</div> : <div className="p-5"><EmptyState title="Không có cơ sở phù hợp" description="Thử thay đổi từ khóa hoặc bộ lọc loại hình." /></div>}
         </section>
       </div>
     </AdminShell>

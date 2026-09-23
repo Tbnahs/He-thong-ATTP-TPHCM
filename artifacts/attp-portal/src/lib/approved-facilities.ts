@@ -8,7 +8,7 @@ export type ApprovedFacility = {
   reviewer: string;
 };
 
-const profileTypes: ApplicationType[] = ["food-supplier", "meal-provider"];
+const profileTypes: ApplicationType[] = ["food-supplier", "meal-provider", "school"];
 
 const formatApprovalDate = (submittedAt: string) => {
   const date = new Date(submittedAt);

@@ -5309,6 +5309,46 @@ function formatAnswer(value: unknown) {
   return String(value);
 }
 
+function formatApplicationAnswer(
+  item: CriteriaDefinition,
+  data: Record<string, unknown>,
+  attachments: Attachment[],
+) {
+  if (item.answerType === "file") {
+    return (
+      attachments
+        .filter((file) => file.fieldKey === item.key)
+        .map((file) => file.name)
+        .join(", ") || "—"
+    );
+  }
+  if (item.answerType === "repeatable") {
+    const rows = Array.isArray(data[item.key])
+      ? (data[item.key] as Record<string, unknown>[])
+      : [];
+    if (!rows.length) return "—";
+    return rows
+      .map((row, rowIndex) =>
+        (item.repeatableFields ?? [])
+          .map((field) => {
+            const rowFiles = attachments
+              .filter(
+                (file) =>
+                  file.fieldKey === `${item.key}.${rowIndex}.${field.key}`,
+              )
+              .map((file) => file.name);
+            const value = field.answerType === "file"
+              ? rowFiles.join(", ") || formatAnswer(row[field.key])
+              : formatAnswer(row[field.key]);
+            return `${field.label}: ${value}`;
+          })
+          .join(" · "),
+      )
+      .join(" | ");
+  }
+  return formatAnswer(data[item.key]);
+}
+
 function CriteriaReviewPanel({
   criteria,
   criteriaGroups,
@@ -6379,13 +6419,29 @@ export function AdminApplicationPage() {
     );
     setSupplementNote(application.reviewNote ?? "");
   }, [application?.id, application?.status, application?.reviewNote]);
-  const criteria =
-    application?.criteriaSnapshot
-      ?.filter((item) => item.active)
-      .sort((a, b) => a.order - b.order) ?? [];
-  const formGroups = (application?.criteriaGroups ?? [])
-    .slice()
-    .sort((a, b) => a.order - b.order);
+  const snapshotCriteria = application?.criteriaSnapshot ?? [];
+  const snapshotKeys = new Set(snapshotCriteria.map((item) => item.key));
+  const criteria = application
+    ? [
+        ...snapshotCriteria,
+        ...getCriteriaSet(application.type).criteria.filter(
+          (item) => !snapshotKeys.has(item.key),
+        ),
+      ]
+        .filter((item) => item.active)
+        .sort((a, b) => a.order - b.order)
+    : [];
+  const snapshotGroupIds = new Set(
+    (application?.criteriaGroups ?? []).map((group) => group.id),
+  );
+  const formGroups = application
+    ? [
+        ...(application.criteriaGroups ?? []),
+        ...getCriteriaSet(application.type).groups.filter(
+          (group) => !snapshotGroupIds.has(group.id),
+        ),
+      ].sort((a, b) => a.order - b.order)
+    : [];
   const checklistItems = criteria.filter((item) => item.maxScore >= 0);
   const removePublishedRecord = () => {
     if (!application) return;
@@ -6568,12 +6624,11 @@ export function AdminApplicationPage() {
                             {item.label}
                           </dt>
                           <dd className="mt-1.5 break-words text-sm font-bold text-slate-800">
-                            {item.answerType === "file"
-                              ? application.attachments
-                                  .filter((file) => file.fieldKey === item.key)
-                                  .map((file) => file.name)
-                                  .join(", ") || "—"
-                              : formatAnswer(application.data?.[item.key])}
+                            {formatApplicationAnswer(
+                              item,
+                              application.data ?? {},
+                              application.attachments,
+                            )}
                           </dd>
                         </div>
                       ))}
@@ -6615,12 +6670,11 @@ export function AdminApplicationPage() {
                     <p className="font-bold text-slate-800">{item.label}</p>
                     <p className="mt-1 break-words text-sm text-slate-500">
                       Khai báo:{" "}
-                      {item.answerType === "file"
-                        ? application.attachments
-                            .filter((file) => file.fieldKey === item.key)
-                            .map((file) => file.name)
-                            .join(", ") || "Chưa có tệp"
-                        : formatAnswer(application.data?.[item.key])}
+                      {formatApplicationAnswer(
+                        item,
+                        application.data ?? {},
+                        application.attachments,
+                      )}
                     </p>
                   </div>
                   <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
