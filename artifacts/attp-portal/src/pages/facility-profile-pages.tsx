@@ -7,7 +7,6 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock3,
-  Database,
   FileCheck2,
   History,
   Link2,
@@ -24,7 +23,6 @@ import {
   EmptyState,
   MetricCard,
   SectionHeading,
-  StatusPill,
 } from "@/components/portal-ui";
 import { readIncidents, type Incident } from "@/pages/incident-pages";
 
@@ -281,20 +279,6 @@ const formatIncidentDate = (value: string) =>
     year: "numeric",
   }).format(new Date(value));
 
-function DataSourceBadge({ source }: { source: FacilityProfile["dataSource"] }) {
-  const isApi = source === "API bên ngoài";
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${
-        isApi ? "bg-sky-100 text-sky-800" : "bg-emerald-100 text-emerald-800"
-      }`}
-    >
-      {isApi ? <Link2 size={13} /> : <Database size={13} />}
-      {source}
-    </span>
-  );
-}
-
 function DeliveryStatus({ status }: { status: DeliveryRecord["status"] }) {
   const className =
     status === "Có sai lệch"
@@ -430,8 +414,6 @@ export function FacilityProfilesPage() {
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="font-extrabold text-foreground">{profile.name}</h3>
-                        <StatusPill status="approved" />
-                        <DataSourceBadge source={profile.dataSource} />
                       </div>
                       <p className="mt-1 flex items-start gap-1.5 text-sm text-muted-foreground">
                         <MapPin size={15} className="mt-0.5 shrink-0" /> {profile.address}
@@ -511,10 +493,6 @@ export function FacilityProfileDetailPage() {
             <p className="mt-2 flex items-start gap-1.5 text-sm text-muted-foreground">
               <MapPin size={15} className="mt-0.5 shrink-0" /> {profile.address}
             </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <StatusPill status="approved" />
-            <DataSourceBadge source={profile.dataSource} />
           </div>
         </div>
 
