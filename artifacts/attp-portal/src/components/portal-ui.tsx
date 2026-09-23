@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
   ArrowRight,
@@ -8,6 +8,7 @@ import {
   CalendarDays,
   ClipboardCheck,
   ClipboardList,
+  ChevronDown,
   FileSearch,
   Home,
   LayoutDashboard,
@@ -46,6 +47,162 @@ export function BrandMark({ compact = false }: { compact?: boolean }) {
         </span>
       )}
     </Link>
+  );
+}
+
+type Locale = "vi" | "en";
+
+const localeOptions: Array<{
+  code: Locale;
+  shortCode: string;
+  nativeLabel: string;
+}> = [
+  { code: "vi", shortCode: "VI", nativeLabel: "Tiếng Việt" },
+  { code: "en", shortCode: "EN", nativeLabel: "English" },
+];
+
+function LocaleFlag({ locale }: { locale: Locale }) {
+  if (locale === "en") {
+    return (
+      <svg
+        viewBox="0 0 28 20"
+        role="img"
+        aria-label="Cờ Hoa Kỳ"
+        className="h-4 w-[22px] shrink-0 overflow-hidden rounded-[3px] shadow-sm"
+      >
+        <rect width="28" height="20" fill="#fff" />
+        <path
+          fill="#b22234"
+          d="M0 0h28v2H0zm0 4h28v2H0zm0 4h28v2H0zm0 4h28v2H0zm0 4h28v2H0z"
+        />
+        <rect width="12" height="10.8" fill="#3c3b6e" />
+        <path
+          fill="#fff"
+          d="M1.2 1.2h1v1h-1zm3 0h1v1h-1zm3 0h1v1h-1zm3 0h1v1h-1zM2.7 3.1h1v1h-1zm3 0h1v1h-1zm3 0h1v1h-1zm-7.5 1.9h1v1h-1zm3 0h1v1h-1zm3 0h1v1h-1zm3 0h1v1h-1zm-7.5 1.9h1v1h-1zm3 0h1v1h-1zm3 0h1v1h-1z"
+        />
+      </svg>
+    );
+  }
+
+  return (
+    <svg
+      viewBox="0 0 28 20"
+      role="img"
+      aria-label="Cờ Việt Nam"
+      className="h-4 w-[22px] shrink-0 overflow-hidden rounded-[3px] shadow-sm"
+    >
+      <rect width="28" height="20" fill="#da251d" />
+      <path
+        fill="#ffdd00"
+        d="m14 3.1 1.2 3.7h3.9l-3.1 2.3 1.2 3.7-3.2-2.3-3.2 2.3 1.2-3.7-3.1-2.3h3.9z"
+      />
+    </svg>
+  );
+}
+
+function LanguageSwitcher() {
+  const [open, setOpen] = useState(false);
+  const [locale, setLocale] = useState<Locale>(() => {
+    const stored = sessionStorage.getItem("attp-locale");
+    return stored === "en" ? "en" : "vi";
+  });
+  const containerRef = useRef<HTMLDivElement>(null);
+  const selectedLocale =
+    localeOptions.find((option) => option.code === locale) ?? localeOptions[0];
+
+  useEffect(() => {
+    document.documentElement.lang = locale === "vi" ? "vi" : "en";
+    sessionStorage.setItem("attp-locale", locale);
+  }, [locale]);
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setOpen(false);
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className="focus-ring inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card/80 px-2.5 text-xs font-extrabold tracking-[.04em] text-foreground shadow-sm transition-colors hover:border-primary/35 hover:bg-secondary"
+        aria-label={`Ngôn ngữ: ${selectedLocale.nativeLabel}`}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        data-testid="button-language-switcher"
+      >
+        <LocaleFlag locale={locale} />
+        <span>{selectedLocale.shortCode}</span>
+        <ChevronDown
+          size={13}
+          strokeWidth={2.5}
+          className={`text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
+          aria-hidden="true"
+        />
+      </button>
+      {open && (
+        <div
+          className="absolute right-0 top-full z-50 mt-2 w-44 overflow-hidden rounded-xl border border-border bg-card p-1.5 text-left shadow-xl shadow-primary/10"
+          role="listbox"
+          aria-label="Chọn ngôn ngữ"
+          data-testid="menu-language-options"
+        >
+          <p className="px-2.5 pb-1.5 pt-1 text-[10px] font-extrabold uppercase tracking-[.14em] text-muted-foreground">
+            Ngôn ngữ
+          </p>
+          {localeOptions.map((option) => (
+            <button
+              key={option.code}
+              type="button"
+              role="option"
+              aria-selected={locale === option.code}
+              onClick={() => {
+                setLocale(option.code);
+                setOpen(false);
+              }}
+              className={`focus-ring flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors ${
+                locale === option.code
+                  ? "bg-secondary text-primary"
+                  : "text-foreground hover:bg-secondary/70"
+              }`}
+              data-testid={`button-language-${option.code}`}
+            >
+              <LocaleFlag locale={option.code} />
+              <span className="min-w-0 flex-1">
+                <span className="block text-xs font-extrabold">
+                  {option.shortCode}
+                </span>
+                <span className="block text-[11px] text-muted-foreground">
+                  {option.nativeLabel}
+                </span>
+              </span>
+              {locale === option.code && (
+                <span
+                  className="h-1.5 w-1.5 rounded-full bg-primary"
+                  aria-hidden="true"
+                />
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -229,6 +386,7 @@ export function PublicHeader() {
               <LogIn size={15} /> Đăng nhập
             </Link>
           )}
+          <LanguageSwitcher />
           <button
             className="focus-ring rounded-lg p-2 md:hidden"
             onClick={() => setOpen(!open)}
