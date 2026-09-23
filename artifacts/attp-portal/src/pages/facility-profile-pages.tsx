@@ -593,16 +593,6 @@ export function FacilityProfileDetailPage() {
                 </div>
               ))}
             </dl>
-            <div className="mt-5 rounded-xl border border-sky-200 bg-sky-50 p-4">
-              <div className="flex items-center gap-2 text-sm font-extrabold text-sky-950">
-                {profile.dataSource === "API bên ngoài" ? <Link2 size={16} /> : <Database size={16} />}
-                Nguồn dữ liệu và đồng bộ
-              </div>
-              <p className="mt-2 text-sm font-semibold text-sky-900">{profile.connectedSystem}</p>
-              <p className="mt-1 text-xs leading-5 text-sky-800">
-                Lần nhận dữ liệu gần nhất: {profile.lastSyncedAt}. Các bản ghi gửi qua API được lưu cùng lịch sử của cơ sở.
-              </p>
-            </div>
           </section>
 
           <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
