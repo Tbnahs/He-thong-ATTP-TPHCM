@@ -40,6 +40,15 @@ type DeliveryRecord = {
   sourceSystem: string;
 };
 
+type RegistrationValue = string | string[];
+
+type RelatedFacility = {
+  facilityId: string;
+  relationship: string;
+  suppliedItems: string[];
+  direction: "Cung cấp vào" | "Cung cấp cho";
+};
+
 type FacilityProfile = {
   id: string;
   name: string;
@@ -57,6 +66,8 @@ type FacilityProfile = {
   connectedSystem: string;
   documents: string[];
   deliveries: DeliveryRecord[];
+  registrationFields: { label: string; value: RegistrationValue }[];
+  relatedFacilities: RelatedFacility[];
 };
 
 const facilityProfiles: FacilityProfile[] = [
@@ -79,6 +90,35 @@ const facilityProfiles: FacilityProfile[] = [
       "Giấy chứng nhận đủ điều kiện ATTP.pdf",
       "Hợp đồng cung cấp suất ăn 2026.pdf",
       "Quy trình tiếp nhận và lưu mẫu.pdf",
+    ],
+    registrationFields: [
+      { label: "Tên cơ sở", value: "Trường Tiểu học Lê Lợi" },
+      { label: "Loại hình cơ sở", value: "Cơ sở giáo dục" },
+      { label: "Cấp học", value: "Tiểu học" },
+      { label: "Mã số thuế", value: "0301123456" },
+      { label: "Địa chỉ", value: "85 Lê Lợi, phường Bến Nghé, TP. Hồ Chí Minh" },
+      { label: "Số điện thoại", value: "028 3822 4567" },
+      { label: "Người phụ trách ATTP", value: "Lê Thị Hạnh" },
+      { label: "Mô hình tổ chức bữa ăn", value: "Liên kết đơn vị suất ăn" },
+      { label: "Có cán bộ phụ trách ATTP", value: "Có" },
+      { label: "Bếp một chiều", value: "Có" },
+      { label: "Lưu mẫu thức ăn", value: "Có" },
+      { label: "Năng lực phục vụ", value: "320 suất/ngày" },
+      { label: "Giấy chứng nhận ATTP", value: "ATTP-HCM-2026-0018" },
+    ],
+    relatedFacilities: [
+      {
+        facilityId: "facility-005",
+        relationship: "Đơn vị cung cấp suất ăn",
+        suppliedItems: ["Suất ăn trưa", "Suất ăn bán trú"],
+        direction: "Cung cấp cho",
+      },
+      {
+        facilityId: "facility-003",
+        relationship: "Cơ sở cung cấp nguyên liệu",
+        suppliedItems: ["Rau củ quả", "Thịt gia súc"],
+        direction: "Cung cấp cho",
+      },
     ],
     deliveries: [
       {
@@ -136,6 +176,33 @@ const facilityProfiles: FacilityProfile[] = [
       "Danh mục sản phẩm và vùng nguyên liệu.xlsx",
       "Chứng nhận chuỗi cung ứng.pdf",
     ],
+    registrationFields: [
+      { label: "Tên cơ sở", value: "Công ty TNHH Nông sản An Phú" },
+      { label: "Loại hình cơ sở", value: "Cơ sở cung cấp thực phẩm" },
+      { label: "Mã số thuế", value: "0312345678" },
+      { label: "Địa chỉ", value: "184 Nguyễn Văn Linh, Quận 7, TP. Hồ Chí Minh" },
+      { label: "Số điện thoại", value: "0908 123 456" },
+      { label: "Người phụ trách ATTP", value: "Lê Minh Trang" },
+      { label: "Nhóm sản phẩm", value: ["Rau củ quả", "Thịt gia súc"] },
+      { label: "Nguồn gốc nguyên liệu", value: "Hợp tác xã rau sạch Củ Chi" },
+      { label: "Quy trình bảo đảm an toàn", value: "Có" },
+      { label: "Năng lực cung cấp", value: "3.000 kg/ngày" },
+      { label: "Giấy chứng nhận ATTP", value: "ATTP-HCM-2026-0041" },
+    ],
+    relatedFacilities: [
+      {
+        facilityId: "facility-004",
+        relationship: "Cơ sở cung cấp nguyên liệu",
+        suppliedItems: ["Rau củ quả tươi", "Rau sơ chế"],
+        direction: "Cung cấp vào",
+      },
+      {
+        facilityId: "facility-001",
+        relationship: "Cơ sở giáo dục",
+        suppliedItems: ["Rau củ quả", "Thịt gia súc"],
+        direction: "Cung cấp cho",
+      },
+    ],
     deliveries: [
       {
         id: "delivery-004",
@@ -179,6 +246,26 @@ const facilityProfiles: FacilityProfile[] = [
     documents: [
       "Giấy chứng nhận đủ điều kiện ATTP.pdf",
       "Danh sách vùng trồng được kiểm soát.pdf",
+    ],
+    registrationFields: [
+      { label: "Tên cơ sở", value: "Hợp tác xã Rau sạch Củ Chi" },
+      { label: "Loại hình cơ sở", value: "Cơ sở cung cấp thực phẩm" },
+      { label: "Mã số thuế", value: "0319876543" },
+      { label: "Địa chỉ", value: "Đường Tỉnh lộ 8, Củ Chi, TP. Hồ Chí Minh" },
+      { label: "Số điện thoại", value: "0903 456 789" },
+      { label: "Người phụ trách ATTP", value: "Phạm Quốc Hưng" },
+      { label: "Nhóm sản phẩm", value: ["Rau củ quả tươi", "Rau sơ chế"] },
+      { label: "Vùng nguyên liệu", value: "Củ Chi, TP. Hồ Chí Minh" },
+      { label: "Năng lực cung cấp", value: "1.800 kg/ngày" },
+      { label: "Giấy chứng nhận ATTP", value: "ATTP-HCM-2026-0056" },
+    ],
+    relatedFacilities: [
+      {
+        facilityId: "facility-003",
+        relationship: "Cơ sở cung cấp nguyên liệu",
+        suppliedItems: ["Rau củ quả tươi", "Rau sơ chế"],
+        direction: "Cung cấp cho",
+      },
     ],
     deliveries: [
       {
@@ -224,6 +311,33 @@ const facilityProfiles: FacilityProfile[] = [
       "Giấy chứng nhận đủ điều kiện ATTP.pdf",
       "Danh sách phương tiện vận chuyển.xlsx",
       "Quy trình giao nhận và lưu mẫu.pdf",
+    ],
+    registrationFields: [
+      { label: "Tên cơ sở", value: "Công ty Suất ăn Minh Tâm" },
+      { label: "Loại hình cơ sở", value: "Cơ sở cung cấp suất ăn" },
+      { label: "Mã số thuế", value: "0314567890" },
+      { label: "Địa chỉ", value: "Khu công nghiệp Tân Bình, TP. Hồ Chí Minh" },
+      { label: "Số điện thoại", value: "028 3812 8899" },
+      { label: "Người phụ trách ATTP", value: "Võ Hoàng Nam" },
+      { label: "Hình thức cung cấp", value: "Bếp trung tâm giao suất ăn" },
+      { label: "Đơn vị được cung cấp", value: ["Trường Tiểu học Lê Lợi"] },
+      { label: "Nhóm suất ăn", value: ["Suất ăn trưa", "Suất ăn bán trú"] },
+      { label: "Năng lực cung cấp", value: "1.200 suất/ngày" },
+      { label: "Giấy chứng nhận ATTP", value: "ATTP-HCM-2026-0068" },
+    ],
+    relatedFacilities: [
+      {
+        facilityId: "facility-001",
+        relationship: "Cơ sở giáo dục",
+        suppliedItems: ["Suất ăn trưa", "Suất ăn bán trú"],
+        direction: "Cung cấp cho",
+      },
+      {
+        facilityId: "facility-003",
+        relationship: "Cơ sở cung cấp nguyên liệu",
+        suppliedItems: ["Nguyên liệu thực phẩm"],
+        direction: "Cung cấp vào",
+      },
     ],
     deliveries: [
       {
@@ -272,6 +386,9 @@ const incidentSeverityClass: Record<Incident["severity"], string> = {
 const getFacilityIncidents = (profile: FacilityProfile) =>
   readIncidents().filter((incident) => incident.facility === profile.name);
 
+const getRelatedProfile = (facilityId: string) =>
+  facilityProfiles.find((profile) => profile.id === facilityId);
+
 const formatIncidentDate = (value: string) =>
   new Intl.DateTimeFormat("vi-VN", {
     day: "2-digit",
@@ -294,7 +411,6 @@ function DeliveryStatus({ status }: { status: DeliveryRecord["status"] }) {
 export function FacilityProfilesPage() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("Tất cả loại hình");
-  const [source, setSource] = useState("Tất cả nguồn dữ liệu");
 
   const filteredProfiles = useMemo(
     () =>
@@ -303,11 +419,10 @@ export function FacilityProfilesPage() {
           `${profile.name} ${profile.address} ${profile.taxCode}`.toLowerCase();
         return (
           haystack.includes(search.trim().toLowerCase()) &&
-          (category === "Tất cả loại hình" || profile.category === category) &&
-          (source === "Tất cả nguồn dữ liệu" || profile.dataSource === source)
+          (category === "Tất cả loại hình" || profile.category === category)
         );
       }),
-    [category, search, source],
+    [category, search],
   );
 
   const totalDeliveries = facilityProfiles.reduce(
@@ -346,7 +461,7 @@ export function FacilityProfilesPage() {
         </div>
 
         <section className="mt-6 rounded-2xl border border-border bg-card p-4 shadow-sm">
-          <div className="grid gap-3 lg:grid-cols-[1fr_240px_220px]">
+          <div className="grid gap-3 lg:grid-cols-[1fr_240px]">
             <label className="relative block">
               <span className="sr-only">Tìm cơ sở</span>
               <Search
@@ -370,16 +485,6 @@ export function FacilityProfilesPage() {
               <option>Cơ sở giáo dục</option>
               <option>Cơ sở cung cấp thực phẩm</option>
               <option>Cơ sở cung cấp suất ăn</option>
-            </select>
-            <select
-              value={source}
-              onChange={(event) => setSource(event.target.value)}
-              className="h-11 rounded-xl border border-input bg-background px-3 text-sm font-semibold outline-none focus:border-primary"
-              aria-label="Lọc theo nguồn dữ liệu"
-            >
-              <option>Tất cả nguồn dữ liệu</option>
-              <option>Cổng Sở</option>
-              <option>API bên ngoài</option>
             </select>
           </div>
         </section>
@@ -439,7 +544,7 @@ export function FacilityProfilesPage() {
             <div className="p-5">
               <EmptyState
                 title="Không có cơ sở phù hợp"
-                description="Thử thay đổi từ khóa hoặc bộ lọc nguồn dữ liệu."
+                description="Thử thay đổi từ khóa hoặc bộ lọc loại hình."
               />
             </div>
           )}
@@ -505,22 +610,41 @@ export function FacilityProfileDetailPage() {
 
         <div className="mt-6 grid gap-6 xl:grid-cols-[.8fr_1.2fr]">
           <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-            <div className="flex items-center gap-2">
-              <FileCheck2 size={18} className="text-primary" />
-              <h2 className="font-extrabold">Thông tin hồ sơ</h2>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <FileCheck2 size={18} className="text-primary" />
+                <div>
+                  <h2 className="font-extrabold">Thông tin hồ sơ</h2>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Bản chụp đầy đủ thông tin đã khai báo tại thời điểm duyệt hồ sơ.
+                  </p>
+                </div>
+              </div>
+              <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-800">
+                Dữ liệu đã duyệt
+              </span>
             </div>
             <dl className="mt-4 divide-y divide-border text-sm">
               {[
-                ["Loại hình", profile.category],
-                ["Mã số thuế", profile.taxCode],
-                ["Giấy chứng nhận ATTP", profile.licenseNumber],
-                ["Người phụ trách ATTP", profile.personInCharge],
-                ["Số điện thoại", profile.contact],
-                ["Cán bộ duyệt", profile.reviewer],
-              ].map(([label, value]) => (
+                ...profile.registrationFields,
+                { label: "Ngày duyệt", value: profile.approvedAt },
+                { label: "Cán bộ duyệt", value: profile.reviewer },
+              ].map(({ label, value }) => (
                 <div key={label} className="grid grid-cols-[150px_1fr] gap-3 py-3">
                   <dt className="text-muted-foreground">{label}</dt>
-                  <dd className="font-semibold text-foreground">{value}</dd>
+                  <dd className="font-semibold text-foreground">
+                    {Array.isArray(value) ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {value.map((item) => (
+                          <span key={item} className="rounded-full bg-secondary px-2.5 py-1 text-xs">
+                            {item}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      value
+                    )}
+                  </dd>
                 </div>
               ))}
             </dl>
@@ -549,6 +673,74 @@ export function FacilityProfileDetailPage() {
             </div>
           </section>
         </div>
+
+        <section className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+          <div className="flex items-center gap-2 border-b border-border px-5 py-4">
+            <Link2 size={18} className="text-primary" />
+            <div>
+              <h2 className="font-extrabold">Cơ sở liên quan</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Các cơ sở đã khai báo trong hồ sơ và nội dung cung cấp/tiếp nhận giữa các bên.
+              </p>
+            </div>
+          </div>
+          {profile.relatedFacilities.length ? (
+            <div className="grid gap-3 p-5 md:grid-cols-2">
+              {profile.relatedFacilities.map((relation) => {
+                const relatedProfile = getRelatedProfile(relation.facilityId);
+                if (!relatedProfile) return null;
+
+                return (
+                  <article key={relation.facilityId} className="rounded-2xl border border-border bg-secondary/20 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                          <Building2 size={18} />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="font-extrabold">{relatedProfile.name}</h3>
+                          <p className="mt-1 text-xs font-semibold text-muted-foreground">
+                            {relation.relationship}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="shrink-0 rounded-full bg-blue-100 px-2.5 py-1 text-[11px] font-bold text-blue-800">
+                        {relation.direction}
+                      </span>
+                    </div>
+                    <div className="mt-4 rounded-xl border border-border bg-card p-3">
+                      <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                        Cung cấp / tiếp nhận
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {relation.suppliedItems.map((item) => (
+                          <span key={item} className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-900">
+                            {item}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                      <span>
+                        {relatedProfile.deliveries.length} bản ghi xuất/nhập liên quan trong hệ thống
+                      </span>
+                      <Link
+                        href={`/admin/facility-profiles/${relatedProfile.id}`}
+                        className="inline-flex items-center gap-1 font-bold text-primary hover:underline"
+                      >
+                        Xem lịch sử <ArrowRight size={13} />
+                      </Link>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="p-5">
+              <EmptyState title="Chưa có cơ sở liên quan" description="Hồ sơ chưa khai báo đơn vị cung cấp hoặc đơn vị tiếp nhận." />
+            </div>
+          )}
+        </section>
 
         <section className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
           <div className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
