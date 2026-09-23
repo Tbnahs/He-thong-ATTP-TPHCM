@@ -46,7 +46,7 @@ type RelatedFacility = {
   facilityId: string;
   relationship: string;
   suppliedItems: string[];
-  direction: "Cung cấp vào" | "Cung cấp cho";
+  direction: "Cung cấp" | "Xuất hàng";
 };
 
 type FacilityProfile = {
@@ -111,13 +111,13 @@ const facilityProfiles: FacilityProfile[] = [
         facilityId: "facility-005",
         relationship: "Đơn vị cung cấp suất ăn",
         suppliedItems: ["Suất ăn trưa", "Suất ăn bán trú"],
-        direction: "Cung cấp cho",
+        direction: "Cung cấp",
       },
       {
         facilityId: "facility-003",
         relationship: "Cơ sở cung cấp nguyên liệu",
         suppliedItems: ["Rau củ quả", "Thịt gia súc"],
-        direction: "Cung cấp cho",
+        direction: "Cung cấp",
       },
     ],
     deliveries: [
@@ -194,13 +194,13 @@ const facilityProfiles: FacilityProfile[] = [
         facilityId: "facility-004",
         relationship: "Cơ sở cung cấp nguyên liệu",
         suppliedItems: ["Rau củ quả tươi", "Rau sơ chế"],
-        direction: "Cung cấp vào",
+        direction: "Xuất hàng",
       },
       {
         facilityId: "facility-001",
         relationship: "Cơ sở giáo dục",
         suppliedItems: ["Rau củ quả", "Thịt gia súc"],
-        direction: "Cung cấp cho",
+        direction: "Cung cấp",
       },
     ],
     deliveries: [
@@ -264,7 +264,7 @@ const facilityProfiles: FacilityProfile[] = [
         facilityId: "facility-003",
         relationship: "Cơ sở cung cấp nguyên liệu",
         suppliedItems: ["Rau củ quả tươi", "Rau sơ chế"],
-        direction: "Cung cấp cho",
+        direction: "Cung cấp",
       },
     ],
     deliveries: [
@@ -330,13 +330,13 @@ const facilityProfiles: FacilityProfile[] = [
         facilityId: "facility-001",
         relationship: "Cơ sở giáo dục",
         suppliedItems: ["Suất ăn trưa", "Suất ăn bán trú"],
-        direction: "Cung cấp cho",
+        direction: "Cung cấp",
       },
       {
         facilityId: "facility-003",
         relationship: "Cơ sở cung cấp nguyên liệu",
         suppliedItems: ["Nguyên liệu thực phẩm"],
-        direction: "Cung cấp vào",
+        direction: "Xuất hàng",
       },
     ],
     deliveries: [
@@ -705,7 +705,7 @@ export function FacilityProfileDetailPage() {
                         </div>
                       </div>
                       <span className="shrink-0 rounded-full bg-blue-100 px-2.5 py-1 text-[11px] font-bold text-blue-800">
-                        {relation.direction === "Cung cấp vào" ? "Cung cấp" : relation.direction}
+                        {relation.direction}
                       </span>
                     </div>
                     <div className="mt-4 rounded-xl border border-border bg-card p-3">
