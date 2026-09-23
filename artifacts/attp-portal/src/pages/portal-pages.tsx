@@ -4442,7 +4442,7 @@ export function AdminDashboard() {
                       <p className="font-mono font-bold">{app.score}/100</p>
                     </div>
                     <span className="text-right text-xs font-bold text-primary">
-                      Mở Quản lý cơ sở
+                      Mở Duyệt cơ sở
                     </span>
                   </div>
                 </Link>

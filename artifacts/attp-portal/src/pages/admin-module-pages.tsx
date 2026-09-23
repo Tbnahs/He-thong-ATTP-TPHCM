@@ -973,8 +973,8 @@ function downloadExcelTable(
 
 function downloadFacilityTemplate() {
   downloadExcelTable(
-    "mau-nhap-quan-ly-co-so.xls",
-    "Mẫu nhập quản lý cơ sở",
+    "mau-nhap-duyet-co-so.xls",
+    "Mẫu nhập duyệt cơ sở",
     [
       "Tên cơ sở",
       "Loại hình",
@@ -2523,9 +2523,9 @@ function LegacyAdminFacilitiesPage() {
     <AdminShell>
       <div className="mx-auto max-w-7xl px-5 py-9 lg:px-10">
         <SectionHeading
-          eyebrow="Quản lý cơ sở"
+          eyebrow="Duyệt cơ sở"
           title="Danh sách cơ sở."
-          description="Tra cứu và theo dõi các trường học có bếp ăn bán trú, cơ sở cung cấp thực phẩm và cơ sở cung cấp suất ăn."
+          description="Tra cứu và theo dõi các hồ sơ cơ sở trong quá trình đánh giá, duyệt và cập nhật trạng thái."
         />
         <div className="grid gap-4 md:grid-cols-3">
           <MetricCard
@@ -2864,8 +2864,8 @@ export function AdminFacilitiesPage() {
 
   const exportFacilities = () => {
     downloadExcelTable(
-      `quan-ly-co-so-${activeTab}-${new Date().toISOString().slice(0, 10)}.xls`,
-      `Quản lý cơ sở - ${facilityTabLabels[activeTab]}`,
+      `duyet-co-so-${activeTab}-${new Date().toISOString().slice(0, 10)}.xls`,
+      `Duyệt cơ sở - ${facilityTabLabels[activeTab]}`,
       [
         "Tên cơ sở",
         "Loại hình",
@@ -2973,9 +2973,9 @@ export function AdminFacilitiesPage() {
       <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <SectionHeading
-            eyebrow="Quản lý cơ sở"
-            title="Danh sách cơ sở và hồ sơ."
-            description="Theo dõi cùng một cấu trúc 3 nhóm dữ liệu như Dashboard, đồng thời tiếp nhận và xử lý hồ sơ đăng ký."
+            eyebrow="Duyệt cơ sở"
+            title="Tiếp nhận và duyệt hồ sơ cơ sở."
+            description="Tiếp nhận, đánh giá và xử lý hồ sơ đăng ký trước khi đưa cơ sở vào danh sách đã duyệt."
           />
           <div className="flex flex-wrap gap-2">
             <button
@@ -3564,7 +3564,7 @@ export function AdminFacilitiesPage() {
                   <div>
                     <p className="mono-label text-primary">XỬ LÝ HỒ SƠ</p>
                     <h3 className="mt-1 text-xl font-extrabold">
-                      Duyệt ngay tại Quản lý cơ sở
+                      Duyệt ngay tại Duyệt cơ sở
                     </h3>
                     <p className="mt-1 text-sm text-muted-foreground">
                       Không cần mở trang hồ sơ riêng. Kết quả xử lý sẽ được cập nhật
@@ -3689,7 +3689,7 @@ export function AdminFacilityDetailPage() {
             href="/admin/facilities"
             className="inline-flex items-center gap-2 text-sm font-bold text-primary"
           >
-            <ArrowLeft size={16} /> Quay lại Quản lý cơ sở
+            <ArrowLeft size={16} /> Quay lại Duyệt cơ sở
           </Link>
           <div className="mt-8 rounded-3xl border border-border bg-card p-8 text-center shadow-sm">
             <h1 className="text-2xl font-extrabold">Không tìm thấy cơ sở</h1>
@@ -3922,7 +3922,7 @@ export function AdminFacilityDetailPage() {
           className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:underline"
           data-testid="link-back-to-facilities"
         >
-          <ArrowLeft size={16} /> Quay lại Quản lý cơ sở
+          <ArrowLeft size={16} /> Quay lại Duyệt cơ sở
         </Link>
 
         <div className="mt-5 flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">

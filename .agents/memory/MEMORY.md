@@ -1,3 +1,4 @@
 - [Frontend-only workspace cleanup](frontend-only-import.md) — remove backend packages and dangling TypeScript references together.
 - [Artifact verification](artifact-verification.md) — hydrate pnpm workspaces from the lockfile; manual Vite builds need the artifact PORT.
 - [Excel in frontend-only portal](excel-frontend-portal.md) — browser-only Excel exports/imports use SheetJS; persistence still needs a backend.
+- [Facility history integration](facility-history-api.md) — approved profiles can display portal and external-system history now; production sync needs an explicit API contract.

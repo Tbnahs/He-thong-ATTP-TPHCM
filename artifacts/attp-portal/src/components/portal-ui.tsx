@@ -320,7 +320,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const overviewItems = [
     ["/admin", "Dashboard giám sát", LayoutDashboard],
-    ["/admin/facilities", "Quản lý cơ sở", Building2],
+    ["/admin/facilities", "Duyệt cơ sở", Building2],
+    ["/admin/facility-profiles", "Hồ sơ cơ sở", FileSearch],
   ];
   const mealItems = [
     ["/admin/meals/three-step", "Kiểm thực 3 bước", ClipboardCheck],
@@ -368,8 +369,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
         ? "Danh sách món ăn"
         : location.startsWith("/admin/meals")
           ? "Kiểm thực 3 bước"
-          : location.startsWith("/admin/facilities")
-            ? "Quản lý cơ sở"
+            : location.startsWith("/admin/facility-profiles")
+              ? "Hồ sơ cơ sở"
+              : location.startsWith("/admin/facilities")
+                ? "Duyệt cơ sở"
             : location.startsWith("/admin/inspections")
                 ? "Quản lý kiểm tra"
                   : location.startsWith("/admin/reports")
