@@ -27,6 +27,7 @@ import {
 import { readIncidents, type Incident } from "@/pages/incident-pages";
 
 type DeliveryKind = "Thức ăn" | "Nguyên liệu";
+type DeliveryFlow = "Nhập hàng" | "Xuất hàng";
 
 type DeliveryRecord = {
   id: string;
@@ -38,6 +39,7 @@ type DeliveryRecord = {
   quantity: string;
   status: "Đã nhận" | "Đã giao" | "Có sai lệch";
   sourceSystem: string;
+  flow: DeliveryFlow;
 };
 
 type RegistrationValue = string | string[];
@@ -131,6 +133,7 @@ const facilityProfiles: FacilityProfile[] = [
         quantity: "320 suất",
         status: "Đã nhận",
         sourceSystem: "SchoolMeal Pro",
+        flow: "Nhập hàng",
       },
       {
         id: "delivery-002",
@@ -142,6 +145,7 @@ const facilityProfiles: FacilityProfile[] = [
         quantity: "185 kg",
         status: "Đã nhận",
         sourceSystem: "SchoolMeal Pro",
+        flow: "Nhập hàng",
       },
       {
         id: "delivery-003",
@@ -153,6 +157,7 @@ const facilityProfiles: FacilityProfile[] = [
         quantity: "320 suất",
         status: "Đã nhận",
         sourceSystem: "SchoolMeal Pro",
+        flow: "Nhập hàng",
       },
     ],
   },
@@ -214,6 +219,7 @@ const facilityProfiles: FacilityProfile[] = [
         quantity: "1.240 kg",
         status: "Đã giao",
         sourceSystem: "An Phú Trace",
+        flow: "Nhập hàng",
       },
       {
         id: "delivery-005",
@@ -225,6 +231,7 @@ const facilityProfiles: FacilityProfile[] = [
         quantity: "860 kg",
         status: "Có sai lệch",
         sourceSystem: "An Phú Trace",
+        flow: "Nhập hàng",
       },
     ],
   },
@@ -278,6 +285,7 @@ const facilityProfiles: FacilityProfile[] = [
         quantity: "920 kg",
         status: "Đã giao",
         sourceSystem: "Cổng Sở",
+        flow: "Nhập hàng",
       },
       {
         id: "delivery-007",
@@ -289,6 +297,7 @@ const facilityProfiles: FacilityProfile[] = [
         quantity: "780 kg",
         status: "Đã giao",
         sourceSystem: "Cổng Sở",
+        flow: "Nhập hàng",
       },
     ],
   },
@@ -350,6 +359,7 @@ const facilityProfiles: FacilityProfile[] = [
         quantity: "320 suất",
         status: "Đã giao",
         sourceSystem: "MealFlow Minh Tâm",
+        flow: "Xuất hàng",
       },
       {
         id: "delivery-009",
@@ -361,6 +371,7 @@ const facilityProfiles: FacilityProfile[] = [
         quantity: "620 kg",
         status: "Đã nhận",
         sourceSystem: "MealFlow Minh Tâm",
+        flow: "Nhập hàng",
       },
       {
         id: "delivery-010",
@@ -372,6 +383,7 @@ const facilityProfiles: FacilityProfile[] = [
         quantity: "320 suất",
         status: "Có sai lệch",
         sourceSystem: "MealFlow Minh Tâm",
+        flow: "Xuất hàng",
       },
     ],
   },
@@ -405,6 +417,89 @@ function DeliveryStatus({ status }: { status: DeliveryRecord["status"] }) {
     <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${className}`}>
       {status}
     </span>
+  );
+}
+
+function DeliveryHistoryTable({
+  title,
+  description,
+  deliveries,
+  deliveryKind,
+  onDeliveryKindChange,
+  emptyDescription,
+}: {
+  title: string;
+  description: string;
+  deliveries: DeliveryRecord[];
+  deliveryKind: "Tất cả" | DeliveryKind;
+  onDeliveryKindChange: (value: "Tất cả" | DeliveryKind) => void;
+  emptyDescription: string;
+}) {
+  return (
+    <section className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      <div className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          <History size={18} className="text-primary" />
+          <div>
+            <h2 className="font-extrabold">{title}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+          </div>
+        </div>
+        <select
+          value={deliveryKind}
+          onChange={(event) => onDeliveryKindChange(event.target.value as "Tất cả" | DeliveryKind)}
+          className="h-10 rounded-xl border border-input bg-background px-3 text-sm font-semibold outline-none focus:border-primary"
+          aria-label="Lọc loại giao nhận"
+        >
+          <option>Tất cả</option>
+          <option>Thức ăn</option>
+          <option>Nguyên liệu</option>
+        </select>
+      </div>
+      {deliveries.length ? (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[850px] text-left text-sm">
+            <thead className="bg-secondary/45 text-xs uppercase tracking-wide text-muted-foreground">
+              <tr>
+                <th className="px-5 py-3">Ngày / đơn hàng</th>
+                <th className="px-5 py-3">Loại</th>
+                <th className="px-5 py-3">Đối tác</th>
+                <th className="px-5 py-3">Điểm giao nhận</th>
+                <th className="px-5 py-3">Khối lượng</th>
+                <th className="px-5 py-3">Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {deliveries.map((delivery) => (
+                <tr key={delivery.id} className="hover:bg-secondary/20">
+                  <td className="px-5 py-4">
+                    <p className="font-bold">{delivery.date}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{delivery.orderCode}</p>
+                  </td>
+                  <td className="px-5 py-4">
+                    <span className="inline-flex items-center gap-1.5 font-semibold">
+                      {delivery.kind === "Thức ăn" ? <Utensils size={15} className="text-primary" /> : <PackageCheck size={15} className="text-amber-700" />}
+                      {delivery.kind}
+                    </span>
+                  </td>
+                  <td className="px-5 py-4 font-semibold">{delivery.partner}</td>
+                  <td className="px-5 py-4 text-muted-foreground">{delivery.destination}</td>
+                  <td className="px-5 py-4 font-semibold">{delivery.quantity}</td>
+                  <td className="px-5 py-4">
+                    <DeliveryStatus status={delivery.status} />
+                    <p className="mt-1 text-[11px] text-muted-foreground">{delivery.sourceSystem}</p>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="p-5">
+          <EmptyState title="Chưa có bản ghi giao nhận" description={emptyDescription} />
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -556,6 +651,7 @@ export function FacilityProfilesPage() {
 
 export function FacilityProfileDetailPage() {
   const { facilityId = "" } = useParams<{ facilityId: string }>();
+  const [activeTab, setActiveTab] = useState<"info" | "suppliers" | "outgoing" | "incidents">("info");
   const [deliveryKind, setDeliveryKind] = useState<"Tất cả" | DeliveryKind>("Tất cả");
   const profile = facilityProfiles.find((item) => item.id === facilityId);
 
@@ -575,9 +671,11 @@ export function FacilityProfileDetailPage() {
     );
   }
 
-  const deliveries = profile.deliveries.filter(
+  const filteredDeliveries = profile.deliveries.filter(
     (delivery) => deliveryKind === "Tất cả" || delivery.kind === deliveryKind,
   );
+  const supplierDeliveries = filteredDeliveries.filter((delivery) => delivery.flow === "Nhập hàng");
+  const outgoingDeliveries = filteredDeliveries.filter((delivery) => delivery.flow === "Xuất hàng");
   const incidents = getFacilityIncidents(profile);
 
   return (
@@ -608,6 +706,39 @@ export function FacilityProfileDetailPage() {
           <MetricCard label="Quy mô hoạt động" value={profile.mealsPerDay} tone="gold" icon={Utensils} />
         </div>
 
+        <div className="mt-6 overflow-x-auto rounded-2xl border border-border bg-card p-2 shadow-sm">
+          <div className="flex min-w-max gap-1" role="tablist" aria-label="Các nội dung trong hồ sơ cơ sở">
+            {[
+              { id: "info", label: "Thông tin hồ sơ", icon: FileCheck2 },
+              { id: "suppliers", label: "Danh sách nhà cung cấp", icon: PackageCheck },
+              { id: "outgoing", label: "Danh sách cơ sở xuất hàng", icon: Truck },
+              { id: "incidents", label: "Lịch sử sự cố ATTP", icon: ShieldAlert },
+            ].map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                  className={`inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-colors ${
+                    isActive
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  }`}
+                >
+                  <Icon size={16} />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {activeTab === "info" ? (
+          <>
         <div className="mt-6 grid gap-6 xl:grid-cols-[.8fr_1.2fr]">
           <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -741,72 +872,32 @@ export function FacilityProfileDetailPage() {
             </div>
           )}
         </section>
+          </>
+        ) : null}
 
-        <section className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-          <div className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2">
-              <History size={18} className="text-primary" />
-              <div>
-                <h2 className="font-extrabold">Lịch sử giao nhận</h2>
-                <p className="mt-1 text-sm text-muted-foreground">Theo dõi từng đơn hàng/ngày, gồm thức ăn và nguyên liệu.</p>
-              </div>
-            </div>
-            <select
-              value={deliveryKind}
-              onChange={(event) => setDeliveryKind(event.target.value as "Tất cả" | DeliveryKind)}
-              className="h-10 rounded-xl border border-input bg-background px-3 text-sm font-semibold outline-none focus:border-primary"
-              aria-label="Lọc loại giao nhận"
-            >
-              <option>Tất cả</option>
-              <option>Thức ăn</option>
-              <option>Nguyên liệu</option>
-            </select>
-          </div>
-          {deliveries.length ? (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[850px] text-left text-sm">
-                <thead className="bg-secondary/45 text-xs uppercase tracking-wide text-muted-foreground">
-                  <tr>
-                    <th className="px-5 py-3">Ngày / đơn hàng</th>
-                    <th className="px-5 py-3">Loại</th>
-                    <th className="px-5 py-3">Đối tác</th>
-                    <th className="px-5 py-3">Điểm giao nhận</th>
-                    <th className="px-5 py-3">Khối lượng</th>
-                    <th className="px-5 py-3">Trạng thái</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {deliveries.map((delivery) => (
-                    <tr key={delivery.id} className="hover:bg-secondary/20">
-                      <td className="px-5 py-4">
-                        <p className="font-bold">{delivery.date}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">{delivery.orderCode}</p>
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className="inline-flex items-center gap-1.5 font-semibold">
-                          {delivery.kind === "Thức ăn" ? <Utensils size={15} className="text-primary" /> : <PackageCheck size={15} className="text-amber-700" />}
-                          {delivery.kind}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4 font-semibold">{delivery.partner}</td>
-                      <td className="px-5 py-4 text-muted-foreground">{delivery.destination}</td>
-                      <td className="px-5 py-4 font-semibold">{delivery.quantity}</td>
-                      <td className="px-5 py-4">
-                        <DeliveryStatus status={delivery.status} />
-                        <p className="mt-1 text-[11px] text-muted-foreground">{delivery.sourceSystem}</p>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="p-5">
-              <EmptyState title="Chưa có bản ghi giao nhận" description="Dữ liệu sẽ xuất hiện khi cơ sở nhập hoặc đồng bộ đơn hàng." />
-            </div>
-          )}
-        </section>
+        {activeTab === "suppliers" ? (
+          <DeliveryHistoryTable
+            title="Danh sách nhà cung cấp"
+            description="Lịch sử nhập hàng từ các nhà cung cấp đã khai báo hoặc đồng bộ."
+            deliveries={supplierDeliveries}
+            deliveryKind={deliveryKind}
+            onDeliveryKindChange={setDeliveryKind}
+            emptyDescription="Chưa có lịch sử nhập hàng từ nhà cung cấp."
+          />
+        ) : null}
 
+        {activeTab === "outgoing" ? (
+          <DeliveryHistoryTable
+            title="Danh sách cơ sở xuất hàng"
+            description="Lịch sử xuất hàng cho các cơ sở khác đã được ghi nhận."
+            deliveries={outgoingDeliveries}
+            deliveryKind={deliveryKind}
+            onDeliveryKindChange={setDeliveryKind}
+            emptyDescription="Chưa có lịch sử xuất hàng cho cơ sở khác."
+          />
+        ) : null}
+
+        {activeTab === "incidents" ? (
         <section className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
           <div className="flex items-center gap-2 border-b border-border px-5 py-4">
             <ShieldAlert size={18} className="text-orange-600" />
@@ -856,6 +947,7 @@ export function FacilityProfileDetailPage() {
             </div>
           )}
         </section>
+        ) : null}
       </div>
     </AdminShell>
   );
