@@ -621,89 +621,241 @@ function IngredientDetailDialog({
   );
 }
 
+function SupplierHistoryDialog({
+  supplier,
+  onClose,
+  onReceiptSelect,
+}: {
+  supplier: SupplierSource;
+  onClose: () => void;
+  onReceiptSelect: (receipt: IngredientReceipt) => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm"
+      role="presentation"
+      onClick={onClose}
+    >
+      <div
+        className="relative flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Lịch sử nhập hàng của ${supplier.name}`}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-5 sm:px-7">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wide text-primary">
+                <History size={13} />
+                Lịch sử nhập hàng
+              </span>
+              <span className="text-xs font-semibold text-muted-foreground">
+                {supplier.receipts.length} bản ghi
+              </span>
+            </div>
+            <h2 className="mt-3 truncate text-xl font-extrabold sm:text-2xl">{supplier.name}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Mã số thuế {supplier.taxCode} <span className="mx-1.5">·</span> {supplier.phone}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-xl p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            aria-label="Đóng lịch sử nhập hàng"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto bg-slate-50/70 p-5 sm:p-7">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
+              <p className="text-xs font-semibold text-muted-foreground">Tổng nguyên liệu</p>
+              <p className="mt-1 text-2xl font-extrabold text-foreground">{supplier.ingredientCount}</p>
+              <p className="mt-1 text-xs text-muted-foreground">được khai báo từ nhà cung cấp</p>
+            </div>
+            <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
+              <p className="text-xs font-semibold text-muted-foreground">Lần nhập gần nhất</p>
+              <p className="mt-1 text-2xl font-extrabold text-foreground">
+                {supplier.receipts[0]?.receivedAt ?? "—"}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">theo dữ liệu đang hiển thị</p>
+            </div>
+            <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
+              <p className="text-xs font-semibold text-muted-foreground">Trạng thái hồ sơ</p>
+              <p className="mt-1 inline-flex items-center gap-1.5 text-base font-extrabold text-emerald-700">
+                <CheckCircle2 size={17} />
+                Đang theo dõi
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">nguồn cung cấp đầu vào</p>
+            </div>
+          </div>
+
+          <section className="mt-5 overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+            <div className="border-b border-border px-4 py-4 sm:px-5">
+              <div className="flex items-center gap-2">
+                <PackageCheck size={18} className="text-primary" />
+                <h3 className="font-extrabold">Danh sách lần nhập</h3>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Chọn một lần nhập để xem đầy đủ thông tin nguyên liệu và chứng từ.
+              </p>
+            </div>
+            {supplier.receipts.length ? (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[850px] text-left text-sm">
+                  <thead className="bg-secondary/45 text-xs uppercase tracking-wide text-muted-foreground">
+                    <tr>
+                      <th className="px-5 py-3">Mã nguyên liệu</th>
+                      <th className="px-5 py-3">Tên nguyên liệu</th>
+                      <th className="px-5 py-3">Lô / số lượng</th>
+                      <th className="px-5 py-3">Ngày nhập</th>
+                      <th className="px-5 py-3 text-right">Chi tiết</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {supplier.receipts.map((receipt) => (
+                      <tr key={receipt.id} className="transition-colors hover:bg-primary/[.03]">
+                        <td className="px-5 py-4 font-mono text-xs font-bold">{receipt.code}</td>
+                        <td className="px-5 py-4">
+                          <p className="font-bold">{receipt.name}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">Đơn vị: {receipt.unit}</p>
+                        </td>
+                        <td className="px-5 py-4">
+                          <p className="font-semibold">Lô {receipt.lot}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {receipt.quantity} {receipt.unit}
+                          </p>
+                        </td>
+                        <td className="px-5 py-4 font-semibold">{receipt.receivedAt}</td>
+                        <td className="px-5 py-4 text-right">
+                          <button
+                            type="button"
+                            onClick={() => onReceiptSelect(receipt)}
+                            className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90"
+                            data-testid={`button-view-ingredient-${receipt.id}`}
+                          >
+                            <Eye size={14} />
+                            Xem chi tiết
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="p-5">
+                <EmptyState
+                  title="Chưa có lịch sử nhập hàng"
+                  description="Nhà cung cấp này chưa có bản ghi nguyên liệu mẫu."
+                />
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SupplierSourcePanel({ profile }: { profile: FacilityProfile }) {
   const [search, setSearch] = useState("");
-  const [selectedSupplierId, setSelectedSupplierId] = useState(
-    profile.supplierSources[0]?.id ?? "",
-  );
+  const [historySupplier, setHistorySupplier] = useState<SupplierSource | null>(null);
   const [selectedReceipt, setSelectedReceipt] = useState<IngredientReceipt | null>(null);
   const filteredSources = profile.supplierSources.filter((supplier) =>
     `${supplier.name} ${supplier.taxCode} ${supplier.phone}`
       .toLowerCase()
       .includes(search.trim().toLowerCase()),
   );
-  const selectedSupplier =
-    profile.supplierSources.find((supplier) => supplier.id === selectedSupplierId) ??
-    filteredSources[0];
 
   return (
     <>
       <section className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <PackageCheck size={18} className="text-primary" />
-              <h2 className="font-extrabold">Nguồn cung cấp</h2>
+        <div className="border-b border-border px-5 py-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <PackageCheck size={18} className="text-primary" />
+                <h2 className="font-extrabold">Nhà cung cấp đầu vào</h2>
+                <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-extrabold text-primary">
+                  {profile.supplierSources.length}
+                </span>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Theo dõi nguồn cung cấp nguyên liệu và mở lịch sử nhập hàng theo từng nhà cung cấp.
+              </p>
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Danh sách các nhà cung cấp nguyên liệu đầu vào của cơ sở.
-            </p>
+            <label className="relative block lg:w-80">
+              <span className="sr-only">Tìm kiếm nhà cung cấp</span>
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Tìm tên, mã số thuế, số điện thoại"
+                className="h-11 w-full rounded-xl border border-input bg-background pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
+                data-testid="input-search-supplier-source"
+              />
+            </label>
           </div>
-          <label className="relative block sm:w-72">
-            <span className="sr-only">Tìm kiếm nguồn cung cấp</span>
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Tìm kiếm"
-              className="h-10 w-full rounded-xl border border-input bg-background pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
-              data-testid="input-search-supplier-source"
-            />
-          </label>
+          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-semibold text-muted-foreground">
+            <span>{filteredSources.length} nhà cung cấp đang hiển thị</span>
+            <span className="hidden h-3 w-px bg-border sm:block" />
+            <span className="inline-flex items-center gap-1.5">
+              <History size={14} className="text-primary" />
+              Bấm “Lịch sử nhập hàng” để xem chi tiết
+            </span>
+          </div>
         </div>
         {filteredSources.length ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[920px] text-left text-sm">
+            <table className="w-full min-w-[980px] text-left text-sm">
               <thead className="bg-secondary/45 text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
-                  <th className="px-5 py-3">STT</th>
+                  <th className="w-16 px-5 py-3">STT</th>
                   <th className="px-5 py-3">Tên nhà cung cấp</th>
                   <th className="px-5 py-3">Mã số thuế</th>
                   <th className="px-5 py-3">Số điện thoại</th>
                   <th className="px-5 py-3">Nguyên liệu</th>
-                  <th className="px-5 py-3">Thao tác</th>
+                  <th className="px-5 py-3 text-right">Lịch sử nhập hàng</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filteredSources.map((supplier, index) => {
-                  const isSelected = supplier.id === selectedSupplier?.id;
-                  return (
-                    <tr
-                      key={supplier.id}
-                      className={`transition-colors ${isSelected ? "bg-primary/5" : "hover:bg-secondary/20"}`}
-                    >
-                      <td className="px-5 py-4 font-semibold">{index + 1}</td>
-                      <td className="px-5 py-4 font-bold">{supplier.name}</td>
-                      <td className="px-5 py-4 font-mono text-xs">{supplier.taxCode}</td>
-                      <td className="px-5 py-4">{supplier.phone}</td>
-                      <td className="px-5 py-4 font-bold">{supplier.ingredientCount}</td>
-                      <td className="px-5 py-4">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedSupplierId(supplier.id);
-                            setSelectedReceipt(null);
-                          }}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-primary/25 px-3 py-2 text-xs font-bold text-primary hover:bg-primary/10"
-                          data-testid={`button-view-supplier-${supplier.id}`}
-                        >
-                          <Eye size={14} />
-                          Xem chi tiết
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {filteredSources.map((supplier, index) => (
+                  <tr key={supplier.id} className="transition-colors hover:bg-primary/[.03]">
+                    <td className="px-5 py-4 font-semibold text-muted-foreground">{index + 1}</td>
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                          <PackageCheck size={16} />
+                        </span>
+                        <span className="font-bold">{supplier.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 font-mono text-xs">{supplier.taxCode}</td>
+                    <td className="px-5 py-4">{supplier.phone}</td>
+                    <td className="px-5 py-4">
+                      <span className="inline-flex min-w-8 items-center justify-center rounded-full bg-secondary px-2.5 py-1 font-bold">
+                        {supplier.ingredientCount}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedReceipt(null);
+                          setHistorySupplier(supplier);
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-primary/25 bg-primary/[.04] px-3 py-2 text-xs font-bold text-primary transition-colors hover:bg-primary/10"
+                        data-testid={`button-view-supplier-${supplier.id}`}
+                      >
+                        <History size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -714,68 +866,12 @@ function SupplierSourcePanel({ profile }: { profile: FacilityProfile }) {
         )}
       </section>
 
-      {selectedSupplier ? (
-        <section className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-          <div className="flex flex-col gap-2 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <History size={18} className="text-primary" />
-                <h2 className="font-extrabold">Lịch sử nhập hàng</h2>
-              </div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {selectedSupplier.name} · {selectedSupplier.receipts.length} bản ghi mẫu
-              </p>
-            </div>
-            <span className="rounded-full bg-secondary px-3 py-1.5 text-xs font-bold text-muted-foreground">
-              {selectedSupplier.ingredientCount} nguyên liệu
-            </span>
-          </div>
-          {selectedSupplier.receipts.length ? (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[850px] text-left text-sm">
-                <thead className="bg-secondary/45 text-xs uppercase tracking-wide text-muted-foreground">
-                  <tr>
-                    <th className="px-5 py-3">Mã nguyên liệu</th>
-                    <th className="px-5 py-3">Tên nguyên liệu</th>
-                    <th className="px-5 py-3">Lô</th>
-                    <th className="px-5 py-3">Số lượng</th>
-                    <th className="px-5 py-3">Ngày nhập</th>
-                    <th className="px-5 py-3">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {selectedSupplier.receipts.map((receipt) => (
-                    <tr key={receipt.id} className="hover:bg-secondary/20">
-                      <td className="px-5 py-4 font-mono text-xs font-bold">{receipt.code}</td>
-                      <td className="px-5 py-4 font-bold">{receipt.name}</td>
-                      <td className="px-5 py-4">{receipt.lot}</td>
-                      <td className="px-5 py-4 font-semibold">{receipt.quantity} {receipt.unit}</td>
-                      <td className="px-5 py-4">{receipt.receivedAt}</td>
-                      <td className="px-5 py-4">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedReceipt(receipt)}
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90"
-                          data-testid={`button-view-ingredient-${receipt.id}`}
-                        >
-                          <Eye size={14} />
-                          Chi tiết
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="p-5">
-              <EmptyState
-                title="Chưa có lịch sử nhập hàng"
-                description="Nhà cung cấp này chưa có bản ghi nguyên liệu mẫu."
-              />
-            </div>
-          )}
-        </section>
+      {historySupplier ? (
+        <SupplierHistoryDialog
+          supplier={historySupplier}
+          onClose={() => setHistorySupplier(null)}
+          onReceiptSelect={(receipt) => setSelectedReceipt(receipt)}
+        />
       ) : null}
 
       {selectedReceipt ? (
