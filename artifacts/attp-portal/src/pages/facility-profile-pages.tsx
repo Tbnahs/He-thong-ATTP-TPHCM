@@ -30,6 +30,7 @@ import heroFoodImage from "@assets/1788940094256_5613377993845818882_56133779938
 type DeliveryKind = "Thức ăn" | "Nguyên liệu";
 type DeliveryFlow = "Nhập hàng" | "Xuất hàng";
 type RegistrationValue = string | string[];
+type ProfileTabId = "info" | "suppliers" | "outgoing" | "incidents";
 
 type DeliveryRecord = {
   id: string;
@@ -367,7 +368,7 @@ export function FacilityProfilesPage() {
         <SectionHeading
           eyebrow="Hồ sơ cơ sở"
           title="Hồ sơ chỉ hiển thị sau khi duyệt đạt."
-          description="Danh sách được tạo từ snapshot đầy đủ của form đăng ký sau khi cán bộ lưu kết quả Đạt/PASS. Mỗi hồ sơ gồm 4 tab theo dõi riêng."
+          description="Danh sách được tạo từ snapshot đầy đủ của form đăng ký sau khi cán bộ lưu kết quả Đạt/PASS. Các tab chi tiết tự động bật/tắt theo loại hình cơ sở."
           action={<div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"><div className="flex items-center gap-2 font-bold"><BadgeCheck size={16} /> Nguồn dữ liệu: hồ sơ đã duyệt</div><p className="mt-1 text-xs text-emerald-800">Cảnh báo ATTP phát sinh sẽ được nối vào tab lịch sử của đúng cơ sở.</p></div>}
         />
         <div className="grid gap-4 md:grid-cols-3">
@@ -393,7 +394,7 @@ export function FacilityProfilesPage() {
 export function FacilityProfileDetailPage() {
   const { facilityId = "" } = useParams<{ facilityId: string }>();
   const profiles = useMemo(getFacilityProfiles, []);
-  const [activeTab, setActiveTab] = useState<"info" | "suppliers" | "outgoing" | "incidents">("info");
+  const [activeTab, setActiveTab] = useState<ProfileTabId>("info");
   const [deliveryKind, setDeliveryKind] = useState<"Tất cả" | DeliveryKind>("Tất cả");
   const [previewDocument, setPreviewDocument] = useState<{ name: string; url: string } | null>(null);
   const profile = profiles.find((item) => item.id === facilityId);
@@ -404,12 +405,16 @@ export function FacilityProfileDetailPage() {
 
   const filteredDeliveries = profile.deliveries.filter((delivery) => deliveryKind === "Tất cả" || delivery.kind === deliveryKind);
   const incidents = getFacilityIncidents(profile);
-  const tabs = [
+  const tabs: { id: ProfileTabId; label: string; icon: typeof FileCheck2 }[] = [
     { id: "info", label: "Thông tin đã duyệt", icon: FileCheck2 },
-    { id: "suppliers", label: "Nhà cung cấp đầu vào", icon: PackageCheck },
-    { id: "outgoing", label: "Cơ sở nhận hàng", icon: Truck },
+    ...(profile.applicationType !== "food-supplier"
+      ? [{ id: "suppliers" as const, label: "Nhà cung cấp đầu vào", icon: PackageCheck }]
+      : []),
+    ...(profile.applicationType !== "school"
+      ? [{ id: "outgoing" as const, label: "Cơ sở nhận hàng", icon: Truck }]
+      : []),
     { id: "incidents", label: "Lịch sử cảnh báo ATTP", icon: ShieldAlert },
-  ] as const;
+  ];
 
   return (
     <AdminShell>
