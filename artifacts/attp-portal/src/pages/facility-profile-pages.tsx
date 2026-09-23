@@ -26,6 +26,7 @@ import {
   SectionHeading,
   StatusPill,
 } from "@/components/portal-ui";
+import { readIncidents, type Incident } from "@/pages/incident-pages";
 
 type DeliveryKind = "Thức ăn" | "Nguyên liệu";
 
@@ -38,17 +39,6 @@ type DeliveryRecord = {
   destination: string;
   quantity: string;
   status: "Đã nhận" | "Đã giao" | "Có sai lệch";
-  sourceSystem: string;
-};
-
-type ViolationRecord = {
-  id: string;
-  date: string;
-  type: string;
-  severity: "Nhẹ" | "Trung bình" | "Nghiêm trọng";
-  description: string;
-  handling: string;
-  status: "Đã khắc phục" | "Đang theo dõi";
   sourceSystem: string;
 };
 
@@ -69,7 +59,6 @@ type FacilityProfile = {
   connectedSystem: string;
   documents: string[];
   deliveries: DeliveryRecord[];
-  violations: ViolationRecord[];
 };
 
 const facilityProfiles: FacilityProfile[] = [
@@ -128,18 +117,6 @@ const facilityProfiles: FacilityProfile[] = [
         sourceSystem: "SchoolMeal Pro",
       },
     ],
-    violations: [
-      {
-        id: "violation-001",
-        date: "14/07/2026",
-        type: "Thiếu thông tin thời gian giao nhận",
-        severity: "Nhẹ",
-        description: "Một số phiếu giao nhận chưa ghi đủ giờ giao thực tế.",
-        handling: "Đã yêu cầu bổ sung biểu mẫu và hướng dẫn lại nhân sự.",
-        status: "Đã khắc phục",
-        sourceSystem: "Cán bộ Sở cập nhật",
-      },
-    ],
   },
   {
     id: "facility-003",
@@ -182,28 +159,6 @@ const facilityProfiles: FacilityProfile[] = [
         destination: "Kho nguyên liệu An Phú",
         quantity: "860 kg",
         status: "Có sai lệch",
-        sourceSystem: "An Phú Trace",
-      },
-    ],
-    violations: [
-      {
-        id: "violation-002",
-        date: "28/06/2026",
-        type: "Chứng từ truy xuất chưa đầy đủ",
-        severity: "Trung bình",
-        description: "Một lô rau củ thiếu bản scan phiếu kiểm nghiệm kèm theo.",
-        handling: "Tạm giữ lô hàng, yêu cầu bổ sung chứng từ trước khi phân phối.",
-        status: "Đã khắc phục",
-        sourceSystem: "Cán bộ Sở cập nhật",
-      },
-      {
-        id: "violation-003",
-        date: "09/03/2026",
-        type: "Sai lệch khối lượng giao nhận",
-        severity: "Nhẹ",
-        description: "Khối lượng thực nhận thấp hơn đơn hàng 2,5%.",
-        handling: "Cơ sở đã điều chỉnh quy trình cân đối chiếu tại điểm giao.",
-        status: "Đã khắc phục",
         sourceSystem: "An Phú Trace",
       },
     ],
@@ -251,7 +206,6 @@ const facilityProfiles: FacilityProfile[] = [
         sourceSystem: "Cổng Sở",
       },
     ],
-    violations: [],
   },
   {
     id: "facility-005",
@@ -308,26 +262,24 @@ const facilityProfiles: FacilityProfile[] = [
         sourceSystem: "MealFlow Minh Tâm",
       },
     ],
-    violations: [
-      {
-        id: "violation-004",
-        date: "17/08/2026",
-        type: "Giao suất ăn trễ khung giờ",
-        severity: "Trung bình",
-        description: "Một chuyến giao đến sau khung giờ cam kết 25 phút.",
-        handling: "Yêu cầu cơ sở bổ sung phương án dự phòng phương tiện vận chuyển.",
-        status: "Đang theo dõi",
-        sourceSystem: "MealFlow Minh Tâm",
-      },
-    ],
   },
 ];
 
-const severityClass: Record<ViolationRecord["severity"], string> = {
-  Nhẹ: "bg-slate-100 text-slate-700",
+const incidentSeverityClass: Record<Incident["severity"], string> = {
+  "Khẩn cấp": "bg-red-100 text-red-900",
+  Cao: "bg-orange-100 text-orange-900",
   "Trung bình": "bg-amber-100 text-amber-900",
-  "Nghiêm trọng": "bg-red-100 text-red-900",
 };
+
+const getFacilityIncidents = (profile: FacilityProfile) =>
+  readIncidents().filter((incident) => incident.facility === profile.name);
+
+const formatIncidentDate = (value: string) =>
+  new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(value));
 
 function DataSourceBadge({ source }: { source: FacilityProfile["dataSource"] }) {
   const isApi = source === "API bên ngoài";
@@ -378,8 +330,8 @@ export function FacilityProfilesPage() {
     (total, profile) => total + profile.deliveries.length,
     0,
   );
-  const totalViolations = facilityProfiles.reduce(
-    (total, profile) => total + profile.violations.length,
+  const totalIncidents = facilityProfiles.reduce(
+    (total, profile) => total + getFacilityIncidents(profile).length,
     0,
   );
 
@@ -389,14 +341,14 @@ export function FacilityProfilesPage() {
         <SectionHeading
           eyebrow="Hồ sơ cơ sở"
           title="Theo dõi độ tin cậy của từng cơ sở."
-          description="Tra cứu hồ sơ đã được duyệt, lịch sử giao nhận thức ăn/nguyên liệu và lịch sử vi phạm theo thời gian."
+          description="Tra cứu hồ sơ đã được duyệt, lịch sử giao nhận thức ăn/nguyên liệu và lịch sử sự cố ATTP theo thời gian."
           action={
             <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950">
               <div className="flex items-center gap-2 font-bold">
                 <Link2 size={16} /> Sẵn sàng nhận dữ liệu từ hệ thống ngoài
               </div>
               <p className="mt-1 max-w-sm text-xs leading-5 text-sky-800">
-                Cơ sở có thể gửi bản ghi giao nhận và vi phạm qua API sau khi
+                Cơ sở có thể gửi bản ghi giao nhận và sự cố ATTP qua API sau khi
                 được cấp mã kết nối.
               </p>
             </div>
@@ -406,7 +358,7 @@ export function FacilityProfilesPage() {
         <div className="grid gap-4 md:grid-cols-3">
           <MetricCard label="Cơ sở đã duyệt" value={facilityProfiles.length} icon={BadgeCheck} />
           <MetricCard label="Bản ghi giao nhận" value={totalDeliveries} tone="blue" icon={Truck} />
-          <MetricCard label="Lịch sử vi phạm" value={totalViolations} tone="orange" icon={ShieldAlert} />
+          <MetricCard label="Sự cố ATTP" value={totalIncidents} tone="orange" icon={ShieldAlert} />
         </div>
 
         <section className="mt-6 rounded-2xl border border-border bg-card p-4 shadow-sm">
@@ -487,7 +439,7 @@ export function FacilityProfilesPage() {
                       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-muted-foreground">
                         <span>{profile.category}</span>
                         <span>Duyệt ngày {profile.approvedAt}</span>
-                        <span>{profile.deliveries.length} giao nhận · {profile.violations.length} vi phạm</span>
+                        <span>{profile.deliveries.length} giao nhận · {getFacilityIncidents(profile).length} sự cố ATTP</span>
                       </div>
                     </div>
                   </div>
@@ -539,6 +491,7 @@ export function FacilityProfileDetailPage() {
   const deliveries = profile.deliveries.filter(
     (delivery) => deliveryKind === "Tất cả" || delivery.kind === deliveryKind,
   );
+  const incidents = getFacilityIncidents(profile);
 
   return (
     <AdminShell>
@@ -568,7 +521,7 @@ export function FacilityProfileDetailPage() {
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <MetricCard label="Ngày duyệt" value={profile.approvedAt} icon={BadgeCheck} />
           <MetricCard label="Bản ghi giao nhận" value={profile.deliveries.length} tone="blue" icon={Truck} />
-          <MetricCard label="Lịch sử vi phạm" value={profile.violations.length} tone="orange" icon={ShieldAlert} />
+          <MetricCard label="Sự cố ATTP" value={incidents.length} tone="orange" icon={ShieldAlert} />
           <MetricCard label="Quy mô hoạt động" value={profile.mealsPerDay} tone="gold" icon={Utensils} />
         </div>
 
@@ -688,34 +641,40 @@ export function FacilityProfileDetailPage() {
           <div className="flex items-center gap-2 border-b border-border px-5 py-4">
             <ShieldAlert size={18} className="text-orange-600" />
             <div>
-              <h2 className="font-extrabold">Lịch sử vi phạm và xử lý</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Theo dõi loại vi phạm, thời điểm, biện pháp xử lý và trạng thái khắc phục.</p>
+              <h2 className="font-extrabold">Lịch sử sự cố ATTP</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Dữ liệu được lấy từ module Quản lý và xử lý sự cố ATTP của Sở.</p>
             </div>
           </div>
-          {profile.violations.length ? (
+          {incidents.length ? (
             <div className="divide-y divide-border">
-              {profile.violations.map((violation) => (
-                <article key={violation.id} className="grid gap-4 px-5 py-5 lg:grid-cols-[145px_1fr_auto]">
+              {incidents.map((incident) => (
+                <article key={incident.id} className="grid gap-4 px-5 py-5 lg:grid-cols-[145px_1fr_auto]">
                   <div>
                     <p className="flex items-center gap-1.5 text-sm font-bold">
-                      <CalendarDays size={15} className="text-muted-foreground" /> {violation.date}
+                      <CalendarDays size={15} className="text-muted-foreground" /> {formatIncidentDate(incident.occurredAt)}
                     </p>
-                    <span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${severityClass[violation.severity]}`}>
-                      {violation.severity}
+                    <span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${incidentSeverityClass[incident.severity]}`}>
+                      {incident.severity}
                     </span>
                   </div>
                   <div>
-                    <h3 className="font-extrabold">{violation.type}</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">{violation.description}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-extrabold">{incident.title}</h3>
+                      <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-700">{incident.code}</span>
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">{incident.description}</p>
                     <div className="mt-3 rounded-xl bg-secondary/45 p-3 text-sm">
-                      <span className="font-bold">Cách xử lý: </span>{violation.handling}
+                      <span className="font-bold">Biện pháp xử lý: </span>{incident.response}
+                      {incident.conclusion ? (
+                        <p className="mt-1"><span className="font-bold">Kết luận: </span>{incident.conclusion}</p>
+                      ) : null}
                     </div>
                   </div>
                   <div className="lg:text-right">
-                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${violation.status === "Đã khắc phục" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-900"}`}>
-                      {violation.status}
+                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${incident.status === "Đã đóng" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-900"}`}>
+                      {incident.status}
                     </span>
-                    <p className="mt-2 text-xs text-muted-foreground">{violation.sourceSystem}</p>
+                    <p className="mt-2 text-xs text-muted-foreground">Quản lý và xử lý sự cố ATTP</p>
                   </div>
                 </article>
               ))}
@@ -723,7 +682,7 @@ export function FacilityProfileDetailPage() {
           ) : (
             <div className="flex items-center gap-3 p-6 text-sm text-emerald-800">
               <CheckCircle2 size={19} />
-              Cơ sở chưa có lịch sử vi phạm được ghi nhận.
+              Cơ sở chưa có sự cố ATTP nào được ghi nhận trong module xử lý sự cố.
             </div>
           )}
         </section>

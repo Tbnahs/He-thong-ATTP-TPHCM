@@ -246,7 +246,7 @@ function getRelatedFacilitiesCopy(facilityType: IncidentFacilityType | "") {
   };
 }
 
-type Incident = {
+export type Incident = {
   id: string;
   code: string;
   title: string;
@@ -481,7 +481,7 @@ const seedIncidents: Incident[] = [
   },
 ];
 
-function readIncidents(): Incident[] {
+export function readIncidents(): Incident[] {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {

@@ -20,7 +20,7 @@ Cổng thông tin an toàn thực phẩm TP.HCM với tra cứu công khai, đă
 
 - `artifacts/attp-portal/src/pages/portal-pages.tsx` — public portal, registration form, admin dashboard and criteria editor
 - `artifacts/attp-portal/src/pages/product-pages.tsx` — facility product declarations and Admin product appraisal/publication workflow
-- `artifacts/attp-portal/src/pages/facility-profile-pages.tsx` — approved facility profiles, delivery history and violation history
+- `artifacts/attp-portal/src/pages/facility-profile-pages.tsx` — approved facility profiles, delivery history and ATTP incident history
 - `artifacts/attp-portal/src/components/portal-ui.tsx` — shared public/admin shells and UI patterns
 - `artifacts/attp-portal/src/lib/mock-data.ts` — sample records, applications, suppliers and criteria
 
@@ -31,11 +31,11 @@ Cổng thông tin an toàn thực phẩm TP.HCM với tra cứu công khai, đă
 - Inspection criteria use a single 100-point score and classify results at 100% (PASS), 80–99% (warning / temporary suspension), and below 80% (stop operation).
 - The admin navigation keeps incident management as a reserved submenu entry while schedule, minutes, and criteria configuration have dedicated screens.
 - Product declarations are intentionally a frontend prototype: self-declared products publish immediately, while registered declarations move through review, request-for-more-information, rejection, and approval/receipt-number states. Published records are added to the existing public lookup session data.
-- Facility approval and facility profiles are separate admin modules: “Duyệt cơ sở” handles the application queue, while “Hồ sơ cơ sở” lists approved facilities and groups delivery/violation history by facility. The current implementation uses typed demo records and shows both direct portal data and external-system API data sources; a production API contract is still needed for real synchronization.
+- Facility approval and facility profiles are separate admin modules: “Duyệt cơ sở” handles the application queue, while “Hồ sơ cơ sở” lists approved facilities and groups delivery history plus records from “Quản lý và xử lý sự cố ATTP” by facility. The current implementation uses typed demo records and browser localStorage for incident records, and shows both direct portal data and external-system API data sources; a production API contract is still needed for real synchronization.
 
 ## Product
 
-The portal supports public ATTP lookup and registration, an admin monitoring dashboard, facility approval grouped by school / food supplier / meal provider, approved facility profiles with delivery and violation history, meal management for three-step checks, menus, and recipes, admin review of facility applications, product declarations with self-declaration and registered-declaration paths, and an inspection workflow for scheduling visits, creating scored inspection minutes, configuring weighted criteria, exposing automatic result classifications, and demonstrating the school-to-Sở alert update loop.
+The portal supports public ATTP lookup and registration, an admin monitoring dashboard, facility approval grouped by school / food supplier / meal provider, approved facility profiles with delivery and ATTP incident history, meal management for three-step checks, menus, and recipes, admin review of facility applications, product declarations with self-declaration and registered-declaration paths, and an inspection workflow for scheduling visits, creating scored inspection minutes, configuring weighted criteria, exposing automatic result classifications, and demonstrating the school-to-Sở alert update loop.
 
 ## User preferences
 
