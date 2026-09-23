@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Clock3,
   FileCheck2,
+  FileImage,
   FileText,
   History,
   Link2,
@@ -18,6 +19,7 @@ import {
   Truck,
   Utensils,
   X,
+  Eye,
   ZoomIn,
 } from "lucide-react";
 import { Link, useParams } from "wouter";
@@ -52,6 +54,31 @@ type RelatedFacility = {
   direction: "Cung cấp" | "Xuất hàng";
 };
 
+type IngredientReceipt = {
+  id: string;
+  code: string;
+  name: string;
+  unit: string;
+  supplier: string;
+  lot: string;
+  quantity: string;
+  createdBy: string;
+  receivedAt: string;
+  expiryDate: string;
+  note: string;
+  attachmentLabel: string;
+  attachmentName: string;
+};
+
+type SupplierSource = {
+  id: string;
+  name: string;
+  taxCode: string;
+  phone: string;
+  ingredientCount: number;
+  receipts: IngredientReceipt[];
+};
+
 type FacilityProfile = {
   id: string;
   applicationId: string;
@@ -68,6 +95,7 @@ type FacilityProfile = {
   mealsPerDay: string;
   documents: { name: string; kind: string; previewUrl?: string }[];
   deliveries: DeliveryRecord[];
+  supplierSources: SupplierSource[];
   registrationFields: { label: string; value: RegistrationValue }[];
   relatedFacilities: RelatedFacility[];
 };
@@ -83,6 +111,132 @@ const schoolLabels: Record<string, string> = {
   "school-002": "Trường Tiểu học Thái Sơn",
   "school-003": "Trường Mầm non Hoa Sen",
 };
+
+const supplierSourceSeeds: Array<Omit<SupplierSource, "receipts">> = [
+  {
+    id: "source-001",
+    name: "Công Ty TNHH VITAFAT",
+    taxCode: "3702624117",
+    phone: "02743800887",
+    ingredientCount: 0,
+  },
+  {
+    id: "source-002",
+    name: "Công ty THNN MTV TM - DV Lê Phương Đại Phát",
+    taxCode: "3702051184",
+    phone: "02747305686",
+    ingredientCount: 0,
+  },
+  {
+    id: "source-003",
+    name: "Hộ Kinh Doanh B",
+    taxCode: "5728592993",
+    phone: "01488599494",
+    ingredientCount: 1,
+  },
+  {
+    id: "source-004",
+    name: "Hộ Kinh Doanh A",
+    taxCode: "1234512455",
+    phone: "09124857572",
+    ingredientCount: 1,
+  },
+  {
+    id: "source-005",
+    name: "Cty CPCK nông nghiệp và XD Điện Biên",
+    taxCode: "5600100661",
+    phone: "0913658980",
+    ingredientCount: 98,
+  },
+  {
+    id: "source-006",
+    name: "HKD chủ hộ Đinh Xuân Bình",
+    taxCode: "011093005692",
+    phone: "0348838858",
+    ingredientCount: 3,
+  },
+];
+
+const supplierReceiptSeeds: Record<string, IngredientReceipt[]> = {
+  "source-003": [
+    {
+      id: "receipt-source-003-001",
+      code: "NL003",
+      name: "Dầu ăn thực vật",
+      unit: "lít",
+      supplier: "Hộ Kinh Doanh B",
+      lot: "B-260923",
+      quantity: "60",
+      createdBy: "Trần Văn Hùng",
+      receivedAt: "22/09/2026",
+      expiryDate: "22/09/2027",
+      note: "Bao bì nguyên vẹn, kiểm tra đạt.",
+      attachmentLabel: "Hóa đơn (1 ảnh)",
+      attachmentName: "118.jpg",
+    },
+  ],
+  "source-004": [
+    {
+      id: "receipt-source-004-001",
+      code: "NL004",
+      name: "Gạo nếp (loại thường)",
+      unit: "kg",
+      supplier: "Hộ Kinh Doanh A",
+      lot: "3738",
+      quantity: "200",
+      createdBy: "Nguyễn Thị Ánh",
+      receivedAt: "23/09/2026",
+      expiryDate: "—",
+      note: "Kiểm tra bao bì và cảm quan đạt yêu cầu.",
+      attachmentLabel: "Hóa đơn (1 ảnh)",
+      attachmentName: "119.jpg",
+    },
+  ],
+  "source-005": [
+    {
+      id: "receipt-source-005-001",
+      code: "NL005",
+      name: "Rau củ quả theo mùa",
+      unit: "kg",
+      supplier: "Cty CPCK nông nghiệp và XD Điện Biên",
+      lot: "DB-0923-01",
+      quantity: "480",
+      createdBy: "Lê Minh Khôi",
+      receivedAt: "21/09/2026",
+      expiryDate: "28/09/2026",
+      note: "Đã đối chiếu phiếu giao nhận.",
+      attachmentLabel: "Phiếu giao hàng (2 ảnh)",
+      attachmentName: "117-118.jpg",
+    },
+  ],
+  "source-006": [
+    {
+      id: "receipt-source-006-001",
+      code: "NL006",
+      name: "Thịt heo sơ chế",
+      unit: "kg",
+      supplier: "HKD chủ hộ Đinh Xuân Bình",
+      lot: "B-230926",
+      quantity: "125",
+      createdBy: "Phạm Quốc Tuấn",
+      receivedAt: "23/09/2026",
+      expiryDate: "25/09/2026",
+      note: "Bảo quản lạnh sau khi tiếp nhận.",
+      attachmentLabel: "Hóa đơn (1 ảnh)",
+      attachmentName: "120.jpg",
+    },
+  ],
+};
+
+const buildSupplierSources = (applicationId: string): SupplierSource[] =>
+  supplierSourceSeeds.map((supplier) => ({
+    ...supplier,
+    id: `${applicationId}-${supplier.id}`,
+    receipts: (supplierReceiptSeeds[supplier.id] ?? []).map((receipt) => ({
+      ...receipt,
+      id: `${applicationId}-${receipt.id}`,
+    })),
+  }));
 
 const displayValue = (value: unknown): string => {
   if (Array.isArray(value)) {
@@ -231,6 +385,7 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
       { label: "Ngày duyệt", value: date },
       { label: "Cán bộ duyệt", value: approval.reviewer },
     ],
+    supplierSources: type === "meal-provider" ? buildSupplierSources(application.id) : [],
     relatedFacilities,
     deliveries: [
       {
@@ -338,6 +493,298 @@ function DeliveryHistoryTable({
         </div>
       ) : <div className="p-5"><EmptyState title="Chưa có bản ghi giao nhận" description={emptyDescription} /></div>}
     </section>
+  );
+}
+
+function IngredientDetailDialog({
+  receipt,
+  onClose,
+}: {
+  receipt: IngredientReceipt;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm"
+      role="presentation"
+      onClick={onClose}
+    >
+      <div
+        className="relative max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Chi tiết nguyên liệu ${receipt.name}`}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[.14em] text-primary">
+              CHI TIẾT NHẬP HÀNG
+            </p>
+            <h2 className="mt-1 text-2xl font-extrabold">{receipt.name}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Mã nguyên liệu {receipt.code}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
+            aria-label="Đóng chi tiết nguyên liệu"
+          >
+            <X size={20} />
+          </button>
+        </div>
+        <div className="grid gap-6 p-6 lg:grid-cols-[1fr_250px]">
+          <div className="space-y-6">
+            <section>
+              <h3 className="flex items-center gap-2 text-sm font-extrabold text-foreground">
+                <PackageCheck size={17} className="text-primary" />
+                Thông tin nguyên liệu
+              </h3>
+              <dl className="mt-3 grid gap-x-6 gap-y-4 rounded-2xl border border-border bg-secondary/20 p-4 sm:grid-cols-2">
+                <div>
+                  <dt className="text-xs text-muted-foreground">Mã nguyên liệu</dt>
+                  <dd className="mt-1 font-bold">{receipt.code}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Tên nguyên liệu</dt>
+                  <dd className="mt-1 font-bold">{receipt.name}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Đơn vị</dt>
+                  <dd className="mt-1 font-bold">{receipt.unit}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Nguồn cung cấp</dt>
+                  <dd className="mt-1 font-bold">{receipt.supplier}</dd>
+                </div>
+              </dl>
+            </section>
+            <section>
+              <h3 className="flex items-center gap-2 text-sm font-extrabold text-foreground">
+                <History size={17} className="text-primary" />
+                Thông tin nhập
+              </h3>
+              <dl className="mt-3 grid gap-x-6 gap-y-4 rounded-2xl border border-border bg-secondary/20 p-4 sm:grid-cols-2">
+                <div>
+                  <dt className="text-xs text-muted-foreground">Lô</dt>
+                  <dd className="mt-1 font-bold">{receipt.lot}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Số lượng</dt>
+                  <dd className="mt-1 font-bold">{receipt.quantity} {receipt.unit}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Người tạo</dt>
+                  <dd className="mt-1 font-bold">{receipt.createdBy}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Ngày nhập</dt>
+                  <dd className="mt-1 font-bold">{receipt.receivedAt}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Hạn sử dụng</dt>
+                  <dd className="mt-1 font-bold">{receipt.expiryDate}</dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="text-xs text-muted-foreground">Ghi chú</dt>
+                  <dd className="mt-1 font-semibold">{receipt.note || "—"}</dd>
+                </div>
+              </dl>
+            </section>
+          </div>
+          <section>
+            <h3 className="flex items-center gap-2 text-sm font-extrabold text-foreground">
+              <FileImage size={17} className="text-primary" />
+              Hình ảnh đính kèm
+            </h3>
+            <div className="mt-3 overflow-hidden rounded-2xl border border-border bg-secondary/20">
+              <div className="aspect-[4/3] overflow-hidden bg-slate-100">
+                <img
+                  src={heroFoodImage}
+                  alt={receipt.attachmentName}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              <div className="p-4">
+                <p className="text-sm font-bold">{receipt.attachmentLabel}</p>
+                <p className="mt-1 truncate text-xs text-muted-foreground" title={receipt.attachmentName}>
+                  {receipt.attachmentName}
+                </p>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SupplierSourcePanel({ profile }: { profile: FacilityProfile }) {
+  const [search, setSearch] = useState("");
+  const [selectedSupplierId, setSelectedSupplierId] = useState(
+    profile.supplierSources[0]?.id ?? "",
+  );
+  const [selectedReceipt, setSelectedReceipt] = useState<IngredientReceipt | null>(null);
+  const filteredSources = profile.supplierSources.filter((supplier) =>
+    `${supplier.name} ${supplier.taxCode} ${supplier.phone}`
+      .toLowerCase()
+      .includes(search.trim().toLowerCase()),
+  );
+  const selectedSupplier =
+    profile.supplierSources.find((supplier) => supplier.id === selectedSupplierId) ??
+    filteredSources[0];
+
+  return (
+    <>
+      <section className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <PackageCheck size={18} className="text-primary" />
+              <h2 className="font-extrabold">Nguồn cung cấp</h2>
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Danh sách các nhà cung cấp nguyên liệu đầu vào của cơ sở.
+            </p>
+          </div>
+          <label className="relative block sm:w-72">
+            <span className="sr-only">Tìm kiếm nguồn cung cấp</span>
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Tìm kiếm"
+              className="h-10 w-full rounded-xl border border-input bg-background pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
+              data-testid="input-search-supplier-source"
+            />
+          </label>
+        </div>
+        {filteredSources.length ? (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[920px] text-left text-sm">
+              <thead className="bg-secondary/45 text-xs uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th className="px-5 py-3">STT</th>
+                  <th className="px-5 py-3">Tên nhà cung cấp</th>
+                  <th className="px-5 py-3">Mã số thuế</th>
+                  <th className="px-5 py-3">Số điện thoại</th>
+                  <th className="px-5 py-3">Nguyên liệu</th>
+                  <th className="px-5 py-3">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filteredSources.map((supplier, index) => {
+                  const isSelected = supplier.id === selectedSupplier?.id;
+                  return (
+                    <tr
+                      key={supplier.id}
+                      className={`transition-colors ${isSelected ? "bg-primary/5" : "hover:bg-secondary/20"}`}
+                    >
+                      <td className="px-5 py-4 font-semibold">{index + 1}</td>
+                      <td className="px-5 py-4 font-bold">{supplier.name}</td>
+                      <td className="px-5 py-4 font-mono text-xs">{supplier.taxCode}</td>
+                      <td className="px-5 py-4">{supplier.phone}</td>
+                      <td className="px-5 py-4 font-bold">{supplier.ingredientCount}</td>
+                      <td className="px-5 py-4">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedSupplierId(supplier.id);
+                            setSelectedReceipt(null);
+                          }}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-primary/25 px-3 py-2 text-xs font-bold text-primary hover:bg-primary/10"
+                          data-testid={`button-view-supplier-${supplier.id}`}
+                        >
+                          <Eye size={14} />
+                          Xem chi tiết
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="p-5">
+            <EmptyState title="Không tìm thấy nhà cung cấp" description="Thử thay đổi từ khóa tìm kiếm." />
+          </div>
+        )}
+      </section>
+
+      {selectedSupplier ? (
+        <section className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+          <div className="flex flex-col gap-2 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <History size={18} className="text-primary" />
+                <h2 className="font-extrabold">Lịch sử nhập hàng</h2>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {selectedSupplier.name} · {selectedSupplier.receipts.length} bản ghi mẫu
+              </p>
+            </div>
+            <span className="rounded-full bg-secondary px-3 py-1.5 text-xs font-bold text-muted-foreground">
+              {selectedSupplier.ingredientCount} nguyên liệu
+            </span>
+          </div>
+          {selectedSupplier.receipts.length ? (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[850px] text-left text-sm">
+                <thead className="bg-secondary/45 text-xs uppercase tracking-wide text-muted-foreground">
+                  <tr>
+                    <th className="px-5 py-3">Mã nguyên liệu</th>
+                    <th className="px-5 py-3">Tên nguyên liệu</th>
+                    <th className="px-5 py-3">Lô</th>
+                    <th className="px-5 py-3">Số lượng</th>
+                    <th className="px-5 py-3">Ngày nhập</th>
+                    <th className="px-5 py-3">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {selectedSupplier.receipts.map((receipt) => (
+                    <tr key={receipt.id} className="hover:bg-secondary/20">
+                      <td className="px-5 py-4 font-mono text-xs font-bold">{receipt.code}</td>
+                      <td className="px-5 py-4 font-bold">{receipt.name}</td>
+                      <td className="px-5 py-4">{receipt.lot}</td>
+                      <td className="px-5 py-4 font-semibold">{receipt.quantity} {receipt.unit}</td>
+                      <td className="px-5 py-4">{receipt.receivedAt}</td>
+                      <td className="px-5 py-4">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedReceipt(receipt)}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90"
+                          data-testid={`button-view-ingredient-${receipt.id}`}
+                        >
+                          <Eye size={14} />
+                          Chi tiết
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="p-5">
+              <EmptyState
+                title="Chưa có lịch sử nhập hàng"
+                description="Nhà cung cấp này chưa có bản ghi nguyên liệu mẫu."
+              />
+            </div>
+          )}
+        </section>
+      ) : null}
+
+      {selectedReceipt ? (
+        <IngredientDetailDialog
+          receipt={selectedReceipt}
+          onClose={() => setSelectedReceipt(null)}
+        />
+      ) : null}
+    </>
   );
 }
 
@@ -461,7 +908,7 @@ export function FacilityProfileDetailPage() {
           <div className="rounded-2xl border border-border bg-card p-5 shadow-sm"><div className="flex items-center gap-2"><FileCheck2 size={18} className="text-primary" /><div><h2 className="font-extrabold">Minh chứng đã duyệt</h2><p className="mt-1 text-xs text-muted-foreground">Ảnh minh họa có thể bấm để xem phóng to; tài liệu được giữ nguyên theo hồ sơ.</p></div></div><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{profile.documents.map((document, documentIndex) => document.previewUrl ? <button key={`${document.name}-${documentIndex}`} type="button" onClick={() => setPreviewDocument({ name: document.name, url: document.previewUrl! })} className="group overflow-hidden rounded-xl border border-border bg-secondary/30 text-left transition hover:border-primary/40 hover:shadow-md"><div className="relative aspect-[4/3] overflow-hidden bg-muted"><img src={document.previewUrl} alt={`Minh họa ${document.name}`} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" /><span className="absolute inset-0 flex items-center justify-center bg-slate-950/45 text-white opacity-0 transition group-hover:opacity-100"><ZoomIn size={24} /></span></div><span className="block truncate px-3 py-2.5 text-sm font-semibold" title={document.name}>{document.name}</span></button> : <div key={`${document.name}-${documentIndex}`} className="flex items-center gap-3 rounded-xl border border-border bg-secondary/30 p-3 text-sm"><FileText size={18} className="shrink-0 text-primary" /><span className="min-w-0 truncate font-semibold" title={document.name}>{document.name}</span></div>)}</div><div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4"><div className="flex items-center gap-2 text-sm font-extrabold text-emerald-950"><CheckCircle2 size={16} /> Trạng thái liên thông</div><p className="mt-1 text-sm text-emerald-900">Hồ sơ đã duyệt đạt và được đưa vào danh sách theo dõi.</p><p className="mt-2 text-xs text-emerald-800">Cán bộ duyệt: {profile.reviewer}</p></div></div>
         </section> : null}
 
-        {activeTab === "suppliers" ? <DeliveryHistoryTable title="Nhà cung cấp đầu vào" description="Lịch sử nhập nguyên liệu/thức ăn từ các đơn vị được ghi nhận trong hồ sơ." deliveries={filteredDeliveries.filter((delivery) => delivery.flow === "Nhập hàng")} deliveryKind={deliveryKind} onDeliveryKindChange={setDeliveryKind} emptyDescription="Chưa có lịch sử nhập hàng từ nhà cung cấp." /> : null}
+         {activeTab === "suppliers" ? profile.applicationType === "meal-provider" ? <SupplierSourcePanel profile={profile} /> : <DeliveryHistoryTable title="Nhà cung cấp đầu vào" description="Lịch sử nhập nguyên liệu/thức ăn từ các đơn vị được ghi nhận trong hồ sơ." deliveries={filteredDeliveries.filter((delivery) => delivery.flow === "Nhập hàng")} deliveryKind={deliveryKind} onDeliveryKindChange={setDeliveryKind} emptyDescription="Chưa có lịch sử nhập hàng từ nhà cung cấp." /> : null}
         {activeTab === "outgoing" ? <DeliveryHistoryTable title="Cơ sở nhận hàng" description="Lịch sử xuất thực phẩm hoặc suất ăn cho các đơn vị liên quan." deliveries={filteredDeliveries.filter((delivery) => delivery.flow === "Xuất hàng")} deliveryKind={deliveryKind} onDeliveryKindChange={setDeliveryKind} emptyDescription="Chưa có lịch sử xuất hàng cho cơ sở khác." /> : null}
         {activeTab === "incidents" ? <section className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm"><div className="flex items-center gap-2 border-b border-border px-5 py-4"><ShieldAlert size={18} className="text-orange-600" /><div><h2 className="font-extrabold">Lịch sử cảnh báo ATTP</h2><p className="mt-1 text-sm text-muted-foreground">Mọi cảnh báo có cùng tên cơ sở trong module xử lý sự cố sẽ được lưu tại đây.</p></div></div>{incidents.length ? <div className="divide-y divide-border">{incidents.map((incident) => <article key={incident.id} className="grid gap-4 px-5 py-5 lg:grid-cols-[145px_1fr_auto]"><div><p className="flex items-center gap-1.5 text-sm font-bold"><CalendarDays size={15} className="text-muted-foreground" /> {formatIncidentDate(incident.occurredAt)}</p><span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${incidentSeverityClass[incident.severity]}`}>{incident.severity}</span></div><div><div className="flex flex-wrap items-center gap-2"><h3 className="font-extrabold">{incident.title}</h3><span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-700">{incident.code}</span></div><p className="mt-1 text-sm text-muted-foreground">{incident.description}</p><div className="mt-3 rounded-xl bg-secondary/45 p-3 text-sm"><span className="font-bold">Biện pháp xử lý: </span>{incident.response}{incident.conclusion ? <p className="mt-1"><span className="font-bold">Kết luận: </span>{incident.conclusion}</p> : null}</div></div><div className="lg:text-right"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${incident.status === "Đã đóng" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-900"}`}>{incident.status}</span><p className="mt-2 text-xs text-muted-foreground">Mã {incident.code}</p></div></article>)}</div> : <div className="flex items-center gap-3 p-6 text-sm text-emerald-800"><CheckCircle2 size={19} /> Cơ sở chưa có cảnh báo ATTP nào được ghi nhận.</div>}</section> : null}
         {previewDocument ? <DocumentPreviewDialog document={previewDocument} onClose={() => setPreviewDocument(null)} /> : null}
