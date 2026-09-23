@@ -1574,6 +1574,338 @@ export const getPublicRecords = (search = "", category = "") =>
     );
 
 const applicationCriteria = getCriteriaSet("food-supplier");
+
+const sampleFacilityNames: Record<ApplicationType, string[]> = {
+  "food-supplier": [
+    "Công ty Thực phẩm Tân Hưng",
+    "Cơ sở Hải sản Tươi Sài Gòn",
+    "Công ty Nông sản Mekong Xanh",
+    "Hợp tác xã Nông nghiệp Bình Chánh",
+    "Cơ sở Thịt sạch Nam Việt",
+    "Công ty TNHH Thực phẩm Hưng Phát",
+    "Trang trại Rau hữu cơ Phước Lộc",
+    "Công ty Hải sản Đại Dương",
+    "Cơ sở Trứng sạch Thành Công",
+    "Công ty Phân phối Thực phẩm Việt",
+    "Hợp tác xã Rau an toàn Hóc Môn",
+    "Cơ sở Đặc sản miền Tây Sông Xanh",
+  ],
+  "meal-provider": [
+    "Bếp ăn tập thể Cầu Ông Lãnh",
+    "Cơ sở Suất ăn Nguyễn Cư Trinh",
+    "Công ty Suất ăn Hòa Bình",
+    "Bếp ăn công nghiệp Tân Tạo",
+    "Công ty Dịch vụ Ẩm thực Phú Nhuận",
+    "Bếp ăn tập thể Bình Thạnh",
+    "Công ty Suất ăn Việt An",
+    "Bếp ăn trường học Sao Mai",
+    "Công ty TNHH Bếp Xanh",
+    "Đơn vị Suất ăn Công nghiệp Thành Đạt",
+    "Bếp ăn tập thể Hiệp Bình",
+    "Công ty Suất ăn Dinh dưỡng Á Châu",
+  ],
+  school: [
+    "Trường Mầm non Hoa Hồng",
+    "Trường Tiểu học Lê Lợi",
+    "Trường Tiểu học Thái Sơn",
+    "Trường THCS Nguyễn Bỉnh Khiêm",
+    "Trường THPT Trần Phú",
+    "Trường Mầm non Mặt Trời Nhỏ",
+    "Trường Tiểu học Bến Nghé",
+    "Trường THCS Võ Trường Toản",
+    "Trường THPT Nguyễn Thượng Hiền",
+    "Trường Mầm non Tuổi Thơ",
+    "Trường Tiểu học Đa Kao",
+    "Trường THCS Cầu Ông Lãnh",
+  ],
+};
+
+const sampleAddresses = [
+  "18 Nguyễn Hữu Thọ, Phường Tân Hưng, TP. Hồ Chí Minh",
+  "42 Nguyễn Thị Minh Khai, Phường Đa Kao, TP. Hồ Chí Minh",
+  "116 Nguyễn Thái Học, Phường Cầu Ông Lãnh, TP. Hồ Chí Minh",
+  "24 Trần Hưng Đạo, Phường Nguyễn Cư Trinh, TP. Hồ Chí Minh",
+  "88 Lê Văn Việt, Phường Tăng Nhơn Phú, TP. Hồ Chí Minh",
+  "205 Phan Văn Trị, Phường 11, TP. Hồ Chí Minh",
+  "67 Quốc lộ 22, Xã Hóc Môn, TP. Hồ Chí Minh",
+  "12 Lê Lợi, Phường Bến Nghé, TP. Hồ Chí Minh",
+];
+
+const sampleStatuses: ApplicationStatus[] = [
+  "pending",
+  "approved",
+  "needs-more-info",
+  "approved",
+  "warning",
+  "rejected",
+];
+
+const sampleDate = (index: number) =>
+  `2026-${String(1 + (index % 8)).padStart(2, "0")}-${String(
+    3 + ((index * 3) % 24),
+  ).padStart(2, "0")}T${String(8 + (index % 9)).padStart(2, "0")}:${
+    index % 2 ? "30" : "00"
+  }:00+07:00`;
+
+const sampleAttachmentName = (type: ApplicationType, index: number, key: string) =>
+  `ho-so-mau-${type}-${String(index).padStart(2, "0")}-${key}.pdf`;
+
+const sampleRepeatableValue = (
+  field: NonNullable<CriteriaDefinition["repeatableFields"]>[number],
+  index: number,
+  type: ApplicationType,
+) => {
+  if (field.answerType === "file") {
+    return sampleAttachmentName(type, index, field.key);
+  }
+  if (field.answerType === "number") return String(2 + (index % 8));
+  if (field.answerType === "select") {
+    if (field.key === "schoolId") return schoolOptions[index % schoolOptions.length].id;
+    if (field.key === "providerId") return `provider-${String(1 + (index % 6)).padStart(3, "0")}`;
+    return field.options?.[index % (field.options.length || 1)] ?? `Lựa chọn ${index}`;
+  }
+  return `${field.label} mẫu ${index + 1}`;
+};
+
+const createSampleApplication = (
+  index: number,
+  type: ApplicationType,
+  status: ApplicationStatus,
+): Application => {
+  const criteriaSet = getCriteriaSet(type);
+  const applicantName = sampleFacilityNames[type][index % sampleFacilityNames[type].length];
+  const address = sampleAddresses[index % sampleAddresses.length];
+  const contact = `090${String(100000 + index * 731).slice(-6)}`;
+  const data: Record<string, unknown> = {};
+  const attachments: Attachment[] = [];
+
+  for (const item of criteriaSet.criteria) {
+    if (item.answerType === "file") {
+      attachments.push({
+        name: sampleAttachmentName(type, index, item.key),
+        kind: item.key.toLowerCase().includes("photo") ||
+          item.key.toLowerCase().includes("evidence")
+          ? "image/jpeg"
+          : "application/pdf",
+        size: 420000 + index * 17000,
+        fieldKey: item.key,
+      });
+      continue;
+    }
+    if (item.answerType === "repeatable") {
+      const rows = [Object.fromEntries(
+        (item.repeatableFields ?? []).map((field) => [
+          field.key,
+          sampleRepeatableValue(field, index, type),
+        ]),
+      )];
+      data[item.key] = rows;
+      (item.repeatableFields ?? [])
+        .filter((field) => field.answerType === "file")
+        .forEach((field) => {
+          attachments.push({
+            name: String((rows[0] as Record<string, unknown>)[field.key]),
+            kind: "application/pdf",
+            size: 330000 + index * 9000,
+            fieldKey: `${item.key}.0.${field.key}`,
+          });
+        });
+      continue;
+    }
+    if (item.answerType === "number") {
+      data[item.key] = String(8 + ((index * 3) % 42));
+    } else if (item.answerType === "date") {
+      data[item.key] = `2027-${String(1 + (index % 9)).padStart(2, "0")}-15`;
+    } else if (item.answerType === "yes-no") {
+      data[item.key] = index % 7 === 0 ? "Không" : "Có";
+    } else if (item.answerType === "multi-select") {
+      data[item.key] = item.options.slice(0, Math.min(2, item.options.length));
+    } else if (item.answerType === "select") {
+      data[item.key] = item.options[index % (item.options.length || 1)] ?? "";
+    } else {
+      data[item.key] = `${item.label} mẫu ${index + 1}`;
+    }
+  }
+
+  Object.assign(data, {
+    applicantName,
+    taxCode: `031${String(9000000 + index * 137).slice(-7)}`,
+    address,
+    addressProvince: "TP. Hồ Chí Minh",
+    addressWard: ["Phường Tân Hưng", "Phường Đa Kao", "Phường Bến Nghé", "Xã Hóc Môn"][
+      index % 4
+    ],
+    addressDetail: address.split(",")[0],
+    contact,
+    email: `donvi.mau${String(index + 1).padStart(2, "0")}@example.vn`,
+    licenseNumber: `ATTP-HCM-2026-${String(100 + index).padStart(4, "0")}`,
+    licenseExpires: "2027-12-31",
+  });
+
+  if (type === "food-supplier") {
+    data.products = [
+      {
+        category: ["Rau củ quả", "Thịt gia súc", "Thủy sản", "Trứng"][index % 4],
+        name: ["Rau củ sơ chế", "Thịt heo sạch", "Cá basa phi lê", "Trứng gà tươi"][index % 4],
+        origin: ["Củ Chi", "Đồng Nai", "Đồng Tháp", "Long An"][index % 4],
+        traceability: "Có",
+      },
+      {
+        category: "Sản phẩm bổ sung",
+        name: "Danh mục thực phẩm mẫu",
+        origin: "TP. Hồ Chí Minh",
+        traceability: "Có",
+      },
+    ];
+    data.suppliedUnits = [
+      {
+        unitType: index % 2 ? "Cơ sở giáo dục" : "Cơ sở cung cấp suất ăn",
+        name: sampleFacilityNames["meal-provider"][index % sampleFacilityNames["meal-provider"].length],
+        taxCode: `031${String(7000000 + index * 113).slice(-7)}`,
+      },
+    ];
+  }
+
+  if (type === "meal-provider") {
+    for (let attachmentIndex = attachments.length - 1; attachmentIndex >= 0; attachmentIndex -= 1) {
+      const fieldKey = attachments[attachmentIndex].fieldKey ?? "";
+      if (fieldKey.startsWith("suppliers.") || fieldKey.startsWith("servingSchools.")) {
+        attachments.splice(attachmentIndex, 1);
+      }
+    }
+    const staffTotal = 20 + (index % 5) * 8;
+    data.staffTotal = String(staffTotal);
+    data.fullTimeStaff = String(staffTotal - 4);
+    data.partTimeStaff = "3";
+    data.outsourcedStaff = "1";
+    data.trainedFoodSafetyStaff = String(staffTotal - 1);
+    data.healthCheckedStaff = String(staffTotal);
+    data.foodSafetyManagerName = ["Nguyễn Hoàng Anh", "Trần Thị Mai", "Phạm Minh Đức"][
+      index % 3
+    ];
+    data.foodSafetyManagerTitle = "Phụ trách bếp ăn";
+    data.foodSafetyManagerPhone = `091${String(200000 + index * 419).slice(-6)}`;
+    data.suppliers = [
+      {
+        name: sampleFacilityNames["food-supplier"][index % sampleFacilityNames["food-supplier"].length],
+        taxCode: `031${String(6000000 + index * 127).slice(-7)}`,
+        contract: sampleAttachmentName(type, index, "hop-dong-nha-cung-cap"),
+      },
+      {
+        name: sampleFacilityNames["food-supplier"][(index + 3) % sampleFacilityNames["food-supplier"].length],
+        taxCode: `031${String(6100000 + index * 127).slice(-7)}`,
+        contract: sampleAttachmentName(type, index, "hop-dong-nha-cung-cap-2"),
+      },
+    ];
+    data.servingSchools = [
+      {
+        schoolId: schoolOptions[index % schoolOptions.length].id,
+        evidence: sampleAttachmentName(type, index, "hop-dong-truong"),
+      },
+      {
+        schoolId: schoolOptions[(index + 2) % schoolOptions.length].id,
+        evidence: sampleAttachmentName(type, index, "hop-dong-truong-2"),
+      },
+    ];
+    data.dailyCapacity = String(500 + (index % 8) * 150);
+    data.averageMealPrice = String(22000 + (index % 6) * 1500);
+    data.deliveryVehicles = [
+      {
+        vehicleType: index % 2 ? "Xe máy có thùng chuyên dụng" : "Xe tải bảo ôn",
+        ownershipType: index % 3 ? "Chuyên dụng" : "Thuê ngoài",
+        quantity: String(2 + (index % 7)),
+      },
+    ];
+    data.vehicleType = [String((data.deliveryVehicles as Array<Record<string, unknown>>)[0].vehicleType)];
+    data.ownershipType = (data.deliveryVehicles as Array<Record<string, unknown>>)[0].ownershipType;
+    data.hasSampleCabinet = "Có";
+    data.sampleCabinetCount = String(1 + (index % 3));
+    for (const [rowIndex, row] of (data.suppliers as Array<Record<string, unknown>>).entries()) {
+      attachments.push({
+        name: String(row.contract),
+        kind: "application/pdf",
+        size: 360000 + index * 5000,
+        fieldKey: `suppliers.${rowIndex}.contract`,
+      });
+    }
+    for (const [rowIndex, row] of (data.servingSchools as Array<Record<string, unknown>>).entries()) {
+      attachments.push({
+        name: String(row.evidence),
+        kind: "application/pdf",
+        size: 410000 + index * 6000,
+        fieldKey: `servingSchools.${rowIndex}.evidence`,
+      });
+    }
+  }
+
+  if (type === "school") {
+    const mealModel = index % 3 === 0
+      ? "Tự nấu"
+      : index % 3 === 1
+        ? "Liên kết đơn vị suất ăn"
+        : "Thuê đơn vị nấu tại bếp trường";
+    data.schoolLevel = ["Mầm non", "Tiểu học", "THCS", "THPT"][index % 4];
+    data.hasFoodSafetyLead = "Có";
+    data.foodSafetyLeadName = ["Lê Thị Hương", "Võ Minh Châu", "Đặng Quốc Bảo"][index % 3];
+    data.foodSafetyLeadTitle = "Cán bộ phụ trách ATTP";
+    data.foodSafetyLeadPhone = `098${String(300000 + index * 517).slice(-6)}`;
+    data.mealModel = mealModel;
+    data.selfCookStaffTotal = String(6 + (index % 5));
+    data.linkedMealProviders = [
+      {
+        source: "Đơn vị đã đăng ký",
+        providerId: `provider-${String(1 + (index % 6)).padStart(3, "0")}`,
+        providerName: sampleFacilityNames["meal-provider"][index % sampleFacilityNames["meal-provider"].length],
+        taxCode: `031${String(5000000 + index * 101).slice(-7)}`,
+      },
+    ];
+    data.deliveryReception = "Xe tải bảo ôn, giao nhận từ 06:00 đến 07:00";
+    data.kitchenOneWay = "Có";
+    data.sampleStorage = "Có";
+    data.sampleCabinetCount = String(1 + (index % 2));
+    data.hiredKitchenName = sampleFacilityNames["meal-provider"][(index + 1) % sampleFacilityNames["meal-provider"].length];
+    data.hiredKitchenTaxCode = `031${String(5200000 + index * 103).slice(-7)}`;
+    data.hiredKitchenStaffCount = String(8 + (index % 4));
+  }
+
+  const scoreBreakdown = Object.fromEntries(
+    criteriaSet.criteria
+      .filter((item) => item.maxScore > 0)
+      .map((item) => [item.key, status === "approved" ? item.maxScore : Math.max(0, item.maxScore - (index % 5) * 2)]),
+  );
+
+  return {
+    id: `sample-app-${String(index).padStart(3, "0")}`,
+    reference: `HS-MAU-2026-${String(100 + index).padStart(4, "0")}`,
+    type,
+    applicantName,
+    address,
+    contact,
+    submittedAt: sampleDate(index),
+    status,
+    score: status === "approved" ? 100 : status === "needs-more-info" ? 76 : status === "rejected" ? 48 : 0,
+    reviewNote: status === "needs-more-info"
+      ? "Vui lòng bổ sung minh chứng và cập nhật thông tin còn thiếu."
+      : status === "rejected"
+        ? "Hồ sơ chưa đáp ứng đầy đủ điều kiện theo bộ tiêu chí hiện hành."
+        : null,
+    isThirdParty: type === "school" || index % 4 === 0,
+    criteriaVersion: criteriaSet.version,
+    criteriaSnapshot: criteriaSet.criteria,
+    criteriaGroups: criteriaSet.groups,
+    data,
+    attachments,
+    scoreBreakdown,
+    published: status === "approved",
+  };
+};
+
+const sampleApplications: Application[] = Array.from({ length: 36 }, (_, offset) => {
+  const index = offset + 1;
+  const type: ApplicationType = ["food-supplier", "meal-provider", "school"][index % 3] as ApplicationType;
+  return createSampleApplication(index, type, sampleStatuses[(index - 1) % sampleStatuses.length]);
+});
+
 export const applications: Application[] = [
   {
     id: "app-001",
@@ -1859,4 +2191,5 @@ export const applications: Application[] = [
     scoreBreakdown: { products: 20, storageEvidence: 25 },
     published: true,
   },
+  ...sampleApplications,
 ];

@@ -63,7 +63,7 @@ export const readApprovedFacilities = (): ApprovedFacility[] => {
         entry.application.status === "approved" &&
         !approvedIds.has(entry.application.id),
     ),
-  ].slice(0, 5);
+  ];
 
   window.localStorage.setItem(approvedFacilitiesStorageKey, JSON.stringify(merged));
   return merged;

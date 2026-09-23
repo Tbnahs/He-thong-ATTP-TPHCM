@@ -263,7 +263,6 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
 
 const getFacilityProfiles = () =>
   readApprovedFacilities()
-    .slice(0, 5)
     .map(buildProfile);
 
 const getFacilityIncidents = (profile: FacilityProfile) =>
