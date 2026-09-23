@@ -2420,17 +2420,9 @@ function ApplicationForm({
   const [files, setFiles] = useState<Attachment[]>(
     initialSnapshot?.files || [],
   );
-  const [accountEmail, setAccountEmail] = useState(account?.email || "");
-  const [accountPassword, setAccountPassword] = useState("");
-  const [accountPasswordConfirm, setAccountPasswordConfirm] = useState("");
   const [notice, setNotice] = useState("");
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [credentials, setCredentials] = useState<{
-    email: string;
-    password: string;
-  } | null>(null);
-  const [copied, setCopied] = useState(false);
   const formSet = getCriteriaSet(type);
   const update = (key: string, value: CriteriaValue) =>
     setFields((prev) => ({ ...prev, [key]: value }));
@@ -2515,33 +2507,6 @@ function ApplicationForm({
     );
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (mode === "register") {
-      if (
-        !accountEmail.trim() ||
-        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(accountEmail.trim())
-      ) {
-        setNotice("Vui lòng nhập email hợp lệ để tạo tài khoản cơ sở.");
-        return;
-      }
-      if (accountPassword.length < 6) {
-        setNotice("Mật khẩu phải có ít nhất 6 ký tự.");
-        return;
-      }
-      if (accountPassword !== accountPasswordConfirm) {
-        setNotice("Mật khẩu xác nhận chưa khớp.");
-        return;
-      }
-      const existingAccount = readFacilityAccounts().some(
-        (account) =>
-          account.email.toLowerCase() === accountEmail.trim().toLowerCase(),
-      );
-      if (existingAccount) {
-        setNotice(
-          "Email này đã được đăng ký. Vui lòng dùng email khác hoặc đăng nhập.",
-        );
-        return;
-      }
-    }
     const formFields =
       formSet?.criteria
         .filter((item) => item.active && isVisible(item))
@@ -2669,11 +2634,11 @@ function ApplicationForm({
       submittedAt: new Date().toISOString().slice(0, 10),
     };
     if (mode === "register") {
-      const email = accountEmail.trim().toLowerCase();
+      const email = asText(fields.email).trim().toLowerCase();
       const accountRecord: FacilityAccount = {
         email,
-        password: accountPassword,
-        username: email,
+        password: "",
+        username: `application-${Date.now()}`,
         registration: snapshot,
       };
       saveFacilityAccounts([...readFacilityAccounts(), accountRecord]);
@@ -2691,7 +2656,6 @@ function ApplicationForm({
           : [];
         saveSchoolMealProviderLinks(asText(fields.applicantName), providerRows);
       }
-      setCredentials({ email, password: accountPassword });
     } else if (account) {
       saveFacilityAccounts(
         readFacilityAccounts().map((item) =>
@@ -2720,7 +2684,7 @@ function ApplicationForm({
     setSubmitAttempted(false);
     setNotice(
       mode === "register"
-        ? "Đăng ký thành công. Hãy lưu lại tài khoản và mật khẩu bên dưới."
+        ? "Đăng ký thành công. Hồ sơ đã được tiếp nhận để cán bộ chuyên môn rà soát."
         : "Hồ sơ đã được cập nhật và chuyển tới cán bộ chuyên môn rà soát.",
     );
   };
@@ -2742,62 +2706,12 @@ function ApplicationForm({
         </h1>
         <p className="mx-auto mt-4 max-w-lg text-sm leading-6 text-muted-foreground">
           {mode === "register"
-            ? "Hãy sao chép thông tin đăng nhập dưới đây. Cán bộ chuyên môn sẽ liên hệ qua email nếu cần bổ sung hồ sơ."
+            ? "Cán bộ chuyên môn sẽ liên hệ qua số điện thoại hoặc email trong hồ sơ nếu cần bổ sung thông tin."
             : "Bạn có thể tiếp tục chỉnh sửa hồ sơ khi nhận yêu cầu bổ sung từ cán bộ chuyên môn."}
         </p>
-        {mode === "register" && credentials && (
-          <div className="mt-7 rounded-2xl border border-primary/20 bg-secondary/50 p-5 text-left">
-            <div className="flex items-center gap-2 text-sm font-bold text-primary">
-              <ShieldCheck size={17} /> Tài khoản cơ sở của bạn
-            </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-border bg-card p-3">
-                <p className="text-xs text-muted-foreground">
-                  Email / tên đăng nhập
-                </p>
-                <p className="mt-1 break-all font-mono text-sm font-bold">
-                  {credentials.email}
-                </p>
-              </div>
-              <div className="rounded-xl border border-border bg-card p-3">
-                <p className="text-xs text-muted-foreground">Mật khẩu</p>
-                <p className="mt-1 font-mono text-sm font-bold">
-                  {credentials.password}
-                </p>
-              </div>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              className="mt-4 w-full rounded-xl"
-              onClick={async () => {
-                const value = `Email: ${credentials.email}\nMật khẩu: ${credentials.password}`;
-                try {
-                  await navigator.clipboard.writeText(value);
-                } catch {
-                  const helper = document.createElement("textarea");
-                  helper.value = value;
-                  helper.style.position = "fixed";
-                  helper.style.opacity = "0";
-                  document.body.appendChild(helper);
-                  helper.select();
-                  document.execCommand("copy");
-                  helper.remove();
-                }
-                setCopied(true);
-              }}
-            >
-              <Copy size={16} />{" "}
-              {copied
-                ? "Đã sao chép tài khoản và mật khẩu"
-                : "Sao chép tài khoản và mật khẩu"}
-            </Button>
-          </div>
-        )}
         <div className="mt-8 flex justify-center gap-3">
           {mode === "register" ? (
             <>
-              <ButtonLink href="/admin/login">Đăng nhập ngay</ButtonLink>
               <ButtonLink href="/" variant="outline">
                 Về trang chủ
               </ButtonLink>
@@ -2848,7 +2762,7 @@ function ApplicationForm({
       <SectionHeading
         eyebrow={
           mode === "register"
-            ? "Đăng ký trực tuyến · Tạo tài khoản cơ sở"
+            ? "Đăng ký hồ sơ trực tuyến"
             : `Chỉnh sửa hồ sơ · ${account?.email || "coso.demo"}`
         }
         title={
@@ -2856,82 +2770,11 @@ function ApplicationForm({
         }
         description={
           mode === "register"
-            ? "Chọn đúng loại cơ sở để điền biểu mẫu tương ứng. Mỗi loại cơ sở có bộ câu hỏi cố định riêng."
+            ? "Chọn đúng loại cơ sở để điền biểu mẫu tương ứng. Mỗi loại cơ sở có bộ câu hỏi cố định riêng; không cần tạo tài khoản đăng nhập."
             : "Biểu mẫu dưới đây được nạp lại từ đúng thông tin bạn đã điền khi đăng ký."
         }
       />
       <form onSubmit={submit} className="space-y-6">
-        <div className="rounded-2xl border border-primary/15 bg-secondary/40 p-5 shadow-sm sm:p-6">
-          <div className="flex items-start gap-3">
-            <Mail className="mt-0.5 shrink-0 text-primary" size={19} />
-            <div className="w-full">
-              <p className="text-sm font-bold">Tài khoản đăng nhập</p>
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                {mode === "register"
-                  ? "Thông tin này dùng để đăng nhập vào khu vực hồ sơ cơ sở."
-                  : "Email đăng ký được dùng làm tên đăng nhập và không thể đổi trong bản prototype."}
-              </p>
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <label>
-                  <span className="mb-2 block text-sm font-semibold">
-                    Email *
-                  </span>
-                  <input
-                    type="email"
-                    value={accountEmail}
-                    onChange={(event) => setAccountEmail(event.target.value)}
-                    readOnly={mode === "edit"}
-                    autoComplete="email"
-                    className={`focus-ring h-11 w-full rounded-xl border border-input px-3 text-sm ${mode === "edit" ? "bg-muted" : "bg-background"}`}
-                    data-testid="input-registration-email"
-                  />
-                </label>
-                {mode === "register" ? (
-                  <>
-                    <label>
-                      <span className="mb-2 block text-sm font-semibold">
-                        Mật khẩu *
-                      </span>
-                      <input
-                        type="password"
-                        value={accountPassword}
-                        onChange={(event) =>
-                          setAccountPassword(event.target.value)
-                        }
-                        autoComplete="new-password"
-                        placeholder="Ít nhất 6 ký tự"
-                        className="focus-ring h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
-                        data-testid="input-registration-password"
-                      />
-                    </label>
-                    <label className="md:col-start-2">
-                      <span className="mb-2 block text-sm font-semibold">
-                        Nhập lại mật khẩu *
-                      </span>
-                      <input
-                        type="password"
-                        value={accountPasswordConfirm}
-                        onChange={(event) =>
-                          setAccountPasswordConfirm(event.target.value)
-                        }
-                        autoComplete="new-password"
-                        className="focus-ring h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
-                        data-testid="input-registration-password-confirm"
-                      />
-                    </label>
-                  </>
-                ) : (
-                  <div className="rounded-xl border border-border bg-card px-3 py-3 text-sm">
-                    <p className="text-xs text-muted-foreground">Mật khẩu</p>
-                    <p className="mt-1 font-semibold">
-                      •••••••• · Đã thiết lập
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
         <div className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
           <label
             htmlFor="registration-type"
@@ -3017,7 +2860,7 @@ function ApplicationForm({
             data-testid="button-submit-application"
           >
             {mode === "register"
-              ? "Tạo tài khoản & nộp hồ sơ"
+              ? "Nộp hồ sơ đăng ký"
               : "Lưu thay đổi hồ sơ"}{" "}
             <Send size={16} />
           </Button>
