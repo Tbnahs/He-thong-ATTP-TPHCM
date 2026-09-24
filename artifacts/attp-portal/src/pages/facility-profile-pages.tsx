@@ -4,7 +4,6 @@ import {
   ArrowRight,
   BadgeCheck,
   Building2,
-  CalendarDays,
   CheckCircle2,
   Clock3,
   FileCheck2,
@@ -423,14 +422,112 @@ const getFacilityProfiles = () =>
 const getFacilityIncidents = (profile: FacilityProfile) =>
   readIncidents().filter((incident) => incident.facility === profile.name);
 
-const incidentSeverityClass: Record<Incident["severity"], string> = {
-  "Khẩn cấp": "bg-red-100 text-red-900",
-  Cao: "bg-orange-100 text-orange-900",
-  "Trung bình": "bg-amber-100 text-amber-900",
-};
+const formatIncidentDay = (value: string) =>
+  new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(value));
 
-const formatIncidentDate = (value: string) =>
-  new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(value));
+const formatIncidentTime = (value: string) =>
+  new Intl.DateTimeFormat("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+
+function IncidentHistoryTable({ incidents }: { incidents: Incident[] }) {
+  return (
+    <section
+      className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
+      data-testid="panel-facility-incident-history"
+    >
+      <div className="flex items-center gap-2 border-b border-border px-5 py-4">
+        <ShieldAlert size={18} className="text-orange-600" />
+        <div>
+          <h2 className="font-extrabold">Lịch sử cảnh báo ATTP</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Các sự cố được ghi nhận trong module Quản lý và xử lý sự cố ATTP.
+          </p>
+        </div>
+      </div>
+      {incidents.length ? (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[980px] text-left">
+            <thead className="bg-slate-50 text-xs uppercase tracking-[.05em] text-slate-400">
+              <tr>
+                <th className="px-5 py-4 font-normal">Mã sự cố</th>
+                <th className="px-5 py-4 font-normal">Trường</th>
+                <th className="px-5 py-4 font-normal">Phát hiện</th>
+                <th className="px-5 py-4 font-normal">Số ca</th>
+                <th className="px-5 py-4 font-normal">Bữa ăn</th>
+                <th className="px-5 py-4 font-normal">Trạng thái</th>
+                <th className="px-5 py-4 text-right font-normal">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {incidents.map((incident) => (
+                <tr
+                  key={incident.id}
+                  className="transition-colors hover:bg-slate-50"
+                  data-testid={`row-facility-incident-${incident.id}`}
+                >
+                  <td className="px-5 py-6 align-middle font-mono text-sm font-semibold tracking-[.03em] text-slate-700">
+                    {incident.code}
+                  </td>
+                  <td className="max-w-[220px] px-5 py-6 align-middle text-sm leading-5 text-slate-700">
+                    {incident.facility}
+                  </td>
+                  <td className="px-5 py-6 align-middle">
+                    <span className="block text-sm text-slate-600">
+                      {formatIncidentDay(incident.occurredAt)}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-slate-400">
+                      {formatIncidentTime(incident.occurredAt)}
+                    </span>
+                  </td>
+                  <td className="px-5 py-6 align-middle">
+                    <span className="inline-flex min-w-8 justify-center rounded bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-900">
+                      {String(incident.suspectedCases ?? 0).padStart(2, "0")}
+                    </span>
+                  </td>
+                  <td className="max-w-[170px] px-5 py-6 align-middle text-sm leading-5 text-slate-600">
+                    {incident.meals?.join(", ") || incident.foods || "—"}
+                  </td>
+                  <td className="px-5 py-6 align-middle">
+                    <span
+                      className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                        incident.status === "Đang xử lý"
+                          ? "bg-blue-100 text-blue-700"
+                          : "bg-emerald-100 text-emerald-700"
+                      }`}
+                      data-testid={`status-facility-incident-${incident.id}`}
+                    >
+                      {incident.status}
+                    </span>
+                  </td>
+                  <td className="px-5 py-6 text-right align-middle">
+                    <Link
+                      href={`/admin/inspections/incidents/${incident.id}`}
+                      className="focus-ring inline-flex min-h-12 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition-colors hover:border-blue-300 hover:text-blue-700"
+                      data-testid={`link-view-facility-incident-${incident.id}`}
+                    >
+                      Xem chi tiết
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="flex items-center gap-3 p-6 text-sm text-emerald-800">
+          <CheckCircle2 size={19} />
+          Cơ sở chưa có cảnh báo ATTP nào được ghi nhận.
+        </div>
+      )}
+    </section>
+  );
+}
 
 function DeliveryHistoryTable({
   title,
@@ -997,7 +1094,7 @@ export function FacilityProfileDetailPage() {
 
          {activeTab === "suppliers" ? profile.applicationType === "meal-provider" ? <SupplierSourcePanel profile={profile} /> : <DeliveryHistoryTable title="Nhà cung cấp đầu vào" description="Lịch sử nhập nguyên liệu/thức ăn từ các đơn vị được ghi nhận trong hồ sơ." deliveries={filteredDeliveries.filter((delivery) => delivery.flow === "Nhập hàng")} deliveryKind={deliveryKind} onDeliveryKindChange={setDeliveryKind} emptyDescription="Chưa có lịch sử nhập hàng từ nhà cung cấp." /> : null}
         {activeTab === "outgoing" ? <DeliveryHistoryTable title="Cơ sở nhận hàng" description="Lịch sử xuất thực phẩm hoặc suất ăn cho các đơn vị liên quan." deliveries={filteredDeliveries.filter((delivery) => delivery.flow === "Xuất hàng")} deliveryKind={deliveryKind} onDeliveryKindChange={setDeliveryKind} emptyDescription="Chưa có lịch sử xuất hàng cho cơ sở khác." /> : null}
-        {activeTab === "incidents" ? <section className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm"><div className="flex items-center gap-2 border-b border-border px-5 py-4"><ShieldAlert size={18} className="text-orange-600" /><div><h2 className="font-extrabold">Lịch sử cảnh báo ATTP</h2><p className="mt-1 text-sm text-muted-foreground">Mọi cảnh báo có cùng tên cơ sở trong module xử lý sự cố sẽ được lưu tại đây.</p></div></div>{incidents.length ? <div className="divide-y divide-border">{incidents.map((incident) => <article key={incident.id} className="grid gap-4 px-5 py-5 lg:grid-cols-[145px_1fr_auto]"><div><p className="flex items-center gap-1.5 text-sm font-bold"><CalendarDays size={15} className="text-muted-foreground" /> {formatIncidentDate(incident.occurredAt)}</p><span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${incidentSeverityClass[incident.severity]}`}>{incident.severity}</span></div><div><div className="flex flex-wrap items-center gap-2"><h3 className="font-extrabold">{incident.title}</h3><span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-700">{incident.code}</span></div><p className="mt-1 text-sm text-muted-foreground">{incident.description}</p><div className="mt-3 rounded-xl bg-secondary/45 p-3 text-sm"><span className="font-bold">Biện pháp xử lý: </span>{incident.response}{incident.conclusion ? <p className="mt-1"><span className="font-bold">Kết luận: </span>{incident.conclusion}</p> : null}</div></div><div className="lg:text-right"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${incident.status === "Đã đóng" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-900"}`}>{incident.status}</span><p className="mt-2 text-xs text-muted-foreground">Mã {incident.code}</p></div></article>)}</div> : <div className="flex items-center gap-3 p-6 text-sm text-emerald-800"><CheckCircle2 size={19} /> Cơ sở chưa có cảnh báo ATTP nào được ghi nhận.</div>}</section> : null}
+        {activeTab === "incidents" ? <IncidentHistoryTable incidents={incidents} /> : null}
         {previewDocument ? <DocumentPreviewDialog document={previewDocument} onClose={() => setPreviewDocument(null)} /> : null}
       </div>
     </AdminShell>
