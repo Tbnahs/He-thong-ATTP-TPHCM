@@ -16,7 +16,6 @@ import {
   Filter,
   MapPin,
   MonitorPlay,
-  Pencil,
   Printer,
   Search,
   ShieldCheck,
@@ -838,7 +837,6 @@ export function ThreeStepInspectionForm() {
   );
   const [meta, setMeta] = useState(saved.meta);
   const [rows, setRows] = useState(saved.rows);
-  const [saveState, setSaveState] = useState("Chưa lưu thay đổi");
 
   useEffect(() => {
     const next = readStorage<{ meta: typeof saved.meta; rows: string[][] }>(
@@ -847,26 +845,17 @@ export function ThreeStepInspectionForm() {
     );
     setMeta(next.meta);
     setRows(next.rows);
-    setSaveState("Chưa lưu thay đổi");
   }, [normalizedFormId, school.id]);
 
   const updateCell = (rowIndex: number, columnIndex: number, value: string) => {
     setRows((current) => current.map((row, index) => index === rowIndex ? row.map((cell, cellIndex) => cellIndex === columnIndex ? value : cell) : row));
-    setSaveState("Có thay đổi chưa lưu");
   };
   const updateMeta = (key: keyof typeof meta, value: string) => {
     setMeta((current) => ({ ...current, [key]: value }));
-    setSaveState("Có thay đổi chưa lưu");
   };
   const saveForm = () => {
     saveStorage(`attp-inspection-form:${school.id}:${normalizedFormId}`, { meta, rows });
-    setSaveState("Đã lưu lúc " + new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }));
   };
-  const addRow = () => {
-    setRows((current) => [...current, Array(headers[normalizedFormId].length).fill("").map((cell, index) => index === 0 ? String(current.length + 1) : cell)]);
-    setSaveState("Có thay đổi chưa lưu");
-  };
-
   return (
     <PageFrame>
       <div className="border-b border-slate-200/80 bg-white px-5 py-4 sm:px-8">
@@ -890,7 +879,6 @@ export function ThreeStepInspectionForm() {
         <section className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,.03)]">
           <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <div><p className="text-[10px] font-extrabold uppercase tracking-[.12em] text-orange-500">{tab.label}</p><h2 className="mt-1 text-sm font-extrabold text-slate-800">{tab.title} <span className="font-medium text-slate-400">(Bước {normalizedFormId === "5" ? "5" : normalizedFormId})</span></h2></div>
-            <span className={`inline-flex w-fit items-center gap-1.5 text-[11px] font-bold ${saveState.startsWith("Đã") ? "text-emerald-600" : saveState.startsWith("Có") ? "text-orange-600" : "text-slate-400"}`} data-testid="text-form-save-status"><span className="h-1.5 w-1.5 rounded-full bg-current" /> {saveState}</span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1100px] border-collapse text-left">
@@ -909,10 +897,6 @@ export function ThreeStepInspectionForm() {
                 ))}
               </tbody>
             </table>
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-4 py-3">
-            <button type="button" onClick={addRow} className="inline-flex items-center gap-1.5 text-xs font-extrabold text-orange-600 hover:text-orange-700" data-testid="button-add-form-row"><Pencil size={13} /> Thêm dòng ghi nhận</button>
-            <p className="text-[10px] font-medium text-slate-400"><FileText size={12} className="mr-1 inline-block" /> Mọi thay đổi được lưu trên thiết bị này</p>
           </div>
         </section>
         <div className="mt-4 flex items-start gap-3 rounded-xl border border-blue-100 bg-blue-50/60 p-4 text-xs text-blue-800"><ShieldCheck size={17} className="mt-0.5 shrink-0 text-blue-600" /><p><strong className="font-extrabold">Lưu ý nghiệp vụ:</strong> Kiểm tra lại thông tin người thực hiện, thời gian và minh chứng trước khi xuất hoặc in biên bản.</p></div>
