@@ -37,6 +37,16 @@ type SchoolMealOrganization =
   | "Thuê đơn vị nấu tại bếp trường";
 type ProfileTabId = "info" | "suppliers" | "menus" | "outgoing" | "incidents";
 
+type MealOrderDetail = {
+  taxCode: string;
+  customerName: string;
+  address: string;
+  meals: Array<{ name: string; quantity: string }>;
+  deliveredAt: string;
+  vehicle: string;
+  licensePlate: string;
+};
+
 type DeliveryRecord = {
   id: string;
   date: string;
@@ -48,6 +58,7 @@ type DeliveryRecord = {
   status: "Đã nhận" | "Đã giao" | "Có sai lệch";
   sourceSystem: string;
   flow: DeliveryFlow;
+  mealOrderDetail?: MealOrderDetail;
 };
 
 type RelatedFacility = {
@@ -114,6 +125,12 @@ const schoolLabels: Record<string, string> = {
   "school-001": "Trường Mầm non Hoa Mai",
   "school-002": "Trường Tiểu học Thái Sơn",
   "school-003": "Trường Mầm non Hoa Sen",
+};
+
+const schoolAddresses: Record<string, string> = {
+  "school-001": "25 Nguyễn Huệ, phường Bến Nghé, TP.HCM",
+  "school-002": "18 Nguyễn Du, phường Đa Kao, TP.HCM",
+  "school-003": "35 Nguyễn Du, phường Sài Gòn, TP.HCM",
 };
 
 const getSchoolMealOrganization = (
@@ -390,6 +407,61 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
       : "Vùng nguyên liệu đã khai báo";
   const date = approval.approvedAt.split("T")[0].split("-").reverse().join("/");
   const deliveryBase = `Dữ liệu hồ sơ ${application.reference}`;
+  const deliveryVehicle = readRows(fields.deliveryVehicles)[0];
+  const vehicleName = String(
+    deliveryVehicle?.vehicleType || "Xe tải bảo ôn",
+  );
+  const vehicleOwnership = String(
+    deliveryVehicle?.ownershipType || "Chuyên dụng",
+  );
+  const mealProviderCustomers = schoolRows.length
+    ? schoolRows
+    : [{ schoolId: "school-001" }];
+  const mealDeliveryRecords: DeliveryRecord[] =
+    type === "meal-provider"
+      ? mealProviderCustomers.map((row, rowIndex) => {
+          const schoolId = String(row.schoolId || "");
+          const customerName =
+            schoolLabels[schoolId] ||
+            String(row.name || "Đơn vị nhận suất ăn");
+          const totalMeals = `${displayValue(fields.dailyCapacity)} suất`;
+          return {
+            id: `delivery-${application.id}-out-${rowIndex}`,
+            date,
+            kind: "Thức ăn",
+            orderCode: `${application.reference}-OUT-${String(rowIndex + 1).padStart(2, "0")}`,
+            partner: customerName,
+            destination:
+              schoolAddresses[schoolId] ||
+              String(row.address || "Chưa cập nhật"),
+            quantity: totalMeals,
+            status: "Đã giao",
+            sourceSystem: deliveryBase,
+            flow: "Xuất hàng",
+            mealOrderDetail: {
+              taxCode: String(
+                row.taxCode ||
+                  `031${String(8000000 + rowIndex * 127).slice(-7)}`,
+              ),
+              customerName,
+              address:
+                schoolAddresses[schoolId] ||
+                String(row.address || "Chưa cập nhật"),
+              meals: [
+                { name: "Cơm trắng", quantity: totalMeals },
+                { name: "Thịt kho trứng", quantity: totalMeals },
+                { name: "Canh rau củ", quantity: totalMeals },
+              ],
+              deliveredAt: `${date} 06:30`,
+              vehicle: `${vehicleName} (${vehicleOwnership})`,
+              licensePlate: String(
+                deliveryVehicle?.licensePlate ||
+                  `51D-${String(20000 + rowIndex * 173).padStart(5, "0")}`,
+              ),
+            },
+          };
+        })
+      : [];
 
   return {
     id: `approved-${application.id}`,
@@ -423,41 +495,46 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
     supplierSources: type === "meal-provider" ? buildSupplierSources(application.id) : [],
     relatedFacilities,
     deliveries: [
-      {
-        id: `delivery-${application.id}-in`,
-        date,
-        kind:
-          type === "meal-provider" ||
-          (type === "school" &&
-            isExternalSchoolMealOrganization(mealOrganization))
-            ? "Thức ăn"
-            : "Nguyên liệu",
-        orderCode: `${application.reference}-IN`,
-        partner: firstSupplier,
-        destination: application.applicantName,
-        quantity:
-          type === "meal-provider"
-            ? `${displayValue(fields.dailyCapacity)} suất`
-            : type === "school" &&
+      ...(type === "meal-provider"
+        ? []
+        : [
+            {
+              id: `delivery-${application.id}-in`,
+              date,
+              kind:
+                type === "school" &&
                 isExternalSchoolMealOrganization(mealOrganization)
-              ? "Theo suất ăn đã khai báo"
-              : "Theo danh mục đã khai báo",
-        status: "Đã nhận",
-        sourceSystem: deliveryBase,
-        flow: "Nhập hàng",
-      },
-      {
-        id: `delivery-${application.id}-out`,
-        date,
-        kind: type === "meal-provider" ? "Thức ăn" : "Nguyên liệu",
-        orderCode: `${application.reference}-OUT`,
-        partner: application.applicantName,
-        destination: firstRelated,
-        quantity: type === "meal-provider" ? `${displayValue(fields.dailyCapacity)} suất` : "Theo đơn vị đã khai báo",
-        status: "Đã giao",
-        sourceSystem: deliveryBase,
-        flow: "Xuất hàng",
-      },
+                  ? "Thức ăn"
+                  : "Nguyên liệu",
+              orderCode: `${application.reference}-IN`,
+              partner: firstSupplier,
+              destination: application.applicantName,
+              quantity:
+                type === "school" &&
+                isExternalSchoolMealOrganization(mealOrganization)
+                  ? "Theo suất ăn đã khai báo"
+                  : "Theo danh mục đã khai báo",
+              status: "Đã nhận",
+              sourceSystem: deliveryBase,
+              flow: "Nhập hàng",
+            } satisfies DeliveryRecord,
+          ]),
+      ...(type === "meal-provider"
+        ? mealDeliveryRecords
+        : [
+            {
+              id: `delivery-${application.id}-out`,
+              date,
+              kind: "Nguyên liệu",
+              orderCode: `${application.reference}-OUT`,
+              partner: application.applicantName,
+              destination: firstRelated,
+              quantity: "Theo đơn vị đã khai báo",
+              status: "Đã giao",
+              sourceSystem: deliveryBase,
+              flow: "Xuất hàng",
+            } satisfies DeliveryRecord,
+          ]),
     ],
   };
 };
@@ -628,6 +705,225 @@ function DeliveryHistoryTable({
         </div>
       ) : <div className="p-5"><EmptyState title="Chưa có bản ghi giao nhận" description={emptyDescription} /></div>}
     </section>
+  );
+}
+
+function MealOrderDetailDialog({
+  delivery,
+  onClose,
+}: {
+  delivery: DeliveryRecord;
+  onClose: () => void;
+}) {
+  const detail = delivery.mealOrderDetail;
+  if (!detail) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm"
+      role="presentation"
+      onClick={onClose}
+    >
+      <div
+        className="relative max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Thông tin chi tiết phiếu ${delivery.orderCode}`}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[.14em] text-primary">
+              THÔNG TIN CHI TIẾT PHIẾU
+            </p>
+            <h2 className="mt-1 text-2xl font-extrabold">
+              {delivery.orderCode}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
+            aria-label="Đóng chi tiết phiếu xuất"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="space-y-6 p-6">
+          <section>
+            <h3 className="flex items-center gap-2 text-sm font-extrabold">
+              <FileCheck2 size={17} className="text-primary" />
+              Thông tin đơn hàng
+            </h3>
+            <dl className="mt-3 grid gap-x-6 gap-y-4 rounded-2xl border border-border bg-secondary/20 p-4 sm:grid-cols-2">
+              <div>
+                <dt className="text-xs text-muted-foreground">Mã đơn hàng</dt>
+                <dd className="mt-1 font-bold">{delivery.orderCode}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">MST</dt>
+                <dd className="mt-1 font-bold">{detail.taxCode}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">Tên khách hàng</dt>
+                <dd className="mt-1 font-bold">{detail.customerName}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">Địa chỉ</dt>
+                <dd className="mt-1 font-bold">{detail.address}</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section>
+            <h3 className="flex items-center gap-2 text-sm font-extrabold">
+              <Utensils size={17} className="text-primary" />
+              Danh sách xuất
+            </h3>
+            <div className="mt-3 overflow-x-auto rounded-2xl border border-border">
+              <table className="w-full min-w-[520px] text-left text-sm">
+                <thead className="bg-secondary/45 text-xs uppercase tracking-wide text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-3">Món ăn / suất ăn</th>
+                    <th className="px-4 py-3">Số lượng</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {detail.meals.map((meal) => (
+                    <tr key={meal.name}>
+                      <td className="px-4 py-3 font-semibold">{meal.name}</td>
+                      <td className="px-4 py-3 font-bold">{meal.quantity}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section>
+            <h3 className="flex items-center gap-2 text-sm font-extrabold">
+              <Truck size={17} className="text-primary" />
+              Thông tin giao nhận
+            </h3>
+            <dl className="mt-3 grid gap-x-6 gap-y-4 rounded-2xl border border-border bg-secondary/20 p-4 sm:grid-cols-3">
+              <div>
+                <dt className="text-xs text-muted-foreground">Ngày giờ giao</dt>
+                <dd className="mt-1 font-bold">{detail.deliveredAt}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">Phương tiện</dt>
+                <dd className="mt-1 font-bold">{detail.vehicle}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">Biển số xe</dt>
+                <dd className="mt-1 font-bold">{detail.licensePlate}</dd>
+              </div>
+            </dl>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MealDeliveryHistoryTable({
+  deliveries,
+}: {
+  deliveries: DeliveryRecord[];
+}) {
+  const [selectedDelivery, setSelectedDelivery] =
+    useState<DeliveryRecord | null>(null);
+
+  return (
+    <>
+      <section className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="border-b border-border px-5 py-5">
+          <div className="flex items-center gap-2">
+            <Truck size={18} className="text-primary" />
+            <div>
+              <h2 className="font-extrabold">Cơ sở nhận hàng</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Danh sách lịch sử xuất suất ăn đến các đơn vị nhận hàng.
+              </p>
+            </div>
+          </div>
+        </div>
+        {deliveries.length ? (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[1080px] text-left text-sm">
+              <thead className="bg-secondary/45 text-xs uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th className="px-5 py-3">Mã đơn hàng</th>
+                  <th className="px-5 py-3">Ngày giờ</th>
+                  <th className="px-5 py-3">Tên khách hàng</th>
+                  <th className="px-5 py-3">MST</th>
+                  <th className="px-5 py-3">Địa chỉ</th>
+                  <th className="px-5 py-3">Tổng suất ăn</th>
+                  <th className="px-5 py-3 text-right">Chi tiết</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {deliveries.map((delivery) => {
+                  const detail = delivery.mealOrderDetail;
+                  return (
+                    <tr
+                      key={delivery.id}
+                      className="transition-colors hover:bg-secondary/20"
+                      data-testid={`row-meal-delivery-${delivery.id}`}
+                    >
+                      <td className="px-5 py-5 font-mono text-sm font-bold text-foreground">
+                        {delivery.orderCode}
+                      </td>
+                      <td className="px-5 py-5">
+                        <p className="font-semibold">
+                          {detail?.deliveredAt ?? delivery.date}
+                        </p>
+                      </td>
+                      <td className="max-w-[220px] px-5 py-5 font-semibold">
+                        {detail?.customerName ?? delivery.partner}
+                      </td>
+                      <td className="px-5 py-5 font-mono text-xs">
+                        {detail?.taxCode ?? "Chưa cập nhật"}
+                      </td>
+                      <td className="max-w-[240px] px-5 py-5 text-muted-foreground">
+                        {detail?.address ?? delivery.destination}
+                      </td>
+                      <td className="px-5 py-5 font-bold">
+                        {delivery.quantity}
+                      </td>
+                      <td className="px-5 py-5 text-right">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedDelivery(delivery)}
+                          className="inline-flex items-center justify-center rounded-xl border border-primary/25 bg-primary/[.04] px-3 py-2 text-xs font-bold text-primary transition-colors hover:bg-primary/10"
+                          data-testid={`button-view-meal-delivery-${delivery.id}`}
+                        >
+                          Xem chi tiết
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="p-5">
+            <EmptyState
+              title="Chưa có lịch sử xuất suất ăn"
+              description="Các phiếu xuất đến cơ sở nhận hàng sẽ hiển thị tại đây."
+            />
+          </div>
+        )}
+      </section>
+      {selectedDelivery ? (
+        <MealOrderDetailDialog
+          delivery={selectedDelivery}
+          onClose={() => setSelectedDelivery(null)}
+        />
+      ) : null}
+    </>
   );
 }
 
@@ -1202,7 +1498,7 @@ export function FacilityProfileDetailPage() {
 
          {activeTab === "suppliers" ? profile.applicationType === "meal-provider" ? <SupplierSourcePanel profile={profile} /> : <DeliveryHistoryTable title={schoolSupplierLabel} description={isSelfCookSchool ? "Lịch sử nhập nguyên liệu từ các đơn vị được ghi nhận trong hồ sơ." : "Lịch sử tiếp nhận suất ăn từ đơn vị cung cấp hoặc đơn vị nấu tại bếp trường."} deliveries={filteredDeliveries.filter((delivery) => delivery.flow === "Nhập hàng")} deliveryKind={deliveryKind} onDeliveryKindChange={setDeliveryKind} emptyDescription={isSelfCookSchool ? "Chưa có lịch sử nhập nguyên liệu từ nhà cung cấp." : "Chưa có lịch sử tiếp nhận suất ăn từ đơn vị cung cấp."} /> : null}
         {activeTab === "menus" ? <MealMenuPanel profile={profile} /> : null}
-        {activeTab === "outgoing" ? <DeliveryHistoryTable title="Cơ sở nhận hàng" description="Lịch sử xuất thực phẩm hoặc suất ăn cho các đơn vị liên quan." deliveries={filteredDeliveries.filter((delivery) => delivery.flow === "Xuất hàng")} deliveryKind={deliveryKind} onDeliveryKindChange={setDeliveryKind} emptyDescription="Chưa có lịch sử xuất hàng cho cơ sở khác." /> : null}
+        {activeTab === "outgoing" ? profile.applicationType === "meal-provider" ? <MealDeliveryHistoryTable deliveries={filteredDeliveries.filter((delivery) => delivery.flow === "Xuất hàng")} /> : <DeliveryHistoryTable title="Cơ sở nhận hàng" description="Lịch sử xuất thực phẩm hoặc suất ăn cho các đơn vị liên quan." deliveries={filteredDeliveries.filter((delivery) => delivery.flow === "Xuất hàng")} deliveryKind={deliveryKind} onDeliveryKindChange={setDeliveryKind} emptyDescription="Chưa có lịch sử xuất hàng cho cơ sở khác." /> : null}
         {activeTab === "incidents" ? <IncidentHistoryTable incidents={incidents} /> : null}
         {previewDocument ? <DocumentPreviewDialog document={previewDocument} onClose={() => setPreviewDocument(null)} /> : null}
       </div>
