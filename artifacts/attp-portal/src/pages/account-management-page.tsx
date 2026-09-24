@@ -28,17 +28,19 @@ import {
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { AdminShell } from "@/components/portal-ui";
+import {
+  adminNavigationSections,
+  createDefaultAdminPermissions,
+  normalizeAdminPermissions,
+  type AdminAccountRole,
+  type AdminMenuPermissionId,
+  type AdminMenuPermissions,
+} from "@/lib/admin-permissions";
 
-type AccountRole = "director" | "specialist" | "ward";
+type AccountRole = AdminAccountRole;
 type AccountStatus = "Đang hoạt động" | "Đang khóa";
 type AccountView = "list" | "create" | "detail";
-type PermissionId =
-  | "fullAdmin"
-  | "evaluation"
-  | "schedule"
-  | "mealProviders"
-  | "schools"
-  | "reports";
+type PermissionId = AdminMenuPermissionId;
 
 type Permission = {
   id: PermissionId;
@@ -89,38 +91,14 @@ type AccountForm = Pick<
   | "permissions"
 >;
 
-const permissionCatalog: Permission[] = [
-  {
-    id: "fullAdmin",
-    label: "Toàn quyền quản trị hệ thống",
-    description: "Quản lý tài khoản, cấu hình và toàn bộ dữ liệu hệ thống",
-  },
-  {
-    id: "evaluation",
-    label: "Cập nhật kết quả đánh giá",
-    description: "Cập nhật kết quả thẩm định, đánh giá và trạng thái ATTP",
-  },
-  {
-    id: "schedule",
-    label: "Lập lịch kiểm tra",
-    description: "Tạo, phân công và theo dõi lịch kiểm tra",
-  },
-  {
-    id: "mealProviders",
-    label: "Tra cứu cơ sở cung cấp suất ăn toàn thành phố",
-    description: "Không giới hạn theo địa giới hành chính của đơn vị",
-  },
-  {
-    id: "schools",
-    label: "Tra cứu cơ sở giáo dục trong phạm vi quản lý",
-    description: "Chỉ hiển thị trường học thuộc phạm vi được phân quyền",
-  },
-  {
-    id: "reports",
-    label: "Báo cáo và xuất file",
-    description: "Xem báo cáo tổng hợp và xuất dữ liệu được phép",
-  },
-];
+const permissionCatalog: Permission[] = adminNavigationSections.flatMap(
+  (section) =>
+    section.items.map((item) => ({
+      id: item.permissionId,
+      label: item.label,
+      description: `Cho phép truy cập mục “${item.label}” trên thanh menu bên trái.`,
+    })),
+);
 
 const wardOptions = [
   "Tất cả xã/phường",
@@ -146,35 +124,8 @@ const provinceOptions = [
   "Khu vực Vũng Tàu cũ",
 ];
 
-function makePermissions(role: AccountRole): Record<PermissionId, boolean> {
-  if (role === "director") {
-    return {
-      fullAdmin: true,
-      evaluation: true,
-      schedule: true,
-      mealProviders: true,
-      schools: true,
-      reports: true,
-    };
-  }
-  if (role === "specialist") {
-    return {
-      fullAdmin: false,
-      evaluation: true,
-      schedule: true,
-      mealProviders: true,
-      schools: true,
-      reports: true,
-    };
-  }
-  return {
-    fullAdmin: false,
-    evaluation: false,
-    schedule: false,
-    mealProviders: true,
-    schools: true,
-    reports: true,
-  };
+function makePermissions(role: AccountRole): AdminMenuPermissions {
+  return createDefaultAdminPermissions(role);
 }
 
 const sampleSchools = [
@@ -751,7 +702,15 @@ export function AdminAccountsPage() {
   const [accounts, setAccounts] = useState<Account[]>(() => {
     try {
       const stored = localStorage.getItem("attp-admin-accounts");
-      return stored ? (JSON.parse(stored) as Account[]) : initialAccounts;
+      if (!stored) return initialAccounts;
+      const parsed = JSON.parse(stored) as Account[];
+      return parsed.map((account) => ({
+        ...account,
+        permissions: normalizeAdminPermissions(
+          account.permissions,
+          account.role,
+        ),
+      }));
     } catch {
       return initialAccounts;
     }
@@ -1093,43 +1052,66 @@ export function AdminAccountsPage() {
                   </span>
                 }
               >
-                <div className="divide-y divide-slate-100 p-2">
-                  {permissionCatalog.map((permission) => {
-                    const locked =
-                      form.role === "director" && permission.id === "fullAdmin";
-                    return (
-                      <label
-                        key={permission.id}
-                        className={`flex cursor-pointer gap-3 rounded-xl px-3 py-3 transition hover:bg-slate-50 ${
-                          locked ? "bg-orange-50/50" : ""
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={form.permissions[permission.id]}
-                          disabled={locked}
-                          onChange={(event) =>
-                            updateForm("permissions", {
-                              ...form.permissions,
-                              [permission.id]: event.target.checked,
-                            })
-                          }
-                          className="mt-0.5 h-4 w-4 accent-orange-500"
-                        />
-                        <span className="min-w-0">
-                          <span className="flex items-center gap-2 text-sm font-bold text-slate-700">
-                            {permission.label}
-                            {locked && (
-                              <Lock size={12} className="text-slate-400" />
-                            )}
-                          </span>
-                          <span className="mt-1 block text-xs leading-5 text-slate-500">
-                            {permission.description}
-                          </span>
-                        </span>
-                      </label>
-                    );
-                  })}
+                <div className="space-y-2 p-3">
+                  <p className="px-3 pb-1 text-xs leading-5 text-slate-500">
+                    Chọn các mục trên thanh menu bên trái mà tài khoản được
+                    phép truy cập.
+                  </p>
+                  {adminNavigationSections.map((section) => (
+                    <div
+                      key={section.title}
+                      className="rounded-xl border border-slate-100 bg-slate-50/60 p-2"
+                    >
+                      <h3 className="px-2 py-1 text-[10px] font-extrabold uppercase tracking-[0.12em] text-slate-500">
+                        {section.title}
+                      </h3>
+                      {section.items.map((item) => {
+                        const permission = permissionCatalog.find(
+                          (entry) => entry.id === item.permissionId,
+                        );
+                        const locked = form.role === "director";
+                        return (
+                          <label
+                            key={item.permissionId}
+                            className={`flex cursor-pointer gap-3 rounded-lg px-2 py-2.5 transition hover:bg-white ${
+                              locked ? "bg-orange-50/50" : ""
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={form.permissions[item.permissionId]}
+                              disabled={locked}
+                              onChange={(event) =>
+                                updateForm("permissions", {
+                                  ...form.permissions,
+                                  [item.permissionId]: event.target.checked,
+                                })
+                              }
+                              className="mt-0.5 h-4 w-4 accent-orange-500"
+                            />
+                            <span className="min-w-0">
+                              <span className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                                {item.label}
+                                {locked && (
+                                  <Lock
+                                    size={12}
+                                    aria-label="Quyền cố định của Ban Giám đốc"
+                                    className="text-slate-400"
+                                  />
+                                )}
+                              </span>
+                              <span className="mt-1 block text-xs leading-5 text-slate-500">
+                                {permission?.description}
+                              </span>
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  ))}
+                  <p className="px-3 pt-1 text-[11px] leading-5 text-slate-400">
+                    Quyền thay đổi sẽ có hiệu lực khi tài khoản đăng nhập lại.
+                  </p>
                 </div>
               </SectionCard>
             </div>

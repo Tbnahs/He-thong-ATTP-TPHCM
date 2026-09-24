@@ -859,9 +859,18 @@ function InspectionMinuteForm({
     (total, item) => total + Math.min(answers[item.id]?.score ?? 0, item.weight),
     0,
   );
-  const score =
+  const calculatedScore =
     totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
-  const result = classifyScore(score);
+  const score =
+    readOnly && initialMinute ? initialMinute.score : calculatedScore;
+  const [resultOverride, setResultOverride] = useState<InspectionResult | null>(
+    () =>
+      initialMinute &&
+      initialMinute.result !== classifyScore(initialMinute.score)
+        ? initialMinute.result
+        : null,
+  );
+  const result = resultOverride ?? classifyScore(score);
   const updateAnswer = (
     id: string,
     patch: Partial<{ detail: string; score: number; evidence: string[] }>,
@@ -1107,6 +1116,35 @@ function InspectionMinuteForm({
           <p className="font-mono text-3xl font-extrabold">{score}/100</p>
         </div>
       </div>
+      <div className="mt-4 text-sm font-semibold">
+        <label htmlFor="inspection-minute-status">Trạng thái biên bản</label>
+        <select
+          id="inspection-minute-status"
+          value={result}
+          onChange={(event) =>
+            setResultOverride(event.target.value as InspectionResult)
+          }
+          className="focus-ring mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 font-normal"
+          data-testid="select-inspection-minute-result"
+        >
+          <option value="approved">Pass</option>
+          <option value="warning">Cảnh cáo / tạm dừng</option>
+          <option value="stopped">Đình chỉ / dừng hoạt động</option>
+        </select>
+        <span className="mt-1 block text-xs font-normal text-muted-foreground">
+          Có thể điều chỉnh trạng thái sau khi tính điểm; điểm đánh giá được giữ nguyên.
+        </span>
+        {initialMinute && result !== initialMinute.result && (
+          <Button
+            variant="outline"
+            onClick={() => onSave({ ...initialMinute, result })}
+            className="mt-3 rounded-xl"
+            data-testid="button-save-inspection-minute-status"
+          >
+            <Save size={16} /> Lưu trạng thái biên bản
+          </Button>
+        )}
+      </div>
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <label className="block text-sm font-semibold">
           Ghi nhận / kiến nghị khắc phục
@@ -1159,7 +1197,10 @@ function InspectionMinuteForm({
               signature,
             });
           }}
-          disabled={!facility.trim() || !team.trim()}
+          disabled={
+            !facility.trim() ||
+            !team.trim()
+          }
           className="rounded-xl"
         >
           <Save size={16} />{" "}
@@ -1316,7 +1357,11 @@ export function InspectionMinutesPage() {
           onSave={(updatedMinute) => {
             setMinutes((items) =>
               items.map((item) =>
-                item.id === updatedMinute.id ? updatedMinute : item,
+                item.id === updatedMinute.id
+                  ? selected.result === "approved"
+                    ? { ...item, result: updatedMinute.result }
+                    : updatedMinute
+                  : item,
               ),
             );
             setSelected(null);

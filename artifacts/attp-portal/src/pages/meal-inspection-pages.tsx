@@ -30,9 +30,12 @@ import cameraViewPath from "../../../../attached_assets/Chi_tiết_kiểm_thực
 
 type CameraState = "online" | "offline";
 type ScoreStatus = "Đạt" | "Cần rà soát" | "Chưa cập nhật";
+type InspectionFacilityType = "Cơ sở cung cấp suất ăn" | "Cơ sở giáo dục";
+type InspectionDateMode = "single" | "range";
 
 type SchoolInspection = {
   id: string;
+  facilityType?: InspectionFacilityType;
   initials: string;
   name: string;
   shortName: string;
@@ -68,6 +71,7 @@ const seededSchools: SchoolInspection[] = [
     },
     camera: "online",
     cameraCount: 3,
+    facilityType: "Cơ sở giáo dục",
   },
   {
     id: "nguyen-hue",
@@ -89,6 +93,7 @@ const seededSchools: SchoolInspection[] = [
     },
     camera: "online",
     cameraCount: 4,
+    facilityType: "Cơ sở giáo dục",
   },
   {
     id: "sao-mai",
@@ -110,6 +115,7 @@ const seededSchools: SchoolInspection[] = [
     },
     camera: "offline",
     cameraCount: 2,
+    facilityType: "Cơ sở giáo dục",
   },
   {
     id: "ly-thanh-tong",
@@ -131,6 +137,7 @@ const seededSchools: SchoolInspection[] = [
     },
     camera: "online",
     cameraCount: 3,
+    facilityType: "Cơ sở giáo dục",
   },
   {
     id: "le-loi",
@@ -152,6 +159,7 @@ const seededSchools: SchoolInspection[] = [
     },
     camera: "online",
     cameraCount: 5,
+    facilityType: "Cơ sở giáo dục",
   },
   {
     id: "minh-khai",
@@ -173,6 +181,39 @@ const seededSchools: SchoolInspection[] = [
     },
     camera: "online",
     cameraCount: 2,
+    facilityType: "Cơ sở giáo dục",
+  },
+  {
+    id: "minh-tam",
+    initials: "MT",
+    name: "Công ty Suất ăn Minh Tâm",
+    shortName: "Cơ sở cung cấp suất ăn",
+    ward: "Phường Tân Bình",
+    address: "Khu công nghiệp Tân Bình",
+    date: "09/03/2026",
+    inspector: "Trần Minh Hoàng",
+    lastUpdated: "10:20",
+    scores: { m1: 50, m2: 20, m3: 20, m4: 100, m5: 100 },
+    statuses: { m1: "Đạt", m2: "Đạt", m3: "Đạt", m4: "Đạt", m5: "Đạt" },
+    camera: "online",
+    cameraCount: 2,
+    facilityType: "Cơ sở cung cấp suất ăn",
+  },
+  {
+    id: "bep-an-an-phu",
+    initials: "AP",
+    name: "Bếp ăn tập thể An Phú",
+    shortName: "Cơ sở cung cấp suất ăn",
+    ward: "Phường Tân Phú",
+    address: "12 Nguyễn Hữu Thọ, Quận 7",
+    date: "08/03/2026",
+    inspector: "Lê Thị Hạnh",
+    lastUpdated: "09:20",
+    scores: { m1: 50, m2: 20, m3: 15, m4: 100, m5: 100 },
+    statuses: { m1: "Đạt", m2: "Đạt", m3: "Cần rà soát", m4: "Đạt", m5: "Đạt" },
+    camera: "offline",
+    cameraCount: 2,
+    facilityType: "Cơ sở cung cấp suất ăn",
   },
 ];
 
@@ -367,6 +408,11 @@ function downloadCsv(filename: string, rows: string[][]) {
   URL.revokeObjectURL(url);
 }
 
+function inspectionDateToIso(value: string) {
+  const [day, month, year] = value.split("/");
+  return year && month && day ? `${year}-${month}-${day}` : "";
+}
+
 function PageFrame({ children }: { children: React.ReactNode }) {
   return (
     <AdminShell>
@@ -444,24 +490,51 @@ function DashboardHeader({
 }
 
 export function ThreeStepInspectionDashboard() {
-  const [schools] = useState(() =>
-    readStorage<SchoolInspection[]>("attp-three-step-records-v1", seededSchools),
-  );
+  const [schools] = useState(() => {
+    const stored = readStorage<SchoolInspection[]>(
+      "attp-three-step-records-v1",
+      seededSchools,
+    );
+    const storedIds = new Set(stored.map((item) => item.id));
+    return [
+      ...stored,
+      ...seededSchools.filter((item) => !storedIds.has(item.id)),
+    ];
+  });
+  const [facilityType, setFacilityType] =
+    useState<InspectionFacilityType>("Cơ sở giáo dục");
   const [ward, setWard] = useState("Tất cả phường");
-  const [school, setSchool] = useState("Tất cả trường");
-  const [date, setDate] = useState("09/03/2026");
+  const [school, setSchool] = useState("Tất cả cơ sở");
+  const [dateMode, setDateMode] = useState<InspectionDateMode>("single");
+  const [date, setDate] = useState("2026-03-09");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 4;
-  const wards = [...new Set(schools.map((item) => item.ward))];
+  const facilitiesForType = schools.filter(
+    (item) =>
+      (item.facilityType ?? "Cơ sở giáo dục") === facilityType,
+  );
+  const wards = [...new Set(facilitiesForType.map((item) => item.ward))];
   const filtered = useMemo(
     () =>
       schools.filter(
-        (item) =>
+        (item) => {
+          const itemDate = inspectionDateToIso(item.date);
+          const matchesDate =
+            dateMode === "single"
+              ? !date || itemDate === date
+              : (!dateFrom || itemDate >= dateFrom) &&
+                (!dateTo || itemDate <= dateTo);
+          return (
+          (item.facilityType ?? "Cơ sở giáo dục") === facilityType &&
           (ward === "Tất cả phường" || item.ward === ward) &&
-          (school === "Tất cả trường" || item.id === school) &&
-          (!date || item.date === date),
+          (school === "Tất cả cơ sở" || item.id === school) &&
+          matchesDate
+          );
+        },
       ),
-    [date, school, schools, ward],
+    [date, dateFrom, dateMode, dateTo, facilityType, school, schools, ward],
   );
   const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const visible = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -487,7 +560,7 @@ export function ThreeStepInspectionDashboard() {
       <DashboardHeader
         onExport={() =>
           downloadCsv("nhat-ky-kiem-thuc-3-buoc.csv", [
-            ["Trường học", "Phường", "Ngày thực hiện", "Người kiểm tra", "Mẫu 1", "Mẫu 2", "Mẫu 3", "Camera"],
+            ["Cơ sở", "Phường", "Ngày thực hiện", "Người kiểm tra", "Mẫu 1", "Mẫu 2", "Mẫu 3", "Camera"],
             ...exportRows,
           ])
         }
@@ -496,8 +569,8 @@ export function ThreeStepInspectionDashboard() {
         <div className="grid gap-3 sm:grid-cols-3">
           {[
             {
-              label: "Tổng số trường",
-              value: "15",
+              label: "Tổng số cơ sở",
+              value: `${schools.length}`,
               note: "Trong địa bàn quản lý",
               icon: Building2,
               cls: "bg-blue-50 text-blue-600",
@@ -540,7 +613,24 @@ export function ThreeStepInspectionDashboard() {
           <div className="mb-3 flex items-center gap-2 text-xs font-extrabold text-slate-700">
             <SlidersHorizontal size={15} className="text-orange-500" /> Bộ lọc dữ liệu
           </div>
-          <div className="grid gap-3 md:grid-cols-[1fr_1fr_1fr_auto]">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[.9fr_1.1fr_1.1fr_1.5fr_auto]">
+            <label className="block">
+              <span className="mb-1.5 block text-[10px] font-extrabold uppercase tracking-wide text-slate-400">Loại cơ sở</span>
+              <select
+                value={facilityType}
+                onChange={(event) => {
+                  setFacilityType(event.target.value as InspectionFacilityType);
+                  setSchool("Tất cả cơ sở");
+                  setWard("Tất cả phường");
+                  setPage(1);
+                }}
+                className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+                data-testid="select-filter-facility-type"
+              >
+                <option value="Cơ sở cung cấp suất ăn">Cơ sở cung cấp suất ăn</option>
+                <option value="Cơ sở giáo dục">Cơ sở giáo dục</option>
+              </select>
+            </label>
             <label className="block">
               <span className="mb-1.5 block text-[10px] font-extrabold uppercase tracking-wide text-slate-400">
                 Xã / phường
@@ -559,7 +649,7 @@ export function ThreeStepInspectionDashboard() {
               </select>
             </label>
             <label className="block">
-              <span className="mb-1.5 block text-[10px] font-extrabold uppercase tracking-wide text-slate-400">Trường</span>
+              <span className="mb-1.5 block text-[10px] font-extrabold uppercase tracking-wide text-slate-400">Tên cơ sở</span>
               <select
                 value={school}
                 onChange={(event) => {
@@ -567,26 +657,68 @@ export function ThreeStepInspectionDashboard() {
                   setPage(1);
                 }}
                 className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
-                data-testid="select-filter-school"
+                data-testid="select-filter-facility"
               >
-                <option value="Tất cả trường">Tất cả trường</option>
-                {schools.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                <option value="Tất cả cơ sở">Tất cả cơ sở</option>
+                {facilitiesForType.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
               </select>
             </label>
             <label className="block">
               <span className="mb-1.5 block text-[10px] font-extrabold uppercase tracking-wide text-slate-400">Ngày thực hiện</span>
-              <div className="relative">
-                <CalendarDays size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  value={date}
+              <div className="space-y-2">
+                <select
+                  value={dateMode}
                   onChange={(event) => {
-                    setDate(event.target.value);
+                    setDateMode(event.target.value as InspectionDateMode);
                     setPage(1);
                   }}
-                  className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-xs font-semibold text-slate-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
-                  data-testid="input-filter-date"
-                />
+                  className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+                  aria-label="Kiểu lọc ngày thực hiện"
+                  data-testid="select-filter-date-mode"
+                >
+                  <option value="single">Ngày cố định</option>
+                  <option value="range">Khoảng thời gian</option>
+                </select>
+                {dateMode === "single" ? (
+                  <div className="relative">
+                    <CalendarDays size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="date"
+                      value={date}
+                      onChange={(event) => {
+                        setDate(event.target.value);
+                        setPage(1);
+                      }}
+                      className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-xs font-semibold text-slate-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+                      data-testid="input-filter-date"
+                    />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(event) => {
+                        setDateFrom(event.target.value);
+                        setPage(1);
+                      }}
+                      aria-label="Từ ngày thực hiện"
+                      className="h-10 min-w-0 w-full rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs font-semibold text-slate-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+                      data-testid="input-filter-date-from"
+                    />
+                    <input
+                      type="date"
+                      value={dateTo}
+                      onChange={(event) => {
+                        setDateTo(event.target.value);
+                        setPage(1);
+                      }}
+                      aria-label="Đến ngày thực hiện"
+                      className="h-10 min-w-0 w-full rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs font-semibold text-slate-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+                      data-testid="input-filter-date-to"
+                    />
+                  </div>
+                )}
               </div>
             </label>
             <button
@@ -615,7 +747,7 @@ export function ThreeStepInspectionDashboard() {
               <table className="w-full min-w-[980px] text-left">
                 <thead className="bg-slate-50 text-[10px] font-extrabold uppercase tracking-wide text-slate-400">
                   <tr>
-                    <th className="px-5 py-3">Trường học</th>
+                    <th className="px-5 py-3">Cơ sở</th>
                     <th className="px-3 py-3">Ngày thực hiện</th>
                     <th className="px-3 py-3">Người kiểm tra</th>
                     <th className="px-3 py-3">Kết quả 5 mẫu</th>
@@ -673,11 +805,11 @@ export function ThreeStepInspectionDashboard() {
             <div className="px-6 py-16 text-center">
               <Filter size={28} className="mx-auto text-slate-300" />
               <p className="mt-3 text-sm font-extrabold text-slate-700">Không có nhật ký phù hợp</p>
-              <p className="mt-1 text-xs text-slate-400">Thử điều chỉnh phường, trường hoặc ngày thực hiện.</p>
+              <p className="mt-1 text-xs text-slate-400">Thử điều chỉnh loại cơ sở, địa bàn, tên cơ sở hoặc ngày thực hiện.</p>
             </div>
           )}
           <div className="flex flex-col gap-3 border-t border-slate-100 px-5 py-3 text-[11px] font-medium text-slate-400 sm:flex-row sm:items-center sm:justify-between">
-            <span>Hiển thị {filtered.length ? (page - 1) * pageSize + 1 : 0}–{Math.min(page * pageSize, filtered.length)} trong {filtered.length} trường</span>
+            <span>Hiển thị {filtered.length ? (page - 1) * pageSize + 1 : 0}–{Math.min(page * pageSize, filtered.length)} trong {filtered.length} cơ sở</span>
             <div className="flex items-center gap-1">
               <button type="button" onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={page === 1} className="rounded-md border border-slate-200 p-1.5 text-slate-500 disabled:opacity-40" data-testid="button-pagination-previous"><ChevronLeft size={14} /></button>
               {Array.from({ length: pages }, (_, index) => index + 1).map((item) => (

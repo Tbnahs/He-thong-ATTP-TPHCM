@@ -21,8 +21,15 @@ import {
   TriangleAlert,
   Utensils,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import emblemPath from "../../../../.conversation/attached_assets/Emblem_of_Vietnam.svg_1788926527100.webp";
+import {
+  ADMIN_SESSION_PERMISSIONS_KEY,
+  adminNavigationSections,
+  getSessionAdminPermissions,
+  type AdminMenuPermissionId,
+} from "@/lib/admin-permissions";
 
 export function BrandMark({ compact = false }: { compact?: boolean }) {
   return (
@@ -472,47 +479,42 @@ export function PublicShell({ children }: { children: ReactNode }) {
   );
 }
 
+const adminMenuIcons: Record<AdminMenuPermissionId, LucideIcon> = {
+  schedule: CalendarDays,
+  minutes: ClipboardList,
+  criteria: SlidersHorizontal,
+  incidents: TriangleAlert,
+  dashboard: LayoutDashboard,
+  facilities: Building2,
+  facilityProfiles: FileSearch,
+  threeStep: ClipboardCheck,
+  menus: Utensils,
+  recipes: FileSearch,
+  accounts: ShieldCheck,
+  reports: BarChart3,
+};
+
 export function AdminShell({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const [, navigate] = useLocation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const overviewItems = [
-    ["/admin", "Dashboard giám sát", LayoutDashboard],
-    ["/admin/facilities", "Duyệt cơ sở", Building2],
-    ["/admin/facility-profiles", "Hồ sơ cơ sở", FileSearch],
-  ];
-  const mealItems = [
-    ["/admin/meals/three-step", "Kiểm thực 3 bước", ClipboardCheck],
-    ["/admin/meals/menus", "Thực đơn và suất ăn", Utensils],
-    ["/admin/meals/recipes", "Món ăn và quy trình chế biến", FileSearch],
-  ];
-  const systemItems = [
-    ["/admin/accounts", "Quản lý tài khoản", ShieldCheck],
-    ["/admin/reports", "Báo cáo thống kê", BarChart3],
-  ];
-  const inspectionItems = [
-    ["/admin/inspections/schedule", "Lịch kiểm tra", CalendarDays],
-    ["/admin/inspections/minutes", "Biên bản kiểm tra", ClipboardList],
-    [
-      "/admin/inspections/criteria",
-      "Cấu hình tiêu chí đánh giá",
-      SlidersHorizontal,
-    ],
-    [
-      "/admin/inspections/incidents",
-      "Quản lý và xử lý sự cố ATTP",
-      TriangleAlert,
-    ],
-  ];
-  const adminNavSections = [
-    { title: "Thanh tra, kiểm tra", items: inspectionItems },
-    { title: "Tổng quan", items: overviewItems },
-    { title: "Quản lý bữa ăn", items: mealItems },
-    { title: "Hệ thống", items: systemItems },
-  ];
+  const menuPermissions = getSessionAdminPermissions();
+  const visibleAdminNavSections = adminNavigationSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter(
+        (item) => menuPermissions[item.permissionId],
+      ),
+    }))
+    .filter((section) => section.items.length > 0);
+  const sessionName =
+    sessionStorage.getItem("attp-session-name") || "Trần Anh Tuấn";
   const logout = () => {
     sessionStorage.removeItem("attp-reviewer-session");
     sessionStorage.removeItem("attp-session-role");
+    sessionStorage.removeItem("attp-session-username");
+    sessionStorage.removeItem("attp-session-name");
+    sessionStorage.removeItem(ADMIN_SESSION_PERMISSIONS_KEY);
     navigate("/admin/login");
   };
   const isActive = (href: string) =>
@@ -566,83 +568,54 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </Link>
         </div>
         <nav
-          className="flex flex-1 flex-col gap-1.5 overflow-y-auto p-4"
+          className="flex flex-1 flex-col overflow-y-auto p-4"
           aria-label="Điều hướng quản trị"
         >
-          <div className="order-2 px-3.5 pb-1 text-[10px] font-extrabold uppercase tracking-[.16em] text-[#f4c95d]">
-            Tổng quan
-          </div>
-          {overviewItems.map(([href, label, Icon]) => (
-            <Link
-              key={href as string}
-              href={href as string}
-              className={`order-2 focus-ring group flex items-center gap-3 rounded-2xl px-3.5 py-3 text-sm font-semibold transition-all ${isActive(href as string) ? "bg-[#f4c95d] text-[#123d36] shadow-lg shadow-black/10" : "text-white/65 hover:bg-white/[.08] hover:text-white"}`}
-              data-testid={`link-admin-${label}`}
+          {visibleAdminNavSections.map((section, sectionIndex) => (
+            <div
+              key={section.title}
+              className={sectionIndex === 0 ? "" : "mt-5"}
             >
-              <span
-                className={`flex h-8 w-8 items-center justify-center rounded-xl transition-colors ${isActive(href as string) ? "bg-[#123d36]/10" : "bg-white/[.06] group-hover:bg-white/10"}`}
-              >
-                <Icon size={17} />
-              </span>
-              <span>{label as string}</span>
-            </Link>
-          ))}
-          <div className="order-3 px-3.5 pb-1 pt-5 text-[10px] font-extrabold uppercase tracking-[.16em] text-[#f4c95d]">
-            Quản lý bữa ăn
-          </div>
-          {mealItems.map(([href, label, Icon]) => (
-            <Link
-              key={href as string}
-              href={href as string}
-              className={`order-3 focus-ring group flex items-start gap-3 rounded-2xl px-3.5 py-2.5 text-[13px] font-semibold transition-all ${isActive(href as string) ? "bg-[#f4c95d] text-[#123d36] shadow-lg shadow-black/10" : "text-white/65 hover:bg-white/[.08] hover:text-white"}`}
-              data-testid={`link-admin-${label}`}
-            >
-              <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${isActive(href as string) ? "bg-[#123d36]/10" : "bg-white/[.06] group-hover:bg-white/10"}`}>
-                <Icon size={15} />
-              </span>
-              <span className="leading-5">{label as string}</span>
-            </Link>
-          ))}
-          <div className="order-4 px-3.5 pb-1 pt-5 text-[10px] font-extrabold uppercase tracking-[.16em] text-[#f4c95d]">
-            Hệ thống
-          </div>
-          {systemItems.map(([href, label, Icon]) => (
-            <Link
-              key={href as string}
-              href={href as string}
-              className={`order-4 focus-ring group flex items-center gap-3 rounded-2xl px-3.5 py-3 text-sm font-semibold transition-all ${isActive(href as string) ? "bg-[#f4c95d] text-[#123d36] shadow-lg shadow-black/10" : "text-white/65 hover:bg-white/[.08] hover:text-white"}`}
-              data-testid={`link-admin-${label}`}
-            >
-              <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${isActive(href as string) ? "bg-[#123d36]/10" : "bg-white/[.06] group-hover:bg-white/10"}`}>
-                <Icon size={17} />
-              </span>
-              <span>{label as string}</span>
-            </Link>
-          ))}
-          <div className="order-1 px-3.5 pb-1 pt-0 text-[10px] font-extrabold uppercase tracking-[.16em] text-[#f4c95d]">
-            Thanh tra, kiểm tra
-          </div>
-          {inspectionItems.map(([href, label, Icon]) => (
-            <Link
-              key={href as string}
-              href={href as string}
-              className={`order-1 focus-ring group flex items-start gap-3 rounded-2xl px-3.5 py-2.5 text-[13px] font-semibold transition-all ${isActive(href as string) ? "bg-[#f4c95d] text-[#123d36] shadow-lg shadow-black/10" : "text-white/65 hover:bg-white/[.08] hover:text-white"}`}
-              data-testid={`link-admin-${label}`}
-            >
-              <span
-                className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors ${isActive(href as string) ? "bg-[#123d36]/10" : "bg-white/[.06] group-hover:bg-white/10"}`}
-              >
-                <Icon size={15} />
-              </span>
-              <span className="leading-5">{label as string}</span>
-            </Link>
+              <p className="px-3.5 pb-1 text-[10px] font-extrabold uppercase tracking-[.16em] text-[#f4c95d]">
+                {section.title}
+              </p>
+              <div className="flex flex-col gap-1.5">
+                {section.items.map((item) => {
+                  const Icon = adminMenuIcons[item.permissionId];
+                  const active = isActive(item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`focus-ring group flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-[13px] font-semibold transition-all ${
+                        active
+                          ? "bg-[#f4c95d] text-[#123d36] shadow-lg shadow-black/10"
+                          : "text-white/65 hover:bg-white/[.08] hover:text-white"
+                      }`}
+                      data-testid={`link-admin-${item.label}`}
+                    >
+                      <span
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-colors ${
+                          active
+                            ? "bg-[#123d36]/10"
+                            : "bg-white/[.06] group-hover:bg-white/10"
+                        }`}
+                      >
+                        <Icon size={16} />
+                      </span>
+                      <span className="leading-5">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           ))}
         </nav>
         <div className="border-t border-white/10 p-5 text-xs text-white/45">
           Phiên làm việc cán bộ
           <br />
           <span className="mt-1 inline-block font-semibold text-white/75">
-            Phòng Quản lý cơ sở
+            {sessionName}
           </span>
         </div>
       </aside>
@@ -707,7 +680,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             aria-label="Điều hướng cán bộ trên điện thoại"
           >
             <div className="max-h-[calc(100dvh-5rem)] overflow-y-auto">
-              {adminNavSections.map((section) => (
+              {visibleAdminNavSections.map((section) => (
                 <div
                   key={section.title}
                   className="border-b border-slate-100 py-2 last:border-b-0"
@@ -716,24 +689,27 @@ export function AdminShell({ children }: { children: ReactNode }) {
                     {section.title}
                   </p>
                   <div className="grid gap-1 sm:grid-cols-2">
-                    {section.items.map(([href, label, Icon]) => (
-                      <Link
-                        key={href as string}
-                        href={href as string}
-                        onClick={closeMobileNav}
-                        className={`focus-ring flex min-w-0 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold ${
-                          isActive(href as string)
-                            ? "bg-primary text-primary-foreground"
-                            : "text-slate-600 hover:bg-slate-50 hover:text-primary"
-                        }`}
-                        data-testid={`link-mobile-admin-${label}`}
-                      >
-                        <Icon size={16} className="shrink-0" />
-                        <span className="min-w-0 break-words">
-                          {label as string}
-                        </span>
-                      </Link>
-                    ))}
+                    {section.items.map((item) => {
+                      const Icon = adminMenuIcons[item.permissionId];
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={closeMobileNav}
+                          className={`focus-ring flex min-w-0 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold ${
+                            isActive(item.href)
+                              ? "bg-primary text-primary-foreground"
+                              : "text-slate-600 hover:bg-slate-50 hover:text-primary"
+                          }`}
+                          data-testid={`link-mobile-admin-${item.label}`}
+                        >
+                          <Icon size={16} className="shrink-0" />
+                          <span className="min-w-0 break-words">
+                            {item.label}
+                          </span>
+                        </Link>
+                      );
+                    })}
                   </div>
                 </div>
               ))}

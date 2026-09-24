@@ -53,6 +53,12 @@ import {
   XCircle,
   ZoomIn,
 } from "lucide-react";
+import {
+  ADMIN_SESSION_PERMISSIONS_KEY,
+  createDefaultAdminPermissions,
+  findManagedAdminAccount,
+  getFirstAllowedAdminPath,
+} from "@/lib/admin-permissions";
 import { Button } from "@/components/ui/button";
 import NotFound from "@/pages/not-found";
 import {
@@ -1569,23 +1575,6 @@ export function PublicLookupDetailPage() {
             </PublicDetailSection>
           ) : null}
 
-          {registration.attachments.length ? (
-            <PublicDetailSection title="Tài liệu công khai">
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                {registration.attachments.map((file) => (
-                  <div
-                    key={`${file.fieldKey ?? "attachment"}-${file.name}`}
-                    className="flex items-center gap-3 rounded-2xl border border-border bg-background p-4 text-sm"
-                  >
-                    <FileText size={18} className="shrink-0 text-primary" />
-                    <span className="min-w-0 truncate font-semibold" title={file.name}>
-                      {file.name}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </PublicDetailSection>
-          ) : null}
         </div>
       </main>
     </PublicShell>
@@ -2171,8 +2160,13 @@ export function AdminLoginPage() {
       setNotice("Vui lòng nhập tên đăng nhập và mật khẩu.");
       return;
     }
-    const role = inferAccountRole(username);
     const normalizedUsername = username.trim().toLowerCase();
+    const managedAdminAccount = findManagedAdminAccount(normalizedUsername);
+    if (managedAdminAccount?.status === "Đang khóa") {
+      setNotice("Tài khoản đang bị khóa. Vui lòng liên hệ quản trị viên.");
+      return;
+    }
+    const role = managedAdminAccount ? "admin" : inferAccountRole(username);
     const facilityAccount = readFacilityAccounts().find(
       (account) =>
         account.email.toLowerCase() === normalizedUsername ||
@@ -2186,17 +2180,38 @@ export function AdminLoginPage() {
       setNotice("Email/tài khoản hoặc mật khẩu cơ sở chưa đúng.");
       return;
     }
+
+    const adminPermissions =
+      managedAdminAccount?.permissions ??
+      createDefaultAdminPermissions("director");
+    const adminLandingPath = getFirstAllowedAdminPath(adminPermissions);
+    if (role === "admin" && adminLandingPath === "/admin/login") {
+      setNotice("Tài khoản chưa được cấp quyền truy cập chức năng nào.");
+      return;
+    }
+
     sessionStorage.setItem("attp-session-role", role);
+    sessionStorage.setItem("attp-session-username", normalizedUsername);
     if (role === "admin") {
       sessionStorage.setItem("attp-reviewer-session", "active");
-      navigate("/admin");
+      sessionStorage.setItem(
+        ADMIN_SESSION_PERMISSIONS_KEY,
+        JSON.stringify(adminPermissions),
+      );
+      sessionStorage.setItem(
+        "attp-session-name",
+        managedAdminAccount?.displayName || "Trần Anh Tuấn",
+      );
+      navigate(adminLandingPath);
     } else {
       sessionStorage.removeItem("attp-reviewer-session");
+      sessionStorage.removeItem(ADMIN_SESSION_PERMISSIONS_KEY);
+      sessionStorage.removeItem("attp-session-name");
       sessionStorage.setItem(
         "attp-session-username",
         facilityAccount?.username || username.trim(),
       );
-       navigate("/facility/incidents");
+      navigate("/facility/incidents");
     }
   };
 

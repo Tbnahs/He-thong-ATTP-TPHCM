@@ -45,6 +45,11 @@ import {
   FacilityProfileDetailPage,
   FacilityProfilesPage,
 } from "@/pages/facility-profile-pages";
+import {
+  canAccessAdminPath,
+  getFirstAllowedAdminPath,
+  getSessionAdminPermissions,
+} from "@/lib/admin-permissions";
 import { Route, Switch, useLocation, Router as WouterRouter } from "wouter";
 
 function Router() {
@@ -177,20 +182,26 @@ function Router() {
 }
 
 function AdminGuard({ children }: { children: ReactNode }) {
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const [authenticated, setAuthenticated] = useState(
     () => sessionStorage.getItem("attp-session-role") === "admin",
   );
+  const [permissions] = useState(() => getSessionAdminPermissions());
+  const canAccessCurrentRoute =
+    authenticated && canAccessAdminPath(location, permissions);
 
   useEffect(() => {
     const syncSession = () =>
       setAuthenticated(sessionStorage.getItem("attp-session-role") === "admin");
     window.addEventListener("storage", syncSession);
     if (!authenticated) navigate("/admin/login", { replace: true });
+    else if (!canAccessCurrentRoute) {
+      navigate(getFirstAllowedAdminPath(permissions), { replace: true });
+    }
     return () => window.removeEventListener("storage", syncSession);
-  }, [authenticated, navigate]);
+  }, [authenticated, canAccessCurrentRoute, location, navigate, permissions]);
 
-  return authenticated ? <>{children}</> : null;
+  return canAccessCurrentRoute ? <>{children}</> : null;
 }
 
 function FacilityGuard({ children }: { children: ReactNode }) {

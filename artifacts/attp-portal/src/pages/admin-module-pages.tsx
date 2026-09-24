@@ -2847,19 +2847,17 @@ export function AdminFacilitiesPage() {
     setNotice("Đã duyệt hồ sơ và công bố cơ sở trên cổng thông tin.");
   };
 
-  const requestSupplementForSelectedApplication = () => {
-    if (!selectedApplication || !reviewNote.trim()) {
-      setNotice("Vui lòng nhập nội dung yêu cầu bổ sung.");
-      return;
-    }
-    selectedApplication.status = "needs-more-info";
-    selectedApplication.reviewNote = reviewNote.trim();
+  const cancelSelectedApplication = () => {
+    if (!selectedApplication) return;
+    selectedApplication.status = "rejected";
+    selectedApplication.reviewNote = null;
     selectedApplication.published = false;
-    setReviewConclusion("needs-more-info");
+    setReviewConclusion("rejected");
     setSelectedRow((current) =>
-      current ? { ...current, status: "needs-more-info" } : current,
+      current ? { ...current, status: "stopped" } : current,
     );
-    setNotice("Đã lưu yêu cầu bổ sung cho hồ sơ.");
+    setReviewNote("");
+    setNotice("Đã hủy bỏ hồ sơ.");
   };
 
   const exportFacilities = () => {
@@ -3579,29 +3577,16 @@ export function AdminFacilitiesPage() {
                     )}
                   />
                 </div>
-                {selectedApplication.status !== "approved" && (
+                {!["approved", "rejected"].includes(selectedApplication.status) && (
                   <>
-                    <label className="mt-5 block">
-                      <span className="mb-2 block text-sm font-bold">
-                        Nội dung yêu cầu bổ sung
-                      </span>
-                      <textarea
-                        value={reviewNote}
-                        onChange={(event) => setReviewNote(event.target.value)}
-                        placeholder="Nhập giấy tờ hoặc thông tin cơ sở cần bổ sung..."
-                        className="focus-ring min-h-28 w-full rounded-xl border border-input bg-card p-3 text-sm"
-                        data-testid="textarea-facility-review-note"
-                      />
-                    </label>
                     <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
                       <button
                         type="button"
-                        onClick={requestSupplementForSelectedApplication}
-                        disabled={!reviewNote.trim()}
-                        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 text-sm font-bold text-amber-800 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
-                        data-testid={`button-request-supplement-${selectedApplication.id}`}
+                        onClick={cancelSelectedApplication}
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-rose-300 bg-rose-50 px-4 text-sm font-bold text-rose-800 hover:bg-rose-100"
+                        data-testid={`button-cancel-facility-${selectedApplication.id}`}
                       >
-                        <Info size={16} /> Yêu cầu bổ sung
+                        <X size={16} /> Hủy bỏ
                       </button>
                       <button
                         type="button"
@@ -3617,6 +3602,11 @@ export function AdminFacilitiesPage() {
                 {selectedApplication.status === "approved" && (
                   <p className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
                     Hồ sơ đã được duyệt và đang hiển thị trên cổng thông tin công khai.
+                  </p>
+                )}
+                {selectedApplication.status === "rejected" && (
+                  <p className="mt-4 rounded-xl bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800">
+                    Hồ sơ đã được hủy bỏ.
                   </p>
                 )}
               </section>
@@ -3637,7 +3627,6 @@ export function AdminFacilitiesPage() {
 export function AdminFacilityDetailPage() {
   const { facilityId = "" } = useParams<{ facilityId: string }>();
   const [, navigate] = useLocation();
-  const [reviewNote, setReviewNote] = useState("");
   const [notice, setNotice] = useState("");
   const [detailStatus, setDetailStatus] =
     useState<FacilityManagementRow["status"]>("approved");
@@ -3673,13 +3662,12 @@ export function AdminFacilityDetailPage() {
   }, [facilityId]);
 
   useEffect(() => {
-    setReviewNote(application?.reviewNote ?? "");
     setDetailStatus(
       application?.status === "rejected"
         ? "stopped"
         : application?.status ?? row?.status ?? "approved",
     );
-  }, [application?.id, application?.reviewNote, application?.status, row?.status]);
+  }, [application?.id, application?.status, row?.status]);
 
   if (!row) {
     return (
@@ -3768,18 +3756,14 @@ export function AdminFacilityDetailPage() {
     setDetailStatus("approved");
     setNotice("Đã duyệt hồ sơ và cập nhật trạng thái cơ sở.");
   };
-  const requestSupplement = () => {
-    if (!reviewNote.trim()) {
-      setNotice("Vui lòng nhập nội dung yêu cầu bổ sung.");
-      return;
-    }
+  const cancel = () => {
     if (application) {
-      application.status = "needs-more-info";
-      application.reviewNote = reviewNote.trim();
+      application.status = "rejected";
+      application.reviewNote = null;
       application.published = false;
     }
-    setDetailStatus("needs-more-info");
-    setNotice("Đã lưu yêu cầu bổ sung cho hồ sơ.");
+    setDetailStatus("stopped");
+    setNotice("Đã hủy bỏ hồ sơ.");
   };
 
   return (
@@ -3958,44 +3942,38 @@ export function AdminFacilityDetailPage() {
               <p className="mono-label text-primary">XỬ LÝ HỒ SƠ</p>
               <h2 className="mt-1 text-xl font-extrabold">Cập nhật kết quả xét duyệt</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Cán bộ có thể duyệt hồ sơ hoặc yêu cầu cơ sở bổ sung thông tin ngay tại trang này.
+                Cán bộ có thể duyệt hồ sơ hoặc hủy bỏ hồ sơ ngay tại trang này.
               </p>
             </div>
             <StatusPill status={managementStatusLabel(currentStatus)} />
           </div>
-          <label className="mt-5 block">
-            <span className="mb-2 block text-sm font-bold">Nội dung yêu cầu bổ sung</span>
-            <textarea
-              value={reviewNote}
-              onChange={(event) => setReviewNote(event.target.value)}
-              placeholder="Nhập giấy tờ hoặc thông tin cơ sở cần bổ sung..."
-              className="focus-ring min-h-28 w-full rounded-xl border border-input bg-card p-3 text-sm"
-              data-testid="textarea-facility-detail-review-note"
-            />
-          </label>
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
-            <button
-              type="button"
-              onClick={requestSupplement}
-              disabled={!reviewNote.trim()}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 text-sm font-bold text-amber-800 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
-              data-testid="button-request-facility-detail-supplement"
-            >
-              <Info size={16} /> Yêu cầu bổ sung
-            </button>
-            <button
-              type="button"
-              onClick={approve}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground hover:bg-primary/90"
-              data-testid="button-approve-facility-detail"
-            >
-              <CheckCircle2 size={16} /> Duyệt hồ sơ
-            </button>
-          </div>
-          {currentStatus === "approved" && (
+          {application?.status === "rejected" ? (
+            <p className="mt-4 rounded-xl bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800">
+              Hồ sơ đã được hủy bỏ.
+            </p>
+          ) : currentStatus === "approved" ? (
             <p className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
               Hồ sơ đã được duyệt và đang hiển thị trên cổng thông tin công khai.
             </p>
+          ) : (
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={cancel}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-rose-300 bg-rose-50 px-4 text-sm font-bold text-rose-800 hover:bg-rose-100"
+                data-testid="button-cancel-facility-detail"
+              >
+                <X size={16} /> Hủy bỏ
+              </button>
+              <button
+                type="button"
+                onClick={approve}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground hover:bg-primary/90"
+                data-testid="button-approve-facility-detail"
+              >
+                <CheckCircle2 size={16} /> Duyệt hồ sơ
+              </button>
+            </div>
           )}
         </section>
       </div>
