@@ -4393,14 +4393,8 @@ function RecipeCard({
         <img
           src={recipeIllustration}
           alt="Đĩa rau củ và nguyên liệu tươi minh họa cho món ăn"
-          className="absolute inset-0 h-full w-full object-cover opacity-[0.55] mix-blend-multiply"
+          className="absolute inset-0 h-full w-full object-cover"
         />
-        <div
-          className="absolute inset-0 bg-gradient-to-br from-emerald-950/35 via-transparent to-orange-950/25"
-          aria-hidden="true"
-        />
-        <div className="absolute -right-10 -top-14 h-44 w-44 rounded-full bg-white/45" />
-        <div className="absolute -bottom-16 -left-8 h-44 w-44 rounded-full bg-white/35" />
         <span className="absolute left-4 top-4 rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-extrabold uppercase tracking-[.05em] text-emerald-600">
           {recipe.type}
         </span>
