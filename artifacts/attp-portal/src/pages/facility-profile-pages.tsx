@@ -146,11 +146,14 @@ const getSchoolMealOrganization = (
   return undefined;
 };
 
-const isExternalSchoolMealOrganization = (
-  value?: SchoolMealOrganization,
-) =>
-  value === "Liên kết đơn vị suất ăn" ||
-  value === "Thuê đơn vị nấu tại bếp trường";
+const isIngredientSupplierSchool = (value?: SchoolMealOrganization) =>
+  value === "Tự nấu" || value === "Thuê đơn vị nấu tại bếp trường";
+
+const mealOrganizationBadgeClass = (value?: SchoolMealOrganization) => {
+  if (value === "Tự nấu") return "bg-emerald-100 text-emerald-800";
+  if (value === "Liên kết đơn vị suất ăn") return "bg-blue-100 text-blue-800";
+  return "bg-amber-100 text-amber-900";
+};
 
 const supplierSourceSeeds: Array<Omit<SupplierSource, "receipts">> = [
   {
@@ -384,10 +387,20 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
           direction: "Cung cấp" as const,
         }));
 
-  const registrationFields = completeCriteria(application).map((item) => ({
-    label: item.label,
-    value: registrationFieldValue(item, fields, attachments),
-  }));
+  const registrationFields = completeCriteria(application)
+    .filter((item) => {
+      const condition = item.dependsOn;
+      if (!condition) return true;
+      const currentValue = String(fields[condition.key] ?? "");
+      if (condition.equals !== undefined && currentValue !== condition.equals) {
+        return false;
+      }
+      return condition.notEquals === undefined || currentValue !== condition.notEquals;
+    })
+    .map((item) => ({
+      label: item.label,
+      value: registrationFieldValue(item, fields, attachments),
+    }));
 
   const firstRelated =
     type === "meal-provider"
@@ -398,13 +411,14 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
   const firstSupplier =
     type === "meal-provider"
       ? String(supplierRows[0]?.name || "Nhà cung cấp thực phẩm")
-      : type === "school" && isExternalSchoolMealOrganization(mealOrganization)
+      : type === "school" && mealOrganization === "Liên kết đơn vị suất ăn"
         ? String(
             linkedMealProviderRows[0]?.providerName ||
-              fields.hiredKitchenName ||
               "Đơn vị cung cấp suất ăn",
           )
-      : "Vùng nguyên liệu đã khai báo";
+      : type === "school"
+        ? "Nhà cung cấp nguyên liệu đầu vào"
+        : "Vùng nguyên liệu đã khai báo";
   const date = approval.approvedAt.split("T")[0].split("-").reverse().join("/");
   const deliveryBase = `Dữ liệu hồ sơ ${application.reference}`;
   const deliveryVehicle = readRows(fields.deliveryVehicles)[0];
@@ -462,6 +476,45 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
           };
         })
       : [];
+  const schoolSupplierDeliveries: DeliveryRecord[] =
+    type === "school"
+      ? Array.from(
+          { length: application.id.startsWith("sample-app-") ? 4 : 1 },
+          (_, rowIndex) => {
+            const sampleIndex = Number(application.id.match(/\d+$/)?.[0] || index);
+            const ingredientSuppliers = [
+              "Hợp tác xã Rau an toàn Hóc Môn",
+              "Công ty Thực phẩm sạch Bình Minh",
+              "Trang trại Rau hữu cơ Phước Lộc",
+              "Cơ sở Thịt sạch Nam Việt",
+              "Công ty Nông sản Mekong Xanh",
+              "Cơ sở Trứng sạch Thành Công",
+            ];
+            const isMealDelivery =
+              mealOrganization === "Liên kết đơn vị suất ăn";
+            return {
+              id: `delivery-${application.id}-school-in-${rowIndex + 1}`,
+              date,
+              kind: isMealDelivery ? "Thức ăn" : "Nguyên liệu",
+              orderCode: `${application.reference}-IN-${String(rowIndex + 1).padStart(2, "0")}`,
+              partner: isMealDelivery
+                ? firstSupplier
+                : application.id.startsWith("sample-app-")
+                  ? ingredientSuppliers[
+                      (sampleIndex + rowIndex) % ingredientSuppliers.length
+                    ]
+                  : firstSupplier,
+              destination: application.applicantName,
+              quantity: isMealDelivery
+                ? `${360 + ((sampleIndex + rowIndex) % 8) * 35} suất ăn`
+                : `${90 + ((sampleIndex + rowIndex) % 9) * 15} kg / lô`,
+              status: "Đã nhận",
+              sourceSystem: `${deliveryBase} · dữ liệu mẫu`,
+              flow: "Nhập hàng",
+            } satisfies DeliveryRecord;
+          },
+        )
+      : [];
 
   return {
     id: `approved-${application.id}`,
@@ -497,23 +550,17 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
     deliveries: [
       ...(type === "meal-provider"
         ? []
-        : [
+        : type === "school"
+          ? schoolSupplierDeliveries
+          : [
             {
               id: `delivery-${application.id}-in`,
               date,
-              kind:
-                type === "school" &&
-                isExternalSchoolMealOrganization(mealOrganization)
-                  ? "Thức ăn"
-                  : "Nguyên liệu",
+              kind: "Nguyên liệu",
               orderCode: `${application.reference}-IN`,
               partner: firstSupplier,
               destination: application.applicantName,
-              quantity:
-                type === "school" &&
-                isExternalSchoolMealOrganization(mealOrganization)
-                  ? "Theo suất ăn đã khai báo"
-                  : "Theo danh mục đã khai báo",
+              quantity: "Theo danh mục đã khai báo",
               status: "Đã nhận",
               sourceSystem: deliveryBase,
               flow: "Nhập hàng",
@@ -1321,6 +1368,35 @@ function MealMenuPanel({ profile }: { profile: FacilityProfile }) {
       label,
     ),
   );
+  const menuSeed = Number(profile.applicationId.match(/\d+$/)?.[0] || 0);
+  const sampleMenus = [
+    {
+      day: "Thứ Hai",
+      date: "21/09/2026",
+      dishes: ["Cơm trắng", "Thịt kho trứng", "Canh rau ngót nấu thịt", "Chuối chín"],
+    },
+    {
+      day: "Thứ Ba",
+      date: "22/09/2026",
+      dishes: ["Cơm gạo lứt", "Cá basa sốt cà", "Canh bí đỏ", "Sữa chua"],
+    },
+    {
+      day: "Thứ Tư",
+      date: "23/09/2026",
+      dishes: ["Bún thịt bằm", "Đậu hũ sốt thịt", "Rau cải luộc", "Dưa hấu"],
+    },
+    {
+      day: "Thứ Năm",
+      date: "24/09/2026",
+      dishes: ["Cơm trắng", "Gà rim gừng", "Canh chua rau củ", "Cam tươi"],
+    },
+    {
+      day: "Thứ Sáu",
+      date: "25/09/2026",
+      dishes: ["Mì nui thịt bò", "Trứng hấp", "Canh cải xanh", "Thanh long"],
+    },
+  ];
+  const menuVariant = menuSeed % sampleMenus.length;
 
   return (
     <section className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
@@ -1357,9 +1433,49 @@ function MealMenuPanel({ profile }: { profile: FacilityProfile }) {
           </div>
         ))}
       </div>
-      <div className="mx-5 mb-5 rounded-xl border border-dashed border-border bg-secondary/25 p-4 text-sm text-muted-foreground">
-        Thực đơn chi tiết sẽ được hiển thị tại đây khi cơ sở cập nhật dữ liệu thực đơn
-        và suất ăn.
+      <div className="mx-5 mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h3 className="font-extrabold">Thực đơn mẫu trong tuần</h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Dữ liệu minh họa theo hồ sơ; số suất được thay đổi theo từng cơ sở.
+          </p>
+        </div>
+        <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700">
+          Dữ liệu mẫu
+        </span>
+      </div>
+      <div className="grid gap-3 px-5 pb-5 md:grid-cols-2 xl:grid-cols-3">
+        {sampleMenus.map((menu, dayIndex) => {
+          const menuIndex = (dayIndex + menuVariant) % sampleMenus.length;
+          const menuForDay = sampleMenus[menuIndex];
+          const servings = 280 + ((menuSeed + dayIndex * 3) % 9) * 35;
+          return (
+            <article
+              key={`${menu.date}-${profile.applicationId}`}
+              className="rounded-xl border border-border bg-background p-4"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-primary">
+                    {menuForDay.day}
+                  </p>
+                  <h4 className="mt-1 font-extrabold">{menuForDay.date}</h4>
+                </div>
+                <span className="rounded-lg bg-secondary px-2.5 py-1.5 text-xs font-bold">
+                  {servings} suất
+                </span>
+              </div>
+              <ul className="mt-3 space-y-1.5 text-sm text-muted-foreground">
+                {menuForDay.dishes.map((dish) => (
+                  <li key={dish} className="flex items-start gap-2">
+                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
+                    {dish}
+                  </li>
+                ))}
+              </ul>
+            </article>
+          );
+        })}
       </div>
     </section>
   );
@@ -1440,7 +1556,7 @@ export function FacilityProfilesPage() {
         </section>
          <section className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
            <div className="flex flex-col gap-2 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="font-extrabold text-foreground">Danh sách cơ sở đã duyệt</h2><p className="mt-1 text-sm text-muted-foreground">{filteredProfiles.length} / {profiles.length} cơ sở đang hiển thị</p></div><span className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground"><Clock3 size={14} /> Dữ liệu đồng bộ theo lần duyệt</span></div>
-           {filteredProfiles.length ? <div className="divide-y divide-border">{filteredProfiles.map((profile) => <div key={profile.id} className="flex flex-col gap-4 px-5 py-5 transition-colors hover:bg-secondary/30 lg:flex-row lg:items-center lg:justify-between"><div className="flex min-w-0 gap-3"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">{profile.applicationType === "meal-provider" ? <Utensils size={21} /> : profile.applicationType === "school" ? <Building2 size={21} /> : <PackageCheck size={21} />}</div><div className="min-w-0"><h3 className="font-extrabold text-foreground">{profile.name}</h3><p className="mt-1 flex items-start gap-1.5 text-sm text-muted-foreground"><MapPin size={15} className="mt-0.5 shrink-0" /> {profile.address}</p><div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-muted-foreground"><span>{profile.category}</span>{profile.applicationType === "school" && profile.mealOrganization ? <span className="rounded-full bg-secondary px-2.5 py-1 text-primary">Tổ chức bữa ăn: {profile.mealOrganization}</span> : null}<span>Duyệt ngày {profile.approvedAt}</span><span>{profile.deliveries.length} giao nhận · {getFacilityIncidents(profile).length} cảnh báo</span></div></div></div><Link href={`/admin/facility-profiles/${profile.id}`} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90" data-testid={`link-facility-profile-${profile.id}`}>Xem hồ sơ <ArrowRight size={16} /></Link></div>)}</div> : <div className="p-5"><EmptyState title="Không có cơ sở phù hợp" description="Thử thay đổi từ khóa hoặc bộ lọc loại hình." /></div>}
+           {filteredProfiles.length ? <div className="divide-y divide-border">{filteredProfiles.map((profile) => <div key={profile.id} className="flex flex-col gap-4 px-5 py-5 transition-colors hover:bg-secondary/30 lg:flex-row lg:items-center lg:justify-between"><div className="flex min-w-0 gap-3"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">{profile.applicationType === "meal-provider" ? <Utensils size={21} /> : profile.applicationType === "school" ? <Building2 size={21} /> : <PackageCheck size={21} />}</div><div className="min-w-0"><h3 className="font-extrabold text-foreground">{profile.name}</h3><p className="mt-1 flex items-start gap-1.5 text-sm text-muted-foreground"><MapPin size={15} className="mt-0.5 shrink-0" /> {profile.address}</p><div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-muted-foreground"><span>{profile.category}</span>{profile.applicationType === "school" && profile.mealOrganization ? <span className={`rounded-full px-2.5 py-1 font-bold ${mealOrganizationBadgeClass(profile.mealOrganization)}`}>Tổ chức bữa ăn: {profile.mealOrganization}</span> : null}<span>Duyệt ngày {profile.approvedAt}</span><span>{profile.deliveries.length} giao nhận · {getFacilityIncidents(profile).length} cảnh báo</span></div></div></div><Link href={`/admin/facility-profiles/${profile.id}`} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90" data-testid={`link-facility-profile-${profile.id}`}>Xem hồ sơ <ArrowRight size={16} /></Link></div>)}</div> : <div className="p-5"><EmptyState title="Không có cơ sở phù hợp" description="Thử thay đổi từ khóa hoặc bộ lọc loại hình." /></div>}
         </section>
       </div>
     </AdminShell>
@@ -1462,9 +1578,9 @@ export function FacilityProfileDetailPage() {
   const filteredDeliveries = profile.deliveries.filter((delivery) => deliveryKind === "Tất cả" || delivery.kind === deliveryKind);
   const incidents = getFacilityIncidents(profile);
   const isSchool = profile.applicationType === "school";
-  const isSelfCookSchool =
-    isSchool && profile.mealOrganization === "Tự nấu";
-  const schoolSupplierLabel = isSelfCookSchool
+  const isIngredientSchool =
+    isSchool && isIngredientSupplierSchool(profile.mealOrganization);
+  const schoolSupplierLabel = isIngredientSchool
     ? "Nhà cung cấp nguyên liệu đầu vào"
     : "Nhà cung cấp suất ăn";
   const tabs: { id: ProfileTabId; label: string; icon: typeof FileCheck2 }[] = [
@@ -1487,7 +1603,7 @@ export function FacilityProfileDetailPage() {
     <AdminShell>
       <div className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8">
         <Link href="/admin/facility-profiles" className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:underline" data-testid="link-back-to-facility-profiles"><ArrowLeft size={16} /> Quay lại Hồ sơ cơ sở</Link>
-        <div className="mt-5 flex flex-col gap-4 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between"><div><p className="mono-label text-primary">HỒ SƠ ĐƯỢC TẠO TỪ KẾT QUẢ DUYỆT</p><div className="mt-2 flex flex-wrap items-center gap-3"><h1 className="text-3xl font-extrabold tracking-tight">{profile.name}</h1><span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary">{profile.category}</span>{isSchool && profile.mealOrganization ? <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-900">Tổ chức bữa ăn: {profile.mealOrganization}</span> : null}</div><p className="mt-2 flex items-start gap-1.5 text-sm text-muted-foreground"><MapPin size={15} className="mt-0.5 shrink-0" /> {profile.address}</p></div><span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-2 text-xs font-bold text-emerald-800"><BadgeCheck size={15} /> Đạt / PASS</span></div>
+        <div className="mt-5 flex flex-col gap-4 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between"><div><p className="mono-label text-primary">HỒ SƠ ĐƯỢC TẠO TỪ KẾT QUẢ DUYỆT</p><div className="mt-2 flex flex-wrap items-center gap-3"><h1 className="text-3xl font-extrabold tracking-tight">{profile.name}</h1><span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary">{profile.category}</span>{isSchool && profile.mealOrganization ? <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${mealOrganizationBadgeClass(profile.mealOrganization)}`}>Tổ chức bữa ăn: {profile.mealOrganization}</span> : null}</div><p className="mt-2 flex items-start gap-1.5 text-sm text-muted-foreground"><MapPin size={15} className="mt-0.5 shrink-0" /> {profile.address}</p></div><span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-2 text-xs font-bold text-emerald-800"><BadgeCheck size={15} /> Đạt / PASS</span></div>
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><MetricCard label="Ngày duyệt" value={profile.approvedAt} icon={BadgeCheck} /><MetricCard label="Bản ghi giao nhận" value={profile.deliveries.length} tone="blue" icon={Truck} /><MetricCard label="Cảnh báo ATTP" value={incidents.length} tone="orange" icon={ShieldAlert} /><MetricCard label="Quy mô hoạt động" value={profile.mealsPerDay} tone="gold" icon={Utensils} /></div>
         <div className="mt-6 overflow-x-auto rounded-2xl border border-border bg-card p-2 shadow-sm"><div className="flex min-w-max gap-1" role="tablist" aria-label="Các nội dung trong hồ sơ cơ sở">{tabs.map((tab) => { const Icon = tab.icon; const isActive = activeTab === tab.id; return <button key={tab.id} type="button" role="tab" aria-selected={isActive} onClick={() => setActiveTab(tab.id)} className={`inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-colors ${isActive ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}><Icon size={16} />{tab.label}</button>; })}</div></div>
 
@@ -1496,7 +1612,7 @@ export function FacilityProfileDetailPage() {
           <div className="rounded-2xl border border-border bg-card p-5 shadow-sm"><div className="flex items-center gap-2"><FileCheck2 size={18} className="text-primary" /><div><h2 className="font-extrabold">Minh chứng đã duyệt</h2><p className="mt-1 text-xs text-muted-foreground">Ảnh minh họa có thể bấm để xem phóng to; tài liệu được giữ nguyên theo hồ sơ.</p></div></div><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{profile.documents.map((document, documentIndex) => document.previewUrl ? <button key={`${document.name}-${documentIndex}`} type="button" onClick={() => setPreviewDocument({ name: document.name, url: document.previewUrl! })} className="group overflow-hidden rounded-xl border border-border bg-secondary/30 text-left transition hover:border-primary/40 hover:shadow-md"><div className="relative aspect-[4/3] overflow-hidden bg-muted"><img src={document.previewUrl} alt={`Minh họa ${document.name}`} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" /><span className="absolute inset-0 flex items-center justify-center bg-slate-950/45 text-white opacity-0 transition group-hover:opacity-100"><ZoomIn size={24} /></span></div><span className="block truncate px-3 py-2.5 text-sm font-semibold" title={document.name}>{document.name}</span></button> : <div key={`${document.name}-${documentIndex}`} className="flex items-center gap-3 rounded-xl border border-border bg-secondary/30 p-3 text-sm"><FileText size={18} className="shrink-0 text-primary" /><span className="min-w-0 truncate font-semibold" title={document.name}>{document.name}</span></div>)}</div><div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4"><div className="flex items-center gap-2 text-sm font-extrabold text-emerald-950"><CheckCircle2 size={16} /> Trạng thái liên thông</div><p className="mt-1 text-sm text-emerald-900">Hồ sơ đã duyệt đạt và được đưa vào danh sách theo dõi.</p><p className="mt-2 text-xs text-emerald-800">Cán bộ duyệt: {profile.reviewer}</p></div></div>
         </section> : null}
 
-         {activeTab === "suppliers" ? profile.applicationType === "meal-provider" ? <SupplierSourcePanel profile={profile} /> : <DeliveryHistoryTable title={schoolSupplierLabel} description={isSelfCookSchool ? "Lịch sử nhập nguyên liệu từ các đơn vị được ghi nhận trong hồ sơ." : "Lịch sử tiếp nhận suất ăn từ đơn vị cung cấp hoặc đơn vị nấu tại bếp trường."} deliveries={filteredDeliveries.filter((delivery) => delivery.flow === "Nhập hàng")} deliveryKind={deliveryKind} onDeliveryKindChange={setDeliveryKind} emptyDescription={isSelfCookSchool ? "Chưa có lịch sử nhập nguyên liệu từ nhà cung cấp." : "Chưa có lịch sử tiếp nhận suất ăn từ đơn vị cung cấp."} /> : null}
+         {activeTab === "suppliers" ? profile.applicationType === "meal-provider" ? <SupplierSourcePanel profile={profile} /> : <DeliveryHistoryTable title={schoolSupplierLabel} description={isIngredientSchool ? "Lịch sử nhập nguyên liệu từ các nhà cung cấp đầu vào." : "Lịch sử tiếp nhận suất ăn từ đơn vị liên kết cung cấp."} deliveries={filteredDeliveries.filter((delivery) => delivery.flow === "Nhập hàng")} deliveryKind={deliveryKind} onDeliveryKindChange={setDeliveryKind} emptyDescription={isIngredientSchool ? "Chưa có lịch sử nhập nguyên liệu từ nhà cung cấp." : "Chưa có lịch sử tiếp nhận suất ăn từ đơn vị cung cấp."} /> : null}
         {activeTab === "menus" ? <MealMenuPanel profile={profile} /> : null}
         {activeTab === "outgoing" ? profile.applicationType === "meal-provider" ? <MealDeliveryHistoryTable deliveries={filteredDeliveries.filter((delivery) => delivery.flow === "Xuất hàng")} /> : <DeliveryHistoryTable title="Cơ sở nhận hàng" description="Lịch sử xuất thực phẩm hoặc suất ăn cho các đơn vị liên quan." deliveries={filteredDeliveries.filter((delivery) => delivery.flow === "Xuất hàng")} deliveryKind={deliveryKind} onDeliveryKindChange={setDeliveryKind} emptyDescription="Chưa có lịch sử xuất hàng cho cơ sở khác." /> : null}
         {activeTab === "incidents" ? <IncidentHistoryTable incidents={incidents} /> : null}

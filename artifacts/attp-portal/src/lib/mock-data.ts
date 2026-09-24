@@ -1673,7 +1673,9 @@ const createSampleApplication = (
   status: ApplicationStatus,
 ): Application => {
   const criteriaSet = getCriteriaSet(type);
-  const applicantName = sampleFacilityNames[type][index % sampleFacilityNames[type].length];
+  const sampleOrdinal = Math.floor((index - 1) / 3);
+  const applicantName =
+    sampleFacilityNames[type][sampleOrdinal % sampleFacilityNames[type].length];
   const address = sampleAddresses[index % sampleAddresses.length];
   const contact = `090${String(100000 + index * 731).slice(-6)}`;
   const data: Record<string, unknown> = {};
@@ -1839,9 +1841,9 @@ const createSampleApplication = (
   }
 
   if (type === "school") {
-    const mealModel = index % 3 === 0
+    const mealModel = sampleOrdinal % 3 === 0
       ? "Tự nấu"
-      : index % 3 === 1
+      : sampleOrdinal % 3 === 1
         ? "Liên kết đơn vị suất ăn"
         : "Thuê đơn vị nấu tại bếp trường";
     data.schoolLevel = ["Mầm non", "Tiểu học", "THCS", "THPT"][index % 4];
@@ -1850,22 +1852,33 @@ const createSampleApplication = (
     data.foodSafetyLeadTitle = "Cán bộ phụ trách ATTP";
     data.foodSafetyLeadPhone = `098${String(300000 + index * 517).slice(-6)}`;
     data.mealModel = mealModel;
-    data.selfCookStaffTotal = String(6 + (index % 5));
-    data.linkedMealProviders = [
-      {
-        source: "Đơn vị đã đăng ký",
-        providerId: `provider-${String(1 + (index % 6)).padStart(3, "0")}`,
-        providerName: sampleFacilityNames["meal-provider"][index % sampleFacilityNames["meal-provider"].length],
-        taxCode: `031${String(5000000 + index * 101).slice(-7)}`,
-      },
-    ];
+    if (mealModel === "Tự nấu") {
+      data.selfCookStaffTotal = String(6 + (sampleOrdinal % 5));
+    } else {
+      data.linkedMealProviders = [
+        {
+          source: "Đơn vị đã đăng ký",
+          providerId: `provider-${String(1 + (sampleOrdinal % 6)).padStart(3, "0")}`,
+          providerName:
+            sampleFacilityNames["meal-provider"][
+              sampleOrdinal % sampleFacilityNames["meal-provider"].length
+            ],
+          taxCode: `031${String(5000000 + index * 101).slice(-7)}`,
+        },
+      ];
+    }
     data.deliveryReception = "Xe tải bảo ôn, giao nhận từ 06:00 đến 07:00";
     data.kitchenOneWay = "Có";
     data.sampleStorage = "Có";
     data.sampleCabinetCount = String(1 + (index % 2));
-    data.hiredKitchenName = sampleFacilityNames["meal-provider"][(index + 1) % sampleFacilityNames["meal-provider"].length];
-    data.hiredKitchenTaxCode = `031${String(5200000 + index * 103).slice(-7)}`;
-    data.hiredKitchenStaffCount = String(8 + (index % 4));
+    if (mealModel === "Thuê đơn vị nấu tại bếp trường") {
+      data.hiredKitchenName =
+        sampleFacilityNames["meal-provider"][
+          (sampleOrdinal + 1) % sampleFacilityNames["meal-provider"].length
+        ];
+      data.hiredKitchenTaxCode = `031${String(5200000 + index * 103).slice(-7)}`;
+      data.hiredKitchenStaffCount = String(8 + (sampleOrdinal % 4));
+    }
   }
 
   const scoreBreakdown = Object.fromEntries(
@@ -1900,10 +1913,30 @@ const createSampleApplication = (
   };
 };
 
+const schoolSampleStatuses: ApplicationStatus[] = [
+  "approved",
+  "approved",
+  "approved",
+  "needs-more-info",
+  "approved",
+  "approved",
+  "approved",
+  "warning",
+  "approved",
+  "approved",
+  "approved",
+  "rejected",
+];
+
 const sampleApplications: Application[] = Array.from({ length: 36 }, (_, offset) => {
   const index = offset + 1;
   const type: ApplicationType = ["food-supplier", "meal-provider", "school"][index % 3] as ApplicationType;
-  return createSampleApplication(index, type, sampleStatuses[(index - 1) % sampleStatuses.length]);
+  const sampleOrdinal = Math.floor(offset / 3);
+  const status =
+    type === "school"
+      ? schoolSampleStatuses[sampleOrdinal % schoolSampleStatuses.length]
+      : sampleStatuses[offset % sampleStatuses.length];
+  return createSampleApplication(index, type, status);
 });
 
 export const applications: Application[] = [

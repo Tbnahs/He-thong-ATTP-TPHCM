@@ -55,13 +55,21 @@ export const readApprovedFacilities = (): ApprovedFacility[] => {
         : createApprovedFacility(item);
     });
   const approvedIds = new Set(approvedFromQueue.map((entry) => entry.application.id));
+  const currentApplications = new Map(
+    applications.map((application) => [application.id, application]),
+  );
   const merged = [
     ...approvedFromQueue,
     ...saved.filter(
-      (entry) =>
-        profileTypes.includes(entry.application.type) &&
-        entry.application.status === "approved" &&
-        !approvedIds.has(entry.application.id),
+      (entry) => {
+        const currentApplication = currentApplications.get(entry.application.id);
+        return (
+          profileTypes.includes(entry.application.type) &&
+          entry.application.status === "approved" &&
+          !approvedIds.has(entry.application.id) &&
+          (!currentApplication || isProfileApplication(currentApplication))
+        );
+      },
     ),
   ];
 
