@@ -1241,33 +1241,13 @@ function HomeLookupSection() {
 }
 
 export function LookupPage() {
-  const [location] = useLocation();
+  const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [selected, setSelected] = useState<string | null>(() => {
-    const recordId = new URLSearchParams(window.location.search).get("record");
-    return recordId &&
-      regionalPublicRecords.some((item) => item.id === recordId)
-      ? recordId
-      : null;
-  });
   const filtered = getPublicRecords(search, "eligible-facilities");
   const pageSize = 8;
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const data = filtered.slice((page - 1) * pageSize, page * pageSize);
-  const record = selected
-    ? filtered.find((item) => item.id === selected)
-    : undefined;
-  useEffect(() => {
-    const recordId =
-      new URLSearchParams(window.location.search).get("record") ??
-      new URLSearchParams(location.split("?")[1] ?? "").get("record");
-    setSelected(
-      recordId && regionalPublicRecords.some((item) => item.id === recordId)
-        ? recordId
-        : null,
-    );
-  }, [location]);
   return (
     <PublicShell>
       <main className="mx-auto max-w-7xl px-5 py-12 lg:px-8 lg:py-16">
@@ -1320,7 +1300,7 @@ export function LookupPage() {
                 <RecordRow
                   key={item.id}
                   item={item}
-                  onOpen={() => setSelected(item.id)}
+                  onOpen={() => navigate(`/lookup/${encodeURIComponent(item.id)}`)}
                 />
               ))}
             </div>
@@ -1360,9 +1340,254 @@ export function LookupPage() {
           </div>
         ) : null}
       </main>
-      {record && (
-        <RecordDialog record={record} onClose={() => setSelected(null)} />
-      )}
+    </PublicShell>
+  );
+}
+
+const publicRecordTypeLabels: Record<ApplicationType, string> = {
+  "food-supplier": "Đơn vị cung cấp thực phẩm",
+  "meal-provider": "Đơn vị cung cấp suất ăn",
+  school: "Cơ sở giáo dục",
+};
+
+const inferPublicRecordType = (record: PublicRecord): ApplicationType => {
+  const registration = getRecordRegistrationDetail(record);
+  if (registration.type) return registration.type;
+  if (record.subtitle.toLowerCase().includes("giáo dục")) return "school";
+  if (record.subtitle.toLowerCase().includes("suất ăn")) return "meal-provider";
+  return "food-supplier";
+};
+
+const isPresentPublicValue = (value: unknown) =>
+  value !== undefined &&
+  value !== null &&
+  (Array.isArray(value) ? value.length > 0 : String(value).trim() !== "");
+
+const getPublicValue = (
+  record: PublicRecord,
+  ...keys: string[]
+): string => {
+  const registration = getRecordRegistrationDetail(record);
+  for (const key of keys) {
+    if (isPresentPublicValue(registration.data[key])) {
+      return formatDetailValue(registration.data[key]);
+    }
+    if (isPresentPublicValue(record.metadata?.[key])) {
+      return String(record.metadata[key]);
+    }
+    if (key === "publishedAt" && isPresentPublicValue(record.publishedAt)) {
+      return record.publishedAt;
+    }
+  }
+  return "Đang cập nhật";
+};
+
+const getPublicDate = (record: PublicRecord, ...keys: string[]) => {
+  const value = getPublicValue(record, ...keys);
+  if (value === "Đang cập nhật") return value;
+  return /^\d{4}-\d{2}-\d{2}/.test(value) ? formatDate(value) : value;
+};
+
+function PublicDetailField({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-border bg-background p-4">
+      <dt className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </dt>
+      <dd className="mt-2 break-words text-sm font-bold leading-6 text-foreground">
+        {value}
+      </dd>
+    </div>
+  );
+}
+
+function PublicDetailSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-7">
+      <h2 className="flex items-center gap-2 text-lg font-extrabold">
+        <span className="h-2 w-2 rounded-full bg-accent" />
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+export function PublicLookupDetailPage() {
+  const { recordId } = useParams<{ recordId: string }>();
+  const record = getPublicRecords("", "eligible-facilities").find(
+    (item) => item.id === recordId,
+  );
+
+  if (!record) return <NotFound />;
+
+  const type = inferPublicRecordType(record);
+  const registration = getRecordRegistrationDetail(record);
+  const ownerLabel = type === "school" ? "Người đại diện" : "Chủ cơ sở";
+  const ownerValue = getPublicValue(
+    record,
+    type === "school" ? "representativeName" : "ownerName",
+    "Chủ cơ sở",
+    "Người đại diện",
+    "foodSafetyManagerName",
+  );
+  const licenseNumber = getPublicValue(
+    record,
+    "licenseNumber",
+    "Số GCN ATTP",
+    "Số giấy phép ATTP",
+    "Giấy phép ATTP",
+  );
+  const issuedAt = getPublicDate(record, "licenseIssued", "Ngày cấp", "publishedAt");
+  const expiresAt = getPublicDate(
+    record,
+    "licenseExpires",
+    "Ngày hết hạn giấy phép",
+  );
+  const address = getPublicValue(record, "address", "Địa chỉ") !== "Đang cập nhật"
+    ? getPublicValue(record, "address", "Địa chỉ")
+    : record.location;
+  const schoolMealModel = getPublicValue(record, "mealModel", "Hình thức tổ chức bữa ăn");
+  const schoolMealOptions = [
+    "Tự nấu",
+    "Liên kết đơn vị suất ăn",
+    "Thuê đơn vị nấu tại trường",
+  ];
+
+  return (
+    <PublicShell>
+      <main className="mx-auto max-w-5xl px-5 py-10 lg:px-8 lg:py-14">
+        <Link
+          href="/lookup"
+          className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:underline"
+          data-testid="link-back-to-lookup"
+        >
+          <ArrowLeft size={16} /> Quay lại danh sách tra cứu
+        </Link>
+
+        <header className="mt-8 rounded-3xl bg-primary p-6 text-primary-foreground shadow-xl shadow-primary/15 sm:p-9">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-primary-foreground/70">
+            <BadgeCheck size={16} className="text-accent" />
+            {publicRecordTypeLabels[type]}
+            <span className="rounded-full bg-white/15 px-3 py-1 normal-case tracking-normal">
+              {record.status === "active" ? "Đang công khai" : record.status}
+            </span>
+          </div>
+          <h1 className="mt-4 max-w-3xl text-3xl font-extrabold leading-tight sm:text-4xl">
+            {record.title}
+          </h1>
+          <p className="mt-4 flex items-start gap-2 text-sm leading-6 text-primary-foreground/80">
+            <MapPin size={17} className="mt-1 shrink-0 text-accent" />
+            {address}
+          </p>
+          <p className="mt-4 text-xs font-semibold text-primary-foreground/65">
+            Cập nhật công khai: {formatDate(record.publishedAt)}
+          </p>
+        </header>
+
+        <div className="mt-6 space-y-5">
+          <PublicDetailSection title={type === "school" ? "Thông tin trường" : "Thông tin đơn vị"}>
+            <dl className="mt-5 grid gap-3 sm:grid-cols-2">
+              <PublicDetailField
+                label={type === "school" ? "Tên trường" : "Tên đơn vị"}
+                value={record.title}
+              />
+              {type === "school" ? (
+                <PublicDetailField
+                  label="Cấp học"
+                  value={getPublicValue(record, "schoolLevel", "Cấp học")}
+                />
+              ) : null}
+              <PublicDetailField
+                label="Mã số thuế"
+                value={getPublicValue(record, "taxCode", "Mã số thuế")}
+              />
+              <PublicDetailField label="Địa chỉ" value={address} />
+              <PublicDetailField label={ownerLabel} value={ownerValue} />
+            </dl>
+          </PublicDetailSection>
+
+          <PublicDetailSection title="Thông tin ATTP">
+            <dl className="mt-5 grid gap-3 sm:grid-cols-2">
+              <PublicDetailField
+                label={type === "school" ? "Số giấy phép ATTP" : "Giấy phép ATTP"}
+                value={licenseNumber}
+              />
+              <PublicDetailField label="Ngày cấp" value={issuedAt} />
+              <PublicDetailField
+                label="Ngày hết hạn giấy phép"
+                value={expiresAt}
+              />
+              <PublicDetailField
+                label="Trạng thái"
+                value={record.status === "active" ? "Đang hiệu lực" : record.status}
+              />
+            </dl>
+          </PublicDetailSection>
+
+          {type === "school" ? (
+            <PublicDetailSection title="Tổ chức bữa ăn">
+              <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                {schoolMealOptions.map((option) => (
+                  <div
+                    key={option}
+                    className={`rounded-2xl border p-4 text-sm font-bold ${
+                      schoolMealModel === option
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-background text-muted-foreground"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`h-2.5 w-2.5 rounded-full ${
+                          schoolMealModel === option ? "bg-primary" : "bg-border"
+                        }`}
+                      />
+                      {option}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {schoolMealModel !== "Đang cập nhật" ? (
+                <p className="mt-4 text-sm text-muted-foreground">
+                  Hình thức tổ chức bữa ăn:{" "}
+                  <strong className="text-foreground">{schoolMealModel}</strong>
+                </p>
+              ) : null}
+            </PublicDetailSection>
+          ) : null}
+
+          {registration.attachments.length ? (
+            <PublicDetailSection title="Tài liệu công khai">
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                {registration.attachments.map((file) => (
+                  <div
+                    key={`${file.fieldKey ?? "attachment"}-${file.name}`}
+                    className="flex items-center gap-3 rounded-2xl border border-border bg-background p-4 text-sm"
+                  >
+                    <FileText size={18} className="shrink-0 text-primary" />
+                    <span className="min-w-0 truncate font-semibold" title={file.name}>
+                      {file.name}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </PublicDetailSection>
+          ) : null}
+        </div>
+      </main>
     </PublicShell>
   );
 }
@@ -1657,55 +1882,84 @@ function RecordRow({
   item: PublicRecord;
   onOpen: () => void;
 }) {
+  const type = inferPublicRecordType(item);
+  const ownerLabel = type === "school" ? "Người đại diện" : "Chủ cơ sở";
+  const ownerValue = getPublicValue(
+    item,
+    type === "school" ? "representativeName" : "ownerName",
+    "Chủ cơ sở",
+    "Người đại diện",
+    "foodSafetyManagerName",
+  );
+  const licenseValue = getPublicValue(
+    item,
+    "licenseNumber",
+    "Số GCN ATTP",
+    "Số giấy phép ATTP",
+    "Giấy phép ATTP",
+  );
+  const issuedAt = getPublicDate(
+    item,
+    "licenseIssued",
+    "Ngày cấp",
+    "publishedAt",
+  );
+  const addressValue = getPublicValue(item, "address", "Địa chỉ");
+  const address = addressValue === "Đang cập nhật" ? item.location : addressValue;
+
   return (
-    <button
-      onClick={onOpen}
-      className="lift focus-ring flex w-full flex-col gap-4 rounded-2xl border border-border bg-card p-5 text-left sm:flex-row sm:items-center sm:justify-between"
+    <article
+      className="lift flex w-full flex-col gap-5 rounded-2xl border border-border bg-card p-5 text-left shadow-sm transition-shadow hover:shadow-md sm:p-6"
       data-testid={`button-record-${item.id}`}
     >
       <div className="flex min-w-0 items-start gap-4">
-        <div className="mt-1 hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary sm:flex">
-          <Building2 size={19} />
+        <div className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-secondary text-primary sm:flex">
+          {type === "school" ? <Building2 size={19} /> : <BadgeCheck size={19} />}
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="mono-label text-primary">
-              {categoryNames[item.category] ?? item.category}
+              {publicRecordTypeLabels[type]}
             </span>
             <StatusPill status={item.status} />
           </div>
-          <h3 className="mt-2 break-words text-base font-bold sm:truncate">
-            Tên cơ sở: {item.title}
+          <h3 className="mt-3 break-words text-lg font-extrabold sm:text-xl">
+            {item.title}
           </h3>
-          {item.category === "eligible-facilities" ? (
-            <div className="mt-2 space-y-1 break-words text-sm text-muted-foreground">
-              <p>
-                <strong className="text-foreground">Chủ cơ sở:</strong>{" "}
-                {item.metadata["Chủ cơ sở"] ?? "—"}
-              </p>
-              <p>
-                <strong className="text-foreground">Địa chỉ:</strong>{" "}
-                {item.metadata["Địa chỉ"] ?? item.location}
-              </p>
+          <dl className="mt-4 grid gap-x-5 gap-y-3 text-sm sm:grid-cols-2">
+            <div>
+              <dt className="text-xs text-muted-foreground">{ownerLabel}</dt>
+              <dd className="mt-1 break-words font-semibold">{ownerValue}</dd>
             </div>
-          ) : (
-            <p className="mt-1 break-words text-sm text-muted-foreground sm:truncate">
-              {item.subtitle}
-            </p>
-          )}
+            <div>
+              <dt className="text-xs text-muted-foreground">Số GCN ATTP</dt>
+              <dd className="mt-1 break-words font-semibold">{licenseValue}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Ngày cấp</dt>
+              <dd className="mt-1 font-semibold">{issuedAt}</dd>
+            </div>
+            <div className="sm:col-span-2">
+              <dt className="text-xs text-muted-foreground">Địa chỉ</dt>
+              <dd className="mt-1 flex items-start gap-1.5 break-words font-semibold">
+                <MapPin size={15} className="mt-0.5 shrink-0 text-primary" />
+                {address}
+              </dd>
+            </div>
+          </dl>
         </div>
       </div>
-      <div className="flex min-w-0 items-start gap-3 text-sm text-muted-foreground sm:shrink-0 sm:items-center">
-        <span className="flex min-w-0 items-start gap-1">
-          <MapPin className="mt-0.5 shrink-0" size={14} />
-          <span className="break-words">{item.location}</span>
-        </span>
-        <ArrowUpRight
-          className="mt-0.5 shrink-0 text-primary sm:mt-0"
-          size={17}
-        />
+      <div className="flex justify-end border-t border-border pt-4">
+        <button
+          type="button"
+          onClick={onOpen}
+          className="focus-ring inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90"
+          data-testid={`button-record-detail-${item.id}`}
+        >
+          Xem chi tiết <ArrowUpRight size={16} />
+        </button>
       </div>
-    </button>
+    </article>
   );
 }
 function RecordDialog({

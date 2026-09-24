@@ -10,6 +10,7 @@ import {
   AdminPlaceholder,
   HomePage,
   LookupPage,
+  PublicLookupDetailPage,
   NewsDetailPage,
   NewsPage,
   RegisterPage,
@@ -53,6 +54,7 @@ function Router() {
     <RoutedErrorBoundary>
       <Switch>
         <Route path="/" component={HomePage} />
+        <Route path="/lookup/:recordId" component={PublicLookupDetailPage} />
         <Route path="/lookup" component={LookupPage} />
         <Route path="/news" component={NewsPage} />
         <Route path="/news/:slug" component={NewsDetailPage} />
