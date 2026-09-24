@@ -796,11 +796,9 @@ export function ThreeStepInspectionDetail() {
 function FormMeta({
   school,
   values,
-  onChange,
 }: {
   school: SchoolInspection;
   values: { facility: string; inspector: string; date: string; location: string };
-  onChange: (key: keyof typeof values, value: string) => void;
 }) {
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
@@ -817,7 +815,9 @@ function FormMeta({
         ] as Array<[keyof typeof values, string, string]>).map(([key, label, placeholder]) => (
           <label key={key} className="block">
             <span className="mb-1.5 block text-[10px] font-extrabold text-slate-500">{label}</span>
-            <input value={values[key]} onChange={(event) => onChange(key, event.target.value)} placeholder={placeholder} className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100" data-testid={`input-form-meta-${key}`} />
+            <div className="flex min-h-10 items-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700" data-testid={`text-form-meta-${key}`}>
+              {values[key] || placeholder}
+            </div>
           </label>
         ))}
       </div>
@@ -847,15 +847,6 @@ export function ThreeStepInspectionForm() {
     setRows(next.rows);
   }, [normalizedFormId, school.id]);
 
-  const updateCell = (rowIndex: number, columnIndex: number, value: string) => {
-    setRows((current) => current.map((row, index) => index === rowIndex ? row.map((cell, cellIndex) => cellIndex === columnIndex ? value : cell) : row));
-  };
-  const updateMeta = (key: keyof typeof meta, value: string) => {
-    setMeta((current) => ({ ...current, [key]: value }));
-  };
-  const saveForm = () => {
-    saveStorage(`attp-inspection-form:${school.id}:${normalizedFormId}`, { meta, rows });
-  };
   return (
     <PageFrame>
       <div className="border-b border-slate-200/80 bg-white px-5 py-4 sm:px-8">
@@ -865,12 +856,11 @@ export function ThreeStepInspectionForm() {
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-extrabold text-slate-600 hover:border-orange-300 hover:text-orange-600" data-testid="button-print-inspection-form"><Printer size={14} /> In biểu mẫu</button>
             <button type="button" onClick={() => downloadCsv(`mau-${normalizedFormId}-${school.id}.csv`, [headers[normalizedFormId], ...rows])} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-extrabold text-slate-600 hover:border-orange-300 hover:text-orange-600" data-testid="button-export-inspection-form"><Download size={14} /> Xuất Excel</button>
-            <button type="button" onClick={saveForm} className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-3 py-2 text-xs font-extrabold text-white shadow-sm hover:bg-orange-600" data-testid="button-save-inspection-form"><Check size={14} /> Lưu biểu mẫu</button>
           </div>
         </div>
       </div>
       <div className="mx-auto max-w-[1500px] px-4 py-5 sm:px-7 lg:px-9">
-        <FormMeta school={school} values={meta} onChange={updateMeta} />
+        <FormMeta school={school} values={meta} />
         <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-slate-100 p-1.5 sm:grid-cols-4">
           {formTabs.map((item) => (
             <Link key={item.id} href={`/admin/meals/three-step/${school.id}/form/${item.id}`} className={`rounded-lg px-2 py-2.5 text-center text-[10px] font-extrabold transition sm:text-xs ${normalizedFormId === item.id ? "bg-orange-500 text-white shadow-sm" : "text-slate-500 hover:bg-white hover:text-orange-600"}`} data-testid={`link-form-tab-${item.id}`}><span className="block">{item.label}</span><span className="mt-0.5 block font-semibold opacity-80">{item.title}</span></Link>
@@ -890,7 +880,7 @@ export function ThreeStepInspectionForm() {
                   <tr key={`row-${rowIndex}`} className="hover:bg-orange-50/20" data-testid={`row-form-entry-${rowIndex}`}>
                     {row.map((cell, columnIndex) => (
                       <td key={`${rowIndex}-${columnIndex}`} className="border-b border-r border-slate-200 p-1">
-                        {columnIndex === 0 ? <span className="flex min-h-10 items-center justify-center text-[11px] font-bold text-slate-500">{cell || rowIndex + 1}</span> : <input value={cell} onChange={(event) => updateCell(rowIndex, columnIndex, event.target.value)} className="min-h-10 w-full min-w-[76px] rounded bg-transparent px-2 text-[11px] font-semibold text-slate-700 outline-none focus:bg-orange-50 focus:ring-1 focus:ring-orange-300" aria-label={`${headers[normalizedFormId][columnIndex]} dòng ${rowIndex + 1}`} data-testid={`input-form-cell-${rowIndex}-${columnIndex}`} />}
+                        {columnIndex === 0 ? <span className="flex min-h-10 items-center justify-center text-[11px] font-bold text-slate-500">{cell || rowIndex + 1}</span> : <span className="flex min-h-10 w-full min-w-[76px] items-center px-2 text-[11px] font-semibold text-slate-700" aria-label={`${headers[normalizedFormId][columnIndex]} dòng ${rowIndex + 1}`} data-testid={`text-form-cell-${rowIndex}-${columnIndex}`}>{cell || "—"}</span>}
                       </td>
                     ))}
                   </tr>
