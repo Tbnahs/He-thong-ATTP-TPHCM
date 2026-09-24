@@ -359,7 +359,7 @@ const regionalFacilities: RegionalFacility[] = [
     name: "Công ty TNHH Nông sản An Phú",
     type: "Đơn vị cung cấp thực phẩm",
     address: "184 Nguyễn Văn Linh, Quận 7",
-    status: "Đang hoạt động",
+    status: "Đã công bố",
   },
   {
     id: "regional-002",
@@ -375,7 +375,7 @@ const regionalFacilities: RegionalFacility[] = [
     name: "Trung tâm Kiểm nghiệm Nam Sài Gòn",
     type: "Cơ sở kiểm nghiệm",
     address: "56 Hoàng Diệu, Quận 4",
-    status: "Đang hoạt động",
+    status: "Đã công bố",
   },
   {
     id: "regional-004",
@@ -391,7 +391,7 @@ const regionalFacilities: RegionalFacility[] = [
     name: "HTX Cây ăn trái Long Hà",
     type: "Hợp tác xã",
     address: "Long Khánh, Đồng Nai",
-    status: "Đang hoạt động",
+    status: "Đã công bố",
   },
   {
     id: "regional-006",
@@ -399,7 +399,7 @@ const regionalFacilities: RegionalFacility[] = [
     name: "Công ty Thực phẩm sạch Thủ Đô",
     type: "Đơn vị cung cấp thực phẩm",
     address: "Cầu Giấy, Hà Nội",
-    status: "Đang hoạt động",
+    status: "Đã công bố",
   },
   {
     id: "regional-007",
@@ -415,7 +415,7 @@ const regionalFacilities: RegionalFacility[] = [
     name: "Cơ sở sản xuất Đặc sản Miền Trung",
     type: "Cơ sở sản xuất",
     address: "Hải Châu, Đà Nẵng",
-    status: "Đang hoạt động",
+    status: "Đã công bố",
   },
   {
     id: "regional-009",
@@ -431,7 +431,7 @@ const regionalFacilities: RegionalFacility[] = [
     name: "HTX Nông nghiệp Cát Hải",
     type: "Đơn vị cung cấp thực phẩm",
     address: "Cát Hải, Hải Phòng",
-    status: "Đang hoạt động",
+    status: "Đã công bố",
   },
   {
     id: "regional-011",
@@ -447,7 +447,7 @@ const regionalFacilities: RegionalFacility[] = [
     name: "Công ty TNHH Nông sản Xứ Nghệ",
     type: "Đơn vị cung cấp thực phẩm",
     address: "Vinh, Nghệ An",
-    status: "Đang hoạt động",
+    status: "Đã công bố",
   },
 ];
 const typeNames: Record<string, string> = {
