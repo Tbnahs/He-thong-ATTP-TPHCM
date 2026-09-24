@@ -3000,22 +3000,52 @@ function ApplicationForm({
     .sort((a, b) => a.order - b.order)
     .filter((group) => formFields.some((item) => item.groupId === group.id));
   const renderQuestion = (item: CriteriaDefinition) => (
-    <DynamicQuestion
-      item={item}
-      value={fields[item.key] ?? ""}
-      files={files.filter(
-        (file) =>
-          file.fieldKey === item.key ||
-          file.fieldKey?.startsWith(`${item.key}.`),
-      )}
-      suppliers={suppliers ?? []}
-      schools={schoolOptions}
-      onChange={(value) => update(item.key, value)}
-      onFiles={(event) => addFilesFor(item.key, event)}
-      onFilesFor={addFilesFor}
-      onRemoveFile={(name, fieldKey) => removeFile(name, fieldKey ?? item.key)}
-      showValidationErrors={submitAttempted}
-    />
+    <>
+      <DynamicQuestion
+        item={item}
+        value={fields[item.key] ?? ""}
+        files={files.filter(
+          (file) =>
+            file.fieldKey === item.key ||
+            file.fieldKey?.startsWith(`${item.key}.`),
+        )}
+        suppliers={suppliers ?? []}
+        schools={schoolOptions}
+        onChange={(value) => {
+          update(item.key, value);
+          if (
+            item.key === "mealModel" &&
+            value !== "Liên kết đơn vị suất ăn"
+          ) {
+            update("averageDailyMealDemand", "");
+          }
+        }}
+        onFiles={(event) => addFilesFor(item.key, event)}
+        onFilesFor={addFilesFor}
+        onRemoveFile={(name, fieldKey) =>
+          removeFile(name, fieldKey ?? item.key)
+        }
+        showValidationErrors={submitAttempted}
+      />
+      {type === "school" &&
+        item.key === "mealModel" &&
+        fields.mealModel === "Liên kết đơn vị suất ăn" && (
+          <div className="mt-5">
+            <Field
+              label="Nhu cầu suất ăn trung bình / 1 ngày *"
+              value={fields.averageDailyMealDemand as string | undefined}
+              onChange={(value) =>
+                update("averageDailyMealDemand", value)
+              }
+              test="input-average-daily-meal-demand"
+              type="number"
+              min={0}
+              step={1}
+              placeholder="Ví dụ: 500"
+            />
+          </div>
+        )}
+    </>
   );
   return (
     <div className="mx-auto max-w-4xl">
@@ -4193,11 +4223,7 @@ function SchoolFields({
           <SelectField
             label="Hình thức tổ chức bữa ăn *"
             value={fields.mealModel}
-            onChange={(v) => {
-              update("mealModel", v);
-              if (v !== "Liên kết đơn vị suất ăn")
-                update("averageDailyMealDemand", "");
-            }}
+            onChange={(v) => update("mealModel", v)}
             test="select-meal-model"
             options={[
               "Tự nấu",
@@ -4205,18 +4231,6 @@ function SchoolFields({
               "Thuê đơn vị nấu tại bếp trường",
             ]}
           />
-          {fields.mealModel === "Liên kết đơn vị suất ăn" && (
-            <Field
-              label="Nhu cầu suất ăn trung bình / 1 ngày *"
-              value={fields.averageDailyMealDemand as string | undefined}
-              onChange={(v) => update("averageDailyMealDemand", v)}
-              test="input-average-daily-meal-demand"
-              type="number"
-              min={0}
-              step={1}
-              placeholder="Ví dụ: 500"
-            />
-          )}
         </div>
         {fields.hasFoodSafetyLead === "Có" && (
           <div className="mt-4 grid gap-4 md:grid-cols-2">
