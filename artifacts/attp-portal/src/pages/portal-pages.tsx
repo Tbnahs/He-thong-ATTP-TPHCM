@@ -1137,7 +1137,6 @@ export function HomePage() {
             />
           </div>
         </section>
-        <HomeLookupSection />
       </main>
     </PublicShell>
   );
@@ -1179,70 +1178,6 @@ function HomeFeature({
         Khám phá <ArrowUpRight size={15} />
       </span>
     </Link>
-  );
-}
-
-function HomeLookupSection() {
-  const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<PublicRecord | null>(null);
-  const data = getPublicRecords(search, "eligible-facilities").slice(0, 3);
-
-  return (
-    <section className="border-y border-border bg-secondary/30">
-      <div className="mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-24">
-        <SectionHeading
-          eyebrow="Tra cứu nhanh"
-          title="Tìm thông tin công khai ngay trên trang tổng quan."
-          description="Nhập tên cơ sở để xem nhanh các kết quả mới nhất."
-          action={
-            <Link
-              href="/lookup"
-              className="inline-flex items-center gap-2 text-sm font-bold text-primary"
-            >
-              Xem toàn bộ dữ liệu <ArrowUpRight size={16} />
-            </Link>
-          }
-        />
-        <div className="rounded-[1.5rem] border border-primary/10 bg-card p-3 shadow-xl shadow-primary/5">
-          <div className="flex flex-col gap-3 rounded-2xl bg-secondary/40 p-2 lg:flex-row">
-            <label className="relative flex-1">
-              <Search
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
-                size={18}
-              />
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Tìm theo tên, địa chỉ..."
-                className="focus-ring h-12 w-full rounded-xl border border-input bg-background pl-11 pr-4 text-sm"
-                data-testid="input-home-public-search"
-              />
-            </label>
-          </div>
-        </div>
-        <div className="mt-6">
-          {data.length ? (
-            <div className="grid gap-3">
-              {data.map((item) => (
-                <RecordRow
-                  key={item.id}
-                  item={item}
-                  onOpen={() => setSelected(item)}
-                />
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              title="Chưa có kết quả phù hợp"
-              description="Thử một từ khóa khác."
-            />
-          )}
-        </div>
-        {selected && (
-          <RecordDialog record={selected} onClose={() => setSelected(null)} />
-        )}
-      </div>
-    </section>
   );
 }
 

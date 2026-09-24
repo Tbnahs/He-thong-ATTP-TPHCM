@@ -1557,19 +1557,6 @@ export function AdminMonitoringDashboard() {
       rows,
     );
   };
-  const currentCapacity =
-    activeTab === "suppliers"
-      ? summary.supplierCapacity
-      : activeTab === "schools"
-        ? summary.supplierDemand
-        : foodCapacity;
-  const currentDemand =
-    activeTab === "suppliers"
-      ? summary.supplierDemand
-      : activeTab === "schools"
-        ? summary.schoolDemand
-        : foodDemand;
-  const balance = currentCapacity - currentDemand;
   const formatNumber = (value: number) => value.toLocaleString("vi-VN");
   const closeDetail = () => {
     setSelectedSupplier(null);
@@ -2166,69 +2153,6 @@ export function AdminMonitoringDashboard() {
           )}
         </section>
 
-        <section className="mt-3 grid gap-3 lg:grid-cols-[1.3fr_.7fr]">
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="mono-label text-primary">CÂN BẰNG CUNG - CẦU</p>
-                <h2 className="mt-1 text-lg font-extrabold">
-                  Năng lực phục vụ tại {area}
-                </h2>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Công suất cung cấp so với nhu cầu suất ăn đang phục vụ.
-                </p>
-              </div>
-              <div className="rounded-xl bg-emerald-50 px-3 py-2 text-right text-emerald-700">
-                <p className="text-[10px] font-bold uppercase">Còn dư</p>
-                <p className="text-lg font-black">+{formatNumber(balance)}</p>
-              </div>
-            </div>
-            <div className="mt-5">
-              <div className="mb-2 flex justify-between text-xs font-bold text-muted-foreground">
-                <span>Công suất đang sử dụng</span>
-                <span>
-                {Math.round(
-                  (currentDemand / Math.max(1, currentCapacity)) * 100,
-                )}
-                %
-                </span>
-              </div>
-              <div className="h-4 overflow-hidden rounded-full bg-slate-100">
-                <div
-                  className="h-full rounded-full bg-primary"
-                  style={{
-                    width: `${Math.min(
-                      100,
-                      (currentDemand / Math.max(1, currentCapacity)) * 100,
-                    )}%`,
-                  }}
-                />
-              </div>
-              <div className="mt-2 flex justify-between text-[10px] text-muted-foreground">
-                <span>0 suất</span>
-                <span>{formatNumber(currentCapacity)} suất/ngày công suất</span>
-              </div>
-            </div>
-          </div>
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-            <p className="mono-label text-primary">TÓM TẮT LỌC</p>
-            <h2 className="mt-1 text-lg font-extrabold">Phạm vi đang xem</h2>
-            <div className="mt-4 grid gap-2 text-xs">
-              <div className="flex justify-between rounded-lg bg-secondary/60 px-3 py-2">
-                <span className="text-muted-foreground">Địa bàn</span>
-                <strong>{area}</strong>
-              </div>
-              <div className="flex justify-between rounded-lg bg-secondary/60 px-3 py-2">
-                <span className="text-muted-foreground">Phường/Xã</span>
-                <strong>{ward}</strong>
-              </div>
-              <div className="flex justify-between rounded-lg bg-secondary/60 px-3 py-2">
-                <span className="text-muted-foreground">Bản ghi mẫu</span>
-                <strong>{visibleRows.length}</strong>
-              </div>
-            </div>
-          </div>
-        </section>
       </div>
 
       {(selectedSupplier || selectedSchool || selectedFoodSupplier) && (

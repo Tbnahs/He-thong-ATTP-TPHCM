@@ -854,10 +854,15 @@ function InspectionMinuteForm({
   );
   const [note, setNote] = useState(initialMinute?.note ?? "");
   const [signature, setSignature] = useState(initialMinute?.signature ?? "");
+  const [validationMessage, setValidationMessage] = useState("");
   const totalMax = criteria.reduce((total, item) => total + item.weight, 0);
   const totalScore = criteria.reduce(
     (total, item) => total + Math.min(answers[item.id]?.score ?? 0, item.weight),
     0,
+  );
+  const missingRequiredCriteria = criteria.filter(
+    (item) =>
+      item.required && !String(answers[item.id]?.detail ?? "").trim(),
   );
   const calculatedScore =
     totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
@@ -874,17 +879,20 @@ function InspectionMinuteForm({
   const updateAnswer = (
     id: string,
     patch: Partial<{ detail: string; score: number; evidence: string[] }>,
-  ) =>
+  ) => {
+    setValidationMessage("");
     setAnswers((current) => ({
       ...current,
       [id]: { ...current[id], ...patch },
     }));
+  };
   const changeFacilityType = (nextType: FacilityType) => {
     setFacilityType(nextType);
     setFacility("");
     const nextCriteria = readCriteriaForType(nextType);
     setCriteria(nextCriteria);
     setAnswers(createAnswerMap(nextCriteria));
+    setValidationMessage("");
   };
   return (
     <Dialog
@@ -1025,6 +1033,11 @@ function InspectionMinuteForm({
                   <p className="mt-1 text-xs text-muted-foreground">
                     {item.description}
                   </p>
+                  {item.required && (
+                    <span className="mt-2 inline-flex rounded-full bg-red-100 px-2 py-1 text-[10px] font-extrabold text-red-800">
+                      Bắt buộc đánh giá
+                    </span>
+                  )}
                 </div>
                 <span className="rounded-lg bg-primary/10 px-2.5 py-1 font-mono text-xs font-extrabold text-primary">
                   Tối đa {item.weight} điểm
@@ -1033,11 +1046,13 @@ function InspectionMinuteForm({
               <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_150px]">
                 <label className="text-xs font-bold">
                   Chi tiết nội dung kiểm tra
+                  {item.required && <span className="text-destructive"> *</span>}
                   <textarea
                     value={answer.detail}
                     onChange={(event) =>
                       updateAnswer(item.id, { detail: event.target.value })
                     }
+                    required={item.required}
                     disabled={readOnly}
                     placeholder="Nhập nhận xét, kết quả kiểm tra thực tế..."
                     className="focus-ring mt-2 min-h-20 w-full rounded-xl border border-input bg-background p-3 text-sm font-normal"
@@ -1104,6 +1119,21 @@ function InspectionMinuteForm({
           })}
         </div>
       </div>
+      {validationMessage && (
+        <div
+          role="alert"
+          className="mt-4 flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-900"
+        >
+          <TriangleAlert className="mt-0.5 shrink-0" size={18} />
+          <span>{validationMessage}</span>
+        </div>
+      )}
+      {!readOnly && missingRequiredCriteria.length > 0 && (
+        <p className="mt-3 text-xs text-muted-foreground">
+          Còn {missingRequiredCriteria.length} tiêu chí bắt buộc chưa được nhập
+          nội dung đánh giá.
+        </p>
+      )}
       <div className={`mt-5 rounded-2xl p-4 ${resultMeta[result].className}`}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -1177,6 +1207,14 @@ function InspectionMinuteForm({
         {!readOnly && <Button
           onClick={() => {
             if (!facility.trim()) return;
+            if (missingRequiredCriteria.length > 0) {
+              setValidationMessage(
+                `Vui lòng đánh giá đầy đủ các tiêu chí bắt buộc: ${missingRequiredCriteria
+                  .map((item) => item.name)
+                  .join(", ")}.`,
+              );
+              return;
+            }
             onSave({
               id: initialMinute?.id ?? `minute-${Date.now()}`,
               reference:

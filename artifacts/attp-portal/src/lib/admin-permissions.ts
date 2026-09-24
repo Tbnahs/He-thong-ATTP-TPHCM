@@ -86,12 +86,19 @@ export const adminNavigationSections = [
 type AdminNavigationItem =
   (typeof adminNavigationSections)[number]["items"][number];
 
+const allAdminNavigationItems = adminNavigationSections.reduce<
+  AdminNavigationItem[]
+>((items, section) => {
+  items.push(...(section.items as readonly AdminNavigationItem[]));
+  return items;
+}, []);
+
 export type AdminMenuPermissionId = AdminNavigationItem["permissionId"];
 export type AdminMenuPermissions = Record<AdminMenuPermissionId, boolean>;
 
-export const adminPermissionIds = adminNavigationSections.flatMap((section) =>
-  section.items.map((item) => item.permissionId),
-) as AdminMenuPermissionId[];
+export const adminPermissionIds = allAdminNavigationItems.map(
+  (item) => item.permissionId,
+);
 
 export const ADMIN_SESSION_PERMISSIONS_KEY = "attp-admin-menu-permissions";
 
@@ -239,8 +246,8 @@ export function getAdminPermissionForPath(
 ): AdminMenuPermissionId | null {
   if (path.startsWith("/admin/applications/")) return "facilities";
 
-  const item = adminNavigationSections
-    .flatMap((section) => section.items)
+  const item = allAdminNavigationItems
+    .slice()
     .sort((left, right) => right.href.length - left.href.length)
     .find(
       ({ href }) => path === href || path.startsWith(`${href}/`),
