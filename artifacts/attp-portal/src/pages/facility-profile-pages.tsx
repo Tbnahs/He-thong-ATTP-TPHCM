@@ -1593,7 +1593,7 @@ export function FacilityProfileDetailPage() {
     ...(isSchool
       ? [{ id: "menus" as const, label: "Thực đơn và suất ăn", icon: Utensils }]
       : []),
-    ...(profile.applicationType !== "school"
+    ...(profile.applicationType === "meal-provider"
       ? [{ id: "outgoing" as const, label: "Cơ sở nhận hàng", icon: Truck }]
       : []),
     { id: "incidents", label: "Lịch sử cảnh báo ATTP", icon: ShieldAlert },

@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { Link, useLocation, useParams } from "wouter";
 import * as XLSX from "xlsx";
+import recipeIllustration from "@assets/0_List_Of_Nucleic_Acid_Foods_1788929888254.jpg";
 import {
   AdminShell,
   EmptyState,
@@ -867,7 +868,7 @@ type RecipeRecord = {
   code: string;
   school: string;
   ward: string;
-  type: "Lỏng" | "Mặn" | "Món cho trẻ";
+  type: "Lỏng";
   ingredients: string[];
   steps: string[];
   updatedAt: string;
@@ -898,7 +899,7 @@ const recipeRecords: RecipeRecord[] = [
     code: "MA-00218",
     school: "Trường Tiểu học Lê Lợi",
     ward: "Phường Bến Nghé",
-    type: "Mặn",
+    type: "Lỏng",
     ingredients: ["Thịt heo", "Trứng vịt", "Nước màu", "Hành tím"],
     steps: [
       "Sơ chế thịt, luộc trứng và bóc vỏ",
@@ -915,7 +916,7 @@ const recipeRecords: RecipeRecord[] = [
     code: "MA-00510",
     school: "Trường Mầm non Hoa Sen",
     ward: "Phường Sài Gòn",
-    type: "Món cho trẻ",
+    type: "Lỏng",
     ingredients: ["Gạo tẻ", "Thịt gà", "Cà rốt", "Bí xanh"],
     steps: [
       "Vo gạo, sơ chế thịt gà và rau củ",
@@ -4389,11 +4390,17 @@ function RecipeCard({
       <div
         className={`recipe-card__visual relative flex h-56 items-center justify-center overflow-hidden bg-gradient-to-br ${accentClasses[recipe.accent]}`}
       >
+        <img
+          src={recipeIllustration}
+          alt="Đĩa rau củ và nguyên liệu tươi minh họa cho món ăn"
+          className="absolute inset-0 h-full w-full object-cover opacity-[0.55] mix-blend-multiply"
+        />
+        <div
+          className="absolute inset-0 bg-gradient-to-br from-emerald-950/35 via-transparent to-orange-950/25"
+          aria-hidden="true"
+        />
         <div className="absolute -right-10 -top-14 h-44 w-44 rounded-full bg-white/45" />
         <div className="absolute -bottom-16 -left-8 h-44 w-44 rounded-full bg-white/35" />
-        <div className="relative flex h-28 w-28 items-center justify-center rounded-full border-8 border-white/70 bg-white/65 text-orange-500 shadow-xl backdrop-blur-sm">
-          <ChefHat size={62} strokeWidth={1.5} />
-        </div>
         <span className="absolute left-4 top-4 rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-extrabold uppercase tracking-[.05em] text-emerald-600">
           {recipe.type}
         </span>
@@ -4666,7 +4673,7 @@ export function AdminMealManagementPage({ page }: { page: MealPageKey }) {
                   label="Loại món ăn"
                   value={recipeType}
                   onChange={setRecipeType}
-                  options={["Tất cả loại món", "Lỏng", "Mặn", "Món cho trẻ"]}
+                  options={["Tất cả loại món", "Lỏng"]}
                 />
               </div>
               <div className="mt-5 flex justify-end">
