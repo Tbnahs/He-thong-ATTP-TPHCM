@@ -1586,10 +1586,6 @@ export function AdminMonitoringDashboard() {
                   cơ sở cung cấp thực phẩm theo từng xã/phường.
                 </p>
               </div>
-              <div className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-xs text-white/80">
-                <Clock3 size={14} />
-                Cập nhật dữ liệu: 08/09/2026
-              </div>
               <button
                 type="button"
                 onClick={exportDashboardExcel}
@@ -1655,13 +1651,6 @@ export function AdminMonitoringDashboard() {
                         : "Cơ sở cung cấp thực phẩm"}
                   </p>
                 </div>
-                <span className="rounded-full bg-secondary px-3 py-1 text-[11px] font-bold text-muted-foreground">
-                  {activeTab === "suppliers"
-                    ? "3 tiêu chí"
-                    : activeTab === "schools"
-                      ? "5 tiêu chí"
-                      : "4 tiêu chí"}
-                </span>
               </div>
             </div>
             {activeTab === "food" && (
