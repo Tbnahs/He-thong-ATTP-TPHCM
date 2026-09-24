@@ -27,6 +27,7 @@ import {
   AdminMonitoringDashboard,
 } from "@/pages/admin-module-pages";
 import { AdminAccountsPage } from "@/pages/account-management-page";
+import { AdminProfilePage } from "@/pages/account-profile-page";
 import { AdminReportsPage } from "@/pages/report-pages";
 import {
   FacilityIncidentDetailPage,
@@ -65,6 +66,11 @@ function Router() {
         <Route path="/news/:slug" component={NewsDetailPage} />
         <Route path="/register" component={RegisterPage} />
         <Route path="/admin/login" component={AdminLoginPage} />
+        <Route path="/admin/profile">
+          <AdminGuard>
+            <AdminProfilePage />
+          </AdminGuard>
+        </Route>
         <Route path="/admin">
           <AdminGuard>
             <AdminMonitoringDashboard />

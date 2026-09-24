@@ -231,8 +231,22 @@ export function findManagedAdminAccount(username: string) {
         : "ward";
 
     return {
+      id: String(account.id ?? ""),
+      organization: String(account.organization ?? ""),
+      unitType: String(account.unitType ?? ""),
+      managementLevel: String(account.managementLevel ?? ""),
+      province: String(account.province ?? ""),
+      ward: String(account.ward ?? ""),
+      oldLocality: String(account.oldLocality ?? ""),
+      responsibleName: String(account.responsibleName ?? ""),
+      position: String(account.position ?? ""),
+      phone: String(account.phone ?? ""),
+      email: String(account.email ?? ""),
+      username: String(account.username ?? normalizedUsername),
       role,
       status: String(account.status ?? ""),
+      password:
+        typeof account.password === "string" ? account.password : "",
       displayName: String(account.responsibleName || account.organization || ""),
       permissions: normalizeAdminPermissions(account.permissions, role),
     };
@@ -260,6 +274,7 @@ export function canAccessAdminPath(
   path: string,
   permissions: AdminMenuPermissions,
 ): boolean {
+  if (path === "/admin/profile") return true;
   const permissionId = getAdminPermissionForPath(path);
   return permissionId ? permissions[permissionId] : false;
 }

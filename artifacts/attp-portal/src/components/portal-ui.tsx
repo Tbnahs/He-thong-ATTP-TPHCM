@@ -27,6 +27,7 @@ import emblemPath from "../../../../.conversation/attached_assets/Emblem_of_Viet
 import {
   ADMIN_SESSION_PERMISSIONS_KEY,
   adminNavigationSections,
+  findManagedAdminAccount,
   getSessionAdminPermissions,
   type AdminMenuPermissionId,
 } from "@/lib/admin-permissions";
@@ -507,8 +508,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
       ),
     }))
     .filter((section) => section.items.length > 0);
-  const sessionName =
-    sessionStorage.getItem("attp-session-name") || "Trần Anh Tuấn";
+  const sessionUsername = sessionStorage.getItem("attp-session-username") || "";
+  const hasManagedAccount = Boolean(
+    sessionUsername && findManagedAdminAccount(sessionUsername),
+  );
   const logout = () => {
     sessionStorage.removeItem("attp-reviewer-session");
     sessionStorage.removeItem("attp-session-role");
@@ -615,7 +618,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           Phiên làm việc cán bộ
           <br />
           <span className="mt-1 inline-block font-semibold text-white/75">
-            {sessionName}
+            Admin
           </span>
         </div>
       </aside>
@@ -658,12 +661,25 @@ export function AdminShell({ children }: { children: ReactNode }) {
                 <Bell size={16} />
                 <span aria-hidden="true" />
               </button>
-              <div className="admin-shell__profile">
-                <div className="admin-shell__profile-copy">
-                  <strong>Trần Anh Tuấn</strong>
+              {hasManagedAccount ? (
+                <Link
+                  href="/admin/profile"
+                  className="admin-shell__profile focus-ring"
+                  data-testid="link-admin-profile"
+                  title="Hồ sơ tài khoản"
+                >
+                  <div className="admin-shell__profile-copy">
+                    <strong>Admin</strong>
+                    <span>Hồ sơ tài khoản</span>
+                  </div>
+                </Link>
+              ) : (
+                <div className="admin-shell__profile">
+                  <div className="admin-shell__profile-copy">
+                    <strong>Admin</strong>
+                  </div>
                 </div>
-               
-              </div>
+              )}
               <button
                 onClick={logout}
                 className="admin-shell__logout focus-ring hidden items-center gap-2 text-sm font-semibold text-slate-500 hover:text-destructive sm:flex"

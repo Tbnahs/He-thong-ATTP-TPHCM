@@ -2101,6 +2101,13 @@ export function AdminLoginPage() {
       setNotice("Tài khoản đang bị khóa. Vui lòng liên hệ quản trị viên.");
       return;
     }
+    if (
+      managedAdminAccount?.password &&
+      managedAdminAccount.password !== password
+    ) {
+      setNotice("Tên đăng nhập hoặc mật khẩu chưa đúng.");
+      return;
+    }
     const role = managedAdminAccount ? "admin" : inferAccountRole(username);
     const facilityAccount = readFacilityAccounts().find(
       (account) =>

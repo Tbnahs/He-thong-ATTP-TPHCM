@@ -61,6 +61,7 @@ type Account = {
   phone: string;
   email: string;
   username: string;
+  password?: string;
   role: AccountRole;
   status: AccountStatus;
   permissions: Record<PermissionId, boolean>;
@@ -817,6 +818,7 @@ export function AdminAccountsPage() {
       managedFacilities: existing?.managedFacilities || 0,
       lastLogin: existing?.lastLogin || "Chưa đăng nhập",
       status: existing?.status || "Đang hoạt động",
+      password: existing?.password,
       schools: existing?.schools || [],
     };
     setAccounts((current) =>
