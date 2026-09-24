@@ -432,14 +432,6 @@ const incidentSeverityClass: Record<Incident["severity"], string> = {
 const formatIncidentDate = (value: string) =>
   new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(value));
 
-function DeliveryStatus({ status }: { status: DeliveryRecord["status"] }) {
-  return (
-    <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${status === "Có sai lệch" ? "bg-amber-100 text-amber-900" : "bg-emerald-100 text-emerald-800"}`}>
-      {status}
-    </span>
-  );
-}
-
 function DeliveryHistoryTable({
   title,
   description,
@@ -475,7 +467,7 @@ function DeliveryHistoryTable({
         <div className="overflow-x-auto">
           <table className="w-full min-w-[850px] text-left text-sm">
             <thead className="bg-secondary/45 text-xs uppercase tracking-wide text-muted-foreground">
-              <tr><th className="px-5 py-3">Ngày / đơn hàng</th><th className="px-5 py-3">Loại</th><th className="px-5 py-3">Đối tác</th><th className="px-5 py-3">Điểm giao nhận</th><th className="px-5 py-3">Khối lượng</th><th className="px-5 py-3">Trạng thái</th></tr>
+              <tr><th className="px-5 py-3">Ngày / đơn hàng</th><th className="px-5 py-3">Loại</th><th className="px-5 py-3">Đối tác</th><th className="px-5 py-3">Điểm giao nhận</th><th className="px-5 py-3">Khối lượng</th></tr>
             </thead>
             <tbody className="divide-y divide-border">
               {deliveries.map((delivery) => (
@@ -485,7 +477,6 @@ function DeliveryHistoryTable({
                   <td className="px-5 py-4 font-semibold">{delivery.partner}</td>
                   <td className="px-5 py-4 text-muted-foreground">{delivery.destination}</td>
                   <td className="px-5 py-4 font-semibold">{delivery.quantity}</td>
-                  <td className="px-5 py-4"><DeliveryStatus status={delivery.status} /><p className="mt-1 text-[11px] text-muted-foreground">{delivery.sourceSystem}</p></td>
                 </tr>
               ))}
             </tbody>

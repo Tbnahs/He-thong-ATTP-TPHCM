@@ -6405,9 +6405,6 @@ export function AdminApplicationPage() {
   const [evaluation, setEvaluation] = useState<"" | "passed" | "failed">("");
   const [supplementNote, setSupplementNote] = useState("");
   const [notice, setNotice] = useState("");
-  const [checklist, setChecklist] = useState<
-    Record<string, "complete" | "missing" | "verify">
-  >({});
   useEffect(() => {
     if (!application) return;
     setEvaluation(
@@ -6442,7 +6439,6 @@ export function AdminApplicationPage() {
         ),
       ].sort((a, b) => a.order - b.order)
     : [];
-  const checklistItems = criteria.filter((item) => item.maxScore >= 0);
   const removePublishedRecord = () => {
     if (!application) return;
     const recordId = `application-${application.id}`;
@@ -6645,62 +6641,6 @@ export function AdminApplicationPage() {
                 </p>
               </div>
             )}
-          </div>
-        </section>
-        <section className="mt-6 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-          <p className="text-xs font-bold uppercase tracking-[.16em] text-[#16604f]">
-            PHẦN 02 · ĐỐI CHIẾU
-          </p>
-          <h2 className="mt-2 text-2xl font-extrabold text-slate-900">
-            Đối chiếu hồ sơ hệ thống và checklist
-          </h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-            Cán bộ đối chiếu từng nội dung với hồ sơ và dữ liệu hệ thống. Việc
-            đánh dấu không làm thay đổi thông tin cơ sở đã khai báo.
-          </p>
-          <div className="mt-6 space-y-3">
-            {checklistItems.map((item) => {
-              const current = checklist[item.key] ?? "verify";
-              return (
-                <div
-                  key={`check-${item.key}`}
-                  className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 lg:grid-cols-[minmax(0,1fr)_220px]"
-                >
-                  <div className="min-w-0">
-                    <p className="font-bold text-slate-800">{item.label}</p>
-                    <p className="mt-1 break-words text-sm text-slate-500">
-                      Khai báo:{" "}
-                      {formatApplicationAnswer(
-                        item,
-                        application.data ?? {},
-                        application.attachments,
-                      )}
-                    </p>
-                  </div>
-                  <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                    Kết quả đối chiếu
-                    <select
-                      value={current}
-                      onChange={(event) =>
-                        setChecklist((values) => ({
-                          ...values,
-                          [item.key]: event.target.value as
-                            | "complete"
-                            | "missing"
-                            | "verify",
-                        }))
-                      }
-                      className="focus-ring mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-slate-700"
-                      data-testid={`select-checklist-${item.key}`}
-                    >
-                      <option value="complete">Đã đầy đủ</option>
-                      <option value="missing">Còn thiếu</option>
-                      <option value="verify">Cần bổ sung / kiểm tra thêm</option>
-                    </select>
-                  </label>
-                </div>
-              );
-            })}
           </div>
         </section>
         <section className="mt-6 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">

@@ -3706,10 +3706,29 @@ export function AdminFacilityDetailPage() {
     application?.type ??
     row.storedAccount?.registration?.type ??
     getRowRegistrationType(row);
-  const formatDetailNumber = (value?: number) =>
-    typeof value === "number" && value > 0
-      ? new Intl.NumberFormat("vi-VN").format(value)
-      : "—";
+  const snapshotCriteria = application?.criteriaSnapshot ?? [];
+  const snapshotKeys = new Set(snapshotCriteria.map((item) => item.key));
+  const registrationCriteria = registrationType
+    ? [
+        ...snapshotCriteria,
+        ...getCriteriaSet(registrationType).criteria.filter(
+          (item) => !snapshotKeys.has(item.key),
+        ),
+      ]
+        .filter((item) => item.active)
+        .sort((a, b) => a.order - b.order)
+    : [];
+  const snapshotGroupIds = new Set(
+    (application?.criteriaGroups ?? []).map((group) => group.id),
+  );
+  const registrationGroups = registrationType
+    ? [
+        ...(application?.criteriaGroups ?? []),
+        ...getCriteriaSet(registrationType).groups.filter(
+          (group) => !snapshotGroupIds.has(group.id),
+        ),
+      ].sort((a, b) => a.order - b.order)
+    : [];
   const registrationFields =
     application?.data ??
     row.storedAccount?.registration?.fields ??
@@ -3734,157 +3753,6 @@ export function AdminFacilityDetailPage() {
     submittedAt: row.updated,
     isLinked: false,
   };
-  const registrationValue = (key: string) => {
-    const value = registrationFields[key];
-    if (Array.isArray(value)) return value.length ? formatManagementAnswer(value) : "";
-    return typeof value === "string" || typeof value === "number"
-      ? String(value).trim()
-      : "";
-  };
-  const detailFields = row.detailFields ?? [
-    {
-      label: "Mã cơ sở",
-      value: application?.reference ?? row.id,
-    },
-    {
-      label: "Mã số thuế",
-      value: registrationValue("taxCode") || "Chưa cập nhật",
-    },
-    {
-      label: "Người đại diện",
-      value:
-        registrationValue("representative") ||
-        registrationValue("contactPerson") ||
-        registrant.name ||
-        "Chưa cập nhật",
-    },
-    {
-      label: "Email hồ sơ",
-      value: registrant.email || "Chưa cập nhật",
-    },
-    {
-      label: "Giấy chứng nhận ATTP",
-      value: registrationValue("licenseNumber") || "Chưa cập nhật",
-    },
-    {
-      label: "Ngày cấp",
-      value:
-        registrationValue("licenseIssuedDate") ||
-        registrationValue("licenseIssueDate") ||
-        "Chưa cập nhật",
-    },
-    {
-      label: "Hồ sơ minh chứng",
-      value: registrationFiles.length
-        ? `Đủ ${registrationFiles.length} tệp`
-        : "Chưa cập nhật",
-    },
-  ];
-  const detailMissingFields = row.missingFields ?? [
-    !registrationValue("taxCode") && "Mã số thuế",
-    !(
-      registrationValue("representative") ||
-      registrationValue("contactPerson") ||
-      registrant.name
-    ) && "Người đại diện",
-    !registrationValue("licenseNumber") && "Giấy chứng nhận ATTP",
-    !registrationFiles.length && "Hồ sơ minh chứng",
-  ].filter((field): field is string => Boolean(field));
-  const detailIsComplete =
-    row.detailCompleteness === "complete" ||
-    !detailMissingFields.length;
-  const firstRegistrationValue = (...keys: string[]) =>
-    keys.map((key) => registrationValue(key)).find(Boolean) ?? "";
-  const deliveryVehicleSummary = Array.isArray(
-    registrationFields.deliveryVehicles,
-  )
-    ? registrationFields.deliveryVehicles
-        .map((vehicle) => {
-          if (typeof vehicle !== "object" || vehicle === null) return "";
-          const entry = vehicle as Record<string, unknown>;
-          return [entry.vehicleType, entry.ownershipType]
-            .filter((value): value is string => typeof value === "string" && Boolean(value))
-            .join(" · ");
-        })
-        .filter(Boolean)
-        .join(", ")
-    : "";
-  const basicDetailFields: Array<[string, string]> = [
-    [
-      "Tên cơ sở",
-      firstRegistrationValue("applicantName") || row.name,
-    ],
-    [
-      "Loại cơ sở",
-      registrationType ? getRegistrationCategory(registrationType) : "Chưa cập nhật",
-    ],
-    [
-      "Tỉnh/thành phố",
-      firstRegistrationValue("addressProvince") || row.province,
-    ],
-    ["Xã/phường", firstRegistrationValue("addressWard") || row.ward],
-    [
-      "Địa chỉ",
-      firstRegistrationValue("addressDetail", "address") || row.address,
-    ],
-    ["Số điện thoại", firstRegistrationValue("contact") || row.contact],
-  ];
-  if (registrationType === "school") {
-    basicDetailFields.push(
-      ["Cấp học", firstRegistrationValue("schoolLevel") || row.level || "—"],
-      [
-        "Hình thức tổ chức bữa ăn",
-        firstRegistrationValue("mealModel") || row.mealOrganization || "—",
-      ],
-      [
-        "Số học sinh",
-        firstRegistrationValue("students", "studentCount") ||
-          formatDetailNumber(row.students),
-      ],
-      [
-        "Nhu cầu suất ăn/ngày",
-        firstRegistrationValue("demand", "dailyDemand") ||
-          formatDetailNumber(row.demand),
-      ],
-    );
-  } else if (registrationType === "meal-provider") {
-    basicDetailFields.push(
-      [
-        "Tổng nhân viên chế biến",
-        firstRegistrationValue("staffTotal") || "—",
-      ],
-      [
-        "Công suất suất ăn/ngày",
-        firstRegistrationValue("dailyCapacity") ||
-          formatDetailNumber(row.capacity),
-      ],
-      [
-        "Số trường / đơn vị đang phục vụ",
-        firstRegistrationValue("servingUnits") || formatDetailNumber(row.serving),
-      ],
-      [
-        "Phương tiện giao suất ăn",
-        deliveryVehicleSummary ||
-          firstRegistrationValue("vehicleType") ||
-          "—",
-      ],
-    );
-  } else {
-    basicDetailFields.push(
-      [
-        "Nhóm sản phẩm",
-        firstRegistrationValue("productGroups") || row.category || "—",
-      ],
-      [
-        "Vùng trồng / nuôi / khai thác",
-        firstRegistrationValue("origin") || "—",
-      ],
-      [
-        "Truy xuất nguồn gốc",
-        firstRegistrationValue("traceability") || "—",
-      ],
-    );
-  }
   const submittedAt = application?.submittedAt
     ? new Intl.DateTimeFormat("vi-VN").format(new Date(application.submittedAt))
     : row.updated;
@@ -3971,47 +3839,64 @@ export function AdminFacilityDetailPage() {
           </div>
         </section>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_.8fr]">
-          <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
-            <p className="mono-label text-primary">HỒ SƠ CƠ SỞ</p>
-            <h2 className="mt-1 text-xl font-extrabold">Thông tin cơ bản</h2>
-            <dl className="mt-5 grid gap-x-6 gap-y-5 sm:grid-cols-2">
-              {basicDetailFields.map(([label, value]) => (
-                <div key={label}>
-                  <dt className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{label}</dt>
-                  <dd className="mt-1 text-sm font-bold">{value}</dd>
-                </div>
-              ))}
-            </dl>
-          </section>
-
-          <section className="rounded-2xl border border-primary/15 bg-secondary/30 p-5 sm:p-6">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="mono-label text-primary">ĐỐI CHIẾU HỒ SƠ</p>
-                <h2 className="mt-1 text-xl font-extrabold">Thông tin pháp lý</h2>
-              </div>
-                <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-extrabold ${detailIsComplete ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
-                 {detailIsComplete ? <CheckCircle2 size={14} /> : <TriangleAlert size={14} />}
-                 {detailIsComplete ? "Đủ thông tin" : "Chưa đủ thông tin"}
-              </span>
+        <section className="mt-6 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="mono-label text-primary">HỒ SƠ CƠ SỞ</p>
+              <h2 className="mt-1 text-xl font-extrabold">
+                Thông tin cơ sở đã khai báo
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Hiển thị đầy đủ theo đúng các nhóm và trường trong form đăng ký.
+              </p>
             </div>
-            <dl className="mt-5 space-y-4">
-              {detailFields.map((field) => (
-                <div key={field.label} className="flex items-start justify-between gap-4 border-b border-border/70 pb-3 last:border-0 last:pb-0">
-                  <dt className="text-xs font-semibold text-muted-foreground">{field.label}</dt>
-                  <dd className={`text-right text-sm font-bold ${field.value === "Chưa cập nhật" ? "text-amber-700" : ""}`}>{field.value}</dd>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-xs font-bold text-muted-foreground">
+              <CheckCircle2 size={14} className="text-emerald-600" />
+              {application ? `Đã tiếp nhận ${submittedAt}` : "Hồ sơ cơ sở"}
+            </span>
+          </div>
+          <div className="mt-5 space-y-7 rounded-2xl border border-border bg-background p-4 sm:p-6">
+            {registrationGroups.map((group) => {
+              const groupCriteria = registrationCriteria.filter(
+                (item) => item.groupId === group.id,
+              );
+              if (!groupCriteria.length) return null;
+              return (
+                <div key={group.id}>
+                  <h3 className="border-b border-border pb-2 text-sm font-extrabold text-primary">
+                    {group.name}
+                  </h3>
+                  <dl className="mt-3 grid gap-x-7 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
+                    {groupCriteria.map((item) => {
+                      const value =
+                        item.answerType === "file"
+                          ? registrationFiles
+                              .filter((file) => file.fieldKey === item.key)
+                              .map((file) => file.name)
+                              .join(", ") || "—"
+                          : formatManagementAnswer(registrationFields[item.key]);
+                      return (
+                        <div key={item.key} className="min-w-0">
+                          <dt className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                            {item.label}
+                          </dt>
+                          <dd className="mt-1.5 break-words text-sm font-bold">
+                            {value}
+                          </dd>
+                        </div>
+                      );
+                    })}
+                  </dl>
                 </div>
-              ))}
-            </dl>
-            {detailMissingFields.length ? (
-              <div className="mt-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-sm text-amber-900">
-                <Info size={17} className="mt-0.5 shrink-0" />
-                <p><strong>Còn thiếu:</strong> {detailMissingFields.join(", ")}.</p>
-              </div>
-            ) : null}
-          </section>
-        </div>
+              );
+            })}
+            {!registrationGroups.length && (
+              <p className="text-sm text-muted-foreground">
+                Chưa có cấu hình trường đăng ký cho loại cơ sở này.
+              </p>
+            )}
+          </div>
+        </section>
 
         <section className="mt-6 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
           <div className="flex items-start gap-3">
