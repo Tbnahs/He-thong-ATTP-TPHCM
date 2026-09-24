@@ -2793,7 +2793,11 @@ function ApplicationForm({
         ? answer.length === 0
         : !String(answer).trim();
     });
-    if (missing.length) {
+    const missingAverageDailyMealDemand =
+      type === "school" &&
+      fields.mealModel === "Liên kết đơn vị suất ăn" &&
+      !String(fields.averageDailyMealDemand ?? "").trim();
+    if (missing.length || missingAverageDailyMealDemand) {
       const missingSchoolRows =
         type === "meal-provider" && Array.isArray(fields.servingSchools)
           ? (fields.servingSchools as RepeatableValue)
@@ -2809,7 +2813,9 @@ function ApplicationForm({
               .map((row) => row.index + 1)
           : [];
       setNotice(
-        missingSchoolRows.length
+        missingAverageDailyMealDemand
+          ? "Vui lòng nhập nhu cầu suất ăn trung bình / 1 ngày."
+          : missingSchoolRows.length
           ? `Vui lòng bổ sung ít nhất 1 file minh chứng cho dòng trường: ${missingSchoolRows.join(", ")}.`
           : `Vui lòng hoàn thiện: ${missing
               .slice(0, 3)
@@ -3967,6 +3973,8 @@ function Field({
   placeholder,
   wide = false,
   hidden = false,
+  min,
+  step,
 }: {
   label: string;
   value?: string;
@@ -3976,6 +3984,8 @@ function Field({
   placeholder?: string;
   wide?: boolean;
   hidden?: boolean;
+  min?: number;
+  step?: number;
 }) {
   if (hidden) return null;
   return (
@@ -3986,6 +3996,8 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        min={min}
+        step={step}
         className="focus-ring h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
         data-testid={test}
       />
@@ -4181,7 +4193,11 @@ function SchoolFields({
           <SelectField
             label="Hình thức tổ chức bữa ăn *"
             value={fields.mealModel}
-            onChange={(v) => update("mealModel", v)}
+            onChange={(v) => {
+              update("mealModel", v);
+              if (v !== "Liên kết đơn vị suất ăn")
+                update("averageDailyMealDemand", "");
+            }}
             test="select-meal-model"
             options={[
               "Tự nấu",
@@ -4189,6 +4205,18 @@ function SchoolFields({
               "Thuê đơn vị nấu tại bếp trường",
             ]}
           />
+          {fields.mealModel === "Liên kết đơn vị suất ăn" && (
+            <Field
+              label="Nhu cầu suất ăn trung bình / 1 ngày *"
+              value={fields.averageDailyMealDemand as string | undefined}
+              onChange={(v) => update("averageDailyMealDemand", v)}
+              test="input-average-daily-meal-demand"
+              type="number"
+              min={0}
+              step={1}
+              placeholder="Ví dụ: 500"
+            />
+          )}
         </div>
         {fields.hasFoodSafetyLead === "Có" && (
           <div className="mt-4 grid gap-4 md:grid-cols-2">
