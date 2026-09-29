@@ -1716,13 +1716,6 @@ criteria.school = {
           options: ["Dưới 25.000 đồng", "Từ 25.000 đến 30.000 đồng", "Từ 30.000 đến 35.000 đồng", "Trên 35.000 đồng"],
           required: true,
         },
-        {
-          key: "formNumber",
-          label: "Mẫu thực hiện",
-          answerType: "select",
-          options: ["Mẫu số 01", "Mẫu số 02", "Mẫu số 03", "Mẫu số 04"],
-          required: true,
-        },
       ],
     }),
     formField("school", "linkedMealProviders", "Đơn vị cung cấp suất ăn (nếu có)", "school-group-2", "repeatable", 17.1, [], {
@@ -1735,17 +1728,10 @@ criteria.school = {
         { key: "deliverySchedule", label: "Thời điểm giao/nhận", answerType: "text" },
       ],
     }),
-    formField("school", "modelServiceDetails", "Thông tin đơn vị thực hiện theo từng mẫu", "school-group-2", "repeatable", 17.2, [], {
+    formField("school", "modelServiceDetails", "Thông tin đơn vị cung cấp dịch vụ (nếu có)", "school-group-2", "repeatable", 17.2, [], {
       required: false,
-      description: "Khai báo khi áp dụng Mẫu số 02, 03 hoặc 04; mỗi dòng tương ứng một đơn vị/dịch vụ tại một địa điểm.",
+      description: "Khai báo từng đơn vị thực hiện tại từng địa điểm. Mẫu chi tiết được hệ thống xác định tự động từ mô hình hoạt động.",
       repeatableFields: [
-        {
-          key: "formNumber",
-          label: "Mẫu thực hiện",
-          answerType: "select",
-          options: ["Mẫu số 01", "Mẫu số 02", "Mẫu số 03", "Mẫu số 04"],
-          required: true,
-        },
         { key: "organizationName", label: "Tên tổ chức/cá nhân/đơn vị thực hiện", answerType: "text", required: true },
         { key: "organizationAddress", label: "Địa chỉ", answerType: "text", required: true },
         { key: "taxCode", label: "Mã số doanh nghiệp/mã số thuế/mã định danh", answerType: "text" },
