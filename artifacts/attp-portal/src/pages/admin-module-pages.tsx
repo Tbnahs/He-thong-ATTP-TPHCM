@@ -666,7 +666,7 @@ const getRegistrationCategory = (type?: ApplicationType) =>
   type === "food-supplier"
     ? "Cơ sở cung cấp thực phẩm"
     : type === "meal-provider"
-      ? "Cơ sở cung cấp suất ăn"
+      ? "Cơ sở chế biến và cung cấp suất ăn"
       : "Cơ sở giáo dục";
 
 const getRowRegistrationType = (
@@ -674,7 +674,11 @@ const getRowRegistrationType = (
 ): ApplicationType | undefined => {
   if (!row) return undefined;
   if (row.category === "Cơ sở cung cấp thực phẩm") return "food-supplier";
-  if (row.category === "Cơ sở cung cấp suất ăn") return "meal-provider";
+  if (
+    row.category === "Cơ sở cung cấp suất ăn" ||
+    row.category === "Cơ sở chế biến và cung cấp suất ăn"
+  )
+    return "meal-provider";
   if (row.category === "Trường học có bếp ăn bán trú") return "school";
   const normalizedCategory = row.category?.toLowerCase() ?? "";
   if (normalizedCategory.includes("suất ăn")) return "meal-provider";
@@ -699,9 +703,12 @@ const getStoredRegistrationRows = (): FacilityManagementRow[] =>
   readStoredFacilityAccounts()
     .map((account, index): FacilityManagementRow | null => {
       const fields = account.registration?.fields ?? {};
-      const name = String(fields.applicantName ?? "").trim();
+      const name = String(
+        fields.applicantName || fields.facilityName || fields.legalName || "",
+      ).trim();
       if (!name) return null;
       const address = [
+        fields.addressMain || fields.facilityAddress || fields.headquartersAddress,
         fields.addressDetail,
         fields.addressWard,
         fields.addressProvince,
@@ -709,15 +716,21 @@ const getStoredRegistrationRows = (): FacilityManagementRow[] =>
         .map((value) => String(value ?? "").trim())
         .filter(Boolean)
         .join(", ");
+      const contact =
+        fields.contact ||
+        fields.foodSafetyContactPhone ||
+        (Array.isArray(fields.foodSafetyContacts)
+          ? (fields.foodSafetyContacts[0] as { phone?: string } | undefined)?.phone
+          : undefined);
       return {
         id: `stored-application-${account.username ?? account.email ?? index}`,
         name,
-        province: String(fields.addressProvince ?? "TP. Hồ Chí Minh"),
+        province: String(fields.addressProvince || "TP. Hồ Chí Minh"),
         ward: String(fields.addressWard ?? "—"),
         address: address || "—",
-        contact: String(fields.contact ?? "—"),
+        contact: String(contact ?? "—"),
         status: "pending",
-        capacity: 0,
+        capacity: Number(fields.totalCapacity || fields.studentTotal || 0),
         category: getRegistrationCategory(account.registration?.type),
         updated: account.registration?.submittedAt
           ? new Intl.DateTimeFormat("vi-VN").format(

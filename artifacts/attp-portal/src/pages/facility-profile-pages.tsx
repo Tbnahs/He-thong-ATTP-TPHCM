@@ -116,8 +116,8 @@ type FacilityProfile = {
 };
 
 const categoryLabels: Record<ApplicationType, string> = {
-  "food-supplier": "Cơ sở cung cấp thực phẩm",
-  "meal-provider": "Cơ sở cung cấp suất ăn",
+  "food-supplier": "Cơ sở cung cấp thực phẩm (hồ sơ cũ)",
+  "meal-provider": "Cơ sở chế biến và cung cấp suất ăn",
   school: "Cơ sở giáo dục",
 };
 
@@ -135,6 +135,7 @@ const schoolAddresses: Record<string, string> = {
 
 const getSchoolMealOrganization = (
   value: unknown,
+  operatingModels?: unknown,
 ): SchoolMealOrganization | undefined => {
   if (
     value === "Tự nấu" ||
@@ -143,6 +144,10 @@ const getSchoolMealOrganization = (
   ) {
     return value;
   }
+  const firstModel = readRows(operatingModels)[0]?.model;
+  if (firstModel === "BATT tự tổ chức") return "Tự nấu";
+  if (firstModel === "BATT hợp đồng") return "Thuê đơn vị nấu tại bếp trường";
+  if (firstModel === "Nhận suất ăn sẵn") return "Liên kết đơn vị suất ăn";
   return undefined;
 };
 
@@ -351,18 +356,30 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
   const category = categoryLabels[type];
   const mealOrganization =
     type === "school"
-      ? getSchoolMealOrganization(fields.mealModel)
+      ? getSchoolMealOrganization(fields.mealModel, fields.operatingModels)
       : undefined;
   const personInCharge =
-    String(fields.foodSafetyManagerName || fields.foodSafetyLeadName || "Chưa khai báo");
+    String(
+      fields.foodSafetyManagerName ||
+        fields.foodSafetyLeadName ||
+        readRows(fields.foodSafetyContacts)[0]?.name ||
+        fields.foodSafetyContactName ||
+        "Chưa khai báo",
+    );
   const capacity =
     type === "meal-provider"
-      ? `${displayValue(fields.dailyCapacity)} suất/ngày`
-      : `${readRows(fields.products).length || 1} nhóm sản phẩm`;
+      ? `${displayValue(fields.totalCapacity || fields.dailyCapacity)} suất/ngày`
+      : type === "school"
+        ? `${displayValue(fields.studentTotal)} học sinh · ${displayValue(readRows(fields.operatingModels)[0]?.capacity)} suất/ngày`
+        : `${readRows(fields.products).length || 1} nhóm sản phẩm`;
   const products = readRows(fields.products).map((row) => String(row.name || row.category || "Sản phẩm đã khai báo"));
-  const supplierRows = readRows(fields.suppliers);
+  const supplierRows = readRows(fields.suppliers).length
+    ? readRows(fields.suppliers)
+    : readRows(fields.ingredientSuppliers);
   const suppliedRows = readRows(fields.suppliedUnits);
-  const schoolRows = readRows(fields.servingSchools);
+  const schoolRows = readRows(fields.servingSchools).length
+    ? readRows(fields.servingSchools)
+    : readRows(fields.suppliedUnits);
   const linkedMealProviderRows = readRows(fields.linkedMealProviders);
   const relatedFacilities: RelatedFacility[] =
     type === "meal-provider"
@@ -375,16 +392,20 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
           })),
           ...schoolRows.map((row, rowIndex) => ({
             facilityId: `school-${application.id}-${rowIndex}`,
-            relationship: "Trường học đang phục vụ",
+            relationship: String(row.target || "Đơn vị nhận suất ăn"),
             suppliedItems: ["Suất ăn theo hợp đồng"],
             direction: "Cung cấp" as const,
           })),
         ]
-      : suppliedRows.map((row, rowIndex) => ({
+      : supplierRows.map((row, rowIndex) => ({
           facilityId: `unit-${application.id}-${rowIndex}`,
-          relationship: String(row.unitType || "Đơn vị tiếp nhận"),
-          suppliedItems: products.length ? products : ["Thực phẩm đã khai báo"],
-          direction: "Cung cấp" as const,
+          relationship: "Nhà cung cấp nguyên liệu",
+          suppliedItems: Array.isArray(row.productGroups)
+            ? row.productGroups.map(String)
+            : products.length
+              ? products
+              : ["Nguyên liệu thực phẩm"],
+          direction: "Xuất hàng" as const,
         }));
 
   const registrationFields = completeCriteria(application)
@@ -438,7 +459,7 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
           const customerName =
             schoolLabels[schoolId] ||
             String(row.name || "Đơn vị nhận suất ăn");
-          const totalMeals = `${displayValue(fields.dailyCapacity)} suất`;
+          const totalMeals = `${displayValue(fields.totalCapacity || fields.dailyCapacity || row.quantity)} suất`;
           return {
             id: `delivery-${application.id}-out-${rowIndex}`,
             date,
@@ -1551,7 +1572,7 @@ export function FacilityProfilesPage() {
         <section className="mt-6 rounded-2xl border border-border bg-card p-4 shadow-sm">
           <div className="grid gap-3 lg:grid-cols-[1fr_280px]">
             <label className="relative block"><span className="sr-only">Tìm cơ sở</span><Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm theo tên, mã số thuế hoặc địa chỉ..." className="h-11 w-full rounded-xl border border-input bg-background pl-10 pr-3 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10" /></label>
-            <select value={category} onChange={(event) => setCategory(event.target.value)} className="h-11 rounded-xl border border-input bg-background px-3 text-sm font-semibold outline-none focus:border-primary" aria-label="Lọc theo loại hình"><option>Tất cả loại hình</option><option>Cơ sở cung cấp thực phẩm</option><option>Cơ sở cung cấp suất ăn</option><option>Cơ sở giáo dục</option></select>
+           <select value={category} onChange={(event) => setCategory(event.target.value)} className="h-11 rounded-xl border border-input bg-background px-3 text-sm font-semibold outline-none focus:border-primary" aria-label="Lọc theo loại hình"><option>Tất cả loại hình</option><option>Cơ sở cung cấp thực phẩm (hồ sơ cũ)</option><option>Cơ sở chế biến và cung cấp suất ăn</option><option>Cơ sở giáo dục</option></select>
           </div>
         </section>
          <section className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">

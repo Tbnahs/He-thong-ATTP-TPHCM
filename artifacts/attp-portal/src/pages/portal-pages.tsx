@@ -457,14 +457,13 @@ const regionalFacilities: RegionalFacility[] = [
   },
 ];
 const typeNames: Record<string, string> = {
-  "food-supplier": "Đơn vị cung cấp thực phẩm",
-  "meal-provider": "Đơn vị cung cấp suất ăn",
+  "food-supplier": "Đơn vị cung cấp thực phẩm (hồ sơ cũ)",
+  "meal-provider": "Cơ sở chế biến và cung cấp suất ăn",
   school: "Cơ sở giáo dục",
 };
 const facilityTypeOptions: { value: ApplicationType; label: string }[] = [
-  { value: "food-supplier", label: "Cung cấp thực phẩm" },
-  { value: "meal-provider", label: "Cung cấp suất ăn" },
   { value: "school", label: "Cơ sở giáo dục" },
+  { value: "meal-provider", label: "Cơ sở chế biến và cung cấp suất ăn" },
 ];
 const addressProvinceOptions = [
   "TP. Hồ Chí Minh",
@@ -1286,8 +1285,8 @@ export function LookupPage() {
 }
 
 const publicRecordTypeLabels: Record<ApplicationType, string> = {
-  "food-supplier": "Đơn vị cung cấp thực phẩm",
-  "meal-provider": "Đơn vị cung cấp suất ăn",
+  "food-supplier": "Đơn vị cung cấp thực phẩm (hồ sơ cũ)",
+  "meal-provider": "Cơ sở chế biến và cung cấp suất ăn",
   school: "Cơ sở giáo dục",
 };
 
@@ -2590,7 +2589,7 @@ function FacilityProfileEditor() {
   );
   const fallbackApplication = applications[0];
   const initialSnapshot: RegistrationSnapshot = account?.registration || {
-    type: fallbackApplication?.type || "food-supplier",
+    type: fallbackApplication?.type || "school",
     fields: (fallbackApplication?.data || {}) as Record<string, CriteriaValue>,
     files: fallbackApplication?.attachments || [],
     submittedAt: "",
@@ -2623,7 +2622,7 @@ function ApplicationForm({
   initialSnapshot?: RegistrationSnapshot;
 }) {
   const [type, setType] = useState<ApplicationType>(
-    initialSnapshot?.type || "food-supplier",
+    initialSnapshot?.type || "school",
   );
   const [fields, setFields] = useState<Record<string, CriteriaValue>>(
     initialSnapshot?.fields || {},
@@ -2790,9 +2789,11 @@ function ApplicationForm({
           .map((file) => file.name);
       });
     if (type === "meal-provider") {
-      const vehicleRows = Array.isArray(fields.deliveryVehicles)
-        ? (fields.deliveryVehicles as RepeatableValue)
-        : [];
+      const vehicleRows = Array.isArray(fields.transportVehicles)
+        ? (fields.transportVehicles as RepeatableValue)
+        : Array.isArray(fields.deliveryVehicles)
+          ? (fields.deliveryVehicles as RepeatableValue)
+          : [];
       const vehicleTypes = vehicleRows
         .map((row) => row.vehicleType)
         .filter((value): value is string => typeof value === "string" && Boolean(value));
@@ -2807,12 +2808,19 @@ function ApplicationForm({
         ),
       ];
       data.deliveryVehicles = vehicleRows;
+      data.transportVehicles = vehicleRows;
       data.vehicleType = vehicleTypes;
       data.ownershipType =
         ownershipTypes.length === 1 ? ownershipTypes[0] : ownershipTypes;
       const schoolRows = Array.isArray(fields.servingSchools)
         ? (fields.servingSchools as RepeatableValue)
-        : [];
+        : Array.isArray(fields.suppliedUnits)
+          ? (fields.suppliedUnits as RepeatableValue).map((row) => ({
+              ...row,
+              name: row.unitName,
+              address: row.unitAddress,
+            }))
+          : [];
       data.servingSchools = schoolRows.map((row, index) => ({
         ...row,
         evidenceFiles: files
@@ -2828,19 +2836,48 @@ function ApplicationForm({
       }
       return "";
     };
+    const firstRowText = (key: string, field: string) => {
+      const rows = Array.isArray(fields[key])
+        ? (fields[key] as RepeatableValue)
+        : [];
+      const value = rows[0]?.[field];
+      return typeof value === "string" || typeof value === "number"
+        ? String(value)
+        : "";
+    };
+    const applicantName =
+      asText(fields.applicantName) ||
+      asText(fields.facilityName) ||
+      asText(fields.legalName);
+    const address =
+      type === "school"
+        ? asText(fields.addressMain) || asText(fields.addressDetail)
+        : asText(fields.facilityAddress) ||
+          asText(fields.headquartersAddress) ||
+          asText(fields.addressDetail);
+    const contact =
+      type === "meal-provider"
+        ? asText(fields.foodSafetyContactPhone) || asText(fields.contact)
+        : firstRowText("foodSafetyContacts", "phone") ||
+          asText(fields.contact);
+    const email =
+      type === "meal-provider"
+        ? asText(fields.foodSafetyContactEmail) || asText(fields.email)
+        : firstRowText("foodSafetyContacts", "email") || asText(fields.email);
     const input: ApplicationInput = {
       type,
-      applicantName: asText(fields.applicantName),
-      address: [
-        asText(fields.addressDetail),
-        asText(fields.addressWard),
-        asText(fields.addressProvince),
-      ]
-        .filter(Boolean)
-        .join(", "),
-      contact: asText(fields.contact),
+      applicantName,
+      address,
+      contact,
       criteriaVersion: formSet?.version ?? "",
-      isThirdParty: type === "school" && fields.mealModel !== "Tự nấu",
+      isThirdParty:
+        type === "school" &&
+        (fields.mealModel !== undefined
+          ? fields.mealModel !== "Tự nấu"
+          : Array.isArray(fields.operatingModels) &&
+            (fields.operatingModels as RepeatableValue).some(
+              (row) => row.model !== "BATT tự tổ chức",
+            )),
       data,
       attachments: files,
     };
@@ -2851,9 +2888,9 @@ function ApplicationForm({
       submittedAt: new Date().toISOString().slice(0, 10),
     };
     if (mode === "register") {
-      const email = asText(fields.email).trim().toLowerCase();
+      const accountEmail = email.trim().toLowerCase();
       const accountRecord: FacilityAccount = {
-        email,
+        email: accountEmail,
         password: "",
         username: `application-${Date.now()}`,
         registration: snapshot,
@@ -2865,13 +2902,13 @@ function ApplicationForm({
               .map((row) => row.schoolId)
               .filter((schoolId): schoolId is string => typeof schoolId === "string")
           : [];
-        saveMealProviderSchoolLinks(email, schoolIds);
+        saveMealProviderSchoolLinks(accountEmail, schoolIds);
       }
       if (type === "school") {
         const providerRows = Array.isArray(fields.linkedMealProviders)
           ? (fields.linkedMealProviders as RepeatableValue)
           : [];
-        saveSchoolMealProviderLinks(asText(fields.applicantName), providerRows);
+        saveSchoolMealProviderLinks(applicantName, providerRows);
       }
     } else if (account) {
       saveFacilityAccounts(
@@ -3017,7 +3054,7 @@ function ApplicationForm({
         }
         description={
           mode === "register"
-            ? "Chọn đúng loại cơ sở để điền biểu mẫu tương ứng. Mỗi loại cơ sở có bộ câu hỏi cố định riêng; không cần tạo tài khoản đăng nhập."
+            ? "Chọn đúng nhóm đối tượng để kê khai theo Phiếu khảo sát và cung cấp thông tin đã được ban hành."
             : "Biểu mẫu dưới đây được nạp lại từ đúng thông tin bạn đã điền khi đăng ký."
         }
       />
@@ -3038,9 +3075,15 @@ function ApplicationForm({
             className="focus-ring mt-2 h-12 w-full rounded-xl border border-input bg-background px-4 text-sm font-semibold"
             data-testid="select-registration-type"
           >
-            <option value="food-supplier">Đơn vị cung cấp thực phẩm</option>
-            <option value="meal-provider">Đơn vị cung cấp suất ăn</option>
             <option value="school">Cơ sở giáo dục</option>
+            <option value="meal-provider">
+              Cơ sở chế biến và cung cấp suất ăn
+            </option>
+            {type === "food-supplier" && (
+              <option value="food-supplier">
+                Đơn vị cung cấp thực phẩm (hồ sơ cũ)
+              </option>
+            )}
           </select>
         </div>
         {groups.map((group) => (
@@ -4558,7 +4601,7 @@ export function AdminDashboard() {
 }
 
 export function AdminCriteriaPage() {
-  const [type, setType] = useState<ApplicationType>("food-supplier");
+  const [type, setType] = useState<ApplicationType>("school");
   const criteriaSet = getCriteriaSet(type);
   const history = criteriaHistory[type];
   const [groups, setGroups] = useState<CriteriaGroup[]>([]);
@@ -4795,9 +4838,8 @@ export function AdminCriteriaPage() {
               Loại hình
             </span>
             {[
-              ["food-supplier", "Cung cấp thực phẩm"],
-              ["meal-provider", "Cung cấp suất ăn"],
               ["school", "Cơ sở giáo dục"],
+              ["meal-provider", "Cơ sở chế biến và cung cấp suất ăn"],
             ].map(([value, label]) => (
               <button
                 key={value}
