@@ -3738,6 +3738,7 @@ function RepeatableQuestion({
                         />
                       );
                     }
+                    const selectPlaceholder = `Chọn ${field.label.toLowerCase()}`;
                     return (
                       <label key={field.key} className="block">
                         <span className="mb-2 block text-sm font-semibold">
@@ -3758,7 +3759,7 @@ function RepeatableQuestion({
                           className="focus-ring h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
                           data-testid={`input-criteria-${fieldKey}`}
                         >
-                          <option value="">Chọn trường từ danh sách đã đăng ký</option>
+                          <option value="">{selectPlaceholder}</option>
                           {options.map((option, optionIndex) => (
                             <option
                               key={optionValues[optionIndex]}
