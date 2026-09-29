@@ -2404,7 +2404,9 @@ function LegacyFacilityProfilePage() {
                 label="Chọn Xã / Phường *"
                 value={profile.addressWard}
                 onChange={(value) => update("addressWard", value)}
-                options={addressWardOptions}
+                options={getAddressWardOptions(profile.addressProvince).map(
+                  (ward) => ward.label,
+                )}
                 test="select-facility-address-ward"
               />
               <Field
@@ -3577,6 +3579,52 @@ function RepeatableQuestion({
       ? (value as Record<string, string | string[]>[])
       : [];
   const fields = item.repeatableFields ?? [];
+  const rowLabel =
+    item.key === "products"
+      ? "Sản phẩm"
+      : item.key === "servingSchools"
+        ? "Trường học"
+        : item.key === "suppliedUnits"
+          ? "Đơn vị nhận suất ăn"
+          : item.key === "linkedMealProviders"
+            ? "Đơn vị suất ăn"
+            : item.key === "modelServiceDetails"
+              ? "Đơn vị/mẫu dịch vụ"
+              : item.key === "rawStorageInventory"
+                ? "Thiết bị bảo quản nguyên liệu"
+                : item.key === "foodStorageInventory"
+                  ? "Thiết bị bảo quản thực phẩm"
+                  : item.key === "sinkInventory"
+                    ? "Bồn rửa"
+                    : item.key === "cookingUtensilInventory"
+                      ? "Dụng cụ chế biến"
+                      : item.key === "stoveInventory"
+                        ? "Thiết bị nấu nướng"
+                        : item.key === "sampleStorageDetails"
+                          ? "Thông tin lưu mẫu"
+                          : item.key === "waterTestingDetails"
+                            ? "Nguồn nước"
+                            : "Nhà cung cấp";
+  const addLabel =
+    item.key === "products"
+      ? "sản phẩm"
+      : item.key === "servingSchools"
+        ? "trường"
+        : item.key === "suppliedUnits"
+          ? "đơn vị"
+          : item.key === "linkedMealProviders"
+            ? "đơn vị suất ăn"
+            : item.key === "modelServiceDetails"
+              ? "đơn vị/mẫu"
+              : item.key === "rawStorageInventory" ||
+                  item.key === "foodStorageInventory" ||
+                  item.key === "sinkInventory" ||
+                  item.key === "cookingUtensilInventory" ||
+                  item.key === "stoveInventory" ||
+                  item.key === "sampleStorageDetails" ||
+                  item.key === "waterTestingDetails"
+                ? "dòng"
+                : "nhà cung cấp";
   const updateRow = (
     rowIndex: number,
     key: string,
@@ -3612,16 +3660,7 @@ function RepeatableQuestion({
           onClick={addRow}
           data-testid={`button-add-${item.key}`}
         >
-          <Plus size={14} /> Thêm{" "}
-          {item.key === "products"
-            ? "sản phẩm"
-            : item.key === "servingSchools"
-              ? "trường"
-              : item.key === "suppliedUnits"
-                ? "đơn vị"
-                : item.key === "linkedMealProviders"
-                  ? "đơn vị suất ăn"
-              : "nhà cung cấp"}
+          <Plus size={14} /> Thêm {addLabel}
         </Button>
       </div>
       {rows.length === 0 && (
@@ -3646,11 +3685,7 @@ function RepeatableQuestion({
           >
             <div className="mb-4 flex items-center justify-between gap-3">
               <p className="text-sm font-bold">
-                {item.key === "products"
-                  ? "Sản phẩm"
-                  : item.key === "servingSchools"
-                    ? "Trường học"
-                    : "Nhà cung cấp"}{" "}
+                {rowLabel}{" "}
                 {rowIndex + 1}
               </p>
               <button
@@ -3731,6 +3766,52 @@ function RepeatableQuestion({
                         </div>
                       ))}
                     </div>
+                  );
+                }
+                if (field.answerType === "multi-select") {
+                  const selected = Array.isArray(fieldValue)
+                    ? fieldValue.filter(
+                        (entry): entry is string => typeof entry === "string",
+                      )
+                    : typeof fieldValue === "string" && fieldValue
+                      ? [fieldValue]
+                      : [];
+                  return (
+                    <fieldset key={field.key} className="block">
+                      <legend className="mb-2 block text-sm font-semibold">
+                        {field.label}
+                        {field.required && (
+                          <span className="text-destructive"> *</span>
+                        )}
+                      </legend>
+                      <div className="grid gap-2 rounded-xl border border-input bg-background p-3">
+                        {(field.options ?? []).map((option) => (
+                          <label
+                            key={option}
+                            className="flex cursor-pointer items-center gap-2 text-sm"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selected.includes(option)}
+                              onChange={(event) =>
+                                updateRow(
+                                  rowIndex,
+                                  field.key,
+                                  event.target.checked
+                                    ? [...selected, option]
+                                    : selected.filter(
+                                        (current) => current !== option,
+                                      ),
+                                )
+                              }
+                              className="h-4 w-4 accent-primary"
+                              data-testid={`input-criteria-${fieldKey}-${option}`}
+                            />
+                            <span>{option}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
                   );
                 }
                 if (
