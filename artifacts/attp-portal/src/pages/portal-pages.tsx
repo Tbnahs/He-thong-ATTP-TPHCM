@@ -457,13 +457,14 @@ const regionalFacilities: RegionalFacility[] = [
   },
 ];
 const typeNames: Record<string, string> = {
-  "food-supplier": "Đơn vị cung cấp thực phẩm (hồ sơ cũ)",
+  "food-supplier": "Cơ sở cung cấp thực phẩm",
   "meal-provider": "Cơ sở chế biến và cung cấp suất ăn",
   school: "Cơ sở giáo dục",
 };
 const facilityTypeOptions: { value: ApplicationType; label: string }[] = [
   { value: "school", label: "Cơ sở giáo dục" },
   { value: "meal-provider", label: "Cơ sở chế biến và cung cấp suất ăn" },
+  { value: "food-supplier", label: "Cơ sở cung cấp thực phẩm" },
 ];
 const addressProvinceOptions = [
   "TP. Hồ Chí Minh",
@@ -1285,7 +1286,7 @@ export function LookupPage() {
 }
 
 const publicRecordTypeLabels: Record<ApplicationType, string> = {
-  "food-supplier": "Đơn vị cung cấp thực phẩm (hồ sơ cũ)",
+  "food-supplier": "Cơ sở cung cấp thực phẩm",
   "meal-provider": "Cơ sở chế biến và cung cấp suất ăn",
   school: "Cơ sở giáo dục",
 };
@@ -3079,11 +3080,7 @@ function ApplicationForm({
             <option value="meal-provider">
               Cơ sở chế biến và cung cấp suất ăn
             </option>
-            {type === "food-supplier" && (
-              <option value="food-supplier">
-                Đơn vị cung cấp thực phẩm (hồ sơ cũ)
-              </option>
-            )}
+            <option value="food-supplier">Cơ sở cung cấp thực phẩm</option>
           </select>
         </div>
         {groups.map((group) => (
