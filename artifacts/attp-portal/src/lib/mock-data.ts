@@ -178,25 +178,118 @@ const groupList = (type: ApplicationType, names: string[]) =>
     name,
     order: index + 1,
   }));
-const addressProvinceOptions = [
-  "TP. Hồ Chí Minh",
-  "Hà Nội",
-  "Đà Nẵng",
-  "Hải Phòng",
-  "Cần Thơ",
-  "Huế",
+export type AddressWardOption = {
+  code: string;
+  label: string;
+  latitude: number;
+  longitude: number;
+};
+
+export type AddressLocationOption = {
+  code: string;
+  label: string;
+  latitude: number;
+  longitude: number;
+  wards: AddressWardOption[];
+};
+
+export const addressLocationOptions: AddressLocationOption[] = [
+  {
+    code: "ho_chi_minh",
+    label: "TP. Hồ Chí Minh",
+    latitude: 10.7769,
+    longitude: 106.7009,
+    wards: [
+      { code: "ben_nghe", label: "Phường Bến Nghé", latitude: 10.7796, longitude: 106.7043 },
+      { code: "tan_dinh", label: "Phường Tân Định", latitude: 10.7937, longitude: 106.6915 },
+      { code: "da_kao", label: "Phường Đa Kao", latitude: 10.7901, longitude: 106.6991 },
+      { code: "nguyen_thai_binh", label: "Phường Nguyễn Thái Bình", latitude: 10.7697, longitude: 106.7004 },
+      { code: "cau_ong_lanh", label: "Phường Cầu Ông Lãnh", latitude: 10.7629, longitude: 106.6953 },
+      { code: "tan_phong", label: "Phường Tân Phong", latitude: 10.7351, longitude: 106.7175 },
+      { code: "cu_chi", label: "Xã Củ Chi", latitude: 10.9733, longitude: 106.4936 },
+      { code: "hoc_mon", label: "Xã Hóc Môn", latitude: 10.8897, longitude: 106.5951 },
+    ],
+  },
+  {
+    code: "ha_noi",
+    label: "Hà Nội",
+    latitude: 21.0285,
+    longitude: 105.8542,
+    wards: [
+      { code: "ba_dinh", label: "Phường Ba Đình", latitude: 21.0357, longitude: 105.8342 },
+      { code: "hoan_kiem", label: "Phường Hoàn Kiếm", latitude: 21.0287, longitude: 105.8525 },
+      { code: "cau_giay", label: "Phường Cầu Giấy", latitude: 21.0304, longitude: 105.7932 },
+      { code: "dong_da", label: "Phường Đống Đa", latitude: 21.0142, longitude: 105.8272 },
+    ],
+  },
+  {
+    code: "da_nang",
+    label: "Đà Nẵng",
+    latitude: 16.0544,
+    longitude: 108.2022,
+    wards: [
+      { code: "hai_chau", label: "Phường Hải Châu", latitude: 16.0614, longitude: 108.2191 },
+      { code: "son_tra", label: "Phường Sơn Trà", latitude: 16.0998, longitude: 108.2442 },
+      { code: "thanh_khe", label: "Phường Thanh Khê", latitude: 16.0678, longitude: 108.1846 },
+      { code: "ngu_hanh_son", label: "Phường Ngũ Hành Sơn", latitude: 16.0057, longitude: 108.2636 },
+    ],
+  },
+  {
+    code: "hai_phong",
+    label: "Hải Phòng",
+    latitude: 20.8449,
+    longitude: 106.6881,
+    wards: [
+      { code: "hong_bang", label: "Phường Hồng Bàng", latitude: 20.8612, longitude: 106.6833 },
+      { code: "le_chan", label: "Phường Lê Chân", latitude: 20.8425, longitude: 106.6818 },
+      { code: "ngo_quyen", label: "Phường Ngô Quyền", latitude: 20.856, longitude: 106.692 },
+      { code: "hai_an", label: "Phường Hải An", latitude: 20.8305, longitude: 106.7484 },
+    ],
+  },
+  {
+    code: "can_tho",
+    label: "Cần Thơ",
+    latitude: 10.0452,
+    longitude: 105.7469,
+    wards: [
+      { code: "ninh_kieu", label: "Phường Ninh Kiều", latitude: 10.0341, longitude: 105.7689 },
+      { code: "binh_thuy", label: "Phường Bình Thủy", latitude: 10.0645, longitude: 105.7189 },
+      { code: "cai_rang", label: "Phường Cái Răng", latitude: 10.0026, longitude: 105.7874 },
+      { code: "o_mon", label: "Phường Ô Môn", latitude: 10.1177, longitude: 105.6213 },
+    ],
+  },
+  {
+    code: "hue",
+    label: "Huế",
+    latitude: 16.4637,
+    longitude: 107.5909,
+    wards: [
+      { code: "phu_xuan", label: "Phường Phú Xuân", latitude: 16.4727, longitude: 107.5782 },
+      { code: "thuan_hoa", label: "Phường Thuận Hóa", latitude: 16.455, longitude: 107.5854 },
+      { code: "huong_thuy", label: "Phường Hương Thủy", latitude: 16.4022, longitude: 107.6932 },
+      { code: "huong_tra", label: "Phường Hương Trà", latitude: 16.5205, longitude: 107.4789 },
+    ],
+  },
 ];
-const addressWardOptions = [
-  "Phường Bến Nghé",
-  "Phường Tân Định",
-  "Phường Đa Kao",
-  "Phường Nguyễn Thái Bình",
-  "Phường Cầu Ông Lãnh",
-  "Phường Tân Phong",
-  "Xã Củ Chi",
-  "Xã Hóc Môn",
-  "Khác",
-];
+
+export const getAddressLocation = (
+  provinceLabel?: string,
+  wardLabel?: string,
+) => {
+  const province = addressLocationOptions.find(
+    (item) => item.label === provinceLabel,
+  );
+  const ward = province?.wards.find((item) => item.label === wardLabel);
+  return { province, ward };
+};
+
+export const getAddressWardOptions = (provinceLabel?: string) =>
+  addressLocationOptions.find((item) => item.label === provinceLabel)?.wards ?? [];
+
+const addressProvinceOptions = addressLocationOptions.map((item) => item.label);
+const addressWardOptions = addressLocationOptions.flatMap((item) =>
+  item.wards.map((ward) => ward.label),
+);
 
 const criteria: Record<ApplicationType, CriteriaSet> = {
   "food-supplier": {

@@ -72,7 +72,10 @@ import {
 } from "@/components/portal-ui";
 import {
   applications,
+  addressLocationOptions,
   criteriaHistory,
+  getAddressLocation,
+  getAddressWardOptions,
   getCriteriaSet,
   getPublicRecords,
   newsItems,
@@ -466,25 +469,9 @@ const facilityTypeOptions: { value: ApplicationType; label: string }[] = [
   { value: "meal-provider", label: "Cơ sở chế biến và cung cấp suất ăn" },
   { value: "food-supplier", label: "Cơ sở cung cấp thực phẩm" },
 ];
-const addressProvinceOptions = [
-  "TP. Hồ Chí Minh",
-  "Hà Nội",
-  "Đà Nẵng",
-  "Hải Phòng",
-  "Cần Thơ",
-  "Huế",
-];
-const addressWardOptions = [
-  "Phường Bến Nghé",
-  "Phường Tân Định",
-  "Phường Đa Kao",
-  "Phường Nguyễn Thái Bình",
-  "Phường Cầu Ông Lãnh",
-  "Phường Tân Phong",
-  "Xã Củ Chi",
-  "Xã Hóc Môn",
-  "Khác",
-];
+const addressProvinceOptions = addressLocationOptions.map(
+  (location) => location.label,
+);
 const formatDate = (value?: string) =>
   value
     ? new Intl.DateTimeFormat("vi-VN", {
