@@ -46,6 +46,8 @@ import {
   applications,
   getCriteriaSet,
   regionalPublicRecords,
+  schoolOptions,
+  suppliers,
   type Application,
   type ApplicationType,
 } from "@/lib/mock-data";
@@ -742,13 +744,78 @@ const getStoredRegistrationRows = (): FacilityManagementRow[] =>
     })
     .filter((row): row is FacilityManagementRow => row !== null);
 
-const formatManagementAnswer = (value: unknown): string => {
+type ManagementRepeatableField = {
+  key: string;
+  label: string;
+  answerType: string;
+  options?: string[];
+};
+
+const managementFieldLabels: Record<string, string> = {
+  schoolId: "Tên trường",
+  providerId: "Đơn vị cung cấp suất ăn",
+  providerName: "Tên đơn vị cung cấp suất ăn",
+  providerAddress: "Địa chỉ đơn vị",
+  contractNumber: "Số hợp đồng",
+  contractDate: "Ngày ký hợp đồng",
+  contract: "Hợp đồng cung cấp",
+  evidence: "Minh chứng hợp tác",
+  taxCode: "Mã số thuế",
+  source: "Nguồn thông tin",
+};
+
+const formatManagementScalar = (
+  value: unknown,
+  field?: ManagementRepeatableField,
+): string => {
+  if (value === undefined || value === null || String(value).trim() === "") {
+    return "—";
+  }
+  if (field?.key === "schoolId") {
+    return (
+      schoolOptions.find((school) => school.id === String(value))?.name ??
+      String(value)
+    );
+  }
+  if (field?.key === "providerId") {
+    return (
+      suppliers.find((supplier) => supplier.id === String(value))?.name ??
+      String(value)
+    );
+  }
+  return String(value);
+};
+
+const formatManagementAnswer = (
+  value: unknown,
+  repeatableFields?: ManagementRepeatableField[],
+): string => {
   if (Array.isArray(value)) {
+    if (
+      repeatableFields?.length &&
+      value.every((item) => typeof item === "object" && item !== null)
+    ) {
+      return value
+        .map((item, index) => {
+          const row = item as Record<string, unknown>;
+          const rowValues = repeatableFields
+            .filter((field) => row[field.key] !== undefined)
+            .map(
+              (field) =>
+                `${field.label}: ${formatManagementScalar(row[field.key], field)}`,
+            );
+          return `Dòng ${index + 1}: ${rowValues.join(" · ")}`;
+        })
+        .join("\n");
+    }
     return value
       .map((item) =>
         typeof item === "object" && item !== null
           ? Object.entries(item)
-              .map(([key, entry]) => `${key}: ${formatManagementAnswer(entry)}`)
+              .map(
+                ([key, entry]) =>
+                  `${managementFieldLabels[key] ?? "Nội dung"}: ${formatManagementAnswer(entry)}`,
+              )
               .join(" · ")
           : String(item),
       )
@@ -756,10 +823,13 @@ const formatManagementAnswer = (value: unknown): string => {
   }
   if (typeof value === "object" && value !== null) {
     return Object.entries(value)
-      .map(([key, entry]) => `${key}: ${formatManagementAnswer(entry)}`)
+      .map(
+        ([key, entry]) =>
+          `${managementFieldLabels[key] ?? "Nội dung"}: ${formatManagementAnswer(entry)}`,
+      )
       .join(" · ");
   }
-  return String(value ?? "—");
+  return formatManagementScalar(value);
 };
 
 function managementStatusLabel(
@@ -3388,6 +3458,7 @@ export function AdminFacilitiesPage() {
                                     .join(", ") || "—"
                                 : formatManagementAnswer(
                                     selectedRegistrationFields?.[item.key],
+                                    item.repeatableFields,
                                   );
                             return (
                               <div key={item.key} className="min-w-0">
@@ -3785,13 +3856,16 @@ export function AdminFacilityDetailPage() {
                               .filter((file) => file.fieldKey === item.key)
                               .map((file) => file.name)
                               .join(", ") || "—"
-                          : formatManagementAnswer(registrationFields[item.key]);
+                          : formatManagementAnswer(
+                              registrationFields[item.key],
+                              item.repeatableFields,
+                            );
                       return (
                         <div key={item.key} className="min-w-0">
                           <dt className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                             {item.label}
                           </dt>
-                          <dd className="mt-1.5 break-words text-sm font-bold">
+                          <dd className="mt-1.5 whitespace-pre-line break-words text-sm font-bold">
                             {value}
                           </dd>
                         </div>
