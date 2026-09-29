@@ -527,6 +527,7 @@ type RegistrationSnapshot = {
   files: Attachment[];
   submittedAt: string;
 };
+const sectionEvidenceKey = (groupId: string) => `sectionEvidence.${groupId}`;
 type FacilityAccount = {
   email: string;
   password: string;
@@ -3125,7 +3126,22 @@ function ApplicationForm({
                     {renderQuestion(item)}
                   </Fragment>
                 );
-              });
+               }).concat(
+                 <SectionEvidenceUpload
+                   key={`section-evidence-${group.id}`}
+                   fieldKey={sectionEvidenceKey(group.id)}
+                   files={files.filter(
+                     (file) =>
+                       file.fieldKey === sectionEvidenceKey(group.id),
+                   )}
+                   onFiles={(event) =>
+                     addFilesFor(sectionEvidenceKey(group.id), event)
+                   }
+                   onRemoveFile={(name) =>
+                     removeFile(name, sectionEvidenceKey(group.id))
+                   }
+                 />,
+               );
             })()}
           </FormSection>
         ))}
@@ -3176,6 +3192,68 @@ function FoodSafetyManagerFields({
         ))}
       </div>
     </section>
+  );
+}
+
+function SectionEvidenceUpload({
+  fieldKey,
+  files,
+  onFiles,
+  onRemoveFile,
+}: {
+  fieldKey: string;
+  files: Attachment[];
+  onFiles: (event: ChangeEvent<HTMLInputElement>) => void;
+  onRemoveFile: (name: string) => void;
+}) {
+  return (
+    <div className="mt-7 border-t border-dashed border-primary/20 pt-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-extrabold text-primary">
+            Minh chứng / hình ảnh <span className="font-normal">(nếu có)</span>
+          </p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            Tải giấy tờ, ảnh thực tế hoặc tài liệu liên quan đến section này.
+          </p>
+        </div>
+        <label className="focus-ring inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-primary/35 bg-secondary/30 px-3.5 text-xs font-bold text-primary hover:bg-secondary">
+          <ImagePlus size={16} />
+          Chọn tệp minh chứng
+          <input
+            type="file"
+            accept={EVIDENCE_ACCEPT}
+            multiple
+            className="sr-only"
+            onChange={onFiles}
+            data-testid={`input-${fieldKey}`}
+          />
+        </label>
+      </div>
+      {files.length > 0 && (
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {files.map((file) => (
+            <div
+              key={file.name}
+              className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-primary/10 bg-secondary/40 px-3 py-2.5 text-sm"
+            >
+              <span className="flex min-w-0 items-center gap-2 truncate">
+                <FileText size={15} className="shrink-0 text-primary" />
+                <span className="truncate">{file.name}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => onRemoveFile(file.name)}
+                className="focus-ring shrink-0 rounded-md p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                aria-label={`Xóa ${file.name}`}
+              >
+                <X size={15} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
