@@ -2995,8 +2995,11 @@ function ApplicationForm({
     .slice()
     .sort((a, b) => a.order - b.order)
     .filter((group) => formFields.some((item) => item.groupId === group.id));
+  const selectedTypeLabel =
+    facilityTypeOptions.find((option) => option.value === type)?.label ??
+    "Cơ sở giáo dục";
   const renderQuestion = (item: CriteriaDefinition) => (
-    <>
+    <div className="paper-question">
       <DynamicQuestion
         item={item}
         value={fields[item.key] ?? ""}
@@ -3041,134 +3044,143 @@ function ApplicationForm({
             />
           </div>
         )}
-    </>
+    </div>
   );
   return (
-    <div className="mx-auto max-w-4xl">
-      <SectionHeading
-        eyebrow={
-          mode === "register"
-            ? "Đăng ký hồ sơ trực tuyến"
-            : `Chỉnh sửa hồ sơ · ${account?.email || "coso.demo"}`
-        }
-        title={
-          mode === "register" ? "Thông tin đăng ký" : "Hồ sơ cơ sở của bạn"
-        }
-        description={
-          mode === "register"
-            ? "Chọn đúng nhóm đối tượng để kê khai theo Phiếu khảo sát và cung cấp thông tin đã được ban hành."
-            : "Biểu mẫu dưới đây được nạp lại từ đúng thông tin bạn đã điền khi đăng ký."
-        }
-      />
-      <form onSubmit={submit} className="space-y-6">
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
-          <label
-            htmlFor="registration-type"
-            className="block text-sm font-bold"
-          >
-            Loại cơ sở đăng ký <span className="text-destructive">*</span>
-          </label>
-          <select
-            id="registration-type"
-            value={type}
-            onChange={(event) =>
-              changeType(event.target.value as ApplicationType)
-            }
-            className="focus-ring mt-2 h-12 w-full rounded-xl border border-input bg-background px-4 text-sm font-semibold"
-            data-testid="select-registration-type"
-          >
-            <option value="school">Cơ sở giáo dục</option>
-            <option value="meal-provider">
-              Cơ sở chế biến và cung cấp suất ăn
-            </option>
-            <option value="food-supplier">Cơ sở cung cấp thực phẩm</option>
-          </select>
-        </div>
-        {groups.map((group) => (
-          <FormSection
-            key={group.id}
-            title={group.name}
-            description={
-              type === "meal-provider" &&
-              group.id === "meal-provider-group-5"
-                ? "Có thể thêm nhiều trường."
-                : undefined
-            }
-            icon={
-              group.name.includes("Minh chứng")
-                ? ImagePlus
-                : group.name.includes("pháp lý")
-                  ? FileText
-                  : UserRound
-            }
-          >
-            {(() => {
-              const groupFields = formFields.filter(
-                (item) => item.groupId === group.id,
-              );
-              const managerFields = groupFields.filter(
-                isFoodSafetyManagerField,
-              );
-              const firstManagerField = managerFields[0]?.key;
-              return groupFields.map((item, index) => {
-                if (isFoodSafetyManagerField(item)) {
-                  if (item.key !== firstManagerField) return null;
-                  return (
-                    <FoodSafetyManagerFields
-                      key="food-safety-manager-fields"
-                      items={managerFields}
-                      renderQuestion={renderQuestion}
-                    />
-                  );
-                }
-                return (
-                  <Fragment key={`${item.id}-${index}`}>
-                    {renderQuestion(item)}
-                  </Fragment>
-                );
-               }).concat(
-                 <SectionEvidenceUpload
-                   key={`section-evidence-${group.id}`}
-                   fieldKey={sectionEvidenceKey(group.id)}
-                   files={files.filter(
-                     (file) =>
-                       file.fieldKey === sectionEvidenceKey(group.id),
-                   )}
-                   onFiles={(event) =>
-                     addFilesFor(sectionEvidenceKey(group.id), event)
-                   }
-                   onRemoveFile={(name) =>
-                     removeFile(name, sectionEvidenceKey(group.id))
-                   }
-                 />,
-               );
-            })()}
-          </FormSection>
-        ))}
-        <div className="flex flex-col gap-4 rounded-2xl border border-border bg-secondary/50 p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex gap-3 text-sm">
-            <LockKeyhole className="mt-0.5 shrink-0 text-primary" size={18} />
-            <p>
-              <strong>Kiểm tra trước khi nộp.</strong>
-              <br />
-              <span className="text-muted-foreground">
-                Sau khi gửi, hồ sơ sẽ khóa chỉnh sửa cho đến khi có yêu cầu bổ
-                sung.
-              </span>
-            </p>
+    <div className="paper-form mx-auto max-w-5xl">
+      <div className="paper-page">
+        <header className="paper-form-header">
+          <p className="paper-form-agency">
+            SỞ AN TOÀN THỰC PHẨM TP. HỒ CHÍ MINH
+          </p>
+          <h1 className="paper-form-title">
+            PHIẾU KHẢO SÁT VÀ CUNG CẤP THÔNG TIN
+          </h1>
+          <p className="paper-form-subtitle">
+            Nhóm đối tượng thực hiện: <strong>{selectedTypeLabel}</strong>
+          </p>
+          <div className="paper-form-type-row">
+            <label htmlFor="registration-type">
+              Chọn nhóm đối tượng để kê khai{" "}
+              <span className="text-destructive">*</span>
+            </label>
+            <select
+              id="registration-type"
+              value={type}
+              onChange={(event) =>
+                changeType(event.target.value as ApplicationType)
+              }
+              className="focus-ring"
+              data-testid="select-registration-type"
+            >
+              <option value="school">Cơ sở giáo dục</option>
+              <option value="meal-provider">
+                Cơ sở chế biến và cung cấp suất ăn
+              </option>
+              <option value="food-supplier">Cơ sở cung cấp thực phẩm</option>
+            </select>
           </div>
-          <Button
-            type="submit"
-            className="h-12 rounded-xl px-6"
-            data-testid="button-submit-application"
-          >
+          <p className="paper-form-note">
             {mode === "register"
-              ? "Nộp hồ sơ đăng ký"
-              : "Lưu thay đổi hồ sơ"}{" "}
-            <Send size={16} />
-          </Button>
-        </div>
-      </form>
+              ? "Kê khai theo tình trạng thực tế tại thời điểm khảo sát; nội dung không phát sinh hoặc không áp dụng cần ghi rõ."
+              : `Đang chỉnh sửa hồ sơ của ${account?.email || "cơ sở đăng ký"}.`}
+          </p>
+        </header>
+        <form onSubmit={submit} className="paper-form-body">
+          {groups.map((group, groupIndex) => (
+            <FormSection
+              key={group.id}
+              title={group.name}
+              paper
+              number={groupIndex + 1}
+              description={
+                type === "meal-provider" &&
+                group.id === "meal-provider-group-5"
+                  ? "Có thể thêm nhiều trường."
+                  : undefined
+              }
+              icon={
+                group.name.includes("Minh chứng")
+                  ? ImagePlus
+                  : group.name.includes("pháp lý")
+                    ? FileText
+                    : UserRound
+              }
+            >
+              {(() => {
+                const groupFields = formFields.filter(
+                  (item) => item.groupId === group.id,
+                );
+                const managerFields = groupFields.filter(
+                  isFoodSafetyManagerField,
+                );
+                const firstManagerField = managerFields[0]?.key;
+                return groupFields
+                  .map((item, index) => {
+                    if (isFoodSafetyManagerField(item)) {
+                      if (item.key !== firstManagerField) return null;
+                      return (
+                        <FoodSafetyManagerFields
+                          key="food-safety-manager-fields"
+                          items={managerFields}
+                          renderQuestion={renderQuestion}
+                        />
+                      );
+                    }
+                    return (
+                      <Fragment key={`${item.id}-${index}`}>
+                        {renderQuestion(item)}
+                      </Fragment>
+                    );
+                  })
+                  .concat(
+                    <SectionEvidenceUpload
+                      key={`section-evidence-${group.id}`}
+                      fieldKey={sectionEvidenceKey(group.id)}
+                      files={files.filter(
+                        (file) =>
+                          file.fieldKey === sectionEvidenceKey(group.id),
+                      )}
+                      onFiles={(event) =>
+                        addFilesFor(sectionEvidenceKey(group.id), event)
+                      }
+                      onRemoveFile={(name) =>
+                        removeFile(name, sectionEvidenceKey(group.id))
+                      }
+                    />,
+                  );
+              })()}
+            </FormSection>
+          ))}
+          <div className="paper-submit-bar">
+            <div className="flex gap-3 text-sm">
+              <LockKeyhole className="mt-0.5 shrink-0 text-primary" size={18} />
+              <p>
+                <strong>Kiểm tra trước khi nộp.</strong>
+                <br />
+                <span className="text-muted-foreground">
+                  Sau khi gửi, hồ sơ sẽ khóa chỉnh sửa cho đến khi có yêu cầu bổ
+                  sung.
+                </span>
+              </p>
+            </div>
+            <Button
+              type="submit"
+              className="h-11 rounded-md px-6"
+              data-testid="button-submit-application"
+            >
+              {mode === "register"
+                ? "Nộp hồ sơ đăng ký"
+                : "Lưu thay đổi hồ sơ"}{" "}
+              <Send size={16} />
+            </Button>
+          </div>
+        </form>
+        <footer className="paper-form-footer">
+          Người kê khai chịu trách nhiệm về tính đầy đủ, trung thực và chính xác
+          của nội dung cung cấp.
+        </footer>
+      </div>
       {notice && <Notice message={notice} onClose={() => setNotice("")} />}
     </div>
   );
@@ -3182,7 +3194,7 @@ function FoodSafetyManagerFields({
   renderQuestion: (item: CriteriaDefinition) => ReactNode;
 }) {
   return (
-    <section className="mt-5 rounded-2xl border border-primary/15 bg-secondary/20 p-4 sm:p-5">
+    <section className="paper-subsection mt-5 rounded-2xl border border-primary/15 bg-secondary/20 p-4 sm:p-5">
       <h4 className="text-sm font-extrabold uppercase tracking-[0.08em] text-primary">
         Người phụ trách quản lý ATTP
       </h4>
@@ -3207,7 +3219,7 @@ function SectionEvidenceUpload({
   onRemoveFile: (name: string) => void;
 }) {
   return (
-    <div className="mt-7 border-t border-dashed border-primary/20 pt-5">
+    <div className="paper-evidence mt-7 border-t border-dashed border-primary/20 pt-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm font-extrabold text-primary">
@@ -4047,25 +4059,47 @@ function FormSection({
   description,
   icon: Icon,
   children,
+  paper = false,
+  number,
 }: {
   title: string;
   description?: string;
   icon: typeof UserRound;
   children: ReactNode;
+  paper?: boolean;
+  number?: number;
 }) {
   return (
-    <section className="rounded-2xl border border-border bg-card p-5 md:p-7">
-      <div className="mb-6 flex items-center gap-3 border-b border-border pb-4">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-primary">
-          <Icon size={18} />
+    <section
+      className={
+        paper
+          ? "paper-section"
+          : "rounded-2xl border border-border bg-card p-5 md:p-7"
+      }
+    >
+      {paper ? (
+        <div className="paper-section-heading">
+          <span className="paper-section-number">
+            {String(number ?? "").padStart(2, "0")}
+          </span>
+          <div>
+            <h2>{title}</h2>
+            {description && <p>{description}</p>}
+          </div>
         </div>
-        <div>
-          <h2 className="text-lg font-extrabold">{title}</h2>
-          {description && (
-            <p className="mt-1 text-xs text-muted-foreground">{description}</p>
-          )}
+      ) : (
+        <div className="mb-6 flex items-center gap-3 border-b border-border pb-4">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-primary">
+            <Icon size={18} />
+          </div>
+          <div>
+            <h2 className="text-lg font-extrabold">{title}</h2>
+            {description && (
+              <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+            )}
+          </div>
         </div>
-      </div>
+      )}
       {children}
     </section>
   );

@@ -459,6 +459,298 @@
 .lift { transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
 .lift:hover { transform: translateY(-4px); box-shadow: 0 20px 45px hsl(158 37% 15% / .12); }
 .focus-ring:focus-visible { outline: 3px solid hsl(var(--accent)); outline-offset: 3px; }
+
+/* Printed-survey presentation for the registration forms. */
+.paper-form {
+  color: #20231f;
+  font-family: "Times New Roman", Times, serif;
+}
+
+.paper-page {
+  overflow: hidden;
+  border: 1px solid #aeb2aa;
+  background: #fff;
+  box-shadow: 0 18px 45px rgba(39, 51, 42, 0.12);
+}
+
+.paper-form-header {
+  padding: 2.8rem clamp(1.25rem, 5vw, 4.75rem) 1.75rem;
+  text-align: center;
+}
+
+.paper-form-agency {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.paper-form-title {
+  margin: 0.8rem 0 0;
+  font-size: clamp(1.18rem, 2vw, 1.7rem);
+  font-weight: 700;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.paper-form-subtitle {
+  margin: 0.75rem 0 0;
+  font-size: 0.98rem;
+}
+
+.paper-form-type-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 1.4rem auto 0;
+  max-width: 38rem;
+  text-align: left;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.paper-form-type-row label {
+  flex: 1;
+}
+
+.paper-form-type-row select {
+  min-height: 2.35rem;
+  min-width: 17rem;
+  border: 0;
+  border-bottom: 1px solid #6f756d;
+  border-radius: 0;
+  background: transparent;
+  padding: 0.25rem 0.1rem;
+  font: inherit;
+}
+
+.paper-form-note {
+  max-width: 47rem;
+  margin: 1.1rem auto 0;
+  color: #5e655e;
+  font-size: 0.82rem;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+.paper-form-body {
+  padding: 0 clamp(1.25rem, 5vw, 4.75rem) 2rem;
+}
+
+.paper-section {
+  margin-top: 1.8rem;
+  border-top: 1.35px solid #20231f;
+  padding-top: 0.95rem;
+}
+
+.paper-section-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  min-height: 2.7rem;
+  border-bottom: 1px solid #aeb2aa;
+  padding-bottom: 0.7rem;
+}
+
+.paper-section-number {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 1.75rem;
+  border: 1px solid #20231f;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.paper-section-heading h2 {
+  margin: 0;
+  font-size: 1.08rem;
+  font-weight: 700;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.paper-section-heading p {
+  margin: 0.25rem 0 0;
+  color: #5e655e;
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.paper-question {
+  margin-top: 1rem;
+}
+
+.paper-question > div:first-child,
+.paper-question > fieldset:first-child,
+.paper-question > label:first-child {
+  margin-top: 0;
+}
+
+.paper-form .paper-question label > span,
+.paper-form .paper-question legend {
+  font-family: inherit;
+  font-size: 0.91rem;
+  line-height: 1.35;
+}
+
+.paper-form .paper-question input:not([type="checkbox"]):not([type="file"]),
+.paper-form .paper-question select,
+.paper-form .paper-question textarea {
+  min-height: 2.2rem;
+  border: 0;
+  border-bottom: 1px solid #777d75;
+  border-radius: 0;
+  background: transparent;
+  padding: 0.25rem 0.15rem;
+  font: inherit;
+  font-size: 0.95rem;
+}
+
+.paper-form .paper-question textarea {
+  min-height: 5.2rem;
+  border: 1px solid #8d928b;
+  padding: 0.5rem;
+  resize: vertical;
+}
+
+.paper-form .paper-question input:focus,
+.paper-form .paper-question select:focus,
+.paper-form .paper-question textarea:focus {
+  border-color: hsl(var(--primary));
+  box-shadow: 0 1px 0 hsl(var(--primary));
+}
+
+.paper-form .paper-question label:has(input[type="checkbox"]) {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0.25rem 0.35rem;
+}
+
+.paper-form .paper-question input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 0;
+  accent-color: #20231f;
+}
+
+.paper-form .paper-question fieldset > div.inline-flex {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.paper-form .paper-question fieldset > div.inline-flex button {
+  flex: 0 0 auto;
+  min-height: 2rem;
+  border: 1px solid #8d928b;
+  border-radius: 0;
+  background: #fff;
+  padding: 0.25rem 0.7rem;
+  font-family: inherit;
+  font-size: 0.88rem;
+}
+
+.paper-form .paper-question fieldset > div.inline-flex button[aria-pressed="true"] {
+  border-color: #20231f;
+  background: #eef1eb;
+  box-shadow: inset 0 0 0 1px #20231f;
+}
+
+.paper-subsection {
+  border: 0;
+  border-left: 2px solid #b8beb6;
+  border-radius: 0;
+  background: transparent;
+  padding: 0 0 0 1rem;
+}
+
+.paper-subsection h4 {
+  font-family: inherit;
+  font-size: 0.92rem;
+  letter-spacing: 0.02em;
+}
+
+.paper-evidence {
+  border-top-color: #8d928b;
+}
+
+.paper-evidence > div:first-child {
+  align-items: flex-start;
+}
+
+.paper-evidence p {
+  font-family: inherit;
+}
+
+.paper-evidence label {
+  min-height: 2.2rem;
+  border-radius: 0;
+  background: #f7f8f5;
+  font-family: inherit;
+}
+
+.paper-evidence .rounded-xl {
+  border-radius: 0.15rem;
+}
+
+.paper-submit-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 2.5rem;
+  border-top: 1.35px solid #20231f;
+  border-bottom: 1px solid #aeb2aa;
+  padding: 1rem 0;
+  font-family: var(--app-font-sans);
+}
+
+.paper-form-footer {
+  padding: 1rem clamp(1.25rem, 5vw, 4.75rem) 2rem;
+  color: #5e655e;
+  font-size: 0.82rem;
+  font-style: italic;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .paper-form-header {
+    padding-top: 2rem;
+  }
+
+  .paper-form-type-row {
+    display: block;
+  }
+
+  .paper-form-type-row select {
+    display: block;
+    width: 100%;
+    margin-top: 0.4rem;
+  }
+
+  .paper-section-heading h2 {
+    font-size: 0.98rem;
+  }
+
+  .paper-submit-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .paper-submit-bar button {
+    width: 100%;
+  }
+}
 @keyframes rise-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 .rise-in { animation: rise-in .5s ease both; }
 
