@@ -1678,6 +1678,7 @@ criteria.school = {
     formField("school", "addressBranches", "Địa chỉ phân hiệu/điểm trường", "school-group-1", "text", 8, [], { required: false }),
     formField("school", "managementForm", "Hình thức tổ chức quản lý", "school-group-1", "select", 9, ["Công lập", "Ngoài công lập"]),
     formField("school", "educationLevels", "Cấp học", "school-group-1", "multi-select", 10, ["Mầm non", "Tiểu học", "THCS", "THPT", "Khác"]),
+    formField("school", "educationLevelOther", "Cấp học khác", "school-group-1", "text", 10.1, [], { required: false }),
     formField("school", "studentTotal", "Tổng số học sinh", "school-group-1", "number", 11),
     formField("school", "boardingStudentTotal", "Số học sinh bán trú", "school-group-1", "number", 12),
     formField("school", "establishmentDecision", "Quyết định thành lập cơ sở giáo dục", "school-group-1", "file", 13),
@@ -1753,6 +1754,7 @@ criteria.school = {
     formField("school", "privateOwnerIssuePlace", "Nơi cấp mã số của đơn vị sở hữu", "school-group-2", "text", 22.2, [], { required: false, dependsOn: { key: "managementForm", equals: "Ngoài công lập" } }),
     formField("school", "privateOwnerInitialRegistrationDate", "Ngày đăng ký lần đầu của đơn vị sở hữu", "school-group-2", "date", 22.3, [], { required: false, dependsOn: { key: "managementForm", equals: "Ngoài công lập" } }),
     formField("school", "privateOwnerAmendmentDate", "Ngày đăng ký thay đổi gần nhất của đơn vị sở hữu", "school-group-2", "date", 22.4, [], { required: false, dependsOn: { key: "managementForm", equals: "Ngoài công lập" } }),
+    formField("school", "privateOwnerAmendmentSequence", "Lần thay đổi thứ của đơn vị sở hữu", "school-group-2", "number", 22.5, [], { required: false, dependsOn: { key: "managementForm", equals: "Ngoài công lập" } }),
     formField("school", "privateOwnerRepresentative", "Người đại diện theo pháp luật/chủ cơ sở", "school-group-2", "text", 23, [], { required: false, dependsOn: { key: "managementForm", equals: "Ngoài công lập" } }),
     formField("school", "privateOwnerRepresentativeTitle", "Chức danh người đại diện", "school-group-2", "text", 23.1, [], { required: false, dependsOn: { key: "managementForm", equals: "Ngoài công lập" } }),
     formField("school", "qualityCertificateStatus", "Tình trạng thuộc diện cấp giấy chứng nhận quản lý chất lượng", "school-group-3", "select", 24, [

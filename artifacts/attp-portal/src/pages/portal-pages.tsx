@@ -500,6 +500,177 @@ const schoolModelFormMap: Record<
 };
 const getSchoolModelForm = (model: unknown) =>
   schoolModelFormMap[String(model)] ?? schoolModelFormMap["BATT tự tổ chức"];
+type SchoolModelRepeatableField =
+  NonNullable<CriteriaDefinition["repeatableFields"]>[number];
+
+const schoolServiceDocumentFields: SchoolModelRepeatableField[] = [
+  {
+    key: "documentType",
+    label: "Loại giấy chứng nhận / giấy tờ",
+    answerType: "select",
+    options: [
+      "Giấy chứng nhận cơ sở đủ điều kiện ATTP",
+      "ISO 22000:2018",
+      "HACCP",
+      "Chuỗi ATTP",
+      "Giấy tờ pháp lý khác",
+    ],
+    required: true,
+  },
+  { key: "number", label: "Số cấp / số giấy tờ", answerType: "text", required: true },
+  { key: "issueDate", label: "Ngày cấp", answerType: "date", required: true },
+  { key: "expiryDate", label: "Ngày hết hiệu lực", answerType: "date" },
+  { key: "issuer", label: "Nơi cấp", answerType: "text", required: true },
+  {
+    key: "location",
+    label: "Địa điểm được cấp chứng nhận",
+    answerType: "text",
+    required: true,
+  },
+  {
+    key: "scope",
+    label: "Phạm vi loại hình được cấp chứng nhận",
+    answerType: "text",
+    required: true,
+  },
+  { key: "evidence", label: "Tệp minh chứng", answerType: "file" },
+];
+
+const schoolServiceContactFields: SchoolModelRepeatableField[] = [
+  { key: "name", label: "Ông/bà", answerType: "text", required: true },
+  { key: "title", label: "Chức vụ", answerType: "text", required: true },
+  { key: "phone", label: "Số điện thoại liên hệ", answerType: "text", required: true },
+  { key: "email", label: "Email liên hệ", answerType: "text" },
+];
+
+const schoolDeliverySiteFields: SchoolModelRepeatableField[] = [
+  { key: "siteName", label: "Địa điểm cơ sở giáo dục", answerType: "text", required: true },
+  { key: "morningTime", label: "Ca sáng - thời điểm giao/nhận", answerType: "text" },
+  { key: "morningQuantity", label: "Ca sáng - số suất", answerType: "number" },
+  { key: "lunchTime", label: "Ca trưa - thời điểm giao/nhận", answerType: "text" },
+  { key: "lunchQuantity", label: "Ca trưa - số suất", answerType: "number" },
+  { key: "snackTime", label: "Ca xế - thời điểm giao/nhận", answerType: "text" },
+  { key: "snackQuantity", label: "Ca xế - số suất", answerType: "number" },
+  { key: "afternoonTime", label: "Ca chiều - thời điểm giao/nhận", answerType: "text" },
+  { key: "afternoonQuantity", label: "Ca chiều - số suất", answerType: "number" },
+];
+
+const schoolModelField = (
+  model: string,
+  key: string,
+  label: string,
+  groupId: string,
+  answerType: CriteriaAnswerType,
+  order: number,
+  options: string[] = [],
+  extra: Partial<CriteriaDefinition> = {},
+): CriteriaDefinition => ({
+  id: `school-${model}-${key}`,
+  key,
+  label,
+  description: "",
+  groupId,
+  answerType,
+  options,
+  maxScore: 0,
+  required: true,
+  active: true,
+  order,
+  sourceMaterials: [],
+  ...extra,
+});
+
+const schoolServiceFields = (
+  model: string,
+  siteLabel: string,
+  contractLabel: string,
+): CriteriaDefinition[] => [
+  schoolModelField(model, "serviceLegalName", "Tên doanh nghiệp, tổ chức (trụ sở chính)", "school-group-3", "text", 100),
+  schoolModelField(model, "serviceHeadquartersAddress", "Địa chỉ trụ sở chính", "school-group-3", "text", 101),
+  schoolModelField(model, "serviceTaxCode", "Mã số doanh nghiệp/mã số thuế hoặc mã định danh hợp pháp khác", "school-group-3", "text", 102),
+  schoolModelField(model, "serviceIssueDate", "Ngày cấp", "school-group-3", "date", 103),
+  schoolModelField(model, "serviceIssuePlace", "Nơi cấp", "school-group-3", "text", 104),
+  schoolModelField(model, "serviceInitialRegistrationDate", "Ngày đăng ký lần đầu", "school-group-3", "date", 105),
+  schoolModelField(model, "serviceAmendmentDate", "Ngày đăng ký thay đổi gần nhất", "school-group-3", "date", 106),
+  schoolModelField(model, "serviceAmendmentSequence", "Lần thay đổi thứ", "school-group-3", "number", 107),
+  schoolModelField(model, "serviceRepresentative", "Người đại diện theo pháp luật/chủ cơ sở", "school-group-3", "text", 108),
+  schoolModelField(model, "serviceRepresentativeTitle", "Chức danh", "school-group-3", "text", 109),
+  schoolModelField(model, "serviceSiteName", siteLabel, "school-group-3", "text", 110),
+  schoolModelField(model, "serviceSiteAddress", "Địa chỉ", "school-group-3", "text", 111),
+  schoolModelField(model, "serviceSiteBusinessCode", "Mã số chi nhánh/mã số địa điểm kinh doanh", "school-group-3", "text", 112),
+  schoolModelField(model, "serviceSiteIssueDate", "Ngày cấp", "school-group-3", "date", 113),
+  schoolModelField(model, "serviceSiteIssuePlace", "Nơi cấp", "school-group-3", "text", 114),
+  schoolModelField(model, "serviceSiteInitialRegistrationDate", "Ngày đăng ký lần đầu", "school-group-3", "date", 115),
+  schoolModelField(model, "serviceSiteAmendmentDate", "Ngày đăng ký thay đổi gần nhất", "school-group-3", "date", 116),
+  schoolModelField(model, "serviceSiteAmendmentSequence", "Lần thay đổi thứ", "school-group-3", "number", 117),
+  schoolModelField(model, "serviceSiteRepresentative", "Người đại diện", "school-group-3", "text", 118),
+  schoolModelField(model, "serviceSiteRepresentativeTitle", "Chức danh", "school-group-3", "text", 119),
+  schoolModelField(model, "serviceFoodSafetyContacts", "Thông tin liên hệ người phụ trách ATTP", "school-group-3", "repeatable", 120, [], {
+    repeatableFields: schoolServiceContactFields,
+  }),
+  schoolModelField(model, "serviceContractNumber", `${contractLabel} - số hợp đồng`, "school-group-3", "text", 121),
+  schoolModelField(model, "serviceContractDate", `${contractLabel} - ngày ký`, "school-group-3", "date", 122),
+  schoolModelField(model, "serviceQualityCertificates", "Giấy chứng nhận quản lý chất lượng của đơn vị", "school-group-3", "repeatable", 123, [], {
+    repeatableFields: schoolServiceDocumentFields,
+  }),
+  schoolModelField(model, "serviceConfirmation", "Xác nhận của đơn vị thực hiện dịch vụ", "school-group-8", "text", 190),
+];
+
+const schoolModelSpecificFields: Record<string, CriteriaDefinition[]> = {
+  "BATT hợp đồng": schoolServiceFields(
+    "BATT hợp đồng",
+    "Tên cơ sở/địa điểm thực hiện tổ chức nấu ăn",
+    "Hợp đồng thuê nấu",
+  ),
+  "Nhận suất ăn sẵn": [
+    ...schoolServiceFields(
+      "Nhận suất ăn sẵn",
+      "Tên cơ sở/địa điểm nấu ăn (xưởng chế biến/bếp nấu)",
+      "Hợp đồng cung cấp suất ăn",
+    ),
+    schoolModelField(
+      "Nhận suất ăn sẵn",
+      "readyMealDeliverySites",
+      "Thời điểm giao nhận suất ăn theo từng địa điểm",
+      "school-group-3",
+      "repeatable",
+      124,
+      [],
+      { repeatableFields: schoolDeliverySiteFields },
+    ),
+    schoolModelField(
+      "Nhận suất ăn sẵn",
+      "readyMealReceivingPoint",
+      "Địa điểm tập kết, giao/nhận suất ăn tại cơ sở giáo dục",
+      "school-group-3",
+      "text",
+      125,
+    ),
+  ],
+  "Căng tin trường học": [
+    schoolModelField("Căng tin trường học", "canteenName", "Tên tổ chức, cá nhân/đơn vị căng tin trong cơ sở giáo dục", "school-group-3", "text", 100),
+    schoolModelField("Căng tin trường học", "canteenAddress", "Địa chỉ", "school-group-3", "text", 101),
+    schoolModelField("Căng tin trường học", "canteenIdentifier", "Mã số chi nhánh/mã số địa điểm kinh doanh/mã số thuế hoặc mã định danh hợp pháp khác", "school-group-3", "text", 102),
+    schoolModelField("Căng tin trường học", "canteenIssueDate", "Ngày cấp", "school-group-3", "date", 103),
+    schoolModelField("Căng tin trường học", "canteenIssuePlace", "Nơi cấp", "school-group-3", "text", 104),
+    schoolModelField("Căng tin trường học", "canteenInitialRegistrationDate", "Ngày đăng ký lần đầu", "school-group-3", "date", 105),
+    schoolModelField("Căng tin trường học", "canteenAmendmentDate", "Ngày đăng ký thay đổi gần nhất", "school-group-3", "date", 106),
+    schoolModelField("Căng tin trường học", "canteenAmendmentSequence", "Lần thay đổi thứ", "school-group-3", "number", 107),
+    schoolModelField("Căng tin trường học", "canteenRepresentative", "Người đại diện theo pháp luật/chủ cơ sở", "school-group-3", "text", 108),
+    schoolModelField("Căng tin trường học", "canteenTitle", "Chức danh", "school-group-3", "text", 109),
+    schoolModelField("Căng tin trường học", "canteenOtherInfo", "Thông tin khác", "school-group-3", "text", 110, [], { required: false }),
+    schoolModelField("Căng tin trường học", "canteenFoodSafetyContacts", "Thông tin liên hệ người phụ trách ATTP của đơn vị căng tin", "school-group-3", "repeatable", 111, [], {
+      repeatableFields: schoolServiceContactFields,
+    }),
+    schoolModelField("Căng tin trường học", "canteenContractNumber", "Hợp đồng căng tin - số hợp đồng", "school-group-3", "text", 112),
+    schoolModelField("Căng tin trường học", "canteenContractDate", "Hợp đồng căng tin - ngày ký", "school-group-3", "date", 113),
+    schoolModelField("Căng tin trường học", "canteenQualityCertificates", "Giấy chứng nhận quản lý chất lượng của đơn vị căng tin", "school-group-3", "repeatable", 114, [], {
+      repeatableFields: schoolServiceDocumentFields,
+    }),
+    schoolModelField("Căng tin trường học", "canteenOtherLegalDocuments", "Các hồ sơ pháp lý khác", "school-group-3", "text", 115),
+    schoolModelField("Căng tin trường học", "canteenConfirmation", "Xác nhận của đơn vị căng tin trong cơ sở giáo dục", "school-group-8", "text", 190),
+  ],
+};
 const schoolModelDetailExcludedForReadyMeals = new Set([
   "qualityCertificateStatus",
   "qualityCertificates",
@@ -519,6 +690,11 @@ const schoolModelDetailExcludedForReadyMeals = new Set([
   "transportBetweenSchools",
   "transportContainers",
 ]);
+const schoolModelDetailExcludedByModel: Record<string, Set<string>> = {
+  "BATT hợp đồng": new Set(["qualityCertificateStatus", "qualityCertificates"]),
+  "Nhận suất ăn sẵn": schoolModelDetailExcludedForReadyMeals,
+  "Căng tin trường học": new Set(["qualityCertificateStatus", "qualityCertificates"]),
+};
 const schoolModelDetailLabelOverrides: Record<string, Record<string, string>> = {
   "Nhận suất ăn sẵn": {
     totalFoodStaff:
@@ -533,9 +709,17 @@ const schoolModelDetailLabelOverrides: Record<string, Record<string, string>> = 
     threeStepInspection:
       "Kiểm thực 03 bước tại cơ sở giáo dục (nơi nhận suất ăn)",
   },
+  "BATT hợp đồng": {
+    totalFoodStaff:
+      "Tổng số người tham gia hoạt động chế biến, nấu ăn tại đơn vị thực hiện",
+    directFoodStaff:
+      "Số người trực tiếp sơ chế/chế biến/chia suất tại đơn vị thực hiện",
+    indirectFoodStaff: "Số người không trực tiếp tại đơn vị thực hiện",
+  },
   "Căng tin trường học": {
     totalFoodStaff: "Tổng số người tham gia hoạt động có liên quan đến thực phẩm",
     directFoodStaff: "Số người trực tiếp tham gia",
+    mealShiftCapacity: "Số suất/lượt phục vụ theo từng buổi",
   },
 };
 const getSchoolModelDetailItems = (
@@ -543,17 +727,19 @@ const getSchoolModelDetailItems = (
   model: string,
 ) => {
   const overrides = schoolModelDetailLabelOverrides[model] ?? {};
-  return criteriaSet.criteria
+  const baseItems = criteriaSet.criteria
     .filter((item) => item.groupId !== "school-group-1" && item.groupId !== "school-group-2")
     .filter(
       (item) =>
-        model !== "Nhận suất ăn sẵn" ||
-        !schoolModelDetailExcludedForReadyMeals.has(item.key),
+        !schoolModelDetailExcludedByModel[model]?.has(item.key),
     )
     .map((item) => ({
       ...item,
       label: overrides[item.key] ?? item.label,
     }));
+  return [...baseItems, ...(schoolModelSpecificFields[model] ?? [])].sort(
+    (a, b) => a.order - b.order,
+  );
 };
 const addressProvinceOptions = addressLocationOptions.map(
   (location) => location.label,
@@ -2890,6 +3076,41 @@ function ApplicationForm({
                   isSchoolModelItemVisible(item, rowIndex),
               )
               .filter((item) => {
+                if (item.answerType === "repeatable") {
+                  const rows = getSchoolModelFieldValue(
+                    rowIndex,
+                    item.key,
+                  );
+                  const repeatableRows =
+                    Array.isArray(rows) &&
+                    rows.every(
+                      (entry) =>
+                        typeof entry === "object" &&
+                        entry !== null &&
+                        !Array.isArray(entry),
+                    )
+                      ? (rows as RepeatableValue)
+                      : [];
+                  if (item.required && repeatableRows.length === 0) return true;
+                  return repeatableRows.some((repeatableRow, repeatableIndex) =>
+                    (item.repeatableFields ?? []).some((field) => {
+                      if (!field.required) return false;
+                      const nestedFieldKey = `${schoolModelFieldKey(
+                        rowIndex,
+                        item.key,
+                      )}.${repeatableIndex}.${field.key}`;
+                      if (field.answerType === "file") {
+                        return !files.some(
+                          (file) => file.fieldKey === nestedFieldKey,
+                        );
+                      }
+                      const nestedValue = repeatableRow[field.key];
+                      return Array.isArray(nestedValue)
+                        ? nestedValue.length === 0
+                        : !String(nestedValue ?? "").trim();
+                    }),
+                  );
+                }
                 if (item.answerType === "file") {
                   return !files.some(
                     (file) =>
@@ -3998,6 +4219,14 @@ function RepeatableQuestion({
             ? "Đơn vị suất ăn"
             : item.key === "modelServiceDetails"
               ? "Đơn vị/mẫu dịch vụ"
+              : item.key === "serviceFoodSafetyContacts" ||
+                  item.key === "canteenFoodSafetyContacts"
+                ? "Người phụ trách ATTP"
+                : item.key === "serviceQualityCertificates" ||
+                    item.key === "canteenQualityCertificates"
+                  ? "Giấy chứng nhận"
+                  : item.key === "readyMealDeliverySites"
+                    ? "Địa điểm giao nhận"
               : item.key === "rawStorageInventory"
                 ? "Thiết bị bảo quản nguyên liệu"
                 : item.key === "foodStorageInventory"
@@ -4024,6 +4253,14 @@ function RepeatableQuestion({
             ? "đơn vị suất ăn"
             : item.key === "modelServiceDetails"
               ? "đơn vị/mẫu"
+              : item.key === "serviceFoodSafetyContacts" ||
+                  item.key === "canteenFoodSafetyContacts"
+                ? "người"
+                : item.key === "serviceQualityCertificates" ||
+                    item.key === "canteenQualityCertificates"
+                  ? "giấy chứng nhận"
+                  : item.key === "readyMealDeliverySites"
+                    ? "địa điểm"
               : item.key === "rawStorageInventory" ||
                   item.key === "foodStorageInventory" ||
                   item.key === "sinkInventory" ||
