@@ -501,6 +501,22 @@ const schoolModelFormMap: Record<
 };
 const getSchoolModelForm = (model: unknown) =>
   schoolModelFormMap[String(model)] ?? schoolModelFormMap["BATT tự tổ chức"];
+const schoolModelOptionLabels: Record<string, string> = {
+  "BATT tự tổ chức": "BATT tự tổ chức",
+  "BATT hợp đồng":
+    "BATT hợp đồng (đơn vị bên ngoài thực hiện chế biến nấu ăn tại cơ sở giáo dục)",
+  "Nhận suất ăn sẵn": "Nhận suất ăn sẵn",
+  "Căng tin trường học": "Căng tin trường học",
+};
+const schoolSubsectionHeadings: Record<string, string> = {
+  operatingModels: "3. Mô hình, quy mô hoạt động của bếp ăn tại cơ sở",
+  mealTransparency:
+    "4. Hình thức minh bạch, công khai thông tin về bữa ăn bán trú tại cơ sở giáo dục",
+  incidentResponseProcess:
+    "5. Quy trình phòng ngừa, ứng phó, xử lý sự cố an toàn thực phẩm và ngộ độc thực phẩm",
+  privateOwnerOrganization:
+    "6. Nội dung khác (dành cho cơ sở giáo dục ngoài công lập)",
+};
 type SchoolModelRepeatableField =
   NonNullable<CriteriaDefinition["repeatableFields"]>[number];
 
@@ -3971,7 +3987,9 @@ function ApplicationForm({
               const subsectionHeading =
                 type === "meal-provider"
                   ? mealProviderSubsectionHeadings[item.key]
-                  : undefined;
+                  : type === "school"
+                    ? schoolSubsectionHeadings[item.key]
+                    : undefined;
               const pairKey =
                 type === "meal-provider"
                   ? mealProviderInlinePairs[item.key]
@@ -4955,6 +4973,8 @@ function RepeatableQuestion({
   const rowLabel =
     item.key === "products"
       ? "Sản phẩm"
+      : item.key === "operatingModels"
+        ? "Mô hình"
       : item.key === "servingSchools"
         ? "Trường học"
         : item.key === "suppliedUnits"
@@ -4989,6 +5009,8 @@ function RepeatableQuestion({
   const addLabel =
     item.key === "products"
       ? "sản phẩm"
+      : item.key === "operatingModels"
+        ? "mô hình"
       : item.key === "servingSchools"
         ? "trường"
         : item.key === "suppliedUnits"
@@ -5163,6 +5185,74 @@ function RepeatableQuestion({
                         </div>
                       ))}
                     </div>
+                  );
+                }
+                if (
+                  item.key === "operatingModels" &&
+                  field.key === "model"
+                ) {
+                  const selectedModel =
+                    Array.isArray(fieldValue)
+                      ? (fieldValue[0] ?? "")
+                      : fieldValue;
+                  return (
+                    <fieldset key={field.key} className="md:col-span-2">
+                      <legend className="mb-3 block text-sm font-semibold">
+                        {field.label}
+                        {field.required && (
+                          <span className="text-destructive"> *</span>
+                        )}
+                      </legend>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {(field.options ?? []).map((option) => {
+                          const optionForm = getSchoolModelForm(option);
+                          const selected = selectedModel === option;
+                          return (
+                            <button
+                              key={option}
+                              type="button"
+                              onClick={() =>
+                                updateRow(rowIndex, field.key, option)
+                              }
+                              className={`rounded-xl border p-3 text-left transition ${
+                                selected
+                                  ? "border-primary bg-primary/10 text-primary shadow-sm"
+                                  : "border-input bg-background text-foreground hover:border-primary/40 hover:bg-secondary/40"
+                              }`}
+                              aria-pressed={selected}
+                              data-testid={`input-criteria-${fieldKey}-${option}`}
+                            >
+                              <span className="flex items-start gap-3">
+                                <span
+                                  className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
+                                    selected
+                                      ? "border-primary bg-primary"
+                                      : "border-muted-foreground/40"
+                                  }`}
+                                >
+                                  {selected && (
+                                    <span className="h-1.5 w-1.5 rounded-full bg-primary-foreground" />
+                                  )}
+                                </span>
+                                <span>
+                                  <strong className="block text-sm leading-5">
+                                    {schoolModelOptionLabels[option] ?? option}
+                                  </strong>
+                                  <span className="mt-1 block text-xs font-semibold uppercase tracking-wide opacity-70">
+                                    Mẫu số {optionForm.number}
+                                  </span>
+                                </span>
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Chọn một mô hình cho dòng này. Nếu cơ sở có nhiều địa
+                        điểm hoặc nhiều mô hình, nhấn “Thêm mô hình” để kê khai
+                        từng dòng riêng.
+                      </p>
+                    </fieldset>
                   );
                 }
                 if (field.answerType === "multi-select") {

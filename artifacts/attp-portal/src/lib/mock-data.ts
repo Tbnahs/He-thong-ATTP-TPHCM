@@ -2082,8 +2082,8 @@ const schoolGeneralCriteria = [
       { key: "email", label: "Email liên hệ", answerType: "text", required: true },
     ],
   }),
-  formField("school", "operatingModels", "Mô hình và quy mô hoạt động", "school-group-2", "repeatable", 17, [], {
-    description: "Khai báo riêng từng mô hình tại từng địa điểm; hệ thống mở đúng Mẫu số 01–04.",
+  formField("school", "operatingModels", "3. Mô hình, quy mô hoạt động của bếp ăn tại cơ sở", "school-group-2", "repeatable", 17, [], {
+    description: "Mỗi dòng chọn 1 trong 4 mô hình. Hệ thống tự mở đúng mẫu thực hiện: BATT tự tổ chức → Mẫu số 01; BATT hợp đồng → Mẫu số 02; Nhận suất ăn sẵn → Mẫu số 03; Căng tin trường học → Mẫu số 04.",
     repeatableFields: [
       {
         key: "model",
@@ -2132,7 +2132,7 @@ criteria.school = {
   effectiveFrom: "2026-09-30",
   groups: groupList("school", [
     "Thông tin chung cơ sở giáo dục",
-    "Mô hình và quy mô hoạt động",
+    "Mô hình, quy mô hoạt động của bếp ăn tại cơ sở",
     "Hồ sơ chất lượng, nhân sự và điều kiện cơ sở",
     "Trang thiết bị và vận chuyển",
     "Thực hành an toàn thực phẩm, kiểm thực và lưu mẫu",
