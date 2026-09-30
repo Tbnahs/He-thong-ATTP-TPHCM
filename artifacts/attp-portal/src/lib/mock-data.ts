@@ -1721,6 +1721,7 @@ criteria.school = {
     }),
     formField("school", "linkedMealProviders", "Đơn vị cung cấp suất ăn (nếu có)", "school-group-2", "repeatable", 17.1, [], {
       required: false,
+      active: false,
       repeatableFields: [
         { key: "providerName", label: "Tên đơn vị cung cấp suất ăn", answerType: "text", required: true },
         { key: "providerAddress", label: "Địa chỉ đơn vị", answerType: "text" },
@@ -1731,6 +1732,7 @@ criteria.school = {
     }),
     formField("school", "modelServiceDetails", "Thông tin đơn vị cung cấp dịch vụ (nếu có)", "school-group-2", "repeatable", 17.2, [], {
       required: false,
+      active: false,
       description: "Khai báo từng đơn vị thực hiện tại từng địa điểm. Mẫu chi tiết được hệ thống xác định tự động từ mô hình hoạt động.",
       repeatableFields: [
         { key: "organizationName", label: "Tên tổ chức/cá nhân/đơn vị thực hiện", answerType: "text", required: true },
@@ -1843,7 +1845,9 @@ criteria.school = {
       ],
     }),
     formField("school", "otherContents", "Các nội dung khác", "school-group-8", "text", 79, [], { required: false }),
-    formField("school", "confirmation", "Xác nhận của cơ sở giáo dục", "school-group-8", "text", 80),
+    formField("school", "confirmation", "Xác nhận nội dung kê khai của cơ sở giáo dục (không ký điện tử)", "school-group-8", "text", 80, [], {
+      description: "Người đại diện cơ sở giáo dục chịu trách nhiệm về thông tin đã khai. Không yêu cầu chữ ký điện tử của đơn vị cung cấp; đơn vị được chọn từ danh sách đã đăng ký trên hệ thống.",
+    }),
   ],
 };
 
@@ -2896,3 +2900,44 @@ export const applications: Application[] = [
   },
   ...sampleApplications,
 ];
+
+const storedApplicationsKey = "attp-submitted-applications";
+const readStoredApplications = (): Application[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const parsed = JSON.parse(
+      window.localStorage.getItem(storedApplicationsKey) || "[]",
+    );
+    return Array.isArray(parsed) ? (parsed as Application[]) : [];
+  } catch {
+    return [];
+  }
+};
+
+if (typeof window !== "undefined") {
+  readStoredApplications().forEach((storedApplication) => {
+    const existing = applications.find(
+      (application) => application.id === storedApplication.id,
+    );
+    if (existing) Object.assign(existing, storedApplication);
+    else applications.unshift(storedApplication);
+  });
+}
+
+export const saveApplicationRecord = (application: Application) => {
+  const storedApplications = readStoredApplications().filter(
+    (storedApplication) => storedApplication.id !== application.id,
+  );
+  storedApplications.unshift(application);
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(
+      storedApplicationsKey,
+      JSON.stringify(storedApplications),
+    );
+  }
+  const existing = applications.find(
+    (candidate) => candidate.id === application.id,
+  );
+  if (existing) Object.assign(existing, application);
+  else applications.unshift(application);
+};

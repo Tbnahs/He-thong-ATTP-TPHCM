@@ -46,6 +46,7 @@ import {
   applications,
   getCriteriaSet,
   regionalPublicRecords,
+  saveApplicationRecord,
   schoolOptions,
   suppliers,
   type Application,
@@ -831,6 +832,67 @@ const formatManagementAnswer = (
   }
   return formatManagementScalar(value);
 };
+
+function SchoolModelRegistrationPanel({ forms }: { forms: unknown }) {
+  const submittedForms = Array.isArray(forms)
+    ? (forms as Array<{
+        model?: string;
+        formNumber?: string;
+        providerName?: string;
+        fields?: Array<{
+          key: string;
+          label: string;
+          value?: unknown;
+          files?: string[];
+        }>;
+      }>)
+    : [];
+  return (
+    <div>
+      <p className="mono-label text-primary">MẪU 01–04</p>
+      <h2 className="mt-1 text-xl font-extrabold">
+        Chi tiết khai báo theo mô hình
+      </h2>
+      {!submittedForms.length ? (
+        <p className="mt-2 text-sm text-muted-foreground">
+          Chưa có dữ liệu mẫu chi tiết trong hồ sơ này.
+        </p>
+      ) : (
+        <div className="mt-5 space-y-5">
+          {submittedForms.map((form, formIndex) => (
+            <article
+              key={`${form.formNumber ?? formIndex}-${formIndex}`}
+              className="rounded-xl border border-border bg-background p-4"
+            >
+              <p className="text-sm font-extrabold text-primary">
+                Mẫu số {form.formNumber ?? "—"} · {form.model ?? "Mô hình"}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {form.providerName
+                  ? `Đơn vị đã đăng ký: ${form.providerName}`
+                  : "Chưa liên kết đơn vị đăng ký; trường có thể bổ sung sau."}
+              </p>
+              <dl className="mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+                {(form.fields ?? []).map((field) => (
+                  <div key={field.key} className="min-w-0">
+                    <dt className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                      {field.label}
+                    </dt>
+                    <dd className="mt-1.5 whitespace-pre-line break-words text-sm font-semibold">
+                      {field.files?.length
+                        ? field.files.join(", ")
+                        : formatManagementAnswer(field.value)}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </article>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function managementStatusLabel(
   status: FacilityManagementRow["status"] | Application["status"],
@@ -3750,6 +3812,7 @@ export function AdminFacilityDetailPage() {
       application.status = "approved";
       application.reviewNote = null;
       application.published = true;
+      saveApplicationRecord(application);
     }
     setDetailStatus("approved");
     setNotice("Đã duyệt hồ sơ và cập nhật trạng thái cơ sở.");
@@ -3759,6 +3822,7 @@ export function AdminFacilityDetailPage() {
       application.status = "rejected";
       application.reviewNote = null;
       application.published = false;
+      saveApplicationRecord(application);
     }
     setDetailStatus("stopped");
     setNotice("Đã hủy bỏ hồ sơ.");
@@ -3882,6 +3946,14 @@ export function AdminFacilityDetailPage() {
             )}
           </div>
         </section>
+
+        {registrationType === "school" && (
+          <section className="mt-6 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+            <SchoolModelRegistrationPanel
+              forms={registrationFields.schoolModelForms}
+            />
+          </section>
+        )}
 
         <section className="mt-6 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
           <div className="flex items-start gap-3">

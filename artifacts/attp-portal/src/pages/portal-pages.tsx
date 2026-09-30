@@ -80,6 +80,7 @@ import {
   getPublicRecords,
   newsItems,
   regionalPublicRecords,
+  saveApplicationRecord,
   schoolOptions,
   suppliers,
   type Application,
@@ -585,6 +586,20 @@ const schoolServiceFields = (
   siteLabel: string,
   contractLabel: string,
 ): CriteriaDefinition[] => [
+  schoolModelField(
+    model,
+    "registeredProviderId",
+    "Đơn vị cung cấp đã đăng ký trên hệ thống",
+    "school-group-3",
+    "select",
+    99,
+    [],
+    {
+      required: false,
+      description:
+        "Nếu đã có đơn vị phù hợp trong danh sách, bắt buộc chọn đơn vị đó. Nếu chưa có, để trống và bổ sung sau.",
+    },
+  ),
   schoolModelField(model, "serviceLegalName", "Tên doanh nghiệp, tổ chức (trụ sở chính)", "school-group-3", "text", 100),
   schoolModelField(model, "serviceHeadquartersAddress", "Địa chỉ trụ sở chính", "school-group-3", "text", 101),
   schoolModelField(model, "serviceTaxCode", "Mã số doanh nghiệp/mã số thuế hoặc mã định danh hợp pháp khác", "school-group-3", "text", 102),
@@ -613,7 +628,6 @@ const schoolServiceFields = (
   schoolModelField(model, "serviceQualityCertificates", "Giấy chứng nhận quản lý chất lượng của đơn vị", "school-group-3", "repeatable", 123, [], {
     repeatableFields: schoolServiceDocumentFields,
   }),
-  schoolModelField(model, "serviceConfirmation", "Xác nhận của đơn vị thực hiện dịch vụ", "school-group-8", "text", 190),
 ];
 
 const schoolModelSpecificFields: Record<string, CriteriaDefinition[]> = {
@@ -648,6 +662,20 @@ const schoolModelSpecificFields: Record<string, CriteriaDefinition[]> = {
     ),
   ],
   "Căng tin trường học": [
+    schoolModelField(
+      "Căng tin trường học",
+      "registeredProviderId",
+      "Đơn vị kinh doanh căng tin đã đăng ký trên hệ thống",
+      "school-group-3",
+      "select",
+      99,
+      [],
+      {
+        required: false,
+        description:
+          "Nếu đã có đơn vị phù hợp trong danh sách, bắt buộc chọn đơn vị đó. Nếu chưa có, để trống và bổ sung sau.",
+      },
+    ),
     schoolModelField("Căng tin trường học", "canteenName", "Tên tổ chức, cá nhân/đơn vị căng tin trong cơ sở giáo dục", "school-group-3", "text", 100),
     schoolModelField("Căng tin trường học", "canteenAddress", "Địa chỉ", "school-group-3", "text", 101),
     schoolModelField("Căng tin trường học", "canteenIdentifier", "Mã số chi nhánh/mã số địa điểm kinh doanh/mã số thuế hoặc mã định danh hợp pháp khác", "school-group-3", "text", 102),
@@ -668,7 +696,6 @@ const schoolModelSpecificFields: Record<string, CriteriaDefinition[]> = {
       repeatableFields: schoolServiceDocumentFields,
     }),
     schoolModelField("Căng tin trường học", "canteenOtherLegalDocuments", "Các hồ sơ pháp lý khác", "school-group-3", "text", 115),
-    schoolModelField("Căng tin trường học", "canteenConfirmation", "Xác nhận của đơn vị căng tin trong cơ sở giáo dục", "school-group-8", "text", 190),
   ],
 };
 const schoolModelDetailExcludedForReadyMeals = new Set([
@@ -793,6 +820,13 @@ type FacilityAccount = {
   username: string;
   registration: RegistrationSnapshot;
 };
+type RegisteredMealProvider = {
+  id: string;
+  name: string;
+  taxCode: string;
+  address: string;
+  type: ApplicationType;
+};
 type MealProviderSchoolLink = {
   id: string;
   sourceUnitId: string;
@@ -805,6 +839,7 @@ type SchoolMealProviderLink = {
   schoolName: string;
   providerName: string;
   providerId?: string;
+  model?: string;
   createdAt: string;
 };
 const facilityAccountsStorageKey = "attp-facility-accounts";
@@ -819,6 +854,60 @@ const readFacilityAccounts = (): FacilityAccount[] => {
   } catch {
     return [];
   }
+};
+const getRegisteredServiceProviders = (): RegisteredMealProvider[] => {
+  const candidates: RegisteredMealProvider[] = [];
+  const toProvider = (
+    id: string,
+    type: ApplicationType,
+    fields: Record<string, unknown>,
+    addressFallback = "",
+  ): RegisteredMealProvider | null => {
+    if (type !== "meal-provider" && type !== "food-supplier") return null;
+    const name = String(
+      fields.applicantName ?? fields.facilityName ?? fields.legalName ?? "",
+    ).trim();
+    if (!name) return null;
+    return {
+      id,
+      name,
+      taxCode: String(fields.taxCode ?? fields.serviceTaxCode ?? "").trim(),
+      address: String(
+        fields.facilityAddress ??
+          fields.headquartersAddress ??
+          fields.addressDetail ??
+          addressFallback,
+      ).trim(),
+      type,
+    };
+  };
+
+  readFacilityAccounts().forEach((account) => {
+    const provider = toProvider(
+      `account:${account.username}`,
+      account.registration.type,
+      account.registration.fields as Record<string, unknown>,
+    );
+    if (provider) candidates.push(provider);
+  });
+  applications.forEach((application) => {
+    const provider = toProvider(
+      `application:${application.id}`,
+      application.type,
+      application.data,
+      application.address,
+    );
+    if (provider) candidates.push(provider);
+  });
+
+  const unique = new Map<string, RegisteredMealProvider>();
+  candidates.forEach((provider) => {
+    const key = provider.taxCode
+      ? `tax:${provider.taxCode.toLowerCase()}`
+      : `name:${provider.name.toLowerCase()}`;
+    if (!unique.has(key)) unique.set(key, provider);
+  });
+  return [...unique.values()].sort((a, b) => a.name.localeCompare(b.name, "vi"));
 };
 const saveFacilityAccounts = (accounts: FacilityAccount[]) => {
   window.localStorage.setItem(
@@ -872,15 +961,16 @@ const saveSchoolMealProviderLinks = (
   const createdAt = new Date().toISOString();
   const nextLinks = rows
     .map((row, index) => ({
-      id: `${schoolName}-${index}-${row.providerId ?? row.providerName ?? "manual"}`,
+      id: `${schoolName}-${index}-${row.providerId ?? row.providerName ?? "unlinked"}`,
       schoolName,
       providerName:
         typeof row.providerName === "string" ? row.providerName : "",
       providerId:
         typeof row.providerId === "string" ? row.providerId : undefined,
+      model: typeof row.model === "string" ? row.model : undefined,
       createdAt,
     }))
-    .filter((link) => link.providerName || link.providerId);
+    .filter((link) => link.providerId);
   window.localStorage.setItem(
     schoolMealProviderLinksStorageKey,
     JSON.stringify([...existing, ...nextLinks]),
@@ -1551,6 +1641,67 @@ const publicRecordTypeLabels: Record<ApplicationType, string> = {
   school: "Cơ sở giáo dục",
 };
 
+const getPublicApplicationData = (
+  type: ApplicationType,
+  data: Record<string, unknown>,
+) => {
+  const publicKeys: Record<ApplicationType, string[]> = {
+    school: [
+      "addressProvince",
+      "addressWard",
+      "addressMain",
+      "addressDetail",
+      "educationLevels",
+      "studentTotal",
+      "boardingStudentTotal",
+      "mealModel",
+    ],
+    "meal-provider": [
+      "addressProvince",
+      "addressWard",
+      "addressDetail",
+      "facilityAddress",
+      "dailyCapacity",
+    ],
+    "food-supplier": [
+      "addressProvince",
+      "addressWard",
+      "addressDetail",
+      "facilityAddress",
+      "products",
+    ],
+  };
+  const publicData: Record<string, unknown> = {};
+  publicKeys[type].forEach((key) => {
+    if (data[key] !== undefined) publicData[key] = data[key];
+  });
+  if (Array.isArray(data.operatingModels)) {
+    publicData.operatingModels = data.operatingModels
+      .filter(
+        (row): row is Record<string, unknown> =>
+          typeof row === "object" && row !== null && !Array.isArray(row),
+      )
+      .map((row) => ({
+        model: row.model,
+        formNumber: row.formNumber,
+        formLabel: row.formLabel,
+      }));
+  }
+  if (Array.isArray(data.products)) {
+    publicData.products = data.products
+      .filter(
+        (row): row is Record<string, unknown> =>
+          typeof row === "object" && row !== null && !Array.isArray(row),
+      )
+      .map((row) => ({
+        category: row.category,
+        name: row.name,
+        origin: row.origin,
+      }));
+  }
+  return publicData;
+};
+
 const inferPublicRecordType = (record: PublicRecord): ApplicationType => {
   const registration = getRecordRegistrationDetail(record);
   if (registration.type) return registration.type;
@@ -2164,6 +2315,10 @@ function RecordDialog({
     "taxCode",
     "address",
     "contact",
+    "schoolModelForms",
+    "linkedMealProviders",
+    "modelServiceDetails",
+    "operatingModels",
     "licenseNumber",
     "productGroups",
     "origin",
@@ -2176,11 +2331,25 @@ function RecordDialog({
     "Mã số thuế",
     "Số điện thoại liên hệ",
     "Số giấy phép ATTP",
+    "Liên hệ",
   ]);
   const shouldHideFacilityDetail = record.category === "eligible-facilities";
+  const isPrivatePublicField = (key: string, label?: string) =>
+    /cccd|citizen.?id|identity|phone|mobile|contact|email|contract|agreement|signature|providerId/i.test(
+      key,
+    ) ||
+    Boolean(
+      label &&
+        /cccd|căn cước|điện thoại|liên hệ|email|hợp đồng|ký xác nhận/i.test(
+          label,
+        ),
+    );
   const metadataEntries = Object.entries(record.metadata ?? {}).filter(
     ([key]) =>
-      !(shouldHideFacilityDetail && hiddenFacilityDetailLabels.has(key)),
+      !(
+        shouldHideFacilityDetail &&
+        (hiddenFacilityDetailLabels.has(key) || isPrivatePublicField(key, key))
+      ),
   );
   const detailEntries = Object.entries(registration.data).filter(
     ([key, value]) => {
@@ -2189,6 +2358,7 @@ function RecordDialog({
         !(
           shouldHideFacilityDetail &&
           (hiddenFacilityDetailKeys.has(key) ||
+            isPrivatePublicField(key, label) ||
             (label ? hiddenFacilityDetailLabels.has(label) : false))
         ) &&
         value !== undefined &&
@@ -2197,9 +2367,9 @@ function RecordDialog({
       );
     },
   );
-  const imageAttachments = registration.attachments.filter((file) =>
-    file.kind.startsWith("image/"),
-  );
+  const imageAttachments = shouldHideFacilityDetail
+    ? []
+    : registration.attachments.filter((file) => file.kind.startsWith("image/"));
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-primary/30 p-0 backdrop-blur-sm sm:items-center sm:p-5"
@@ -2896,6 +3066,19 @@ function ApplicationForm({
   const [notice, setNotice] = useState("");
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [registeredProviders, setRegisteredProviders] = useState<
+    RegisteredMealProvider[]
+  >(getRegisteredServiceProviders);
+  useEffect(() => {
+    const refreshProviders = () =>
+      setRegisteredProviders(getRegisteredServiceProviders());
+    window.addEventListener("storage", refreshProviders);
+    window.addEventListener("focus", refreshProviders);
+    return () => {
+      window.removeEventListener("storage", refreshProviders);
+      window.removeEventListener("focus", refreshProviders);
+    };
+  }, []);
   const formSet = getCriteriaSet(type);
   const schoolModelRows: RepeatableValue =
     type === "school" && Array.isArray(fields.operatingModels)
@@ -3061,10 +3244,58 @@ function ApplicationForm({
       type === "school" &&
       fields.mealModel === "Liên kết đơn vị suất ăn" &&
       !String(fields.averageDailyMealDemand ?? "").trim();
+    const getProviderOptionsForModel = (model: string) =>
+      model === "Căng tin trường học"
+        ? registeredProviders
+        : registeredProviders.filter(
+            (provider) => provider.type === "meal-provider",
+          );
+    const isLinkedProviderModel = (model: string) =>
+      model === "BATT hợp đồng" ||
+      model === "Nhận suất ăn sẵn" ||
+      model === "Căng tin trường học";
+    const missingSchoolProviderLinks =
+      type === "school"
+        ? schoolModelRows.flatMap((row, rowIndex) => {
+            const model = String(row.model ?? "");
+            if (!isLinkedProviderModel(model)) return [];
+            const availableProviders = getProviderOptionsForModel(model);
+            const selectedProviderId = getSchoolModelFieldValue(
+              rowIndex,
+              "registeredProviderId",
+            );
+            const selectedId =
+              typeof selectedProviderId === "string" ? selectedProviderId : "";
+            if (
+              availableProviders.length > 0 &&
+              !availableProviders.some((provider) => provider.id === selectedId)
+            ) {
+              return [`Mẫu số ${getSchoolModelForm(model).number}`];
+            }
+            return [];
+          })
+        : [];
     const missingSchoolModelDetails =
       type === "school"
         ? schoolModelRows.flatMap((row, rowIndex) => {
             const model = String(row.model ?? "");
+            if (isLinkedProviderModel(model)) {
+              const availableProviders = getProviderOptionsForModel(model);
+              const selectedProviderId = getSchoolModelFieldValue(
+                rowIndex,
+                "registeredProviderId",
+              );
+              const selectedId =
+                typeof selectedProviderId === "string" ? selectedProviderId : "";
+              if (
+                availableProviders.length === 0 ||
+                !availableProviders.some(
+                  (provider) => provider.id === selectedId,
+                )
+              ) {
+                return [];
+              }
+            }
             const detailItems = model
               ? getSchoolModelDetailItems(formSet, model)
               : [];
@@ -3129,6 +3360,7 @@ function ApplicationForm({
     if (
       missing.length ||
       missingAverageDailyMealDemand ||
+      missingSchoolProviderLinks.length ||
       missingSchoolModelDetails.length
     ) {
       const missingSchoolRows =
@@ -3148,6 +3380,10 @@ function ApplicationForm({
       setNotice(
         missingAverageDailyMealDemand
           ? "Vui lòng nhập nhu cầu suất ăn trung bình / 1 ngày."
+          : missingSchoolProviderLinks.length
+            ? `Vui lòng chọn đơn vị đã đăng ký trên hệ thống cho ${missingSchoolProviderLinks
+                .slice(0, 2)
+                .join(", ")}${missingSchoolProviderLinks.length > 2 ? "…" : ""}. Nếu chưa có đơn vị phù hợp trong danh sách, hãy để trống và bổ sung sau.`
           : missingSchoolModelDetails.length
           ? `Vui lòng hoàn thiện ${missingSchoolModelDetails
               .slice(0, 2)
@@ -3168,6 +3404,42 @@ function ApplicationForm({
         formNumber: getSchoolModelForm(row.model).number,
         formLabel: `Mẫu số ${getSchoolModelForm(row.model).number}`,
       }));
+      data.schoolModelForms = schoolModelRows.map((row, rowIndex) => {
+        const model = String(row.model ?? "");
+        const providerIdValue = getSchoolModelFieldValue(
+          rowIndex,
+          "registeredProviderId",
+        );
+        const providerId =
+          typeof providerIdValue === "string" ? providerIdValue : "";
+        const provider = registeredProviders.find(
+          (candidate) => candidate.id === providerId,
+        );
+        return {
+          model,
+          formNumber: getSchoolModelForm(model).number,
+          providerId: provider?.id ?? "",
+          providerName: provider?.name ?? "",
+          fields: getSchoolModelDetailItems(formSet, model).map((item) => {
+            const scopedKey = schoolModelFieldKey(rowIndex, item.key);
+            const value =
+              fields[scopedKey] ??
+              (rowIndex === 0 ? fields[item.key] : undefined);
+            return {
+              key: item.key,
+              label: item.label,
+              answerType: item.answerType,
+              value: value ?? "",
+              files:
+                item.answerType === "file"
+                  ? files
+                      .filter((file) => file.fieldKey === scopedKey)
+                      .map((file) => file.name)
+                  : [],
+            };
+          }),
+        };
+      });
     }
     formFields
       .filter((item) => item.answerType === "file")
@@ -3233,6 +3505,29 @@ function ApplicationForm({
         ? String(value)
         : "";
     };
+    const linkedProviderRows =
+      type === "school"
+        ? schoolModelRows.flatMap((row, rowIndex) => {
+            const providerIdValue = getSchoolModelFieldValue(
+              rowIndex,
+              "registeredProviderId",
+            );
+            const providerId =
+              typeof providerIdValue === "string" ? providerIdValue : "";
+            const provider = registeredProviders.find(
+              (candidate) => candidate.id === providerId,
+            );
+            return provider
+              ? [
+                  {
+                    providerId: provider.id,
+                    providerName: provider.name,
+                    model: String(row.model ?? ""),
+                  },
+                ]
+              : [];
+          })
+        : [];
     const applicantName =
       asText(fields.applicantName) ||
       asText(fields.facilityName) ||
@@ -3275,12 +3570,43 @@ function ApplicationForm({
       files,
       submittedAt: new Date().toISOString().slice(0, 10),
     };
+    const submittedAt = new Date().toISOString();
+    const applicationId =
+      mode === "edit" && account
+        ? account.username
+        : `application-${Date.now()}`;
+    const previousApplication = applications.find(
+      (application) => application.id === applicationId,
+    );
+    const applicationRecord: Application = {
+      id: applicationId,
+      reference:
+        previousApplication?.reference ??
+        `HS-${submittedAt.slice(0, 4)}-${Date.now().toString().slice(-6)}`,
+      type: input.type,
+      applicantName: input.applicantName,
+      address: input.address,
+      contact: input.contact,
+      submittedAt,
+      status: "pending",
+      score: 0,
+      reviewNote: null,
+      isThirdParty: Boolean(input.isThirdParty),
+      data: input.data,
+      attachments: input.attachments,
+      criteriaVersion: input.criteriaVersion,
+      criteriaSnapshot: formSet?.criteria ?? [],
+      criteriaGroups: formSet?.groups ?? [],
+      scoreBreakdown: {},
+      published: false,
+    };
+    saveApplicationRecord(applicationRecord);
     if (mode === "register") {
       const accountEmail = email.trim().toLowerCase();
       const accountRecord: FacilityAccount = {
         email: accountEmail,
         password: "",
-        username: `application-${Date.now()}`,
+        username: applicationId,
         registration: snapshot,
       };
       saveFacilityAccounts([...readFacilityAccounts(), accountRecord]);
@@ -3293,10 +3619,7 @@ function ApplicationForm({
         saveMealProviderSchoolLinks(accountEmail, schoolIds);
       }
       if (type === "school") {
-        const providerRows = Array.isArray(fields.linkedMealProviders)
-          ? (fields.linkedMealProviders as RepeatableValue)
-          : [];
-        saveSchoolMealProviderLinks(applicantName, providerRows);
+        saveSchoolMealProviderLinks(applicantName, linkedProviderRows);
       }
     } else if (account) {
       saveFacilityAccounts(
@@ -3315,13 +3638,9 @@ function ApplicationForm({
         saveMealProviderSchoolLinks(account.username, schoolIds);
       }
       if (type === "school") {
-        const providerRows = Array.isArray(fields.linkedMealProviders)
-          ? (fields.linkedMealProviders as RepeatableValue)
-          : [];
-        saveSchoolMealProviderLinks(asText(fields.applicantName), providerRows);
+        saveSchoolMealProviderLinks(applicantName, linkedProviderRows);
       }
     }
-    void input;
     setSubmitted(true);
     setSubmitAttempted(false);
     setNotice(
@@ -3511,8 +3830,10 @@ function ApplicationForm({
               <p>
                 Cơ sở giáo dục phối hợp với đơn vị cung cấp thực phẩm, đơn vị
                 nấu ăn, đơn vị cung cấp suất ăn và đơn vị kinh doanh căng tin.
-                Người ký xác nhận chịu trách nhiệm về tính đầy đủ, trung thực
-                và chính xác của nội dung cung cấp.
+                Đơn vị cung cấp phải đăng ký trên hệ thống để nhà trường chọn
+                trong danh sách; nếu chưa có đơn vị phù hợp, nhà trường để trống
+                phần liên kết và bổ sung sau. Hệ thống không yêu cầu chữ ký điện
+                tử của đơn vị cung cấp.
               </p>
             </div>
           )}
@@ -3595,6 +3916,7 @@ function ApplicationForm({
               onFilesFor={addFilesFor}
               onRemoveFile={removeFile}
               showValidationErrors={submitAttempted}
+              registeredProviders={registeredProviders}
             />
           )}
           <div className="paper-submit-bar">
@@ -3636,6 +3958,7 @@ function SchoolModelDetails({
   rows,
   fields,
   files,
+  registeredProviders,
   schoolModelFieldKey,
   getFieldValue,
   onChange,
@@ -3647,6 +3970,7 @@ function SchoolModelDetails({
   rows: RepeatableValue;
   fields: Record<string, CriteriaValue>;
   files: Attachment[];
+  registeredProviders: RegisteredMealProvider[];
   schoolModelFieldKey: (rowIndex: number, key: string) => string;
   getFieldValue: (rowIndex: number, key: string) => CriteriaValue;
   onChange: (key: string, value: CriteriaValue) => void;
@@ -3732,6 +4056,95 @@ function SchoolModelDetails({
                 >
                   {groupFields.map((item) => {
                     const scopedKey = schoolModelFieldKey(rowIndex, item.key);
+                    if (item.key === "registeredProviderId") {
+                      const providerOptions =
+                        model === "Căng tin trường học"
+                          ? registeredProviders
+                          : registeredProviders.filter(
+                              (provider) => provider.type === "meal-provider",
+                            );
+                      const selectedValue = getFieldValue(
+                        rowIndex,
+                        item.key,
+                      );
+                      const selectedProviderId =
+                        typeof selectedValue === "string"
+                          ? selectedValue
+                          : "";
+                      const selectedProvider = providerOptions.find(
+                        (provider) => provider.id === selectedProviderId,
+                      );
+                      const staleSelectedProvider =
+                        selectedProviderId && !selectedProvider;
+                      return (
+                        <div
+                          key={scopedKey}
+                          className="paper-question"
+                          data-testid={`registered-provider-link-${rowIndex}`}
+                        >
+                          <label className="mt-5 block first:mt-0">
+                            <span className="mb-2 block text-sm font-semibold">
+                              {item.label}
+                              {providerOptions.length > 0 && (
+                                <span className="text-destructive"> *</span>
+                              )}
+                            </span>
+                            <select
+                              value={selectedProviderId}
+                              onChange={(event) =>
+                                onChange(scopedKey, event.target.value)
+                              }
+                              className="focus-ring h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                              data-testid={`select-registered-provider-${rowIndex}`}
+                            >
+                              <option value="">
+                                {providerOptions.length
+                                  ? "Chọn cơ sở đã đăng ký"
+                                  : "Chưa có cơ sở phù hợp — bổ sung sau"}
+                              </option>
+                              {staleSelectedProvider && (
+                                <option value={selectedProviderId}>
+                                  Cơ sở đã chọn không còn trong danh sách
+                                </option>
+                              )}
+                              {providerOptions.map((provider) => (
+                                <option key={provider.id} value={provider.id}>
+                                  {provider.name}
+                                  {provider.taxCode
+                                    ? ` · MST ${provider.taxCode}`
+                                    : ""}
+                                </option>
+                              ))}
+                            </select>
+                            <span className="mt-1 block text-xs text-muted-foreground">
+                              {providerOptions.length > 0
+                                ? "Chỉ được chọn cơ sở đã gửi hồ sơ đăng ký trên hệ thống. Nếu chưa có đơn vị phù hợp, có thể để trống và bổ sung sau."
+                                : "Hiện chưa có cơ sở phù hợp đã đăng ký. Có thể để trống và bổ sung sau."}
+                            </span>
+                          </label>
+                          {selectedProvider && (
+                            <div className="mt-3 rounded-xl border border-primary/15 bg-secondary/30 p-3 text-sm">
+                              <p className="font-bold text-primary">
+                                {selectedProvider.name}
+                              </p>
+                              <p className="mt-1 text-muted-foreground">
+                                {selectedProvider.type === "meal-provider"
+                                  ? "Cơ sở cung cấp suất ăn"
+                                  : "Cơ sở cung cấp thực phẩm"}
+                                {selectedProvider.taxCode
+                                  ? ` · Mã số ${selectedProvider.taxCode}`
+                                  : ""}
+                              </p>
+                              {selectedProvider.address && (
+                                <p className="mt-1 text-muted-foreground">
+                                  {selectedProvider.address}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
                     const scopedItem: CriteriaDefinition = {
                       ...item,
                       id: `${item.id}-${rowIndex}`,
@@ -7356,6 +7769,77 @@ function AdminCriteriaReviewTable({
   );
 }
 
+function SubmittedSchoolModelForms({ forms }: { forms: unknown }) {
+  const submittedForms = Array.isArray(forms)
+    ? (forms as Array<{
+        model?: string;
+        formNumber?: string;
+        providerName?: string;
+        fields?: Array<{
+          key: string;
+          label: string;
+          answerType?: string;
+          value?: unknown;
+          files?: string[];
+        }>;
+      }>)
+    : [];
+  if (!submittedForms.length) return null;
+  return (
+    <section className="mt-7 rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5 sm:p-7">
+      <p className="text-xs font-bold uppercase tracking-[.16em] text-emerald-800">
+        KÊ KHAI THEO MẪU
+      </p>
+      <h3 className="mt-2 text-xl font-extrabold text-slate-900">
+        Chi tiết Mẫu 01–04
+      </h3>
+      <div className="mt-5 space-y-5">
+        {submittedForms.map((form, formIndex) => (
+          <article
+            key={`${form.formNumber ?? formIndex}-${formIndex}`}
+            className="rounded-xl border border-emerald-200 bg-white p-4"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 pb-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-emerald-800">
+                  Mẫu số {form.formNumber ?? "—"} · {form.model ?? "Mô hình"}
+                </p>
+                {form.providerName ? (
+                  <p className="mt-1 text-sm font-semibold text-slate-700">
+                    Đơn vị liên kết đã đăng ký: {form.providerName}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-sm text-amber-800">
+                    Chưa liên kết đơn vị đăng ký; nhà trường có thể bổ sung sau.
+                  </p>
+                )}
+              </div>
+            </div>
+            <dl className="mt-3 grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+              {(form.fields ?? []).map((field) => {
+                const value =
+                  field.answerType === "file"
+                    ? field.files?.join(", ") || "—"
+                    : formatAnswer(field.value);
+                return (
+                  <div key={field.key} className="min-w-0">
+                    <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      {field.label}
+                    </dt>
+                    <dd className="mt-1.5 whitespace-pre-line break-words text-sm font-semibold text-slate-800">
+                      {value}
+                    </dd>
+                  </div>
+                );
+              })}
+            </dl>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function AttachmentGalleryDialog({
   file,
   attachments,
@@ -7593,11 +8077,13 @@ export function AdminApplicationPage() {
       metadata: {
         "Mã hồ sơ": application.reference,
         "Loại hình": typeNames[application.type],
-        "Liên hệ": application.contact,
         "Kết quả": "Đạt",
       },
-      applicationData: application.data,
-      attachments: application.attachments,
+      applicationData: getPublicApplicationData(
+        application.type,
+        application.data,
+      ),
+      attachments: [],
     };
     const existingIndex = regionalPublicRecords.findIndex(
       (record) => record.id === publishedRecord.id,
@@ -7618,6 +8104,7 @@ export function AdminApplicationPage() {
     application.status = "approved";
     application.reviewNote = null;
     application.published = true;
+    saveApplicationRecord(application);
     syncApprovedFacility(application);
     setNotice("Đã lưu hồ sơ đạt và công bố trên cổng thông tin.");
   };
@@ -7629,6 +8116,7 @@ export function AdminApplicationPage() {
     application.status = "needs-more-info";
     application.reviewNote = supplementNote.trim();
     application.published = false;
+    saveApplicationRecord(application);
     removePublishedRecord();
     setEvaluation("failed");
     setNotice(
@@ -7758,6 +8246,11 @@ export function AdminApplicationPage() {
                   </div>
                 );
               })}
+              {application.type === "school" && (
+                <SubmittedSchoolModelForms
+                  forms={application.data.schoolModelForms}
+                />
+              )}
             </div>
             {application.reviewNote && (
               <div className="mt-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
