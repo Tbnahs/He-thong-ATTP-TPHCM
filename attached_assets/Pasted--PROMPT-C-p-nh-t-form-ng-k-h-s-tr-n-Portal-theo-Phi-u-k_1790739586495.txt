@@ -1,0 +1,453 @@
+# PROMPT: Cập nhật form đăng ký hồ sơ trên Portal theo Phiếu khảo sát chính thức của Sở ATTP
+
+> Dán nguyên văn nội dung dưới đây cho AI/dev đang phát triển hệ thống để yêu cầu sửa lại thiết kế. Toàn bộ trường dữ liệu bên dưới được liệt kê **đầy đủ, đúng theo từng mục** của 2 Phiếu khảo sát chính thức do Sở An toàn thực phẩm TP.HCM ban hành — không rút gọn, không lược bỏ trường nào.
+
+---
+
+## Bối cảnh
+
+Hệ thống Portal hiện có chức năng "Đăng ký hồ sơ" cho 3 loại cơ sở: **Cơ sở cung cấp thực phẩm**, **Cơ sở cung cấp suất ăn**, **Cơ sở giáo dục**.
+
+**Yêu cầu: chỉ sửa lại 2 form "Cơ sở cung cấp suất ăn" và "Cơ sở giáo dục" theo đúng toàn bộ nội dung 2 Phiếu khảo sát đính kèm. KHÔNG thay đổi form "Cơ sở cung cấp thực phẩm".**
+
+Ký hiệu dùng trong prompt: **(*)** = trường bắt buộc theo phiếu gốc; **[chọn 1]** = radio/select; **[chọn nhiều]** = checkbox; **[bảng]** = dữ liệu dạng bảng, cho phép thêm nhiều dòng; **[tệp]** = trường tải tệp đính kèm.
+
+---
+
+# PHẦN A — FORM "CƠ SỞ CUNG CẤP SUẤT ĂN"
+*(theo "Phiếu khảo sát và cung cấp thông tin cơ sở suất ăn sẵn")*
+
+### Thông tin thực hiện khảo sát
+- Ngày thực hiện (*)
+- Tổ chức, cá nhân được khảo sát (*)
+- Người cung cấp thông tin (*)
+- CCCD số (*)
+- Chức vụ (*)
+
+### I. Thông tin chung
+
+**1. Tên tổ chức/cá nhân (trụ sở chính)**
+- Tên tổ chức/cá nhân (*)
+- Địa chỉ (*)
+- Mã số doanh nghiệp/mã số thuế (hoặc mã định danh hợp pháp khác) (*)
+- Ngày cấp (*)
+- Nơi cấp (*)
+- Lần đầu: ngày/tháng/năm (*)
+- Lần thứ [N]: ngày/tháng/năm — cho phép thêm nhiều lần thay đổi
+- Người đại diện theo pháp luật/chủ cơ sở (Ông/Bà) (*)
+- Chức danh (*)
+
+**2. Tên cơ sở/địa điểm được khảo sát và cung cấp thông tin (xưởng chế biến/bếp nấu)**
+- Địa chỉ (*)
+- Mã số chi nhánh/mã số địa điểm kinh doanh (*)
+- Ngày cấp (*)
+- Nơi cấp (*)
+- Lần đầu: ngày/tháng/năm (*)
+- Lần thứ [N]: ngày/tháng/năm
+- Người đại diện (Ông/Bà) (*)
+- Chức danh (*)
+
+**3. Thông tin liên hệ của người trực tiếp phụ trách ATTP tại cơ sở**
+- Ông/Bà (*)
+- Chức vụ (*)
+- Số điện thoại liên hệ (*)
+- Email liên hệ (*)
+
+**4. Công suất phục vụ**
+- Công suất (tổng): ... suất/ngày (*)
+- Sáng: ... suất/ngày
+- Trưa: ... suất/ngày
+- Xế: ... suất/ngày
+- Tối: ... suất/ngày
+
+**5. Số lượng đơn vị nhận cung cấp**: ... đơn vị (*) — [bảng], mỗi dòng gồm:
+- STT
+- Đơn vị nhận suất ăn [chọn 1]: Trường học/Cơ sở giáo dục / Công ty-xí nghiệp / Bệnh viện / Khác (ghi rõ)
+- Số lượng (đơn vị thuộc nhóm này)
+- Giá thành suất ăn [chọn 1]: Dưới 25.000 đồng / Từ 25.000 đến 30.000 đồng / Từ 30.000 đến 35.000 đồng / Trên 35.000 đồng (ghi rõ số nếu khác khoảng)
+
+### II. Thông tin chung về giấy chứng nhận và tình hình nhân sự
+
+**1. Giấy chứng nhận quản lý chất lượng**
+- ☐ Giấy chứng nhận cơ sở đủ điều kiện an toàn thực phẩm: Số cấp, Ngày cấp, Có giá trị đến, Nơi cấp, Địa điểm được cấp chứng nhận, Phạm vi loại hình được cấp chứng nhận [tệp]
+- ☐ Giấy chứng nhận khác (ISO 22000:2018, HACCP...): Số cấp, Ngày cấp, Ngày hết hiệu lực, Nơi cấp, Địa điểm được cấp chứng nhận, Phạm vi loại hình được cấp chứng nhận [tệp] — cho phép thêm nhiều giấy chứng nhận khác
+
+**2. Nhân sự trực tiếp tham gia hoạt động**
+- Tổng số người làm việc tại địa điểm: ... người (*)
+- Số người trực tiếp sơ chế/chế biến/chia suất: ... người, trong đó: Số lao động cơ hữu (toàn thời gian): ... người; Số lao động bán thời gian/thời vụ: ... người
+- Số người không trực tiếp: ... người, trong đó: cơ hữu: ... người; bán thời gian: ... người
+- Số người đã tập huấn kiến thức ATTP và có xác nhận của chủ cơ sở: .../... người
+- Số người đã khám sức khỏe/theo dõi sức khỏe theo quy định: .../... người
+
+### III. Điều kiện đảm bảo an toàn thực phẩm
+
+**1. Điều kiện thực tế tại cơ sở**
+- Tổng diện tích: ... m²
+- Khu sơ chế/chế biến: ... m²
+- Khu vực chia suất: ... m²
+- Kết cấu (mô tả)
+- Địa điểm, môi trường (mô tả)
+- Quy trình — mô tả toàn bộ quy trình, việc phân bố các khu vực liên quan đến công đoạn chế biến/nấu ăn (text area dài)
+- Tường, nền, trần (mô tả)
+- Hệ thống chiếu sáng, hệ thống thông gió (mô tả)
+- Cống rãnh, thoát nước (mô tả)
+- Khu vực tập kết và thu gom rác thải (mô tả)
+- Phòng thay bảo hộ lao động, vệ sinh cho nhân viên (mô tả)
+
+**2. Điều kiện trang thiết bị, dụng cụ**
+- Trang thiết bị, dụng cụ bảo quản nguyên liệu thực phẩm, trong đó: ☐ Kho đông: ... kho; ☐ Kho mát: ... kho; ☐ Tủ đông: ... cái; ☐ Tủ lạnh: ... cái; ☐ Tủ mát: ... cái
+- Trang thiết bị, dụng cụ bảo quản thực phẩm (thành phẩm), trong đó: ☐ Kho đông: ... kho; ☐ Kho mát: ... kho; ☐ Tủ đông: ... cái; ☐ Tủ lạnh: ... cái; ☐ Tủ mát: ... cái
+- Bồn rửa: ... cái, trong đó: ☐ Bồn rửa tay: ... cái; ☐ Bồn rửa dụng cụ: ... cái; ☐ Bồn rửa thịt: ... cái; ☐ Bồn rửa thủy sản: ... cái; ☐ Bồn rửa rau: ... cái
+- Bàn sơ chế và chế biến thực phẩm: ... cái
+- Tủ nấu/nồi nấu cơm: ... cái
+- Dụng cụ chế biến [bảng, nhiều dòng]: Loại dụng cụ, Số lượng (cái), Dành riêng cho thực phẩm sống (cái) / Dành riêng cho thực phẩm chín (cái)
+- Dụng cụ ăn uống và chứa đựng thức ăn (mô tả/số lượng)
+- Dụng cụ lưu mẫu (mô tả/số lượng)
+- Thiết bị phòng chống côn trùng (mô tả)
+- Dụng cụ thu gom rác thải (mô tả)
+- Thiết bị để nấu nướng (bếp gas, bếp điện, than củi...), trong đó: ☐ Bếp Gas: ... cái; ☐ Bếp điện: ... cái; ☐ Bếp than, củi: ... cái; ☐ Khác: ... cái
+- Phương tiện vận chuyển suất ăn (số lượng), trong đó: ☐ Xe thuộc công ty: ... chiếc — Loại xe: ...; ☐ Xe hợp đồng bên ngoài: ... chiếc — Loại xe: ...
+- Dụng cụ chứa đựng, bảo quản trong quá trình vận chuyển (mô tả)
+- Trang bị bộ test nhanh dùng cho thực phẩm (mô tả/Có-Không)
+
+**3. Thực hành an toàn thực phẩm**
+- Bảo hộ lao động cho nhân viên (mô tả)
+- Số lượng, tỷ lệ đáp ứng (%)
+- Thực hành an toàn thực phẩm của nhân viên tại cơ sở (mô tả)
+- Các biện pháp kiểm soát nội bộ (mô tả)
+
+**4. Kiểm thực 03 bước và lưu mẫu thức ăn**
+- Kiểm thực 03 bước (kiểm tra trước khi chế biến thức ăn, trong quá trình chế biến thức ăn và trước khi ăn) — mô tả cách thực hiện
+- Lưu mẫu thức ăn — Trang thiết bị, dụng cụ lưu mẫu thức ăn: Số lượng dụng cụ lưu mẫu; Chất liệu của dụng cụ lưu mẫu
+- Lấy mẫu thức ăn (mô tả)
+- Bảo quản mẫu: Thời gian bảo quản mẫu; Nhiệt độ bảo quản mẫu; Khu vực lưu mẫu; Tủ lưu mẫu
+
+### IV. Nguồn gốc nguyên liệu
+- Nguồn nước sử dụng dùng trong chế biến thực phẩm [chọn nhiều]: ☐ Nước máy; ☐ Nước ngầm — mỗi loại kèm Kiểm nghiệm định kỳ: ☐ Có thực hiện (Tần suất: 03 tháng/06 tháng/12 tháng) / ☐ Không thực hiện
+- Các nguồn nguyên liệu khác (Thịt, thủy sản, trứng; rau, củ quả; đồ khô, gia vị; thực phẩm bao gói sẵn...) [bảng, nhiều dòng], mỗi dòng gồm:
+  - STT
+  - Tên nhà cung cấp
+  - Địa chỉ trụ sở
+  - Địa chỉ địa điểm xuất hàng
+  - Thông tin hợp đồng: Số hợp đồng, Ngày ký hợp đồng
+  - Thông tin về Giấy chứng nhận [chọn nhiều]: ☐ GCNĐĐK ATTP; ☐ ISO 22000:2018; ☐ HACCP; ☐ Chuỗi ATTP; ☐ Khác (ghi rõ) — cho phép khai 2 loại giấy chứng nhận trở lên cho 1 nhà cung cấp
+  - Mặt hàng cung cấp [chọn nhiều, mỗi nhóm có ô mô tả chi tiết]: ☐ Nhóm thịt; ☐ Nhóm thủy sản; ☐ Nhóm rau, củ, quả; ☐ Nhóm trái cây; ☐ Nhóm bánh, kẹo, sữa chua, sữa; ☐ Các loại thực phẩm khác
+- Các nội dung khác (mô tả tự do)
+
+### V. Danh sách các đơn vị cung cấp (đầu ra) [bảng, nhiều dòng]
+Mỗi dòng gồm:
+- STT
+- Đơn vị được cung cấp (tên)
+- Địa chỉ
+- Thông tin hợp đồng: Số hợp đồng, Ngày ký
+- Đối tượng [chọn 1]: ☐ Cơ sở giáo dục; ☐ Công ty/xí nghiệp; ☐ Bệnh viện; ☐ Khác (ghi rõ)
+- Số lượng suất ăn cung cấp — theo từng ca: ☐ Sáng: ... suất; ☐ Trưa: ... suất; ☐ Xế: ... suất; ☐ Tối: ... suất
+- Giá thành cung cấp (đồng/suất ăn)
+- Thời điểm giao nhận suất ăn — theo từng ca: ☐ Sáng: ... giờ; ☐ Trưa: ... giờ; ☐ Xế: ... giờ; ☐ Tối: ... giờ
+
+### Xác nhận của cơ sở
+- Nội dung xác nhận: "Tôi xác nhận thông tin đã kê khai phản ánh tình trạng của cơ sở tại thời điểm ghi nhận. Cơ sở chịu trách nhiệm về thông tin cung cấp."
+- Ngày ký (ngày/tháng/năm)
+- Đại diện cơ sở hoặc người được ủy quyền — ký, ghi rõ họ tên và chức vụ
+
+---
+
+# PHẦN B — FORM "CƠ SỞ GIÁO DỤC"
+*(theo "Phiếu khảo sát và cung cấp thông tin cơ sở giáo dục")*
+
+## B.0 — Thay đổi logic quan trọng nhất (đọc kỹ trước khi code)
+
+Form hiện tại cho chọn **1 hình thức tổ chức bữa ăn duy nhất** (radio). Theo phiếu khảo sát chính thức, một trường **có thể đồng thời có nhiều mô hình hoạt động bếp ăn cùng lúc** (nhiều điểm trường/phân hiệu, mỗi nơi một mô hình khác nhau). Do đó:
+
+- Đổi mục "Mô hình, quy mô hoạt động của bếp ăn tại cơ sở" từ **radio (chọn 1)** sang **checkbox (chọn nhiều)**, gồm 4 mô hình, mỗi mô hình tick chọn sẽ mở thêm 1 khối mẫu con chi tiết tương ứng ngay bên dưới:
+  1. ☐ BATT tự tổ chức → mở **Mẫu số 01**
+  2. ☐ BATT hợp đồng (đơn vị bên ngoài chế biến, nấu ăn tại cơ sở giáo dục) → mở **Mẫu số 02**
+  3. ☐ Nhận suất ăn sẵn → mở **Mẫu số 03**
+  4. ☐ Căng tin trường học → mở **Mẫu số 04**
+- Ngay tại bảng chọn mô hình, mỗi dòng còn có 2 cột phụ: **Công suất** (suất/ngày, và chia theo Sáng/Trưa/Xế/Tối) và **Giá thành suất ăn** (Dưới 25.000đ / 25.000–30.000đ / 30.000–35.000đ / Trên 35.000đ).
+- Cho phép mở đồng thời nhiều mẫu con trong cùng 1 hồ sơ.
+
+## B.1 — Phần Thông tin chung (khai 1 lần, dùng chung cho toàn bộ hồ sơ)
+
+### Thông tin thực hiện khảo sát
+- Ngày thực hiện (*)
+- Địa điểm được khảo sát (*)
+- Người cung cấp thông tin (*)
+- CCCD số (*)
+- Chức vụ (*)
+
+### 1. Thông tin chung
+- Tên cơ sở giáo dục (*)
+- Địa chỉ (điểm chính) (*)
+- Địa chỉ (phân hiệu/điểm trường) — cho phép thêm nhiều
+- Hình thức tổ chức quản lý [chọn 1]: ☐ Công lập; ☐ Ngoài công lập (*)
+- Cấp học [chọn nhiều]: ☐ Mầm non; ☐ Tiểu học; ☐ THCS; ☐ THPT; ☐ Khác (ghi rõ) (*)
+- Tổng số học sinh tại cơ sở giáo dục: ... học sinh (*)
+- Số học sinh bán trú: ... học sinh (*)
+- Quyết định thành lập cơ sở giáo dục (số/ngày) [tệp]
+- Hiệu trưởng: Ông/Bà (*)
+- Quyết định công nhận hiệu trưởng (số/ngày) [tệp]
+
+### 2. Thông tin liên hệ của người trực tiếp phụ trách ATTP tại cơ sở giáo dục
+- Cho phép khai nhiều người, mỗi người gồm: Ông/Bà (*), Chức vụ (*), Số điện thoại liên hệ (*), Email liên hệ (*)
+
+### 3. Mô hình, quy mô hoạt động của bếp ăn tại cơ sở [bảng, chọn nhiều — xem B.0]
+Mỗi dòng mô hình gồm: Mô hình hoạt động (checkbox), Công suất (tổng suất/ngày; chia Sáng/Trưa/Xế/Tối), Giá thành suất ăn (đồng/suất, theo 4 khoảng), Mẫu thực hiện tương ứng (01/02/03/04 — tự động xác định theo mô hình đã tick).
+
+### 4. Hình thức minh bạch, công khai thông tin về bữa ăn bán trú tại cơ sở giáo dục
+- Mô tả/chọn kênh công khai (bảng tin, website, app, nhóm liên lạc phụ huynh...) — text area, có thể đính kèm minh chứng [tệp]
+
+### 5. Quy trình phòng ngừa, ứng phó, xử lý sự cố an toàn thực phẩm và ngộ độc thực phẩm tại cơ sở giáo dục
+- Mô tả quy trình (text area dài), có thể đính kèm tài liệu quy trình [tệp]
+
+### 6. Nội dung khác (dành cho cơ sở giáo dục ngoài công lập)
+*(chỉ hiển thị khi mục 1 chọn "Ngoài công lập")*
+- Tên thông tin doanh nghiệp, tổ chức (đơn vị sở hữu, quản lý cơ sở giáo dục) (*)
+- Địa chỉ (*)
+- Mã số doanh nghiệp/mã số thuế (hoặc mã định danh hợp pháp khác) (*)
+- Ngày cấp (*), Nơi cấp (*)
+- Lần đầu: ngày/tháng/năm; Lần thứ [N]: ngày/tháng/năm
+- Người đại diện theo pháp luật/chủ cơ sở: Ông/Bà (*)
+- Chức danh (*)
+
+---
+
+## B.2 — MẪU SỐ 01: BATT tự tổ chức
+*(phần nội dung khai báo của cơ sở giáo dục)*
+
+### I. Thông tin chung về giấy chứng nhận và tình hình nhân sự
+
+**1. Giấy chứng nhận quản lý chất lượng**
+- [chọn 1] ☐ Đối tượng không thuộc diện phải cấp giấy chứng nhận quản lý chất lượng theo quy định
+- [chọn 1] ☐ Đối tượng thuộc diện cấp giấy chứng nhận quản lý chất lượng — nếu chọn, hiện thêm:
+  - ☐ Giấy chứng nhận cơ sở đủ điều kiện an toàn thực phẩm: Số cấp, Ngày cấp, Có giá trị đến, Nơi cấp, Địa điểm được cấp chứng nhận, Phạm vi loại hình được cấp chứng nhận [tệp]
+  - ☐ Giấy chứng nhận khác (ISO 22000:2018, HACCP...): Số cấp, Ngày cấp, Ngày hết hiệu lực, Nơi cấp, Địa điểm được cấp chứng nhận, Phạm vi loại hình được cấp chứng nhận [tệp]
+
+**2. Nhân sự tham gia hoạt động chế biến, nấu ăn**
+- Tổng số người tham gia hoạt động chế biến, nấu ăn: ... người (*)
+- Số người trực tiếp sơ chế/chế biến/chia suất: ... người, trong đó: cơ hữu toàn thời gian: ... người; bán thời gian: ... người
+- Số người không trực tiếp: ... người, trong đó: cơ hữu: ... người; bán thời gian: ... người
+- Số người đã tập huấn kiến thức ATTP có xác nhận của người đứng đầu cơ sở: .../... người
+- Số người đã khám sức khỏe/theo dõi sức khỏe theo quy định: .../... người
+
+### II. Điều kiện đảm bảo an toàn thực phẩm
+
+**1. Điều kiện thực tế tại cơ sở**
+- Tổng diện tích: ... m²
+- Khu vực sơ chế: ... m² — Phòng sơ chế riêng biệt [chọn 1]: ☐ Có / ☐ Không có
+- Khu vực chế biến: ... m² — Phòng chế biến riêng biệt [chọn 1]: ☐ Có / ☐ Không có
+- Khu vực chia suất: ... m² — Phòng chia suất riêng biệt [chọn 1]: ☐ Có / ☐ Không có
+- Kết cấu; Địa điểm, môi trường
+- Quy trình (mô tả toàn bộ quy trình, việc phân bố các khu vực liên quan đến công đoạn chế biến/nấu ăn) — text area dài
+- Tường, nền, trần; Hệ thống chiếu sáng, hệ thống thông gió; Cống rãnh, thoát nước; Khu vực tập kết và thu gom rác thải; Phòng thay bảo hộ lao động, vệ sinh cho người tham gia hoạt động chế biến, nấu ăn
+
+**2. Điều kiện trang thiết bị, dụng cụ**
+- Trang thiết bị, dụng cụ bảo quản nguyên liệu thực phẩm, trong đó: ☐ Tủ đông: ... cái; ☐ Kho đông: ... kho; ☐ Tủ lạnh: ... cái; ☐ Kho mát: ... kho; ☐ Tủ mát: ... cái; ☐ Khác (mô tả)
+- Trang thiết bị, dụng cụ bảo quản thực phẩm (thành phẩm) — cùng cấu trúc, tách riêng: ☐ Tủ đông: ... cái; ☐ Kho đông: ... kho; ☐ Tủ lạnh: ... cái; ☐ Kho mát: ... kho; ☐ Tủ mát: ... cái; ☐ Khác (mô tả)
+- Bồn rửa: ... cái, trong đó: ☐ Bồn rửa tay: ... cái; ☐ Bồn rửa dụng cụ: ... cái; ☐ Bồn rửa thịt: ... cái; ☐ Bồn rửa thủy sản: ... cái; ☐ Bồn rửa rau: ... cái
+- Bàn sơ chế và chế biến thực phẩm: ... cái
+- Tủ nấu/nồi nấu cơm: ... cái
+- Dụng cụ chế biến [bảng, nhiều dòng]: Loại dụng cụ, Số lượng (cái), Dành riêng cho thực phẩm sống (cái) / chín (cái)
+- Dụng cụ ăn uống và chứa đựng thức ăn; Dụng cụ lưu mẫu; Thiết bị phòng chống côn trùng; Dụng cụ thu gom rác thải (mô tả từng mục)
+- Thiết bị để nấu nướng, trong đó: ☐ Bếp Gas: ... cái; ☐ Bếp điện: ... cái; ☐ Bếp than, củi: ... cái; ☐ Khác: ... cái
+- Phương tiện vận chuyển suất ăn **giữa các điểm trường** (nếu có) [chọn 1]: ☐ Không có / ☐ Có — nếu Có: Loại phương tiện vận chuyển, Số lượng
+- Dụng cụ chứa đựng, bảo quản trong quá trình vận chuyển (nếu có)
+- Trang bị bộ test nhanh dùng cho thực phẩm
+
+**3. Thực hành an toàn thực phẩm**
+- Bảo hộ lao động cho nhân viên; Số lượng, tỷ lệ đáp ứng; Thực hành ATTP của nhân viên tại cơ sở; Các biện pháp kiểm soát nội bộ
+
+**4. Kiểm thực 03 bước và lưu mẫu thức ăn**
+- Kiểm thực 03 bước (kiểm tra trước khi chế biến, trong quá trình chế biến, trước khi ăn)
+- Lưu mẫu thức ăn: Trang thiết bị/dụng cụ lưu mẫu — Số lượng, Chất liệu
+- Lấy mẫu thức ăn
+- Bảo quản mẫu: Thời gian bảo quản; Nhiệt độ bảo quản; Khu vực lưu mẫu; Tủ lưu mẫu
+
+**5. Khu vực nhà ăn, khu vực ăn uống**
+- [chọn 1] ☐ Có nhà ăn riêng biệt — Diện tích nhà ăn: ... m²; số ca & suất trung bình theo từng ca: ☐ Sáng: ... ca, trung bình ... suất/ca; ☐ Trưa: ... ca, trung bình ... suất/ca; ☐ Chiều: ... ca, trung bình ... suất/ca; ☐ Tối: ... ca, trung bình ... suất/ca
+- [chọn 1] ☐ Không có nhà ăn riêng biệt — Diện tích khu vực ăn uống: ... m²
+- Bàn ăn: Số lượng; Chất liệu; Chế độ vệ sinh định kỳ
+- Kết cấu khu vực; Địa điểm, môi trường; Tường, nền, trần; Hệ thống chiếu sáng, thông gió; Cống rãnh, thoát nước; Khu vực tập kết và thu gom rác thải; Khu vực rửa tay; Biện pháp để ngăn ngừa côn trùng và động vật gây hại
+
+### III. Nguồn gốc thực phẩm, nguyên liệu thực phẩm
+- Nguồn nước sử dụng dùng trong chế biến thực phẩm [chọn nhiều]: ☐ Nước máy; ☐ Nước ngầm — mỗi loại kèm Kiểm nghiệm định kỳ: ☐ Có thực hiện (Tần suất 03/06/12 tháng) / ☐ Không thực hiện
+- Các nguồn nguyên liệu khác (Thịt, thủy sản, trứng; rau củ quả; đồ khô, gia vị; thực phẩm bao gói sẵn...) [bảng, nhiều dòng]: STT, Tên nhà cung cấp, Địa chỉ trụ sở, Địa chỉ địa điểm xuất hàng, Thông tin hợp đồng (số, ngày), Thông tin giấy chứng nhận [chọn nhiều: GCNĐĐK ATTP/ISO 22000:2018/HACCP/Chuỗi ATTP/Khác], Mặt hàng cung cấp [chọn nhiều: Nhóm thịt/Nhóm thủy sản/Nhóm rau-củ-quả/Nhóm trái cây/Nhóm bánh-kẹo-sữa chua-sữa/Nhóm nước uống/Gạo/Các loại thực phẩm khác]
+- Các nội dung khác
+
+### IV. Xác nhận của cơ sở
+- Ngày ký (ngày/tháng/năm)
+- Đại diện cơ sở giáo dục — ký, ghi rõ họ tên và chức vụ *(1 bên ký — vì đây là tự tổ chức)*
+
+---
+
+## B.3 — MẪU SỐ 02: BATT hợp đồng
+*(phần nội dung khai báo của đơn vị thực hiện tổ chức nấu ăn tại cơ sở giáo dục, có xác nhận của cơ sở giáo dục)*
+
+### I. Thông tin chung về hồ sơ pháp lý và tình hình nhân sự của đơn vị thực hiện tổ chức nấu ăn
+
+**1. Thông tin chung**
+- 1.1. Tên thông tin doanh nghiệp, tổ chức (trụ sở chính): Địa chỉ, Mã số doanh nghiệp/mã số thuế, Ngày cấp/Nơi cấp (Lần đầu; Lần thứ [N]), Người đại diện theo pháp luật/chủ cơ sở (Ông/Bà), Chức danh
+- 1.2. Tên cơ sở/địa điểm thực hiện tổ chức nấu ăn: Địa chỉ, Mã số chi nhánh/mã số địa điểm kinh doanh, Ngày cấp/Nơi cấp (Lần đầu; Lần thứ [N]), Người đại diện (Ông/Bà), Chức danh
+- 1.3. Thông tin liên hệ của người trực tiếp phụ trách ATTP tại cơ sở/địa điểm thực hiện tổ chức nấu ăn: Ông/Bà, Chức vụ, Số điện thoại liên hệ, Email liên hệ
+- 1.4. Hợp đồng thuê nấu: Số hợp đồng, Ngày ký
+
+**2. Giấy chứng nhận quản lý chất lượng**
+- ☐ Giấy chứng nhận cơ sở đủ điều kiện an toàn thực phẩm: Số cấp, Ngày cấp, Có giá trị đến, Nơi cấp, Địa điểm được cấp chứng nhận, Phạm vi loại hình được cấp chứng nhận [tệp]
+- ☐ Giấy chứng nhận khác (ISO 22000:2018, HACCP...): Số cấp, Ngày cấp, Ngày hết hiệu lực, Nơi cấp, Địa điểm được cấp chứng nhận, Phạm vi loại hình được cấp chứng nhận [tệp]
+
+**3. Nhân sự tham gia hoạt động chế biến, nấu ăn**
+- (giống hệt mục I.2 của Mẫu 01: Tổng số người, trực tiếp/không trực tiếp x cơ hữu/bán thời gian, tập huấn ATTP, khám sức khỏe)
+
+### II. Điều kiện đảm bảo an toàn thực phẩm
+*(giống hệt mục II của Mẫu 01: Điều kiện thực tế tại cơ sở; Điều kiện trang thiết bị dụng cụ — phương tiện vận chuyển ở đây cũng là "giữa các điểm trường (nếu có)"; Thực hành ATTP; Kiểm thực 03 bước & lưu mẫu; Khu vực nhà ăn/ăn uống — phần khu vực nhà ăn do cơ sở giáo dục cung cấp vì là không gian của trường)*
+
+### III. Nguồn gốc thực phẩm, nguyên liệu thực phẩm
+- (giống mục III của Mẫu 01: nguồn nước + bảng nhà cung cấp nguyên liệu)
+- **Thêm mục "Nước uống tại cơ sở giáo dục" (do cơ sở giáo dục khai báo)**:
+  - ☐ Nước uống đóng bình, đóng chai [bảng]: Tên nhà cung cấp và địa chỉ cơ sở/địa chỉ địa điểm xuất hàng, Thông tin hợp đồng (số, ngày), Thông tin về Giấy chứng nhận [GCNĐĐK ATTP/ISO 22000:2018/HACCP/Chuỗi ATTP/Khác], Kiểm nghiệm định kỳ (Có thực hiện — tần suất 03/06/12 tháng / Không thực hiện)
+  - ☐ Nước qua hệ thống xử lý — Kiểm nghiệm định kỳ (Có thực hiện — tần suất / Không thực hiện)
+- Các nội dung khác
+
+### IV. Xác nhận của cơ sở *(2 bên ký song song)*
+- **Phần dành cho đơn vị thực hiện chế biến, nấu ăn tại cơ sở giáo dục**: nội dung xác nhận, Ngày ký, Đại diện cơ sở hoặc người được ủy quyền — ký, ghi rõ họ tên và chức vụ
+- **Phần dành cho cơ sở giáo dục**: nội dung xác nhận, Ngày ký, Đại diện cơ sở giáo dục — ký, ghi rõ họ tên và chức vụ
+
+---
+
+## B.4 — MẪU SỐ 03: Nhận suất ăn sẵn
+*(phần nội dung khai báo của đơn vị cung cấp suất ăn, có xác nhận của cơ sở giáo dục)*
+
+### I. Thông tin chung về hồ sơ pháp lý và tình hình nhân sự của đơn vị cung cấp suất ăn
+
+**1. Thông tin chung**
+- 1.1. Tên thông tin doanh nghiệp, tổ chức (trụ sở chính): Địa chỉ, Mã số doanh nghiệp/mã số thuế, Ngày cấp/Nơi cấp (Lần đầu; Lần thứ [N]), Người đại diện theo pháp luật/chủ cơ sở, Chức danh
+- 1.2. Tên cơ sở/địa điểm nấu ăn (xưởng chế biến/bếp nấu): Địa chỉ, Mã số chi nhánh/mã số địa điểm kinh doanh, Ngày cấp/Nơi cấp (Lần đầu; Lần thứ [N]), Người đại diện, Chức danh
+- 1.3. Thông tin liên hệ của người trực tiếp phụ trách ATTP của cơ sở cung cấp suất ăn: Ông/Bà, Chức vụ, Số điện thoại liên hệ, Email liên hệ
+- 1.4. Hợp đồng cung cấp suất ăn: Số hợp đồng, Ngày ký
+
+**2. Giấy chứng nhận quản lý chất lượng** — (giống Mẫu 02)
+
+**3. Nhân sự tham gia hoạt động có liên quan đến thực phẩm**
+- Tổng số người tham gia hoạt động có liên quan đến thực phẩm: ... người
+- Số người trực tiếp giao/chia suất: ... người, trong đó: cơ hữu toàn thời gian: ... người; bán thời gian: ... người
+- Số người không trực tiếp: ... người, trong đó: cơ hữu: ... người; bán thời gian: ... người
+- Số người đã tập huấn ATTP có xác nhận của người đứng đầu: .../... người
+- Số người đã khám sức khỏe/theo dõi sức khỏe theo quy định: .../... người
+
+**4. Thời điểm giao nhận suất ăn** [bảng, theo từng địa điểm cơ sở giáo dục — cho phép nhiều địa điểm]
+Với mỗi địa điểm (Địa điểm 1, Địa điểm 2, ...), khai theo từng ca:
+- ☐ Ca Sáng — Thời điểm giao/nhận: ... giờ; Số suất: ... suất
+- ☐ Ca Trưa — Thời điểm giao/nhận: ... giờ; Số suất: ... suất
+- ☐ Ca Xế — Thời điểm giao/nhận: ... giờ; Số suất: ... suất
+- ☐ Ca Chiều — Thời điểm giao/nhận: ... giờ; Số suất: ... suất
+
+### II. Điều kiện đảm bảo an toàn thực phẩm tại cơ sở giáo dục (nơi nhận suất ăn)
+*(Lưu ý: khác với Mẫu 01/02 — đây chỉ là điểm tập kết/giao nhận, KHÔNG chế biến, nên bộ trường rút gọn hơn)*
+
+**1. Điều kiện thực tế tại cơ sở giáo dục (nơi nhận suất ăn)**
+- 1.1. Địa điểm tập kết, giao/nhận suất ăn: Kết cấu; Địa điểm, môi trường; Tường, nền, trần; Hệ thống chiếu sáng, thông gió; Khu vực chia suất; Phòng thay bảo hộ lao động/vệ sinh cho người tham gia hoạt động liên quan thực phẩm; Khu vực rửa tay
+- 1.2. Khu vực nhà ăn, khu vực ăn uống — cấu trúc giống hệt mục II.5 của Mẫu 01 (Có/Không nhà ăn riêng biệt, diện tích, số ca & suất trung bình theo ca, bàn ăn, kết cấu, môi trường, tường/nền/trần, chiếu sáng/thông gió, cống rãnh, khu rác, khu rửa tay, biện pháp ngăn ngừa côn trùng)
+
+**2. Điều kiện trang thiết bị, dụng cụ tại cơ sở giáo dục (nơi nhận suất ăn)** *(rút gọn — chỉ thiết bị liên quan tiếp nhận/bảo quản, KHÔNG có thiết bị sơ chế/chế biến nguyên liệu)*
+- Trang thiết bị, dụng cụ bảo quản thực phẩm, trong đó: ☐ Tủ đông: ... cái; ☐ Kho đông: ... kho; ☐ Tủ lạnh: ... cái; ☐ Kho mát: ... kho; ☐ Tủ mát: ... cái; ☐ Khác (mô tả)
+- Bồn rửa dụng cụ: ... cái *(chỉ có bồn rửa dụng cụ, không có bồn rửa tay/thịt/thủy sản/rau vì không sơ chế tại đây)*
+- Dụng cụ ăn uống và chứa đựng thức ăn
+- Dụng cụ lưu mẫu
+- Trang bị bộ test nhanh dùng cho thực phẩm
+
+**3. Thực hành an toàn thực phẩm tại cơ sở giáo dục (nơi nhận suất ăn)**
+- Bảo hộ lao động cho nhân viên; Số lượng, tỷ lệ đáp ứng; Thực hành ATTP của nhân viên tại cơ sở; Các biện pháp kiểm soát nội bộ
+
+**4. Kiểm thực 03 bước và lưu mẫu thức ăn tại cơ sở giáo dục (nơi nhận suất ăn)**
+- Kiểm thực 03 bước; Lưu mẫu thức ăn (dụng cụ — số lượng/chất liệu); Lấy mẫu thức ăn; Bảo quản mẫu (thời gian, nhiệt độ, khu vực, tủ lưu mẫu)
+
+### III. Nguồn gốc thực phẩm, nguyên liệu thực phẩm
+- Nguồn nước sử dụng dùng trong chế biến thực phẩm: ☐ Nước máy; ☐ Nước ngầm (kiểm nghiệm định kỳ)
+- Các nguồn nguyên liệu khác [bảng] — cấu trúc giống Mẫu 01/02 (nhà cung cấp, hợp đồng, giấy chứng nhận, mặt hàng: Nhóm thịt/thủy sản/rau-củ-quả/trái cây/bánh kẹo sữa/Gạo/Nhóm nước uống/Khác)
+- **Nước uống tại cơ sở giáo dục (do cơ sở giáo dục khai báo)**: ☐ Nước uống đóng bình, đóng chai [bảng: nhà cung cấp, hợp đồng, giấy chứng nhận, kiểm nghiệm định kỳ]; ☐ Nước qua hệ thống xử lý (kiểm nghiệm định kỳ)
+- Các nội dung khác
+
+### IV. Xác nhận của cơ sở *(2 bên ký song song)*
+- **Phần dành cho đơn vị cung cấp suất ăn**: nội dung xác nhận, Ngày ký, Đại diện cơ sở hoặc người được ủy quyền — ký, họ tên, chức vụ
+- **Phần dành cho cơ sở giáo dục**: nội dung xác nhận, Ngày ký, Đại diện cơ sở giáo dục — ký, họ tên, chức vụ
+
+> **Gợi ý kỹ thuật:** nếu đơn vị cung cấp suất ăn đã có hồ sơ riêng trên hệ thống (đăng ký theo Phần A), cho phép trường tìm và liên kết hồ sơ đó (theo tên/mã số thuế) để tự động điền Mục I (Thông tin chung, Giấy chứng nhận, Nhân sự) — trường chỉ cần bổ sung Mục I.4 (Thời điểm giao nhận) và phần "Nước uống tại cơ sở giáo dục".
+
+---
+
+## B.5 — MẪU SỐ 04: Căng tin trường học
+*(phần nội dung khai báo của đơn vị Căng tin trong cơ sở giáo dục, có xác nhận của cơ sở giáo dục)*
+
+### I. Thông tin chung về hồ sơ pháp lý và tình hình nhân sự của đơn vị căng tin
+
+**1. Thông tin chung**
+- 1.1. Tên thông tin tổ chức, cá nhân (đơn vị căng tin trong cơ sở giáo dục): Địa chỉ, Mã số chi nhánh/mã số địa điểm kinh doanh/mã số thuế (hoặc mã định danh hợp pháp khác), Ngày cấp/Nơi cấp (Lần đầu; Lần thứ [N]), Người đại diện theo pháp luật/chủ cơ sở, Chức danh, Thông tin khác (mô tả tự do)
+- 1.2. Thông tin liên hệ của người trực tiếp phụ trách ATTP của đơn vị căng tin: Ông/Bà, Chức vụ, Số điện thoại liên hệ, Email liên hệ
+- 1.3. Hợp đồng căng tin: Số hợp đồng, Ngày ký
+
+**2. Giấy chứng nhận quản lý chất lượng**
+- ☐ Giấy chứng nhận cơ sở đủ điều kiện an toàn thực phẩm (Số cấp, Ngày cấp, Có giá trị đến, Nơi cấp, Địa điểm được cấp, Phạm vi loại hình) [tệp]
+- ☐ Giấy chứng nhận khác (ISO 22000:2018, HACCP...) (Số cấp, Ngày cấp, Ngày hết hiệu lực, Nơi cấp, Địa điểm được cấp, Phạm vi loại hình) [tệp]
+- ☐ Các hồ sơ pháp lý khác [tệp, tự do]
+
+**3. Nhân sự tham gia hoạt động có liên quan đến thực phẩm**
+- Tổng số người tham gia: ... người
+- Số người trực tiếp tham gia: ... người, trong đó: cơ hữu toàn thời gian: ... người; bán thời gian: ... người
+- Số người không trực tiếp: ... người, trong đó: cơ hữu: ... người; bán thời gian: ... người
+- Số người đã tập huấn ATTP có xác nhận của người đứng đầu: .../... người
+- Số người đã khám sức khỏe/theo dõi sức khỏe theo quy định: .../... người
+
+### II. Điều kiện đảm bảo an toàn thực phẩm
+
+**1. Điều kiện thực tế tại cơ sở** — giống hệt mục II.1 của Mẫu 01 (tổng diện tích; khu sơ chế/chế biến/chia suất kèm Có/Không phòng riêng biệt; kết cấu; địa điểm-môi trường; quy trình; tường-nền-trần; chiếu sáng-thông gió; cống rãnh; khu rác; phòng thay bảo hộ/vệ sinh)
+
+**2. Điều kiện trang thiết bị, dụng cụ** — đầy đủ như Mẫu 01 (thiết bị bảo quản nguyên liệu + thực phẩm tách riêng; bồn rửa tay/dụng cụ/thịt/thủy sản/rau; bàn sơ chế; tủ nấu/nồi nấu cơm; dụng cụ chế biến sống/chín [bảng nhiều dòng]; dụng cụ ăn uống & chứa đựng; dụng cụ lưu mẫu; thiết bị chống côn trùng; dụng cụ thu gom rác; thiết bị nấu nướng gas/điện/than củi/khác; phương tiện vận chuyển giữa các điểm trường nếu có — loại phương tiện + số lượng; dụng cụ chứa đựng khi vận chuyển; bộ test nhanh)
+
+**3. Thực hành an toàn thực phẩm** — bảo hộ lao động, tỷ lệ đáp ứng, thực hành ATTP nhân viên, biện pháp kiểm soát nội bộ
+
+**4. Kiểm thực 03 bước và lưu mẫu thức ăn** — kiểm thực 3 bước; lưu mẫu (số lượng/chất liệu dụng cụ); lấy mẫu; bảo quản mẫu (thời gian/nhiệt độ/khu vực/tủ)
+
+**5. Khu vực nhà ăn, khu vực ăn uống** *(khác biệt so với Mẫu 01: đơn vị tính theo "suất/lượt phục vụ" thay vì "suất/ca")*
+- [chọn 1] ☐ Có nhà ăn riêng biệt — Diện tích: ... m²; theo từng ca: ☐ Sáng: ... suất/lượt phục vụ; ☐ Trưa: ... suất/lượt phục vụ; ☐ Chiều: ... suất/lượt phục vụ; ☐ Tối: ... suất/lượt phục vụ
+- [chọn 1] ☐ Không có nhà ăn riêng biệt — Diện tích khu vực ăn uống: ... m²
+- Bàn ăn (số lượng, chất liệu, vệ sinh định kỳ); Kết cấu khu vực; Địa điểm-môi trường; Tường-nền-trần; Chiếu sáng-thông gió; Cống rãnh; Khu rác; Khu rửa tay; Biện pháp ngăn ngừa côn trùng/động vật gây hại
+
+### III. Nguồn gốc nguyên liệu
+- Nguồn nước sử dụng: ☐ Nước máy; ☐ Nước ngầm (kiểm nghiệm định kỳ)
+- Các nguồn nguyên liệu khác [bảng] — cấu trúc giống các mẫu trên (nhà cung cấp, hợp đồng, giấy chứng nhận, mặt hàng: Nhóm thịt/thủy sản/rau-củ-quả/trái cây/bánh kẹo sữa/Gạo/Các loại thực phẩm khác)
+- **Nước uống tại cơ sở giáo dục (do cơ sở giáo dục khai báo)**: ☐ Nước uống đóng bình, đóng chai [bảng: nhà cung cấp, hợp đồng, giấy chứng nhận, kiểm nghiệm định kỳ]; ☐ Nước qua hệ thống xử lý (kiểm nghiệm định kỳ)
+- Các nội dung khác
+
+### IV. Xác nhận của cơ sở *(2 bên ký song song)*
+- **Phần dành cho đơn vị Căng tin trong cơ sở giáo dục**: nội dung xác nhận, Ngày ký, Đại diện cơ sở hoặc người được ủy quyền — ký, họ tên, chức vụ
+- **Phần dành cho cơ sở giáo dục**: nội dung xác nhận, Ngày ký, Đại diện cơ sở giáo dục — ký, họ tên, chức vụ
+
+---
+
+# PHẦN C — YÊU CẦU KỸ THUẬT KHI TRIỂN KHAI
+
+1. **Không đổi form "Cơ sở cung cấp thực phẩm"** — giữ nguyên toàn bộ như hiện tại.
+2. Với "Cơ sở giáo dục": bắt buộc đổi "Hình thức tổ chức bữa ăn" từ radio sang **checkbox chọn nhiều**, cho phép mở đồng thời nhiều khối Mẫu 01/02/03/04 trong cùng 1 hồ sơ (xem mục B.0).
+3. Toàn bộ trường liệt kê ở Phần A và Phần B phải được đưa vào form đầy đủ — **không được lược bớt bất kỳ trường nào**, kể cả các trường tưởng chừng trùng lặp giữa các Mẫu (vì mỗi Mẫu có ngữ cảnh khai báo khác nhau: tự làm / thuê ngoài / nhận sẵn / căng tin).
+4. Lưu ý các điểm **khác biệt nhỏ nhưng quan trọng** giữa các Mẫu con của Cơ sở giáo dục (không được dùng chung 1 khuôn mẫu máy móc):
+   - Mẫu 03 có bộ trang thiết bị **rút gọn** (không có bồn rửa tay/thịt/thủy sản/rau, không có thiết bị chế biến) vì đây chỉ là điểm nhận suất ăn.
+   - Mẫu 04 tính khu vực nhà ăn theo **suất/lượt phục vụ** thay vì suất/ca như Mẫu 01/02.
+   - Mẫu 02, 03, 04 có thêm mục **"Nước uống tại cơ sở giáo dục"** do chính trường khai (Mẫu 01 không có mục này vì trường tự chủ toàn bộ, nguồn nước đã khai ở mục Nguồn gốc nguyên liệu chung).
+   - Danh mục "Mặt hàng cung cấp" trong bảng nhà cung cấp nguyên liệu ở Phiếu giáo dục có 8 nhóm (gồm cả Gạo và Nhóm nước uống), còn ở Phiếu suất ăn sẵn (Phần A) chỉ có 6 nhóm (không có Gạo, không có Nhóm nước uống riêng) — giữ đúng như vậy, không tự ý thêm/bớt giữa 2 form.
+5. Các trường tệp đính kèm: PDF/JPG/PNG, tối đa 5MB/tệp, cho phép chọn nhiều tệp — theo đúng quy tắc hiện có của hệ thống.
+6. Các bảng cho phép thêm nhiều dòng (nhà cung cấp, dụng cụ chế biến, đơn vị nhận cung cấp, địa điểm giao nhận...) dùng lại pattern "+ Thêm..." đang có sẵn.
+7. Với Mẫu 02/03/04 (cần xác nhận 2 bên): chọn 1 trong 2 phương án và thống nhất trước khi code —
+   - **Phương án A:** một bên nộp hồ sơ, bên còn lại ký xác nhận điện tử ngay trong cùng form, không cần tài khoản riêng.
+   - **Phương án B:** mỗi bên có tài khoản riêng, bên A khởi tạo + điền phần mình → gửi yêu cầu xác nhận → bên B đăng nhập điền phần mình + xác nhận → hồ sơ mới coi là hoàn tất để nộp Sở duyệt.
+8. Màn hình Admin "Duyệt cơ sở" và "Hồ sơ cơ sở" phải hiển thị **đầy đủ toàn bộ** các nhóm trường mới này theo đúng cấu trúc từng Mẫu — không chỉ hiển thị rút gọn.
+9. Nguyên tắc công khai lên Portal sau khi duyệt: chỉ công khai các trường được phép công khai (không công khai CCCD người cung cấp thông tin, SĐT cá nhân, chi tiết hợp đồng...).
+
+---
+
+## D. VIỆC CẦN LÀM SAU KHI NHẬN PROMPT NÀY
+
+- [ ] Thiết kế lại UI form "Cơ sở cung cấp suất ăn" — đầy đủ theo Phần A (5 nhóm mục I–V + Xác nhận).
+- [ ] Thiết kế lại UI form "Cơ sở giáo dục" — đầy đủ theo Phần B (Thông tin chung + 4 Mẫu con 01/02/03/04, cơ chế multi-select).
+- [ ] Cập nhật màn hình Admin (Duyệt cơ sở, Hồ sơ cơ sở) để hiển thị đúng và đầy đủ dữ liệu mới.
+- [ ] Xác nhận với Sở phương án triển khai xác nhận 2 bên (mục C.7) trước khi code.
+- [ ] Không đụng vào form "Cơ sở cung cấp thực phẩm".
