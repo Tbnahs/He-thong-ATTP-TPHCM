@@ -533,9 +533,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
         : location.startsWith("/admin/meals")
           ? "Kiểm thực 3 bước"
             : location.startsWith("/admin/facility-profiles")
-              ? "Hồ sơ cơ sở"
+                ? "Quản lý hồ sơ"
               : location.startsWith("/admin/facilities")
-                ? "Duyệt cơ sở"
+                  ? "Duyệt hồ sơ"
             : location.startsWith("/admin/inspections")
                 ? "Quản lý kiểm tra"
                   : location.startsWith("/admin/reports")

@@ -36,12 +36,12 @@ export const adminNavigationSections = [
       },
       {
         href: "/admin/facilities",
-        label: "Duyệt cơ sở",
+        label: "Duyệt hồ sơ",
         permissionId: "facilities",
       },
       {
         href: "/admin/facility-profiles",
-        label: "Hồ sơ cơ sở",
+        label: "Quản lý hồ sơ",
         permissionId: "facilityProfiles",
       },
     ],

@@ -462,12 +462,12 @@ const regionalFacilities: RegionalFacility[] = [
 ];
 const typeNames: Record<string, string> = {
   "food-supplier": "Cơ sở cung cấp thực phẩm",
-  "meal-provider": "Cơ sở chế biến và cung cấp suất ăn",
+  "meal-provider": "cơ sở suất ăn sẵn",
   school: "Cơ sở giáo dục",
 };
 const facilityTypeOptions: { value: ApplicationType; label: string }[] = [
   { value: "school", label: "Cơ sở giáo dục" },
-  { value: "meal-provider", label: "Cơ sở chế biến và cung cấp suất ăn" },
+  { value: "meal-provider", label: "cơ sở suất ăn sẵn" },
   { value: "food-supplier", label: "Cơ sở cung cấp thực phẩm" },
 ];
 const schoolModelFormMap: Record<
@@ -1691,7 +1691,7 @@ export function LookupPage() {
 
 const publicRecordTypeLabels: Record<ApplicationType, string> = {
   "food-supplier": "Cơ sở cung cấp thực phẩm",
-  "meal-provider": "Cơ sở chế biến và cung cấp suất ăn",
+  "meal-provider": "cơ sở suất ăn sẵn",
   school: "Cơ sở giáo dục",
 };
 
@@ -3843,7 +3843,7 @@ function ApplicationForm({
             >
               <option value="school">Cơ sở giáo dục</option>
               <option value="meal-provider">
-                Cơ sở chế biến và cung cấp suất ăn
+                cơ sở suất ăn sẵn
               </option>
               <option value="food-supplier">Cơ sở cung cấp thực phẩm</option>
             </select>
@@ -5881,7 +5881,7 @@ export function AdminDashboard() {
                       <p className="font-mono font-bold">{app.score}/100</p>
                     </div>
                     <span className="text-right text-xs font-bold text-primary">
-                      Mở Duyệt cơ sở
+                      Mở Duyệt hồ sơ
                     </span>
                   </div>
                 </Link>
@@ -6138,7 +6138,7 @@ export function AdminCriteriaPage() {
             </span>
             {[
               ["school", "Cơ sở giáo dục"],
-              ["meal-provider", "Cơ sở chế biến và cung cấp suất ăn"],
+              ["meal-provider", "cơ sở suất ăn sẵn"],
             ].map(([value, label]) => (
               <button
                 key={value}

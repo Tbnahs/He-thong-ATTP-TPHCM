@@ -52,6 +52,7 @@ import {
   type Application,
   type ApplicationType,
 } from "@/lib/mock-data";
+import { syncApprovedFacility } from "@/lib/approved-facilities";
 
 type FacilityCategory =
   | "Trường học có bếp ăn bán trú"
@@ -669,7 +670,7 @@ const getRegistrationCategory = (type?: ApplicationType) =>
   type === "food-supplier"
     ? "Cơ sở cung cấp thực phẩm"
     : type === "meal-provider"
-      ? "Cơ sở chế biến và cung cấp suất ăn"
+      ? "cơ sở suất ăn sẵn"
       : "Cơ sở giáo dục";
 
 const getRowRegistrationType = (
@@ -679,7 +680,8 @@ const getRowRegistrationType = (
   if (row.category === "Cơ sở cung cấp thực phẩm") return "food-supplier";
   if (
     row.category === "Cơ sở cung cấp suất ăn" ||
-    row.category === "Cơ sở chế biến và cung cấp suất ăn"
+    row.category === "Cơ sở chế biến và cung cấp suất ăn" ||
+    row.category === "cơ sở suất ăn sẵn"
   )
     return "meal-provider";
   if (row.category === "Trường học có bếp ăn bán trú") return "school";
@@ -2582,7 +2584,7 @@ function LegacyAdminFacilitiesPage() {
     <AdminShell>
       <div className="mx-auto max-w-7xl px-5 py-9 lg:px-10">
         <SectionHeading
-          eyebrow="Duyệt cơ sở"
+          eyebrow="Duyệt hồ sơ"
           title="Danh sách cơ sở."
           description="Tra cứu và theo dõi các hồ sơ cơ sở trong quá trình đánh giá, duyệt và cập nhật trạng thái."
         />
@@ -2726,21 +2728,23 @@ export function AdminFacilitiesPage() {
   }, [selectedApplication?.id, selectedApplication?.reviewNote, selectedApplication?.status]);
 
   const applicationRows: FacilityManagementRow[] = [
-    ...applications.map((app) => ({
-      id: `application-${app.id}`,
-      name: app.applicantName,
-      province: String(app.data.addressProvince ?? "TP. Hồ Chí Minh"),
-      ward: String(app.data.addressWard ?? "—"),
-      address: app.address,
-      contact: app.contact,
-      status: app.status === "rejected" ? "stopped" : app.status,
-      capacity: 0,
-      category: getRegistrationCategory(app.type),
-      updated: new Intl.DateTimeFormat("vi-VN").format(
-        new Date(app.submittedAt),
-      ),
-      applicationId: app.id,
-    })),
+    ...applications
+      .filter((app) => app.status !== "approved")
+      .map((app) => ({
+        id: `application-${app.id}`,
+        name: app.applicantName,
+        province: String(app.data.addressProvince ?? "TP. Hồ Chí Minh"),
+        ward: String(app.data.addressWard ?? "—"),
+        address: app.address,
+        contact: app.contact,
+        status: app.status === "rejected" ? "stopped" : app.status,
+        capacity: 0,
+        category: getRegistrationCategory(app.type),
+        updated: new Intl.DateTimeFormat("vi-VN").format(
+          new Date(app.submittedAt),
+        ),
+        applicationId: app.id,
+      })),
     ...getStoredRegistrationRows().filter(
       (row) =>
         !applications.some(
@@ -2898,6 +2902,8 @@ export function AdminFacilitiesPage() {
     selectedApplication.status = "approved";
     selectedApplication.reviewNote = null;
     selectedApplication.published = true;
+    saveApplicationRecord(selectedApplication);
+    syncApprovedFacility(selectedApplication);
     setReviewConclusion("approved");
     setSelectedRow((current) =>
       current ? { ...current, status: "approved" } : current,
@@ -2922,7 +2928,7 @@ export function AdminFacilitiesPage() {
   const exportFacilities = () => {
     downloadExcelTable(
       `duyet-co-so-${activeTab}-${new Date().toISOString().slice(0, 10)}.xls`,
-      `Duyệt cơ sở - ${facilityTabLabels[activeTab]}`,
+      `Duyệt hồ sơ - ${facilityTabLabels[activeTab]}`,
       [
         "Tên cơ sở",
         "Loại hình",
@@ -3030,9 +3036,9 @@ export function AdminFacilitiesPage() {
       <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <SectionHeading
-            eyebrow="Duyệt cơ sở"
+            eyebrow="Duyệt hồ sơ"
             title="Tiếp nhận và duyệt hồ sơ cơ sở."
-            description="Tiếp nhận, đánh giá và xử lý hồ sơ đăng ký trước khi đưa cơ sở vào danh sách đã duyệt."
+            description="Tiếp nhận, đánh giá và xử lý hồ sơ đăng ký. Hồ sơ đạt sẽ được chuyển sang Quản lý hồ sơ."
           />
           <div className="flex flex-wrap gap-2">
             <button
@@ -3622,7 +3628,7 @@ export function AdminFacilitiesPage() {
                   <div>
                     <p className="mono-label text-primary">XỬ LÝ HỒ SƠ</p>
                     <h3 className="mt-1 text-xl font-extrabold">
-                      Duyệt ngay tại Duyệt cơ sở
+                      Duyệt ngay tại Duyệt hồ sơ
                     </h3>
                     <p className="mt-1 text-sm text-muted-foreground">
                       Không cần mở trang hồ sơ riêng. Kết quả xử lý sẽ được cập nhật
@@ -3737,7 +3743,7 @@ export function AdminFacilityDetailPage() {
             href="/admin/facilities"
             className="inline-flex items-center gap-2 text-sm font-bold text-primary"
           >
-            <ArrowLeft size={16} /> Quay lại Duyệt cơ sở
+            <ArrowLeft size={16} /> Quay lại Duyệt hồ sơ
           </Link>
           <div className="mt-8 rounded-3xl border border-border bg-card p-8 text-center shadow-sm">
             <h1 className="text-2xl font-extrabold">Không tìm thấy cơ sở</h1>
@@ -3813,6 +3819,7 @@ export function AdminFacilityDetailPage() {
       application.reviewNote = null;
       application.published = true;
       saveApplicationRecord(application);
+      syncApprovedFacility(application);
     }
     setDetailStatus("approved");
     setNotice("Đã duyệt hồ sơ và cập nhật trạng thái cơ sở.");
@@ -3836,7 +3843,7 @@ export function AdminFacilityDetailPage() {
           className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:underline"
           data-testid="link-back-to-facilities"
         >
-          <ArrowLeft size={16} /> Quay lại Duyệt cơ sở
+          <ArrowLeft size={16} /> Quay lại Duyệt hồ sơ
         </Link>
 
         <div className="mt-5 flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
