@@ -723,6 +723,144 @@
   margin-top: 1rem;
 }
 
+.paper-form-subsection-title {
+  margin: 1.5rem 0 0;
+  border-bottom: 1px solid #c8ccc5;
+  padding-bottom: 0.35rem;
+  font-size: 0.98rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.paper-form-field-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 1.5rem;
+  align-items: start;
+}
+
+.paper-meal-period {
+  display: flex;
+  align-items: end;
+  gap: 1rem;
+  min-height: 3.5rem;
+  border-bottom: 1px solid #c8ccc5;
+  padding: 0.45rem 0.15rem;
+}
+
+.paper-meal-period-toggle,
+.paper-meal-period-quantity {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.paper-meal-period-toggle {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.paper-meal-period-toggle input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: #354b38;
+}
+
+.paper-meal-period-quantity {
+  flex: 1;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
+.paper-meal-period-quantity input {
+  flex: 1;
+  max-width: 9rem;
+  min-width: 4rem;
+  border: 0;
+  border-bottom: 1px solid #777d75;
+  border-radius: 0;
+  background: transparent;
+  padding: 0.25rem 0.15rem;
+  font: inherit;
+}
+
+.paper-recipient-table-scroll {
+  overflow-x: auto;
+  border: 1px solid #aeb2aa;
+}
+
+.paper-recipient-table {
+  width: 100%;
+  min-width: 54rem;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.paper-recipient-table th,
+.paper-recipient-table td {
+  border: 1px solid #aeb2aa;
+  padding: 0.55rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.paper-recipient-table thead th {
+  background: #f4f5f1;
+  font-weight: 700;
+}
+
+.paper-recipient-table tbody th {
+  min-width: 10rem;
+  font-weight: 600;
+}
+
+.paper-recipient-table td:first-child {
+  width: 3rem;
+  text-align: center;
+}
+
+.paper-recipient-quantity {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.paper-recipient-quantity input,
+.paper-recipient-other {
+  min-width: 4.5rem;
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid #777d75;
+  border-radius: 0;
+  background: transparent;
+  padding: 0.25rem 0.15rem;
+  font: inherit;
+}
+
+.paper-recipient-other {
+  display: block;
+  margin-top: 0.35rem;
+}
+
+.paper-recipient-price-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem 0.75rem;
+}
+
+.paper-recipient-price-options label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.paper-recipient-price-options input {
+  margin-top: 0.1rem;
+  accent-color: #354b38;
+}
+
 .paper-question > div:first-child,
 .paper-question > fieldset:first-child,
 .paper-question > label:first-child {
@@ -878,6 +1016,10 @@
 
   .paper-section-heading h2 {
     font-size: 0.98rem;
+  }
+
+  .paper-form-field-row {
+    grid-template-columns: 1fr;
   }
 
   .paper-submit-bar {

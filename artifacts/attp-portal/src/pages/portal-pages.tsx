@@ -462,12 +462,12 @@ const regionalFacilities: RegionalFacility[] = [
 ];
 const typeNames: Record<string, string> = {
   "food-supplier": "Cơ sở cung cấp thực phẩm",
-  "meal-provider": "cơ sở suất ăn sẵn",
+  "meal-provider": "Cơ sở suất ăn sẵn",
   school: "Cơ sở giáo dục",
 };
 const facilityTypeOptions: { value: ApplicationType; label: string }[] = [
   { value: "school", label: "Cơ sở giáo dục" },
-  { value: "meal-provider", label: "cơ sở suất ăn sẵn" },
+  { value: "meal-provider", label: "Cơ sở suất ăn sẵn" },
   { value: "food-supplier", label: "Cơ sở cung cấp thực phẩm" },
 ];
 const schoolModelFormMap: Record<
@@ -1691,7 +1691,7 @@ export function LookupPage() {
 
 const publicRecordTypeLabels: Record<ApplicationType, string> = {
   "food-supplier": "Cơ sở cung cấp thực phẩm",
-  "meal-provider": "cơ sở suất ăn sẵn",
+  "meal-provider": "Cơ sở suất ăn sẵn",
   school: "Cơ sở giáo dục",
 };
 
@@ -3768,32 +3768,52 @@ function ApplicationForm({
     "Cơ sở giáo dục";
   const renderQuestion = (item: CriteriaDefinition) => (
     <div className="paper-question">
-      <DynamicQuestion
-        item={item}
-        value={fields[item.key] ?? ""}
-        files={files.filter(
-          (file) =>
-            file.fieldKey === item.key ||
-            file.fieldKey?.startsWith(`${item.key}.`),
-        )}
-        suppliers={suppliers ?? []}
-        schools={schoolOptions}
-        onChange={(value) => {
-          update(item.key, value);
-          if (
-            item.key === "mealModel" &&
-            value !== "Liên kết đơn vị suất ăn"
-          ) {
-            update("averageDailyMealDemand", "");
+      {type === "meal-provider" &&
+      [
+        "breakfastCapacity",
+        "lunchCapacity",
+        "snackCapacity",
+        "dinnerCapacity",
+      ].includes(item.key) ? (
+        <MealPeriodCapacityQuestion
+          item={item}
+          value={fields[item.key] ?? ""}
+          onChange={(value) => update(item.key, value)}
+        />
+      ) : type === "meal-provider" && item.key === "recipientOverview" ? (
+        <RecipientOverviewQuestion
+          item={item}
+          value={fields[item.key] ?? ""}
+          onChange={(value) => update(item.key, value)}
+        />
+      ) : (
+        <DynamicQuestion
+          item={item}
+          value={fields[item.key] ?? ""}
+          files={files.filter(
+            (file) =>
+              file.fieldKey === item.key ||
+              file.fieldKey?.startsWith(`${item.key}.`),
+          )}
+          suppliers={suppliers ?? []}
+          schools={schoolOptions}
+          onChange={(value) => {
+            update(item.key, value);
+            if (
+              item.key === "mealModel" &&
+              value !== "Liên kết đơn vị suất ăn"
+            ) {
+              update("averageDailyMealDemand", "");
+            }
+          }}
+          onFiles={(event) => addFilesFor(item.key, event)}
+          onFilesFor={addFilesFor}
+          onRemoveFile={(name, fieldKey) =>
+            removeFile(name, fieldKey ?? item.key)
           }
-        }}
-        onFiles={(event) => addFilesFor(item.key, event)}
-        onFilesFor={addFilesFor}
-        onRemoveFile={(name, fieldKey) =>
-          removeFile(name, fieldKey ?? item.key)
-        }
-        showValidationErrors={submitAttempted}
-      />
+          showValidationErrors={submitAttempted}
+        />
+      )}
       {type === "school" &&
         item.key === "mealModel" &&
         fields.mealModel === "Liên kết đơn vị suất ăn" && (
@@ -3814,6 +3834,38 @@ function ApplicationForm({
         )}
     </div>
   );
+  const mealProviderSectionNumbers = ["I", "II", "III", "IV", "V"];
+  const mealProviderSubsectionHeadings: Record<string, string> = {
+    applicantName: "1. Thông tin tổ chức/cá nhân (trụ sở chính)",
+    facilityName:
+      "2. Tên cơ sở/địa điểm được khảo sát và cung cấp thông tin (xưởng chế biến/bếp nấu)",
+    foodSafetyContactName:
+      "3. Thông tin liên hệ của người trực tiếp phụ trách ATTP tại cơ sở",
+    totalCapacity: "4. Công suất phục vụ",
+    servingUnitCount: "5. Số lượng và nhóm đơn vị nhận cung cấp",
+    certificates: "1. Giấy chứng nhận quản lý chất lượng",
+    totalStaff: "2. Nhân sự trực tiếp tham gia hoạt động",
+    totalArea: "1. Điều kiện thực tế tại cơ sở",
+    rawStorageEquipment: "2. Điều kiện trang thiết bị, dụng cụ",
+    protectiveClothing: "3. Thực hành an toàn thực phẩm",
+    threeStepInspection: "4. Kiểm thực 03 bước và lưu mẫu thức ăn",
+    waterSources: "1. Nguồn nước sử dụng trong chế biến thực phẩm",
+    ingredientSuppliers: "2. Các nguồn nguyên liệu khác",
+    otherContents: "3. Các nội dung khác",
+    suppliedUnits: "1. Danh sách các đơn vị nhận cung cấp suất ăn",
+  };
+  const mealProviderInlinePairs: Record<string, string> = {
+    citizenId: "informationProviderPosition",
+    taxIssueDate: "taxIssuePlace",
+    taxAmendmentSequence: "taxAmendmentDate",
+    legalRepresentative: "legalRepresentativeTitle",
+    branchIssueDate: "branchIssuePlace",
+    branchAmendmentSequence: "branchAmendmentDate",
+    facilityRepresentative: "facilityRepresentativeTitle",
+    foodSafetyContactPhone: "foodSafetyContactEmail",
+    breakfastCapacity: "lunchCapacity",
+    snackCapacity: "dinnerCapacity",
+  };
   return (
     <div className="paper-form mx-auto max-w-5xl">
       <div className="paper-page">
@@ -3843,7 +3895,7 @@ function ApplicationForm({
             >
               <option value="school">Cơ sở giáo dục</option>
               <option value="meal-provider">
-                cơ sở suất ăn sẵn
+                Cơ sở suất ăn sẵn
               </option>
               <option value="food-supplier">Cơ sở cung cấp thực phẩm</option>
             </select>
@@ -3894,71 +3946,106 @@ function ApplicationForm({
           )}
         </header>
         <form onSubmit={submit} className="paper-form-body">
-          {groups.map((group, groupIndex) => (
-            <FormSection
-              key={group.id}
-              title={group.name}
-              paper
-              number={groupIndex + 1}
-              description={
+          {groups.map((group, groupIndex) => {
+            const groupFields = formFields.filter(
+              (item) => item.groupId === group.id,
+            );
+            const managerFields = groupFields.filter(
+              isFoodSafetyManagerField,
+            );
+            const firstManagerField = managerFields[0]?.key;
+            const secondaryPairKeys = new Set(
+              Object.values(mealProviderInlinePairs),
+            );
+            const renderedFields = groupFields.map((item, index) => {
+              if (isFoodSafetyManagerField(item)) {
+                if (item.key !== firstManagerField) return null;
+                return (
+                  <FoodSafetyManagerFields
+                    key="food-safety-manager-fields"
+                    items={managerFields}
+                    renderQuestion={renderQuestion}
+                  />
+                );
+              }
+              const subsectionHeading =
+                type === "meal-provider"
+                  ? mealProviderSubsectionHeadings[item.key]
+                  : undefined;
+              const pairKey =
+                type === "meal-provider"
+                  ? mealProviderInlinePairs[item.key]
+                  : undefined;
+              const pairedItem = pairKey
+                ? groupFields.find((candidate) => candidate.key === pairKey)
+                : undefined;
+              if (
                 type === "meal-provider" &&
-                group.id === "meal-provider-group-5"
-                  ? "Có thể thêm nhiều trường."
-                  : undefined
-              }
-              icon={
-                group.name.includes("Minh chứng")
-                  ? ImagePlus
-                  : group.name.includes("pháp lý")
-                    ? FileText
-                    : UserRound
-              }
-            >
-              {(() => {
-                const groupFields = formFields.filter(
-                  (item) => item.groupId === group.id,
-                );
-                const managerFields = groupFields.filter(
-                  isFoodSafetyManagerField,
-                );
-                const firstManagerField = managerFields[0]?.key;
-                return groupFields
-                  .map((item, index) => {
-                    if (isFoodSafetyManagerField(item)) {
-                      if (item.key !== firstManagerField) return null;
-                      return (
-                        <FoodSafetyManagerFields
-                          key="food-safety-manager-fields"
-                          items={managerFields}
-                          renderQuestion={renderQuestion}
-                        />
-                      );
-                    }
-                    return (
-                      <Fragment key={`${item.id}-${index}`}>
-                        {renderQuestion(item)}
-                      </Fragment>
-                    );
-                  })
-                  .concat(
-                    <SectionEvidenceUpload
-                      key={`section-evidence-${group.id}`}
-                      fieldKey={sectionEvidenceKey(group.id)}
-                      files={files.filter(
-                        (file) =>
-                          file.fieldKey === sectionEvidenceKey(group.id),
-                      )}
-                      onFiles={(event) =>
-                        addFilesFor(sectionEvidenceKey(group.id), event)
-                      }
-                      onRemoveFile={(name) =>
-                        removeFile(name, sectionEvidenceKey(group.id))
-                      }
-                    />,
-                  );
-              })()}
-            </FormSection>
-          ))}
+                secondaryPairKeys.has(item.key)
+              )
+                return null;
+              return (
+                <Fragment key={`${item.id}-${index}`}>
+                  {subsectionHeading && (
+                    <h3 className="paper-form-subsection-title">
+                      {subsectionHeading}
+                    </h3>
+                  )}
+                  {pairedItem ? (
+                    <div className="paper-form-field-row">
+                      {renderQuestion(item)}
+                      {renderQuestion(pairedItem)}
+                    </div>
+                  ) : (
+                    renderQuestion(item)
+                  )}
+                </Fragment>
+              );
+            });
+            renderedFields.push(
+              <SectionEvidenceUpload
+                key={`section-evidence-${group.id}`}
+                fieldKey={sectionEvidenceKey(group.id)}
+                files={files.filter(
+                  (file) =>
+                    file.fieldKey === sectionEvidenceKey(group.id),
+                )}
+                onFiles={(event) =>
+                  addFilesFor(sectionEvidenceKey(group.id), event)
+                }
+                onRemoveFile={(name) =>
+                  removeFile(name, sectionEvidenceKey(group.id))
+                }
+              />,
+            );
+            return (
+              <FormSection
+                key={group.id}
+                title={group.name}
+                paper
+                number={
+                  type === "meal-provider"
+                    ? mealProviderSectionNumbers[groupIndex] ?? groupIndex + 1
+                    : groupIndex + 1
+                }
+                description={
+                  type === "meal-provider" &&
+                  group.id === "meal-provider-group-5"
+                    ? "Có thể thêm nhiều dòng thông tin đơn vị."
+                    : undefined
+                }
+                icon={
+                  group.name.includes("Minh chứng")
+                    ? ImagePlus
+                    : group.name.includes("pháp lý")
+                      ? FileText
+                      : UserRound
+                }
+              >
+                {renderedFields}
+              </FormSection>
+            );
+          })}
           {type === "school" && (
             <SchoolModelDetails
               criteriaSet={formSet}
@@ -4351,6 +4438,195 @@ function SectionEvidenceUpload({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+const recipientSummaryCategories = [
+  "Trường học/Cơ sở giáo dục",
+  "Công ty/xí nghiệp",
+  "Bệnh viện",
+  "Khác",
+] as const;
+const recipientSummaryPriceBands = [
+  "Dưới 25.000 đồng",
+  "Từ 25.000 đến 30.000 đồng",
+  "Từ 30.000 đến 35.000 đồng",
+  "Trên 35.000 đồng",
+] as const;
+
+function MealPeriodCapacityQuestion({
+  item,
+  value,
+  onChange,
+}: {
+  item: CriteriaDefinition;
+  value: CriteriaValue;
+  onChange: (value: CriteriaValue) => void;
+}) {
+  const currentValue = typeof value === "string" ? value : "";
+  const shiftName = item.label.split(" ")[0];
+  return (
+    <div className="paper-meal-period">
+      <label className="paper-meal-period-toggle">
+        <input
+          type="checkbox"
+          checked={currentValue !== ""}
+          onChange={(event) =>
+            onChange(
+              event.target.checked
+                ? currentValue || "0"
+                : "",
+            )
+          }
+          aria-label={`Có phục vụ ca ${shiftName}`}
+          data-testid={`input-meal-period-${item.key}`}
+        />
+        <span>{shiftName}</span>
+      </label>
+      <label className="paper-meal-period-quantity">
+        <span>Số suất/ngày</span>
+        <input
+          type="number"
+          min={0}
+          value={currentValue}
+          onChange={(event) => onChange(event.target.value)}
+          aria-label={`Công suất ca ${shiftName} (suất/ngày)`}
+        />
+      </label>
+    </div>
+  );
+}
+
+function RecipientOverviewQuestion({
+  item,
+  value,
+  onChange,
+}: {
+  item: CriteriaDefinition;
+  value: CriteriaValue;
+  onChange: (value: CriteriaValue) => void;
+}) {
+  const savedRows: RepeatableValue = Array.isArray(value)
+    ? value.filter(
+        (entry): entry is Record<string, string | string[]> =>
+          typeof entry === "object" && entry !== null && !Array.isArray(entry),
+      )
+    : [];
+  const rows = recipientSummaryCategories.map(
+    (category) =>
+      savedRows.find((row) => row.target === category) ?? { target: category },
+  );
+  const update = (
+    category: (typeof recipientSummaryCategories)[number],
+    key: string,
+    nextValue: string,
+  ) => {
+    onChange(
+      recipientSummaryCategories.map((rowCategory) => {
+        const current = rows.find((row) => row.target === rowCategory) ?? {
+          target: rowCategory,
+        };
+        return rowCategory === category
+          ? { ...current, [key]: nextValue }
+          : current;
+      }),
+    );
+  };
+  const textValue = (row: Record<string, string | string[]>, key: string) => {
+    const current = row[key];
+    return typeof current === "string" ? current : "";
+  };
+
+  return (
+    <div className="mt-5">
+      <p className="mb-1 text-sm font-semibold">{item.label}</p>
+      {item.description && (
+        <p className="mb-3 text-xs text-muted-foreground">{item.description}</p>
+      )}
+      <div className="paper-recipient-table-scroll">
+        <table className="paper-recipient-table">
+          <thead>
+            <tr>
+              <th scope="col">STT</th>
+              <th scope="col">Đơn vị nhận suất ăn</th>
+              <th scope="col">Số lượng</th>
+              <th scope="col">Giá thành suất ăn (đồng/suất)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {recipientSummaryCategories.map((category, index) => {
+              const row =
+                rows.find((entry) => entry.target === category) ?? {
+                  target: category,
+                };
+              const selectedPrice = textValue(row, "priceRange");
+              return (
+                <tr key={category}>
+                  <td>{index + 1}</td>
+                  <th scope="row">
+                    {category === "Trường học/Cơ sở giáo dục"
+                      ? "Trường học/Cơ sở giáo dục"
+                      : category}
+                    {category === "Khác" && (
+                      <input
+                        type="text"
+                        value={textValue(row, "otherTarget")}
+                        onChange={(event) =>
+                          update(category, "otherTarget", event.target.value)
+                        }
+                        className="paper-recipient-other"
+                        aria-label="Ghi rõ đơn vị nhận suất ăn khác"
+                        placeholder="Ghi rõ"
+                      />
+                    )}
+                  </th>
+                  <td>
+                    <label className="paper-recipient-quantity">
+                      <input
+                        type="number"
+                        min={0}
+                        value={textValue(row, "quantity")}
+                        onChange={(event) =>
+                          update(category, "quantity", event.target.value)
+                        }
+                        aria-label={`Số lượng suất ăn: ${category}`}
+                        data-testid={`input-recipient-quantity-${index + 1}`}
+                      />
+                      <span>suất</span>
+                    </label>
+                  </td>
+                  <td>
+                    <div
+                      className="paper-recipient-price-options"
+                      role="group"
+                      aria-label={`Giá thành suất ăn: ${category}`}
+                    >
+                      {recipientSummaryPriceBands.map((priceBand) => (
+                        <label key={priceBand}>
+                          <input
+                            type="checkbox"
+                            checked={selectedPrice === priceBand}
+                            onChange={(event) =>
+                              update(
+                                category,
+                                "priceRange",
+                                event.target.checked ? priceBand : "",
+                              )
+                            }
+                            data-testid={`input-recipient-price-${index + 1}`}
+                          />
+                          <span>{priceBand}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -5256,7 +5532,7 @@ function FormSection({
   icon: typeof UserRound;
   children: ReactNode;
   paper?: boolean;
-  number?: number;
+  number?: number | string;
 }) {
   return (
     <section
@@ -5269,7 +5545,9 @@ function FormSection({
       {paper ? (
         <div className="paper-section-heading">
           <span className="paper-section-number">
-            {String(number ?? "").padStart(2, "0")}
+            {typeof number === "number"
+              ? String(number).padStart(2, "0")
+              : number}
           </span>
           <div>
             <h2>{title}</h2>
