@@ -698,6 +698,55 @@ const schoolModelSpecificFields: Record<string, CriteriaDefinition[]> = {
     schoolModelField("Căng tin trường học", "canteenOtherLegalDocuments", "Các hồ sơ pháp lý khác", "school-group-3", "text", 115),
   ],
 };
+
+const schoolModelSpecificFieldsV2: Record<string, CriteriaDefinition[]> = {
+  "BATT hợp đồng": schoolModelSpecificFields["BATT hợp đồng"].map((item) => ({
+    ...item,
+    label:
+      item.key === "registeredProviderId"
+        ? "Đơn vị thực hiện nấu ăn đã đăng ký trên hệ thống"
+        : item.key === "serviceLegalName"
+          ? "Tên tổ chức/cá nhân/đơn vị thực hiện nấu ăn (trụ sở chính)"
+          : item.key === "serviceSiteName"
+            ? "Tên cơ sở/địa điểm thực hiện tổ chức nấu ăn"
+            : item.key === "serviceFoodSafetyContacts"
+              ? "Thông tin người phụ trách ATTP của đơn vị thực hiện"
+              : item.label,
+  })),
+  "Nhận suất ăn sẵn": schoolModelSpecificFields["Nhận suất ăn sẵn"].map((item) => ({
+    ...item,
+    label:
+      item.key === "registeredProviderId"
+        ? "Đơn vị cung cấp suất ăn đã đăng ký trên hệ thống"
+        : item.key === "serviceLegalName"
+          ? "Tên tổ chức/cá nhân/đơn vị cung cấp suất ăn (trụ sở chính)"
+          : item.key === "serviceSiteName"
+            ? "Tên cơ sở/địa điểm nấu ăn (xưởng chế biến/bếp nấu)"
+            : item.key === "serviceFoodSafetyContacts"
+              ? "Thông tin người phụ trách ATTP của đơn vị cung cấp suất ăn"
+              : item.key === "readyMealDeliverySites"
+                ? "Danh sách địa điểm, thời điểm giao nhận và số lượng suất ăn"
+                : item.key === "readyMealReceivingPoint"
+                  ? "Địa điểm tập kết, giao/nhận suất ăn tại cơ sở giáo dục"
+                  : item.label,
+  })),
+  "Căng tin trường học": schoolModelSpecificFields["Căng tin trường học"].map(
+    (item) => ({
+      ...item,
+      label:
+        item.key === "registeredProviderId"
+          ? "Đơn vị kinh doanh căng tin đã đăng ký trên hệ thống"
+          : item.key === "canteenName"
+            ? "Tên tổ chức/cá nhân/đơn vị kinh doanh căng tin"
+            : item.key === "canteenFoodSafetyContacts"
+              ? "Thông tin người phụ trách ATTP của đơn vị kinh doanh căng tin"
+              : item.key === "canteenQualityCertificates"
+                ? "Giấy chứng nhận/hồ sơ chất lượng của đơn vị kinh doanh căng tin"
+                : item.label,
+    }),
+  ),
+};
+
 const schoolModelDetailExcludedForReadyMeals = new Set([
   "qualityCertificateStatus",
   "qualityCertificates",
@@ -764,7 +813,12 @@ const getSchoolModelDetailItems = (
       ...item,
       label: overrides[item.key] ?? item.label,
     }));
-  return [...baseItems, ...(schoolModelSpecificFields[model] ?? [])].sort(
+  return [
+    ...baseItems,
+    ...(schoolModelSpecificFieldsV2[model] ??
+      schoolModelSpecificFields[model] ??
+      []),
+  ].sort(
     (a, b) => a.order - b.order,
   );
 };
@@ -3828,12 +3882,13 @@ function ApplicationForm({
                 </li>
               </ul>
               <p>
-                Cơ sở giáo dục phối hợp với đơn vị cung cấp thực phẩm, đơn vị
-                nấu ăn, đơn vị cung cấp suất ăn và đơn vị kinh doanh căng tin.
-                Đơn vị cung cấp phải đăng ký trên hệ thống để nhà trường chọn
-                trong danh sách; nếu chưa có đơn vị phù hợp, nhà trường để trống
-                phần liên kết và bổ sung sau. Hệ thống không yêu cầu chữ ký điện
-                tử của đơn vị cung cấp.
+                Cơ sở giáo dục chủ trì, phối hợp với đơn vị cung cấp thực phẩm,
+                đơn vị nấu ăn, đơn vị cung cấp suất ăn và đơn vị kinh doanh
+                căng tin để cung cấp thông tin thuộc trách nhiệm của từng bên.
+                Đơn vị cung cấp dịch vụ kê khai phần thông tin về hoạt động của
+                mình; cơ sở giáo dục kê khai thông tin thuộc phạm vi quản lý và
+                xác nhận theo mẫu. Người ký xác nhận chịu trách nhiệm về tính
+                đầy đủ, trung thực, chính xác của nội dung cung cấp.
               </p>
             </div>
           )}

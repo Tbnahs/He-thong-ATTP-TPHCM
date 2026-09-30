@@ -1851,6 +1851,179 @@ criteria.school = {
   ],
 };
 
+/*
+ * Phiên bản biểu mẫu theo hai phiếu khảo sát được cung cấp.
+ *
+ * Không dùng lại các trường liên kết nội bộ của bản form trước trong phần
+ * người dùng kê khai. Những trường này từng được dùng để nối hồ sơ với danh
+ * sách đăng ký trong hệ thống, nhưng không phải nội dung của phiếu Word.
+ * Việc chọn đơn vị đã đăng ký vẫn được xử lý trong phần Mẫu 02–04 ở renderer.
+ */
+criteria["meal-provider"] = {
+  ...criteria["meal-provider"],
+  version: "MP-2026.3",
+  effectiveFrom: "2026-09-30",
+  groups: groupList("meal-provider", [
+    "Thông tin tổ chức/cơ sở",
+    "Công suất và đơn vị nhận suất ăn",
+    "Hồ sơ chất lượng và nhân sự",
+    "Điều kiện cơ sở",
+    "Trang thiết bị và vận chuyển",
+    "Thực hành an toàn thực phẩm, kiểm thực và lưu mẫu",
+    "Nguồn nước, nguyên liệu và xác nhận",
+  ]),
+  criteria: criteria["meal-provider"].criteria
+    .filter((item) => item.key !== "email")
+    .map((item) => {
+      const groupMap: Record<string, string> = {
+        "meal-provider-group-1": "meal-provider-group-1",
+        "meal-provider-group-2": "meal-provider-group-2",
+        "meal-provider-group-3": "meal-provider-group-3",
+        "meal-provider-group-4": "meal-provider-group-4",
+        "meal-provider-group-5": "meal-provider-group-5",
+        "meal-provider-group-6": "meal-provider-group-6",
+        "meal-provider-group-7": "meal-provider-group-7",
+      };
+      const labelMap: Record<string, string> = {
+        surveyedOrganization: "Tổ chức/cá nhân được khảo sát",
+        informationProvider: "Người cung cấp thông tin",
+        facilityName:
+          "Tên cơ sở/địa điểm được khảo sát và cung cấp thông tin",
+        facilityAddress: "Địa chỉ cơ sở/địa điểm được khảo sát",
+        foodSafetyContactName: "Họ và tên người phụ trách ATTP",
+        foodSafetyContactTitle: "Chức vụ người phụ trách ATTP",
+        foodSafetyContactPhone: "Số điện thoại người phụ trách ATTP",
+        foodSafetyContactEmail: "Email người phụ trách ATTP",
+        totalCapacity: "Công suất phục vụ tối đa (suất/ngày)",
+        servingUnitCount: "Số lượng đơn vị nhận suất ăn",
+        suppliedUnits: "Danh sách đơn vị được cung cấp suất ăn",
+        certificates:
+          "Giấy chứng nhận cơ sở đủ điều kiện ATTP / hồ sơ chất lượng",
+        totalStaff: "Tổng số người làm việc tại cơ sở",
+        directStaff: "Số người trực tiếp sơ chế/chế biến/chia suất",
+        indirectStaff: "Số người không trực tiếp",
+        changingRoom: "Phòng thay bảo hộ và khu vực vệ sinh cho nhân viên",
+        rawStorageEquipment:
+          "Thiết bị bảo quản nguyên liệu (kho, tủ hoặc thiết bị tương đương)",
+        foodStorageEquipment:
+          "Thiết bị bảo quản thực phẩm (kho, tủ hoặc thiết bị tương đương)",
+        transportVehicles: "Phương tiện vận chuyển suất ăn",
+        transportContainers:
+          "Dụng cụ chứa đựng, bảo quản suất ăn khi vận chuyển",
+        rapidTestEquipment: "Bộ test nhanh sử dụng cho thực phẩm",
+        protectiveClothing: "Bảo hộ lao động và tỷ lệ đáp ứng",
+        foodSafetyPractice: "Thực hành an toàn thực phẩm tại cơ sở",
+        threeStepInspection: "Kiểm thực 03 bước",
+        sampleCollection: "Lấy mẫu thức ăn",
+        sampleStorage: "Bảo quản mẫu thức ăn",
+        ingredientSuppliers: "Danh sách nhà cung cấp nguyên liệu",
+        otherContents: "Các nội dung khác",
+        confirmation: "Xác nhận của cơ sở",
+      };
+      return {
+        ...item,
+        groupId: groupMap[item.groupId] ?? item.groupId,
+        label: labelMap[item.key] ?? item.label,
+      };
+    }),
+};
+
+const schoolGeneralCriteria = [
+  formField("school", "surveyDate", "Ngày thực hiện", "school-group-1", "date", 1),
+  formField("school", "surveyLocation", "Địa điểm được khảo sát", "school-group-1", "text", 2),
+  formField("school", "informationProvider", "Người cung cấp thông tin", "school-group-1", "text", 3),
+  formField("school", "citizenId", "CCCD số", "school-group-1", "text", 4),
+  formField("school", "informationProviderPosition", "Chức vụ người cung cấp thông tin", "school-group-1", "text", 5),
+  formField("school", "applicantName", "Tên cơ sở giáo dục", "school-group-1", "text", 6),
+  formField("school", "addressMain", "Địa chỉ (điểm chính)", "school-group-1", "text", 7),
+  formField("school", "addressBranches", "Địa chỉ (phân hiệu/điểm trường)", "school-group-1", "text", 8, [], { required: false }),
+  formField("school", "managementForm", "Hình thức tổ chức quản lý", "school-group-1", "select", 9, ["Công lập", "Ngoài công lập"]),
+  formField("school", "educationLevels", "Cấp học", "school-group-1", "multi-select", 10, ["Mầm non", "Tiểu học", "THCS", "THPT", "Khác"]),
+  formField("school", "educationLevelOther", "Cấp học khác", "school-group-1", "text", 10.1, [], { required: false }),
+  formField("school", "studentTotal", "Tổng số học sinh tại cơ sở giáo dục", "school-group-1", "number", 11),
+  formField("school", "boardingStudentTotal", "Số học sinh bán trú", "school-group-1", "number", 12),
+  formField("school", "establishmentDecision", "Quyết định thành lập cơ sở giáo dục", "school-group-1", "text", 13),
+  formField("school", "principalName", "Hiệu trưởng: ông/bà", "school-group-1", "text", 14),
+  formField("school", "principalDecision", "Quyết định công nhận hiệu trưởng", "school-group-1", "text", 15),
+  formField("school", "foodSafetyContacts", "Người trực tiếp phụ trách ATTP", "school-group-1", "repeatable", 16, [], {
+    description: "Khai báo từng người trực tiếp phụ trách ATTP tại cơ sở giáo dục.",
+    repeatableFields: [
+      { key: "name", label: "Họ và tên", answerType: "text", required: true },
+      { key: "title", label: "Chức vụ", answerType: "text", required: true },
+      { key: "phone", label: "Số điện thoại", answerType: "text", required: true },
+      { key: "email", label: "Email liên hệ", answerType: "text", required: true },
+    ],
+  }),
+  formField("school", "operatingModels", "Mô hình và quy mô hoạt động", "school-group-2", "repeatable", 17, [], {
+    description: "Khai báo riêng từng mô hình tại từng địa điểm; hệ thống mở đúng Mẫu số 01–04.",
+    repeatableFields: [
+      {
+        key: "model",
+        label: "Mô hình hoạt động",
+        answerType: "select",
+        options: ["BATT tự tổ chức", "BATT hợp đồng", "Nhận suất ăn sẵn", "Căng tin trường học"],
+        required: true,
+      },
+      { key: "siteAddress", label: "Địa điểm/phân hiệu thực hiện", answerType: "text", required: true },
+      { key: "capacity", label: "Tổng số suất/ngày", answerType: "number", required: true },
+      { key: "morningCapacity", label: "Số suất ca sáng", answerType: "number" },
+      { key: "lunchCapacity", label: "Số suất ca trưa", answerType: "number" },
+      { key: "snackCapacity", label: "Số suất ca xế", answerType: "number" },
+      { key: "afternoonCapacity", label: "Số suất ca chiều", answerType: "number" },
+      { key: "dinnerCapacity", label: "Số suất ca tối", answerType: "number" },
+      {
+        key: "priceRange",
+        label: "Giá thành suất ăn (đvt: đồng/suất)",
+        answerType: "select",
+        options: [
+          "Dưới 25.000 đồng",
+          "Từ 25.000 đến 30.000 đồng",
+          "Từ 30.000 đến 35.000 đồng",
+          "Trên 35.000 đồng",
+        ],
+      },
+    ],
+  }),
+  formField("school", "mealTransparency", "Hình thức minh bạch, công khai thông tin về bữa ăn bán trú", "school-group-2", "text", 18),
+  formField("school", "incidentResponseProcess", "Quy trình phòng ngừa, ứng phó, xử lý sự cố ATTP và ngộ độc", "school-group-2", "text", 19),
+  formField("school", "privateOwnerOrganization", "Tên tổ chức/doanh nghiệp sở hữu, quản lý (ngoài công lập)", "school-group-2", "text", 20, [], { required: false, dependsOn: { key: "managementForm", equals: "Ngoài công lập" } }),
+  formField("school", "privateOwnerAddress", "Địa chỉ tổ chức/doanh nghiệp sở hữu", "school-group-2", "text", 21, [], { required: false, dependsOn: { key: "managementForm", equals: "Ngoài công lập" } }),
+  formField("school", "privateOwnerTaxCode", "Mã số doanh nghiệp/mã số thuế của đơn vị sở hữu", "school-group-2", "text", 22, [], { required: false, dependsOn: { key: "managementForm", equals: "Ngoài công lập" } }),
+  formField("school", "privateOwnerIssueDate", "Ngày cấp mã số của đơn vị sở hữu", "school-group-2", "date", 22.1, [], { required: false, dependsOn: { key: "managementForm", equals: "Ngoài công lập" } }),
+  formField("school", "privateOwnerIssuePlace", "Nơi cấp mã số của đơn vị sở hữu", "school-group-2", "text", 22.2, [], { required: false, dependsOn: { key: "managementForm", equals: "Ngoài công lập" } }),
+  formField("school", "privateOwnerInitialRegistrationDate", "Ngày đăng ký lần đầu của đơn vị sở hữu", "school-group-2", "date", 22.3, [], { required: false, dependsOn: { key: "managementForm", equals: "Ngoài công lập" } }),
+  formField("school", "privateOwnerAmendmentDate", "Ngày đăng ký thay đổi gần nhất của đơn vị sở hữu", "school-group-2", "date", 22.4, [], { required: false, dependsOn: { key: "managementForm", equals: "Ngoài công lập" } }),
+  formField("school", "privateOwnerAmendmentSequence", "Lần thay đổi thứ của đơn vị sở hữu", "school-group-2", "number", 22.5, [], { required: false, dependsOn: { key: "managementForm", equals: "Ngoài công lập" } }),
+  formField("school", "privateOwnerRepresentative", "Người đại diện theo pháp luật/chủ cơ sở", "school-group-2", "text", 23, [], { required: false, dependsOn: { key: "managementForm", equals: "Ngoài công lập" } }),
+  formField("school", "privateOwnerRepresentativeTitle", "Chức danh người đại diện", "school-group-2", "text", 23.1, [], { required: false, dependsOn: { key: "managementForm", equals: "Ngoài công lập" } }),
+];
+
+criteria.school = {
+  ...criteria.school,
+  version: "SC-2026.3",
+  effectiveFrom: "2026-09-30",
+  groups: groupList("school", [
+    "Thông tin chung cơ sở giáo dục",
+    "Mô hình và quy mô hoạt động",
+    "Hồ sơ chất lượng, nhân sự và điều kiện cơ sở",
+    "Trang thiết bị và vận chuyển",
+    "Thực hành an toàn thực phẩm, kiểm thực và lưu mẫu",
+    "Khu vực ăn uống",
+    "Nguồn nước, nguyên liệu và nước uống",
+    "Nội dung khác và xác nhận",
+  ]),
+  criteria: [
+    ...schoolGeneralCriteria,
+    ...criteria.school.criteria.filter(
+      (item) =>
+        item.groupId !== "school-group-1" &&
+        item.groupId !== "school-group-2" &&
+        item.key !== "linkedMealProviders" &&
+        item.key !== "modelServiceDetails",
+    ),
+  ],
+};
+
 export const publicRecords: PublicRecord[] = [
   {
     id: "record-003",
