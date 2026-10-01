@@ -509,6 +509,9 @@ const schoolModelOptionLabels: Record<string, string> = {
   "Căng tin trường học": "Căng tin trường học",
 };
 const schoolSubsectionHeadings: Record<string, string> = {
+  applicantName: "1. Thông tin chung",
+  foodSafetyContacts:
+    "2. Thông tin liên hệ của người trực tiếp phụ trách ATTP tại cơ sở giáo dục",
   operatingModels: "3. Mô hình, quy mô hoạt động của bếp ăn tại cơ sở",
   mealTransparency:
     "4. Hình thức minh bạch, công khai thông tin về bữa ăn bán trú tại cơ sở giáo dục",
@@ -516,6 +519,10 @@ const schoolSubsectionHeadings: Record<string, string> = {
     "5. Quy trình phòng ngừa, ứng phó, xử lý sự cố an toàn thực phẩm và ngộ độc thực phẩm",
   privateOwnerOrganization:
     "6. Nội dung khác (dành cho cơ sở giáo dục ngoài công lập)",
+};
+const schoolInlinePairs: Record<string, string> = {
+  citizenId: "informationProviderPosition",
+  studentTotal: "boardingStudentTotal",
 };
 type SchoolModelRepeatableField =
   NonNullable<CriteriaDefinition["repeatableFields"]>[number];
@@ -3149,7 +3156,32 @@ function ApplicationForm({
       window.removeEventListener("focus", refreshProviders);
     };
   }, []);
+  useEffect(() => {
+    if (type !== "school") return;
+    setFields((current) => {
+      const savedContacts = current.foodSafetyContacts;
+      const contactRows =
+        Array.isArray(savedContacts) &&
+        savedContacts.every(
+          (row) =>
+            typeof row === "object" && row !== null && !Array.isArray(row),
+        )
+          ? (savedContacts as RepeatableValue)
+          : [];
+      if (contactRows.length >= 2) return current;
+      return {
+        ...current,
+        foodSafetyContacts: [
+          ...contactRows,
+          ...Array.from({ length: 2 - contactRows.length }, () => ({})),
+        ],
+      };
+    });
+  }, [type]);
   const formSet = getCriteriaSet(type);
+  const isSchoolRegistrationField = (item: CriteriaDefinition) =>
+    item.groupId === "school-survey-metadata" ||
+    item.groupId === "school-group-1";
   const schoolModelRows: RepeatableValue =
     type === "school" && Array.isArray(fields.operatingModels)
       ? (fields.operatingModels as RepeatableValue)
@@ -3241,6 +3273,13 @@ function ApplicationForm({
     setNotice("");
   };
   const isVisible = (item: CriteriaDefinition) => {
+    if (type === "school" && item.key === "educationLevelOther") {
+      const selectedLevels = fields.educationLevels;
+      return (
+        Array.isArray(selectedLevels) &&
+        (selectedLevels as string[]).includes("Khác")
+      );
+    }
     if (!item.dependsOn) return true;
     const dependency = fields[item.dependsOn.key];
     const current = Array.isArray(dependency)
@@ -3273,11 +3312,7 @@ function ApplicationForm({
       formSet?.criteria
         .filter((item) => {
           if (!item.active || !isVisible(item)) return false;
-          if (
-            type === "school" &&
-            item.groupId !== "school-group-1" &&
-            item.groupId !== "school-group-2"
-          )
+          if (type === "school" && !isSchoolRegistrationField(item))
             return false;
           return true;
         })
@@ -3287,6 +3322,12 @@ function ApplicationForm({
         const rows = Array.isArray(fields[item.key])
           ? (fields[item.key] as RepeatableValue)
           : [];
+        if (
+          type === "school" &&
+          item.key === "foodSafetyContacts" &&
+          rows.length < 2
+        )
+          return true;
         if (item.required && rows.length === 0) return true;
         return rows.some((row, index) =>
           (item.repeatableFields ?? []).some((field) => {
@@ -3766,11 +3807,7 @@ function ApplicationForm({
   const formFields = formSet.criteria
     .filter((item) => {
       if (!item.active || !isVisible(item)) return false;
-      if (
-        type === "school" &&
-        item.groupId !== "school-group-1" &&
-        item.groupId !== "school-group-2"
-      )
+      if (type === "school" && !isSchoolRegistrationField(item))
         return false;
       return true;
     })
@@ -3970,9 +4007,13 @@ function ApplicationForm({
               isFoodSafetyManagerField,
             );
             const firstManagerField = managerFields[0]?.key;
-            const secondaryPairKeys = new Set(
-              Object.values(mealProviderInlinePairs),
-            );
+            const inlinePairs =
+              type === "meal-provider"
+                ? mealProviderInlinePairs
+                : type === "school"
+                  ? schoolInlinePairs
+                  : {};
+            const secondaryPairKeys = new Set(Object.values(inlinePairs));
             const renderedFields = groupFields.map((item, index) => {
               if (isFoodSafetyManagerField(item)) {
                 if (item.key !== firstManagerField) return null;
@@ -3990,17 +4031,11 @@ function ApplicationForm({
                   : type === "school"
                     ? schoolSubsectionHeadings[item.key]
                     : undefined;
-              const pairKey =
-                type === "meal-provider"
-                  ? mealProviderInlinePairs[item.key]
-                  : undefined;
+              const pairKey = inlinePairs[item.key];
               const pairedItem = pairKey
                 ? groupFields.find((candidate) => candidate.key === pairKey)
                 : undefined;
-              if (
-                type === "meal-provider" &&
-                secondaryPairKeys.has(item.key)
-              )
+              if (secondaryPairKeys.has(item.key))
                 return null;
               return (
                 <Fragment key={`${item.id}-${index}`}>
@@ -4020,37 +4055,64 @@ function ApplicationForm({
                 </Fragment>
               );
             });
-            renderedFields.push(
-              <SectionEvidenceUpload
-                key={`section-evidence-${group.id}`}
-                fieldKey={sectionEvidenceKey(group.id)}
-                files={files.filter(
-                  (file) =>
-                    file.fieldKey === sectionEvidenceKey(group.id),
-                )}
-                onFiles={(event) =>
-                  addFilesFor(sectionEvidenceKey(group.id), event)
-                }
-                onRemoveFile={(name) =>
-                  removeFile(name, sectionEvidenceKey(group.id))
-                }
-              />,
-            );
+            if (
+              !(type === "school" && group.id === "school-survey-metadata")
+            ) {
+              renderedFields.push(
+                <SectionEvidenceUpload
+                  key={`section-evidence-${group.id}`}
+                  fieldKey={sectionEvidenceKey(group.id)}
+                  files={files.filter(
+                    (file) =>
+                      file.fieldKey === sectionEvidenceKey(group.id),
+                  )}
+                  onFiles={(event) =>
+                    addFilesFor(sectionEvidenceKey(group.id), event)
+                  }
+                  onRemoveFile={(name) =>
+                    removeFile(name, sectionEvidenceKey(group.id))
+                  }
+                />,
+              );
+            }
+            if (
+              type === "school" &&
+              group.id === "school-survey-metadata"
+            ) {
+              return (
+                <div
+                  key={group.id}
+                  className="grid gap-1 rounded-lg border border-border/70 bg-card px-4 py-2"
+                >
+                  {renderedFields}
+                </div>
+              );
+            }
             return (
               <FormSection
                 key={group.id}
-                title={group.name}
+                title={
+                  type === "school" && group.id === "school-group-1"
+                    ? "PHẦN THÔNG TIN CHUNG"
+                    : group.name
+                }
                 paper
                 number={
                   type === "meal-provider"
                     ? mealProviderSectionNumbers[groupIndex] ?? groupIndex + 1
-                    : groupIndex + 1
+                    : type === "school" &&
+                        group.id === "school-group-1"
+                      ? "I"
+                      : groupIndex + 1
                 }
                 description={
                   type === "meal-provider" &&
                   group.id === "meal-provider-group-5"
                     ? "Có thể thêm nhiều dòng thông tin đơn vị."
-                    : undefined
+                    : type === "school" &&
+                        group.id === "school-group-1"
+                      ? "Dành cho cơ sở giáo dục khai báo thông tin."
+                      : undefined
                 }
                 icon={
                   group.name.includes("Minh chứng")
@@ -4138,15 +4200,18 @@ function SchoolModelDetails({
   onRemoveFile: (name: string, fieldKey?: string) => void;
   showValidationErrors: boolean;
 }) {
-  if (rows.length === 0) {
+  const selectedRows = rows
+    .map((row, rowIndex) => ({ row, rowIndex }))
+    .filter(({ row }) => Boolean(schoolModelFormMap[String(row.model ?? "")]));
+  if (selectedRows.length === 0) {
     return (
       <div className="paper-model-empty">
         <Info size={18} />
         <div>
-          <strong>Chưa có mẫu chi tiết để kê khai.</strong>
+          <strong>Chọn mô hình để mở mẫu kê khai chi tiết.</strong>
           <p>
-            Hãy thêm ít nhất một dòng trong “Mô hình, quy mô hoạt động của bếp
-            ăn”. Mẫu 01–04 sẽ được mở tự động theo mô hình đã chọn.
+            Mẫu số 01–04 sẽ xuất hiện tại đây theo từng mô hình đã chọn ở Mục 3.
+            Mỗi mô hình và địa điểm được kê khai bằng một mẫu riêng.
           </p>
         </div>
       </div>
@@ -4163,19 +4228,10 @@ function SchoolModelDetails({
           khai thành một mẫu riêng. Không gộp thông tin giữa các dòng.
         </p>
       </div>
-      {rows.map((row, rowIndex) => {
+      {selectedRows.map(({ row, rowIndex }) => {
         const model = String(row.model ?? "");
-        const modelForm = model
-          ? getSchoolModelForm(model)
-          : {
-              number: "—",
-              title: "Chọn mô hình hoạt động để mở mẫu",
-              description:
-                "Sau khi chọn mô hình, hệ thống sẽ mở đúng Mẫu số 01, 02, 03 hoặc 04.",
-            };
-        const detailItems = model
-          ? getSchoolModelDetailItems(criteriaSet, model)
-          : [];
+        const modelForm = getSchoolModelForm(model);
+        const detailItems = getSchoolModelDetailItems(criteriaSet, model);
         const detailGroups = criteriaSet.groups
           .filter((group) =>
             detailItems.some((item) => item.groupId === group.id),
@@ -4185,6 +4241,7 @@ function SchoolModelDetails({
           <article
             key={`school-model-form-${rowIndex}`}
             className="paper-model-form"
+            data-testid={`school-model-form-${modelForm.number}-${rowIndex + 1}`}
           >
             <header className="paper-model-form-header">
               <div>
@@ -4921,6 +4978,18 @@ function DynamicQuestionControl({
               ? "date"
               : "text"
         }
+        min={
+          item.key === "surveyDate" &&
+          item.groupId === "school-survey-metadata"
+            ? "2026-01-01"
+            : undefined
+        }
+        max={
+          item.key === "surveyDate" &&
+          item.groupId === "school-survey-metadata"
+            ? "2026-12-31"
+            : undefined
+        }
         value={
           typeof value === "string"
             ? value
@@ -4970,6 +5039,14 @@ function RepeatableQuestion({
       ? (value as Record<string, string | string[]>[])
       : [];
   const fields = item.repeatableFields ?? [];
+  const visibleFields =
+    item.key === "operatingModels"
+      ? fields.filter(
+          (field) =>
+            field.key !== "siteAddress" &&
+            field.key !== "afternoonCapacity",
+        )
+      : fields;
   const rowLabel =
     item.key === "products"
       ? "Sản phẩm"
@@ -5118,10 +5195,14 @@ function RepeatableQuestion({
             </div>
             <div
               className={`grid gap-4 ${
-                item.key === "deliveryVehicles" ? "md:grid-cols-3" : "md:grid-cols-2"
+                item.key === "deliveryVehicles"
+                  ? "md:grid-cols-3"
+                  : item.key === "operatingModels"
+                    ? "md:grid-cols-4"
+                    : "md:grid-cols-2"
               }`}
             >
-              {fields.map((field) => {
+              {visibleFields.map((field) => {
                 const fieldKey = `${item.key}.${rowIndex}.${field.key}`;
                 const fieldValue = row[field.key] ?? "";
                 if (field.answerType === "file") {
@@ -5196,7 +5277,14 @@ function RepeatableQuestion({
                       ? (fieldValue[0] ?? "")
                       : fieldValue;
                   return (
-                    <fieldset key={field.key} className="md:col-span-2">
+                    <fieldset
+                      key={field.key}
+                      className={
+                        item.key === "operatingModels"
+                          ? "md:col-span-4"
+                          : "md:col-span-2"
+                      }
+                    >
                       <legend className="mb-3 block text-sm font-semibold">
                         {field.label}
                         {field.required && (
@@ -5433,7 +5521,11 @@ function RepeatableQuestion({
                     className={`block ${
                       item.key === "deliveryVehicles" && field.key === "quantity"
                         ? "relative"
-                        : ""
+                        : item.key === "operatingModels" &&
+                            (field.key === "capacity" ||
+                              field.key === "priceRange")
+                          ? "md:col-span-2"
+                          : ""
                     }`}
                   >
                     <span className="mb-2 block text-sm font-semibold">
