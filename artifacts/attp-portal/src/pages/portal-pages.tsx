@@ -3168,13 +3168,32 @@ function ApplicationForm({
         )
           ? (savedContacts as RepeatableValue)
           : [];
-      if (contactRows.length >= 2) return current;
+      const savedModels = current.operatingModels;
+      const modelRows =
+        Array.isArray(savedModels) &&
+        savedModels.every(
+          (row) =>
+            typeof row === "object" && row !== null && !Array.isArray(row),
+        )
+          ? (savedModels as RepeatableValue)
+          : [];
+      const nextContactRows =
+        contactRows.length >= 2
+          ? contactRows
+          : [
+              ...contactRows,
+              ...Array.from({ length: 2 - contactRows.length }, () => ({})),
+            ];
+      const nextModelRows = modelRows.length > 0 ? modelRows : [{}];
+      if (
+        current.foodSafetyContacts === nextContactRows &&
+        current.operatingModels === nextModelRows
+      )
+        return current;
       return {
         ...current,
-        foodSafetyContacts: [
-          ...contactRows,
-          ...Array.from({ length: 2 - contactRows.length }, () => ({})),
-        ],
+        foodSafetyContacts: nextContactRows,
+        operatingModels: nextModelRows,
       };
     });
   }, [type]);
@@ -3978,7 +3997,7 @@ function ApplicationForm({
                 </li>
                 <li>
                   Có nhiều phân hiệu, điểm trường, mô hình hoặc đơn vị cung cấp
-                  phải kê khai riêng từng địa điểm, từng mô hình và từng đơn vị.
+                  cần lập hồ sơ riêng cho từng địa điểm, mô hình và đơn vị.
                 </li>
                 <li>
                   Thông tin phải đúng thực tế tại thời điểm khảo sát, đối chiếu
@@ -5141,19 +5160,23 @@ function RepeatableQuestion({
             </p>
           )}
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          className="h-9 rounded-lg px-3 text-xs"
-          onClick={addRow}
-          data-testid={`button-add-${item.key}`}
-        >
-          <Plus size={14} /> Thêm {addLabel}
-        </Button>
+        {item.key !== "operatingModels" && (
+          <Button
+            type="button"
+            variant="outline"
+            className="h-9 rounded-lg px-3 text-xs"
+            onClick={addRow}
+            data-testid={`button-add-${item.key}`}
+          >
+            <Plus size={14} /> Thêm {addLabel}
+          </Button>
+        )}
       </div>
       {rows.length === 0 && (
         <div className="rounded-xl border border-dashed border-primary/25 bg-secondary/20 px-4 py-4 text-sm text-muted-foreground">
-          Chưa có dòng nào. Nhấn 'Thêm' để khai báo.
+          {item.key === "operatingModels"
+            ? "Chưa có dòng mô hình để kê khai."
+            : "Chưa có dòng nào. Nhấn 'Thêm' để khai báo."}
         </div>
       )}
       <div className="space-y-4">
@@ -5184,14 +5207,16 @@ function RepeatableQuestion({
                   </p>
                 )}
               </div>
-              <button
-                type="button"
-                className="focus-ring rounded-full p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                onClick={() => removeRow(rowIndex)}
-                aria-label={`Xóa dòng ${rowIndex + 1}`}
-              >
-                <X size={16} />
-              </button>
+              {item.key !== "operatingModels" && (
+                <button
+                  type="button"
+                  className="focus-ring rounded-full p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => removeRow(rowIndex)}
+                  aria-label={`Xóa dòng ${rowIndex + 1}`}
+                >
+                  <X size={16} />
+                </button>
+              )}
             </div>
             <div
               className={`grid gap-4 ${
@@ -5277,70 +5302,41 @@ function RepeatableQuestion({
                       ? (fieldValue[0] ?? "")
                       : fieldValue;
                   return (
-                    <fieldset
+                    <label
                       key={field.key}
-                      className={
-                        item.key === "operatingModels"
-                          ? "md:col-span-4"
-                          : "md:col-span-2"
-                      }
+                      className="block md:col-span-4"
                     >
-                      <legend className="mb-3 block text-sm font-semibold">
+                      <span className="mb-2 block text-sm font-semibold">
                         {field.label}
                         {field.required && (
                           <span className="text-destructive"> *</span>
                         )}
-                      </legend>
-                      <div className="grid gap-3 sm:grid-cols-2">
+                      </span>
+                      <select
+                        value={selectedModel}
+                        required={field.required}
+                        onChange={(event) =>
+                          updateRow(rowIndex, field.key, event.target.value)
+                        }
+                        className="focus-ring h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                        data-testid={`input-criteria-${fieldKey}`}
+                      >
+                        <option value="">Chọn một mô hình</option>
                         {(field.options ?? []).map((option) => {
                           const optionForm = getSchoolModelForm(option);
-                          const selected = selectedModel === option;
                           return (
-                            <button
-                              key={option}
-                              type="button"
-                              onClick={() =>
-                                updateRow(rowIndex, field.key, option)
-                              }
-                              className={`rounded-xl border p-3 text-left transition ${
-                                selected
-                                  ? "border-primary bg-primary/10 text-primary shadow-sm"
-                                  : "border-input bg-background text-foreground hover:border-primary/40 hover:bg-secondary/40"
-                              }`}
-                              aria-pressed={selected}
-                              data-testid={`input-criteria-${fieldKey}-${option}`}
-                            >
-                              <span className="flex items-start gap-3">
-                                <span
-                                  className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
-                                    selected
-                                      ? "border-primary bg-primary"
-                                      : "border-muted-foreground/40"
-                                  }`}
-                                >
-                                  {selected && (
-                                    <span className="h-1.5 w-1.5 rounded-full bg-primary-foreground" />
-                                  )}
-                                </span>
-                                <span>
-                                  <strong className="block text-sm leading-5">
-                                    {schoolModelOptionLabels[option] ?? option}
-                                  </strong>
-                                  <span className="mt-1 block text-xs font-semibold uppercase tracking-wide opacity-70">
-                                    Mẫu số {optionForm.number}
-                                  </span>
-                                </span>
-                              </span>
-                            </button>
+                            <option key={option} value={option}>
+                              {schoolModelOptionLabels[option] ?? option} · Mẫu
+                              số {optionForm.number}
+                            </option>
                           );
                         })}
-                      </div>
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        Chọn một mô hình cho dòng này. Nếu cơ sở có nhiều địa
-                        điểm hoặc nhiều mô hình, nhấn “Thêm mô hình” để kê khai
-                        từng dòng riêng.
-                      </p>
-                    </fieldset>
+                      </select>
+                      <span className="mt-2 block text-xs text-muted-foreground">
+                        Chọn một mô hình hoạt động. Mẫu tương ứng sẽ xuất hiện
+                        ở cuối biểu mẫu.
+                      </span>
+                    </label>
                   );
                 }
                 if (field.answerType === "multi-select") {

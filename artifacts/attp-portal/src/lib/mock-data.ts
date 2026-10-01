@@ -2085,7 +2085,7 @@ const schoolGeneralCriteria = [
     ],
   }),
   formField("school", "operatingModels", "Mô hình, quy mô hoạt động của bếp ăn tại cơ sở", "school-group-1", "repeatable", 17, [], {
-    description: "Chọn từng mô hình đang hoạt động; khai báo công suất/ngày, số suất ca sáng, trưa, xế, tối và giá thành. Mẫu số tương ứng sẽ hiện ở cuối biểu mẫu.",
+    description: "Chọn một trong bốn mô hình; khai báo công suất/ngày, số suất ca sáng, trưa, xế, tối và giá thành. Mẫu số tương ứng sẽ hiện ở cuối biểu mẫu.",
     repeatableFields: [
       {
         key: "model",
