@@ -6364,6 +6364,8 @@ function RepeatableQuestion({
         ? "Mô hình"
       : item.key === "servingSchools"
         ? "Trường học"
+        : item.key === "foodSafetyContacts"
+          ? "Người phụ trách ATTP"
         : item.key === "suppliedUnits"
           ? "Đơn vị nhận suất ăn"
           : item.key === "linkedMealProviders"
@@ -6400,6 +6402,8 @@ function RepeatableQuestion({
         ? "mô hình"
       : item.key === "servingSchools"
         ? "trường"
+        : item.key === "foodSafetyContacts"
+          ? "người phụ trách"
         : item.key === "suppliedUnits"
           ? "đơn vị"
           : item.key === "linkedMealProviders"
@@ -6486,22 +6490,24 @@ function RepeatableQuestion({
             }`}
           >
             <div className="mb-4 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-bold">
-                  {rowLabel} {rowIndex + 1}
-                </p>
-                {item.key === "operatingModels" && (
-                  <p className="mt-1 text-xs font-semibold text-primary">
-                    {row.model
-                      ? `Mẫu số ${getSchoolModelForm(row.model).number} sẽ được mở tự động`
-                      : "Chọn mô hình để mở mẫu tương ứng"}
+              {item.key !== "foodSafetyContacts" && (
+                <div>
+                  <p className="text-sm font-bold">
+                    {rowLabel} {rowIndex + 1}
                   </p>
-                )}
-              </div>
+                  {item.key === "operatingModels" && (
+                    <p className="mt-1 text-xs font-semibold text-primary">
+                      {row.model
+                        ? `Mẫu số ${getSchoolModelForm(row.model).number} sẽ được mở tự động`
+                        : "Chọn mô hình để mở mẫu tương ứng"}
+                    </p>
+                  )}
+                </div>
+              )}
               {item.key !== "operatingModels" && (
                 <button
                   type="button"
-                  className="focus-ring rounded-full p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                  className="focus-ring ml-auto rounded-full p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                   onClick={() => removeRow(rowIndex)}
                   aria-label={`Xóa dòng ${rowIndex + 1}`}
                 >
