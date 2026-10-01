@@ -1,0 +1,162 @@
+Sửa lại cái form đăng kí của cơ sở giáo dục theo đúng quy định: một cơ sở giáo dục có thể có nhiều phân hiệu/điểm trường, nhiều mô hình hoạt động và nhiều đơn vị cung cấp dịch vụ.
+Yêu cầu: giữ nguyên nội dung nghiệp vụ và các trường dữ liệu của biểu mẫu hiện tại, chỉ thiết kế lại luồng nhập liệu để tránh trùng lặp, tránh gộp sai dữ liệu.
+Cơ sở giáo dục
+↓
+Thông tin chung
+↓
+Danh sách địa điểm / điểm trường
+↓
+Địa điểm
+↓
+Mô hình hoạt động
+↓
+Đơn vị thực hiện / đơn vị cung cấp (nếu có)
+↓
+Thông tin chi tiết của mẫu
+↓
+Xác nhận và gửi
+BƯỚC 1 – THÔNG TIN CHUNG CƠ SỞ GIÁO DỤC
+Người dùng nhập:
+Thông tin khảo sát.
+Thông tin cơ sở giáo dục.
+Người phụ trách ATTP.
+Thông tin minh bạch bữa ăn.
+Quy trình xử lý sự cố ATTP.
+Nội dung khác của cơ sở giáo dục.
+Thông tin này chỉ nhập một lần.
+Người dùng bấm:
+[Tiếp tục]
+↓
+Hiển thị:
+Danh sách địa điểm hoạt động.
+Mặc định có:
+Điểm chính.
+Cho phép:
+[+ Thêm điểm trường]
+Ví dụ:
+Điểm chính
+Điểm trường A
+Điểm trường B
+Người dùng chọn:
+[Xem chi tiết địa điểm]
+↓
+Ví dụ:
+Địa điểm: Điểm trường A
+Chọn mô hình hoạt động:
+☐ Mẫu 01 – BATT tự tổ chức
+☐ Mẫu 02 – BATT hợp đồng
+☐ Mẫu 03 – Nhận suất ăn sẵn
+☐ Mẫu 04 – Căng tin
+Cho phép chọn nhiều mô hình.
+Ví dụ:
+☑ Mẫu 01
+☑ Mẫu 04
+Người dùng bấm:
+[Lưu mô hình]
+↓
+Nếu chọn:
+Mẫu 01
+→ Hiển thị form Mẫu 01.
+Mẫu 02
+→ Hiển thị form Mẫu 02.
+Mẫu 03
+→ Hiển thị form Mẫu 03.
+Mẫu 04
+→ Hiển thị form Mẫu 04.
+Giữ nguyên toàn bộ field của các biểu mẫu hiện tại.
+Không hiển thị field của mô hình khác.
+↓
+Áp dụng cho:
+Mẫu 02.
+Mẫu 03.
+Mẫu 04.
+Người dùng nhập:
+Tên đơn vị.
+Địa chỉ.
+Mã số doanh nghiệp.
+Người đại diện.
+Người phụ trách ATTP.
+Hợp đồng.
+Địa điểm thực hiện.
+Cho phép:
+[+ Thêm đơn vị]
+Ví dụ:
+Điểm trường B
+→ Mẫu 03
+→ Nhà cung cấp A
+Điểm trường B
+→ Mẫu 03
+→ Nhà cung cấp B
+Không gộp nhiều đơn vị thành một bản ghi.
+↓
+Hiển thị dạng cây:
+Trường ABC
+│
+├── Điểm chính
+│ ├── Mẫu 01
+│ └── Mẫu 04
+│
+├── Điểm trường A
+│ └── Mẫu 02
+│ └── Đơn vị nấu ăn X
+│
+└── Điểm trường B
+└── Mẫu 03
+├── Nhà cung cấp Y
+└── Nhà cung cấp Z
+Cho phép:
+[Sửa]
+[Xóa]
+[Xem chi tiết]
+↓
+Hệ thống kiểm tra:
+✓ Địa điểm nào chưa chọn mô hình.
+✓ Mô hình nào chưa kê khai.
+✓ Đơn vị nào chưa nhập thông tin.
+✓ Thiếu hợp đồng.
+✓ Thiếu thông tin ATTP.
+✓ Thiếu lưu mẫu.
+Hiển thị trạng thái:
+Hoàn thành.
+Thiếu thông tin.
+Cần bổ sung.
+↓
+Người dùng:
+[Xác nhận]
+↓
+[Gửi hồ sơ]
+↓
+Hệ thống tạo:
+Hồ sơ tổng.
+Phiếu theo từng mô hình.
+Phiếu theo từng địa điểm.
+Phiếu theo từng đơn vị cung cấp.
+Cơ sở giáo dục
+↓
+Điểm trường
+↓
+Mô hình
+↓
+Đơn vị thực hiện
+↓
+Thông tin chi tiết
+Ví dụ:
+Trường ABC
+│
+├── Điểm chính
+│ ├── Mẫu 01
+│ └── Mẫu 04
+│
+├── Điểm trường A
+│ └── Mẫu 02
+│ └── Đơn vị X
+│
+└── Điểm trường B
+└── Mẫu 03
+├── Đơn vị Y
+└── Đơn vị Z
+Thiết kế luồng trực quan, dễ sử dụng, phù hợp với biểu mẫu hành chính có nhiều dữ liệu, đồng thời đảm bảo không gộp sai giữa:
+Địa điểm.
+Mô hình.
+Đơn vị cung cấp.
+Điều kiện thực tế tại từng nơi.
