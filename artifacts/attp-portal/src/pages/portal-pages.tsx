@@ -890,6 +890,77 @@ type RegistrationSnapshot = {
   files: Attachment[];
   submittedAt: string;
 };
+type SchoolLocationRecord = {
+  id: string;
+  name: string;
+  address: string;
+  kind: "main" | "branch";
+};
+const schoolRegistrationSteps = [
+  { title: "Thông tin chung", description: "Khai một lần cho toàn cơ sở" },
+  { title: "Địa điểm", description: "Điểm chính và các điểm trường" },
+  { title: "Mô hình", description: "Chọn theo từng địa điểm" },
+  { title: "Đơn vị", description: "Khai riêng từng đơn vị thực hiện" },
+  { title: "Phiếu chi tiết", description: "Điều kiện theo từng mô hình" },
+  { title: "Rà soát", description: "Kiểm tra trước khi gửi" },
+];
+const schoolProviderDetailItem = (item: CriteriaDefinition) =>
+  item.key === "registeredProviderId" ||
+  item.key.startsWith("service") ||
+  item.key.startsWith("canteen");
+const schoolFieldText = (value: unknown) =>
+  typeof value === "string"
+    ? value
+    : Array.isArray(value) && typeof value[0] === "string"
+      ? value[0]
+      : "";
+const normalizeSchoolLocations = (
+  value: CriteriaValue | undefined,
+  addressMain: CriteriaValue | undefined,
+  addressBranches: CriteriaValue | undefined,
+): SchoolLocationRecord[] => {
+  const savedRows =
+    Array.isArray(value) &&
+    value.every(
+      (row) => typeof row === "object" && row !== null && !Array.isArray(row),
+    )
+      ? (value as RepeatableValue)
+      : [];
+  if (savedRows.length > 0) {
+    const mainIndex = Math.max(
+      0,
+      savedRows.findIndex((row) => row.kind === "main"),
+    );
+    return savedRows.map((row, index) => ({
+      id: schoolFieldText(row.id) || `school-site-${index + 1}`,
+      name:
+        schoolFieldText(row.name) ||
+        (index === mainIndex ? "Điểm chính" : `Điểm trường ${index}`),
+      address: schoolFieldText(row.address),
+      kind: index === mainIndex ? "main" : "branch",
+    }));
+  }
+
+  const mainAddress = schoolFieldText(addressMain);
+  const branchAddresses = schoolFieldText(addressBranches)
+    .split(/[\r\n;]+/)
+    .map((address) => address.trim())
+    .filter(Boolean);
+  return [
+    {
+      id: "school-site-main",
+      name: "Điểm chính",
+      address: mainAddress,
+      kind: "main",
+    },
+    ...branchAddresses.map((address, index) => ({
+      id: `school-site-legacy-${index + 1}`,
+      name: `Điểm trường ${index + 1}`,
+      address,
+      kind: "branch" as const,
+    })),
+  ];
+};
 const sectionEvidenceKey = (groupId: string) => `sectionEvidence.${groupId}`;
 type FacilityAccount = {
   email: string;
@@ -3143,6 +3214,10 @@ function ApplicationForm({
   const [notice, setNotice] = useState("");
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [schoolStep, setSchoolStep] = useState(0);
+  const [schoolConfirmed, setSchoolConfirmed] = useState(
+    initialSnapshot?.fields.schoolSubmissionConfirmed === "true",
+  );
   const [registeredProviders, setRegisteredProviders] = useState<
     RegisteredMealProvider[]
   >(getRegisteredServiceProviders);
@@ -3184,10 +3259,19 @@ function ApplicationForm({
               ...contactRows,
               ...Array.from({ length: 2 - contactRows.length }, () => ({})),
             ];
-      const nextModelRows = modelRows.length > 0 ? modelRows : [{}];
+      const nextModelRows = modelRows.map((row, index) => ({
+        ...row,
+        id:
+          typeof row.id === "string" && row.id
+            ? row.id
+            : String(index),
+      }));
+      const modelsChanged =
+        !Array.isArray(savedModels) ||
+        modelRows.some((row, index) => row.id !== nextModelRows[index]?.id);
       if (
         current.foodSafetyContacts === nextContactRows &&
-        current.operatingModels === nextModelRows
+        !modelsChanged
       )
         return current;
       return {
@@ -3205,8 +3289,38 @@ function ApplicationForm({
     type === "school" && Array.isArray(fields.operatingModels)
       ? (fields.operatingModels as RepeatableValue)
       : [];
+  const schoolLocations = useMemo(
+    () =>
+      normalizeSchoolLocations(
+        fields.schoolLocations,
+        fields.addressMain,
+        fields.addressBranches,
+      ),
+    [fields.schoolLocations, fields.addressMain, fields.addressBranches],
+  );
+  const getSchoolModelLocation = (row: Record<string, string | string[]>) => {
+    const storedId = schoolFieldText(row.siteId);
+    if (storedId) {
+      const storedLocation = schoolLocations.find(
+        (location) => location.id === storedId,
+      );
+      if (storedLocation) return storedLocation;
+    }
+    const storedAddress = schoolFieldText(row.siteAddress).trim().toLowerCase();
+    if (storedAddress) {
+      const matchingLocation = schoolLocations.find(
+        (location) => location.address.trim().toLowerCase() === storedAddress,
+      );
+      if (matchingLocation) return matchingLocation;
+    }
+    return schoolLocations[0];
+  };
+  const getSchoolRowsForLocation = (location: SchoolLocationRecord) =>
+    schoolModelRows
+      .map((row, rowIndex) => ({ row, rowIndex }))
+      .filter(({ row }) => getSchoolModelLocation(row)?.id === location.id);
   const schoolModelFieldKey = (rowIndex: number, key: string) =>
-    `schoolModelDetails.${rowIndex}.${key}`;
+    `schoolModelDetails.${schoolFieldText(schoolModelRows[rowIndex]?.id) || rowIndex}.${key}`;
   const getSchoolModelFieldValue = (rowIndex: number, key: string) =>
     fields[schoolModelFieldKey(rowIndex, key)] ??
     (rowIndex === 0 ? fields[key] : undefined) ??
@@ -3241,10 +3355,204 @@ function ApplicationForm({
     setFields((prev) => ({ ...prev, [key]: value }));
   const changeType = (nextType: ApplicationType) => {
     setType(nextType);
+    setSchoolStep(0);
+    setSchoolConfirmed(false);
     setFields({});
     setFiles([]);
     setNotice("");
   };
+  const commitSchoolLocations = (nextLocations: SchoolLocationRecord[]) => {
+    const oldLocations = schoolLocations;
+    const nextRows = schoolModelRows.map((row) => {
+      const oldLocation =
+        getSchoolModelLocation(row) ??
+        oldLocations.find((location) => location.kind === "main");
+      const nextLocation = nextLocations.find(
+        (location) => location.id === oldLocation?.id,
+      );
+      return nextLocation
+        ? {
+            ...row,
+            siteId: nextLocation.id,
+            siteName: nextLocation.name,
+            siteAddress: nextLocation.address,
+          }
+        : row;
+    });
+    const mainLocation =
+      nextLocations.find((location) => location.kind === "main") ??
+      nextLocations[0];
+    setFields((current) => ({
+      ...current,
+      schoolLocations: nextLocations.map((location) => ({
+        id: location.id,
+        name: location.name,
+        address: location.address,
+        kind: location.kind,
+      })),
+      addressMain: mainLocation?.address ?? "",
+      addressBranches: nextLocations
+        .filter((location) => location.kind !== "main")
+        .map((location) => location.address)
+        .join("\n"),
+      operatingModels: nextRows,
+    }));
+  };
+  const createSchoolModelRow = (
+    location: SchoolLocationRecord,
+    model: string,
+  ): Record<string, string | string[]> => ({
+    id: `school-model-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    siteId: location.id,
+    siteName: location.name,
+    siteAddress: location.address,
+    model,
+  });
+  const removeSchoolModelRows = (rowIds: string[]) => {
+    if (rowIds.length === 0) return;
+    const prefixes = rowIds.map((id) => `schoolModelDetails.${id}.`);
+    setFields((current) => {
+      const next = { ...current };
+      for (const key of Object.keys(next)) {
+        if (prefixes.some((prefix) => key.startsWith(prefix))) delete next[key];
+      }
+      next.operatingModels = schoolModelRows.filter(
+        (row) => !rowIds.includes(schoolFieldText(row.id)),
+      );
+      return next;
+    });
+    setFiles((current) =>
+      current.filter(
+        (file) =>
+          !prefixes.some((prefix) => file.fieldKey?.startsWith(prefix)),
+      ),
+    );
+  };
+  const updateSchoolLocation = (
+    locationId: string,
+    key: "name" | "address",
+    value: string,
+  ) =>
+    commitSchoolLocations(
+      schoolLocations.map((location) =>
+        location.id === locationId ? { ...location, [key]: value } : location,
+      ),
+    );
+  const addSchoolLocation = () => {
+    commitSchoolLocations([
+      ...schoolLocations,
+      {
+        id: `school-site-${Date.now()}-${schoolLocations.length}`,
+        name: `Điểm trường ${schoolLocations.length}`,
+        address: "",
+        kind: "branch",
+      },
+    ]);
+  };
+  const removeSchoolLocation = (location: SchoolLocationRecord) => {
+    const removedIds = getSchoolRowsForLocation(location).map(({ row }) =>
+      schoolFieldText(row.id),
+    );
+    const prefixes = removedIds.map((id) => `schoolModelDetails.${id}.`);
+    const nextLocations = schoolLocations.filter(
+      (candidate) => candidate.id !== location.id,
+    );
+    const mainLocation =
+      nextLocations.find((candidate) => candidate.kind === "main") ??
+      nextLocations[0];
+    const nextRows = schoolModelRows.filter(
+      (row) => !removedIds.includes(schoolFieldText(row.id)),
+    );
+    setFields((current) => {
+      const next: Record<string, CriteriaValue> = {
+        ...current,
+        schoolLocations: nextLocations,
+        addressMain: mainLocation?.address ?? "",
+        addressBranches: nextLocations
+          .filter((candidate) => candidate.kind !== "main")
+          .map((candidate) => candidate.address)
+          .join("\n"),
+        operatingModels: nextRows,
+      };
+      for (const key of Object.keys(next)) {
+        if (prefixes.some((prefix) => key.startsWith(prefix))) delete next[key];
+      }
+      return next;
+    });
+    setFiles((current) =>
+      current.filter(
+        (file) =>
+          !prefixes.some((prefix) => file.fieldKey?.startsWith(prefix)),
+      ),
+    );
+  };
+  const setSchoolLocationModels = (
+    location: SchoolLocationRecord,
+    selectedModels: string[],
+  ) => {
+    const currentRows = schoolModelRows.map((row) => ({ ...row }));
+    const keepRows = currentRows.filter(
+      (row) =>
+        getSchoolModelLocation(row)?.id !== location.id ||
+        selectedModels.includes(schoolFieldText(row.model)),
+    );
+    const alreadySelected = new Set(
+      keepRows
+        .filter((row) => getSchoolModelLocation(row)?.id === location.id)
+        .map((row) => schoolFieldText(row.model)),
+    );
+    for (const model of selectedModels) {
+      if (alreadySelected.has(model)) continue;
+      keepRows.push(createSchoolModelRow(location, model));
+    }
+    const removedRows = currentRows.filter(
+      (row) =>
+        getSchoolModelLocation(row)?.id === location.id &&
+        !selectedModels.includes(schoolFieldText(row.model)),
+    );
+    const removedIds = removedRows.map((row) => schoolFieldText(row.id));
+    const prefixes = removedIds.map((id) => `schoolModelDetails.${id}.`);
+    setFields((current) => {
+      const next: Record<string, CriteriaValue> = {
+        ...current,
+        operatingModels: keepRows,
+      };
+      for (const key of Object.keys(next)) {
+        if (prefixes.some((prefix) => key.startsWith(prefix))) delete next[key];
+      }
+      return next;
+    });
+    setFiles((current) =>
+      current.filter(
+        (file) =>
+          !prefixes.some((prefix) => file.fieldKey?.startsWith(prefix)),
+      ),
+    );
+  };
+  const addSchoolProviderRow = (
+    location: SchoolLocationRecord,
+    model: string,
+  ) =>
+    update(
+      "operatingModels",
+      [
+        ...schoolModelRows,
+        createSchoolModelRow(location, model),
+      ] as RepeatableValue,
+    );
+  const updateSchoolOperatingModelField = (
+    rowId: string,
+    key: string,
+    value: string,
+  ) =>
+    update(
+      "operatingModels",
+      schoolModelRows.map((row, rowIndex) =>
+        schoolFieldText(row.id) === rowId || String(rowIndex) === rowId
+          ? { ...row, [key]: value }
+          : row,
+      ) as RepeatableValue,
+    );
   const addFiles = async (event: ChangeEvent<HTMLInputElement>) => {
     const chosen = Array.from(event.target.files ?? []);
     const validationError = validateEvidenceFiles(chosen);
@@ -3325,18 +3633,28 @@ function ApplicationForm({
           !(file.name === name && (!fieldKey || file.fieldKey === fieldKey)),
       ),
     );
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    const formFields =
-      formSet?.criteria
-        .filter((item) => {
-          if (!item.active || !isVisible(item)) return false;
-          if (type === "school" && !isSchoolRegistrationField(item))
-            return false;
-          return true;
-        })
-        .sort((a, b) => a.order - b.order) ?? [];
-    const missing = formFields.filter((item) => {
+  const formFields =
+    formSet?.criteria
+      .filter((item) => {
+        if (!item.active || !isVisible(item)) return false;
+        if (type === "school" && !isSchoolRegistrationField(item)) return false;
+        if (
+          type === "school" &&
+          ["addressMain", "addressBranches", "operatingModels"].includes(
+            item.key,
+          )
+        )
+          return false;
+        return true;
+      })
+      .sort((a, b) => a.order - b.order) ?? [];
+  const schoolOperatingModelFields =
+    formSet?.criteria.find((item) => item.key === "operatingModels")
+      ?.repeatableFields?.filter(
+        (field) => field.key !== "model" && field.key !== "siteAddress",
+      ) ?? [];
+  const getMissingRequiredFields = () =>
+    formFields.filter((item) => {
       if (item.answerType === "repeatable") {
         const rows = Array.isArray(fields[item.key])
           ? (fields[item.key] as RepeatableValue)
@@ -3370,128 +3688,163 @@ function ApplicationForm({
         ? answer.length === 0
         : !String(answer).trim();
     });
+  const isLinkedProviderModel = (model: string) =>
+    model === "BATT hợp đồng" ||
+    model === "Nhận suất ăn sẵn" ||
+    model === "Căng tin trường học";
+  const getProviderOptionsForModel = (model: string) =>
+    model === "Căng tin trường học"
+      ? registeredProviders
+      : registeredProviders.filter(
+          (provider) => provider.type === "meal-provider",
+        );
+  const getSchoolModelValidation = () => {
+    const missingProviderLinks: {
+      rowId: string;
+      locationId: string;
+      model: string;
+      locationName: string;
+    }[] = [];
+    const missingModelDetails: {
+      rowId: string;
+      locationId: string;
+      model: string;
+      labels: string[];
+    }[] = [];
+    schoolModelRows.forEach((row, rowIndex) => {
+      const model = String(row.model ?? "");
+      if (!schoolModelFormMap[model]) return;
+      const location = getSchoolModelLocation(row);
+      if (isLinkedProviderModel(model)) {
+        const availableProviders = getProviderOptionsForModel(model);
+        const selectedProviderId = getSchoolModelFieldValue(
+          rowIndex,
+          "registeredProviderId",
+        );
+        const selectedId =
+          typeof selectedProviderId === "string" ? selectedProviderId : "";
+        if (
+          availableProviders.length > 0 &&
+          !availableProviders.some((provider) => provider.id === selectedId)
+        ) {
+          missingProviderLinks.push({
+            rowId: schoolFieldText(row.id) || String(rowIndex),
+            locationId: location?.id ?? "",
+            model,
+            locationName: location?.name ?? "địa điểm chưa xác định",
+          });
+        }
+      }
+      const detailItems = getSchoolModelDetailItems(formSet, model).filter(
+        (item) =>
+          item.active &&
+          item.required &&
+          isSchoolModelItemVisible(item, rowIndex),
+      );
+      const missingOperatingLabels = schoolOperatingModelFields
+        .filter(
+          (field) =>
+            field.required && !schoolFieldText(row[field.key]).trim(),
+        )
+        .map((field) => field.label);
+      const missingDetailLabels = detailItems
+        .filter((item) => {
+          if (item.answerType === "repeatable") {
+            const value = getSchoolModelFieldValue(rowIndex, item.key);
+            const repeatableRows =
+              Array.isArray(value) &&
+              value.every(
+                (entry) =>
+                  typeof entry === "object" &&
+                  entry !== null &&
+                  !Array.isArray(entry),
+              )
+                ? (value as RepeatableValue)
+                : [];
+            if (item.required && repeatableRows.length === 0) return true;
+            return repeatableRows.some((repeatableRow, repeatableIndex) =>
+              (item.repeatableFields ?? []).some((field) => {
+                if (!field.required) return false;
+                const nestedFieldKey = `${schoolModelFieldKey(
+                  rowIndex,
+                  item.key,
+                )}.${repeatableIndex}.${field.key}`;
+                if (field.answerType === "file")
+                  return !files.some(
+                    (file) => file.fieldKey === nestedFieldKey,
+                  );
+                const nestedValue = repeatableRow[field.key];
+                return Array.isArray(nestedValue)
+                  ? nestedValue.length === 0
+                  : !String(nestedValue ?? "").trim();
+              }),
+            );
+          }
+          if (item.answerType === "file")
+            return !files.some(
+              (file) =>
+                file.fieldKey === schoolModelFieldKey(rowIndex, item.key),
+            );
+          const answer = getSchoolModelFieldValue(rowIndex, item.key);
+          return Array.isArray(answer)
+            ? answer.length === 0
+            : !String(answer ?? "").trim();
+        })
+        .map((item) => item.label);
+      const missingLabels = [
+        ...missingOperatingLabels,
+        ...missingDetailLabels,
+      ];
+      if (missingLabels.length > 0) {
+        missingModelDetails.push({
+          rowId: schoolFieldText(row.id) || String(rowIndex),
+          locationId: location?.id ?? "",
+          model,
+          labels: missingLabels,
+        });
+      }
+    });
+    return { missingProviderLinks, missingModelDetails };
+  };
+  const getSchoolLocationIssues = () =>
+    schoolLocations.flatMap((location) => {
+      const rows = getSchoolRowsForLocation(location).filter(({ row }) =>
+        Boolean(schoolModelFormMap[schoolFieldText(row.model)]),
+      );
+      return [
+        ...(!location.name.trim()
+          ? [`Chưa nhập tên ${location.kind === "main" ? "điểm chính" : "địa điểm"}`]
+          : []),
+        ...(!location.address.trim()
+          ? [`Chưa nhập địa chỉ ${location.name || "địa điểm"}`]
+          : []),
+        ...(rows.length === 0
+          ? [`Chưa chọn mô hình cho ${location.name || "địa điểm"}`]
+          : []),
+      ];
+    });
+  const schoolModelValidation =
+    type === "school"
+      ? getSchoolModelValidation()
+      : { missingProviderLinks: [], missingModelDetails: [] };
+  const schoolLocationIssues =
+    type === "school" ? getSchoolLocationIssues() : [];
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    setSubmitAttempted(true);
+    const missing = getMissingRequiredFields();
+    const missingSchoolConfirmation = type === "school" && !schoolConfirmed;
     const missingAverageDailyMealDemand =
       type === "school" &&
       fields.mealModel === "Liên kết đơn vị suất ăn" &&
       !String(fields.averageDailyMealDemand ?? "").trim();
-    const getProviderOptionsForModel = (model: string) =>
-      model === "Căng tin trường học"
-        ? registeredProviders
-        : registeredProviders.filter(
-            (provider) => provider.type === "meal-provider",
-          );
-    const isLinkedProviderModel = (model: string) =>
-      model === "BATT hợp đồng" ||
-      model === "Nhận suất ăn sẵn" ||
-      model === "Căng tin trường học";
-    const missingSchoolProviderLinks =
-      type === "school"
-        ? schoolModelRows.flatMap((row, rowIndex) => {
-            const model = String(row.model ?? "");
-            if (!isLinkedProviderModel(model)) return [];
-            const availableProviders = getProviderOptionsForModel(model);
-            const selectedProviderId = getSchoolModelFieldValue(
-              rowIndex,
-              "registeredProviderId",
-            );
-            const selectedId =
-              typeof selectedProviderId === "string" ? selectedProviderId : "";
-            if (
-              availableProviders.length > 0 &&
-              !availableProviders.some((provider) => provider.id === selectedId)
-            ) {
-              return [`Mẫu số ${getSchoolModelForm(model).number}`];
-            }
-            return [];
-          })
-        : [];
-    const missingSchoolModelDetails =
-      type === "school"
-        ? schoolModelRows.flatMap((row, rowIndex) => {
-            const model = String(row.model ?? "");
-            if (isLinkedProviderModel(model)) {
-              const availableProviders = getProviderOptionsForModel(model);
-              const selectedProviderId = getSchoolModelFieldValue(
-                rowIndex,
-                "registeredProviderId",
-              );
-              const selectedId =
-                typeof selectedProviderId === "string" ? selectedProviderId : "";
-              if (
-                availableProviders.length === 0 ||
-                !availableProviders.some(
-                  (provider) => provider.id === selectedId,
-                )
-              ) {
-                return [];
-              }
-            }
-            const detailItems = model
-              ? getSchoolModelDetailItems(formSet, model)
-              : [];
-            return detailItems
-              .filter(
-                (item) =>
-                  item.active &&
-                  item.required &&
-                  isSchoolModelItemVisible(item, rowIndex),
-              )
-              .filter((item) => {
-                if (item.answerType === "repeatable") {
-                  const rows = getSchoolModelFieldValue(
-                    rowIndex,
-                    item.key,
-                  );
-                  const repeatableRows =
-                    Array.isArray(rows) &&
-                    rows.every(
-                      (entry) =>
-                        typeof entry === "object" &&
-                        entry !== null &&
-                        !Array.isArray(entry),
-                    )
-                      ? (rows as RepeatableValue)
-                      : [];
-                  if (item.required && repeatableRows.length === 0) return true;
-                  return repeatableRows.some((repeatableRow, repeatableIndex) =>
-                    (item.repeatableFields ?? []).some((field) => {
-                      if (!field.required) return false;
-                      const nestedFieldKey = `${schoolModelFieldKey(
-                        rowIndex,
-                        item.key,
-                      )}.${repeatableIndex}.${field.key}`;
-                      if (field.answerType === "file") {
-                        return !files.some(
-                          (file) => file.fieldKey === nestedFieldKey,
-                        );
-                      }
-                      const nestedValue = repeatableRow[field.key];
-                      return Array.isArray(nestedValue)
-                        ? nestedValue.length === 0
-                        : !String(nestedValue ?? "").trim();
-                    }),
-                  );
-                }
-                if (item.answerType === "file") {
-                  return !files.some(
-                    (file) =>
-                      file.fieldKey ===
-                      schoolModelFieldKey(rowIndex, item.key),
-                  );
-                }
-                const answer = getSchoolModelFieldValue(rowIndex, item.key);
-                return Array.isArray(answer)
-                  ? answer.length === 0
-                  : !String(answer ?? "").trim();
-              })
-              .map((item) => `${item.label} (Mẫu số ${getSchoolModelForm(model).number})`);
-          })
-        : [];
     if (
       missing.length ||
       missingAverageDailyMealDemand ||
-      missingSchoolProviderLinks.length ||
-      missingSchoolModelDetails.length
+      missingSchoolConfirmation ||
+      schoolModelValidation.missingProviderLinks.length ||
+      schoolModelValidation.missingModelDetails.length ||
+      schoolLocationIssues.length
     ) {
       const missingSchoolRows =
         type === "meal-provider" && Array.isArray(fields.servingSchools)
@@ -3508,16 +3861,24 @@ function ApplicationForm({
               .map((row) => row.index + 1)
           : [];
       setNotice(
-        missingAverageDailyMealDemand
+        missingSchoolConfirmation
+          ? "Vui lòng xác nhận thông tin trước khi gửi hồ sơ."
+          : missingAverageDailyMealDemand
           ? "Vui lòng nhập nhu cầu suất ăn trung bình / 1 ngày."
-          : missingSchoolProviderLinks.length
-            ? `Vui lòng chọn đơn vị đã đăng ký trên hệ thống cho ${missingSchoolProviderLinks
+          : schoolLocationIssues.length
+            ? `Vui lòng kiểm tra địa điểm và mô hình: ${schoolLocationIssues
                 .slice(0, 2)
-                .join(", ")}${missingSchoolProviderLinks.length > 2 ? "…" : ""}. Nếu chưa có đơn vị phù hợp trong danh sách, hãy để trống và bổ sung sau.`
-          : missingSchoolModelDetails.length
-          ? `Vui lòng hoàn thiện ${missingSchoolModelDetails
+                .join(", ")}${schoolLocationIssues.length > 2 ? "…" : ""}.`
+          : schoolModelValidation.missingProviderLinks.length
+            ? `Vui lòng chọn đơn vị đã đăng ký trên hệ thống cho ${schoolModelValidation.missingProviderLinks
+                .slice(0, 2)
+                .map((item) => `${item.model} — ${item.locationName}`)
+                .join(", ")}${schoolModelValidation.missingProviderLinks.length > 2 ? "…" : ""}. Nếu chưa có đơn vị phù hợp trong danh sách, hãy để trống và bổ sung sau.`
+          : schoolModelValidation.missingModelDetails.length
+          ? `Vui lòng hoàn thiện ${schoolModelValidation.missingModelDetails
+              .flatMap((row) => row.labels)
               .slice(0, 2)
-              .join(", ")}${missingSchoolModelDetails.length > 2 ? "…" : ""}.`
+              .join(", ")}${schoolModelValidation.missingModelDetails.length > 2 ? "…" : ""}.`
           : missingSchoolRows.length
           ? `Vui lòng bổ sung ít nhất 1 file minh chứng cho dòng trường: ${missingSchoolRows.join(", ")}.`
           : `Vui lòng hoàn thiện: ${missing
@@ -3529,13 +3890,19 @@ function ApplicationForm({
     }
     const data = { ...fields } as Record<string, unknown>;
     if (type === "school") {
+      data.schoolSubmissionConfirmed = schoolConfirmed ? "true" : "false";
+      data.schoolLocations = schoolLocations;
       data.operatingModels = schoolModelRows.map((row) => ({
         ...row,
+        siteId: getSchoolModelLocation(row)?.id ?? "",
+        siteName: getSchoolModelLocation(row)?.name ?? "",
+        siteAddress: getSchoolModelLocation(row)?.address ?? "",
         formNumber: getSchoolModelForm(row.model).number,
         formLabel: `Mẫu số ${getSchoolModelForm(row.model).number}`,
       }));
       data.schoolModelForms = schoolModelRows.map((row, rowIndex) => {
         const model = String(row.model ?? "");
+        const location = getSchoolModelLocation(row);
         const providerIdValue = getSchoolModelFieldValue(
           rowIndex,
           "registeredProviderId",
@@ -3545,11 +3912,25 @@ function ApplicationForm({
         const provider = registeredProviders.find(
           (candidate) => candidate.id === providerId,
         );
+        const providerNameKey =
+          model === "Căng tin trường học" ? "canteenName" : "serviceLegalName";
+        const enteredProviderName = getSchoolModelFieldValue(
+          rowIndex,
+          providerNameKey,
+        );
         return {
+          id: schoolFieldText(row.id) || String(rowIndex),
           model,
+          siteId: location?.id ?? "",
+          siteName: location?.name ?? "",
+          siteAddress: location?.address ?? "",
           formNumber: getSchoolModelForm(model).number,
           providerId: provider?.id ?? "",
-          providerName: provider?.name ?? "",
+          providerName:
+            provider?.name ??
+            (typeof enteredProviderName === "string"
+              ? enteredProviderName
+              : ""),
           fields: getSchoolModelDetailItems(formSet, model).map((item) => {
             const scopedKey = schoolModelFieldKey(rowIndex, item.key);
             const value =
@@ -3823,18 +4204,23 @@ function ApplicationForm({
         {notice && <Notice message={notice} onClose={() => setNotice("")} />}
       </div>
     );
-  const formFields = formSet.criteria
-    .filter((item) => {
-      if (!item.active || !isVisible(item)) return false;
-      if (type === "school" && !isSchoolRegistrationField(item))
-        return false;
-      return true;
-    })
-    .sort((a, b) => a.order - b.order);
   const groups = formSet.groups
     .slice()
     .sort((a, b) => a.order - b.order)
     .filter((group) => formFields.some((item) => item.groupId === group.id));
+  const getSchoolProviderDisplayName = (rowIndex: number) => {
+    const model = schoolFieldText(schoolModelRows[rowIndex]?.model);
+    const providerId = schoolFieldText(
+      getSchoolModelFieldValue(rowIndex, "registeredProviderId"),
+    );
+    const registeredProvider = registeredProviders.find(
+      (provider) => provider.id === providerId,
+    );
+    if (registeredProvider) return registeredProvider.name;
+    const providerNameKey =
+      model === "Căng tin trường học" ? "canteenName" : "serviceLegalName";
+    return schoolFieldText(getSchoolModelFieldValue(rowIndex, providerNameKey));
+  };
   const selectedTypeLabel =
     facilityTypeOptions.find((option) => option.value === type)?.label ??
     "Cơ sở giáo dục";
@@ -4018,7 +4404,14 @@ function ApplicationForm({
           )}
         </header>
         <form onSubmit={submit} className="paper-form-body">
-          {groups.map((group, groupIndex) => {
+          {type === "school" && (
+            <SchoolWizardStepper
+              steps={schoolRegistrationSteps}
+              activeStep={schoolStep}
+              onChange={setSchoolStep}
+            />
+          )}
+          {(type !== "school" || schoolStep === 0) && groups.map((group, groupIndex) => {
             const groupFields = formFields.filter(
               (item) => item.groupId === group.id,
             );
@@ -4145,10 +4538,28 @@ function ApplicationForm({
               </FormSection>
             );
           })}
-          {type === "school" && (
+          {type === "school" && schoolStep === 1 && (
+            <SchoolLocationsStep
+              locations={schoolLocations}
+              onUpdate={updateSchoolLocation}
+              onAdd={addSchoolLocation}
+              onRemove={removeSchoolLocation}
+            />
+          )}
+          {type === "school" && schoolStep === 2 && (
+            <SchoolModelsStep
+              locations={schoolLocations}
+              getRowsForLocation={getSchoolRowsForLocation}
+              onModelsChange={setSchoolLocationModels}
+              onAddProvider={addSchoolProviderRow}
+              onRemoveRow={(rowId) => removeSchoolModelRows([rowId])}
+            />
+          )}
+          {type === "school" && schoolStep === 3 && (
             <SchoolModelDetails
               criteriaSet={formSet}
               rows={schoolModelRows}
+              locations={schoolLocations}
               fields={fields}
               files={files}
               schoolModelFieldKey={schoolModelFieldKey}
@@ -4158,31 +4569,136 @@ function ApplicationForm({
               onRemoveFile={removeFile}
               showValidationErrors={submitAttempted}
               registeredProviders={registeredProviders}
+              mode="providers"
             />
           )}
-          <div className="paper-submit-bar">
-            <div className="flex gap-3 text-sm">
-              <LockKeyhole className="mt-0.5 shrink-0 text-primary" size={18} />
-              <p>
-                <strong>Kiểm tra trước khi nộp.</strong>
-                <br />
-                <span className="text-muted-foreground">
-                  Sau khi gửi, hồ sơ sẽ khóa chỉnh sửa cho đến khi có yêu cầu bổ
-                  sung.
-                </span>
-              </p>
+          {type === "school" && schoolStep === 4 && (
+            <>
+              <SchoolOperatingModelDetails
+                rows={schoolModelRows}
+                operatingFields={schoolOperatingModelFields}
+                getLocationForRow={getSchoolModelLocation}
+                onChange={updateSchoolOperatingModelField}
+              />
+            <SchoolModelDetails
+              criteriaSet={formSet}
+              rows={schoolModelRows}
+              locations={schoolLocations}
+              fields={fields}
+              files={files}
+              schoolModelFieldKey={schoolModelFieldKey}
+              getFieldValue={getSchoolModelFieldValue}
+              onChange={update}
+              onFilesFor={addFilesFor}
+              onRemoveFile={removeFile}
+              showValidationErrors={submitAttempted}
+              registeredProviders={registeredProviders}
+              mode="details"
+            />
+            </>
+          )}
+          {type === "school" && schoolStep === 5 && (
+            <SchoolApplicationReview
+              locations={schoolLocations}
+              getRowsForLocation={getSchoolRowsForLocation}
+              missingGeneralFields={getMissingRequiredFields().map(
+                (item) => item.label,
+              )}
+              locationIssues={schoolLocationIssues}
+              modelValidation={schoolModelValidation}
+              providerNameForRow={getSchoolProviderDisplayName}
+              onGoToStep={setSchoolStep}
+              onRemoveLocation={removeSchoolLocation}
+              onRemoveModelRow={(rowId) => removeSchoolModelRows([rowId])}
+              confirmationChecked={schoolConfirmed}
+              onConfirmationChange={setSchoolConfirmed}
+            />
+          )}
+          {type === "school" ? (
+            <div className="paper-submit-bar flex-wrap">
+              <div className="flex gap-3 text-sm">
+                <LockKeyhole className="mt-0.5 shrink-0 text-primary" size={18} />
+                <p>
+                  <strong>
+                    {schoolStep === schoolRegistrationSteps.length - 1
+                      ? "Kiểm tra trước khi nộp."
+                      : `Bước ${schoolStep + 1}/${schoolRegistrationSteps.length}`}
+                  </strong>
+                  <br />
+                  <span className="text-muted-foreground">
+                    {schoolStep === schoolRegistrationSteps.length - 1
+                      ? "Sau khi gửi, hồ sơ sẽ khóa chỉnh sửa cho đến khi có yêu cầu bổ sung."
+                      : schoolRegistrationSteps[schoolStep]?.description}
+                  </span>
+                </p>
+              </div>
+              <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row">
+                {schoolStep > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-11 rounded-md px-5"
+                    onClick={() => setSchoolStep((step) => step - 1)}
+                    data-testid="button-school-previous-step"
+                  >
+                    <ChevronLeft size={16} />
+                    Quay lại
+                  </Button>
+                )}
+                {schoolStep < schoolRegistrationSteps.length - 1 ? (
+                  <Button
+                    type="button"
+                    className="h-11 rounded-md px-6"
+                    onClick={() => {
+                      setNotice("");
+                      setSchoolStep((step) =>
+                        Math.min(step + 1, schoolRegistrationSteps.length - 1),
+                      );
+                    }}
+                    data-testid="button-school-next-step"
+                  >
+                    Tiếp tục
+                    <ChevronRight size={16} />
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    className="h-11 rounded-md px-6"
+                    data-testid="button-submit-application"
+                  >
+                    {mode === "register"
+                      ? "Nộp hồ sơ đăng ký"
+                      : "Lưu thay đổi hồ sơ"}{" "}
+                    <Send size={16} />
+                  </Button>
+                )}
+              </div>
             </div>
-            <Button
-              type="submit"
-              className="h-11 rounded-md px-6"
-              data-testid="button-submit-application"
-            >
-              {mode === "register"
-                ? "Nộp hồ sơ đăng ký"
-                : "Lưu thay đổi hồ sơ"}{" "}
-              <Send size={16} />
-            </Button>
-          </div>
+          ) : (
+            <div className="paper-submit-bar">
+              <div className="flex gap-3 text-sm">
+                <LockKeyhole className="mt-0.5 shrink-0 text-primary" size={18} />
+                <p>
+                  <strong>Kiểm tra trước khi nộp.</strong>
+                  <br />
+                  <span className="text-muted-foreground">
+                    Sau khi gửi, hồ sơ sẽ khóa chỉnh sửa cho đến khi có yêu cầu bổ
+                    sung.
+                  </span>
+                </p>
+              </div>
+              <Button
+                type="submit"
+                className="h-11 rounded-md px-6"
+                data-testid="button-submit-application"
+              >
+                {mode === "register"
+                  ? "Nộp hồ sơ đăng ký"
+                  : "Lưu thay đổi hồ sơ"}{" "}
+                <Send size={16} />
+              </Button>
+            </div>
+          )}
         </form>
         <footer className="paper-form-footer">
           Người kê khai chịu trách nhiệm về tính đầy đủ, trung thực và chính xác
@@ -4194,9 +4710,733 @@ function ApplicationForm({
   );
 }
 
+function SchoolWizardStepper({
+  steps,
+  activeStep,
+  onChange,
+}: {
+  steps: { title: string; description: string }[];
+  activeStep: number;
+  onChange: (step: number) => void;
+}) {
+  return (
+    <nav
+      aria-label="Các bước kê khai cơ sở giáo dục"
+      className="mb-6 overflow-x-auto rounded-xl border border-border bg-card p-3"
+      data-testid="school-registration-stepper"
+    >
+      <ol className="grid min-w-[840px] grid-cols-6 gap-2">
+        {steps.map((step, index) => {
+          const active = index === activeStep;
+          const complete = index < activeStep;
+          return (
+            <li key={step.title}>
+              <button
+                type="button"
+                onClick={() => onChange(index)}
+                aria-current={active ? "step" : undefined}
+                className={`flex h-full w-full items-start gap-2 rounded-lg border p-3 text-left transition ${
+                  active
+                    ? "border-primary bg-primary/5"
+                    : "border-transparent hover:border-border hover:bg-muted/40"
+                }`}
+                data-testid={`school-step-${index + 1}`}
+              >
+                <span
+                  className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                    active || complete
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {complete ? <Check size={14} /> : index + 1}
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-xs font-bold sm:text-sm">
+                    {step.title}
+                  </span>
+                  <span className="mt-1 block text-[11px] leading-4 text-muted-foreground">
+                    {step.description}
+                  </span>
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+
+function SchoolLocationsStep({
+  locations,
+  onUpdate,
+  onAdd,
+  onRemove,
+}: {
+  locations: SchoolLocationRecord[];
+  onUpdate: (
+    locationId: string,
+    key: "name" | "address",
+    value: string,
+  ) => void;
+  onAdd: () => void;
+  onRemove: (location: SchoolLocationRecord) => void;
+}) {
+  return (
+    <section className="paper-model-forms" data-testid="school-locations-step">
+      <div className="paper-model-intro">
+        <p className="paper-model-kicker">BƯỚC 2 · ĐỊA ĐIỂM</p>
+        <h2>Khai báo riêng từng điểm trường</h2>
+        <p>
+          Mỗi địa điểm có mô hình và hồ sơ chi tiết riêng. Địa chỉ điểm chính
+          được giữ tương thích với hồ sơ đã đăng ký trước đây.
+        </p>
+      </div>
+      <div className="mt-5 grid gap-4">
+        {locations.map((location, index) => (
+          <article
+            key={location.id}
+            className="rounded-xl border border-border bg-card p-4 sm:p-5"
+            data-testid={`school-location-card-${index + 1}`}
+          >
+            <header className="mb-4 flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <span className="rounded-lg bg-primary/10 p-2 text-primary">
+                  {location.kind === "main" ? (
+                    <Building2 size={18} />
+                  ) : (
+                    <MapPin size={18} />
+                  )}
+                </span>
+                <div>
+                  <h3 className="font-bold">
+                    {location.kind === "main"
+                      ? "Điểm chính"
+                      : location.name || `Điểm trường ${index}`}
+                  </h3>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {location.kind === "main"
+                      ? "Địa điểm chính của cơ sở giáo dục"
+                      : "Mô hình và đơn vị sẽ được khai riêng cho điểm này"}
+                  </p>
+                </div>
+              </div>
+              {location.kind !== "main" && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive"
+                  onClick={() => onRemove(location)}
+                  aria-label={`Xóa ${location.name || `điểm trường ${index}`}`}
+                  data-testid={`button-remove-school-location-${index + 1}`}
+                >
+                  <Trash2 size={16} />
+                  <span className="hidden sm:inline">Xóa</span>
+                </Button>
+              )}
+            </header>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="grid gap-1.5">
+                <span className="text-sm font-semibold">
+                  Tên địa điểm <span className="text-destructive">*</span>
+                </span>
+                <input
+                  value={location.name}
+                  onChange={(event) =>
+                    onUpdate(location.id, "name", event.target.value)
+                  }
+                  className="focus-ring h-11 rounded-lg border border-input bg-background px-3 text-sm"
+                  placeholder={
+                    location.kind === "main"
+                      ? "Điểm chính"
+                      : "Ví dụ: Cơ sở 2"
+                  }
+                  data-testid={`input-school-location-name-${index + 1}`}
+                />
+              </label>
+              <label className="grid gap-1.5 sm:col-span-1">
+                <span className="text-sm font-semibold">
+                  Địa chỉ <span className="text-destructive">*</span>
+                </span>
+                <input
+                  value={location.address}
+                  onChange={(event) =>
+                    onUpdate(location.id, "address", event.target.value)
+                  }
+                  className="focus-ring h-11 rounded-lg border border-input bg-background px-3 text-sm"
+                  placeholder="Số nhà, đường, phường/xã"
+                  data-testid={`input-school-location-address-${index + 1}`}
+                />
+              </label>
+            </div>
+          </article>
+        ))}
+      </div>
+      <Button
+        type="button"
+        variant="outline"
+        className="mt-4"
+        onClick={onAdd}
+        data-testid="button-add-school-location"
+      >
+        <Plus size={16} />
+        Thêm điểm trường
+      </Button>
+    </section>
+  );
+}
+
+function SchoolModelsStep({
+  locations,
+  getRowsForLocation,
+  onModelsChange,
+  onAddProvider,
+  onRemoveRow,
+}: {
+  locations: SchoolLocationRecord[];
+  getRowsForLocation: (
+    location: SchoolLocationRecord,
+  ) => { row: Record<string, string | string[]>; rowIndex: number }[];
+  onModelsChange: (
+    location: SchoolLocationRecord,
+    selectedModels: string[],
+  ) => void;
+  onAddProvider: (location: SchoolLocationRecord, model: string) => void;
+  onRemoveRow: (rowId: string) => void;
+}) {
+  return (
+    <section className="paper-model-forms" data-testid="school-models-step">
+      <div className="paper-model-intro">
+        <p className="paper-model-kicker">BƯỚC 3 · MÔ HÌNH HOẠT ĐỘNG</p>
+        <h2>Chọn mô hình tại từng địa điểm</h2>
+        <p>
+          Một địa điểm có thể có nhiều mô hình. Mỗi đơn vị nấu ăn, cung cấp
+          suất ăn hoặc kinh doanh căng tin được tạo thành một hồ sơ riêng.
+        </p>
+      </div>
+      <div className="mt-5 grid gap-5">
+        {locations.map((location) => {
+          const siteRows = getRowsForLocation(location);
+          const selectedModels = [
+            ...new Set(siteRows.map(({ row }) => schoolFieldText(row.model))),
+          ].filter(Boolean);
+          return (
+            <article
+              key={location.id}
+              className="rounded-xl border border-border bg-card p-4 sm:p-5"
+              data-testid={`school-model-location-${location.id}`}
+            >
+              <header className="mb-4 flex items-start gap-3 border-b border-border pb-3">
+                <MapPin className="mt-0.5 shrink-0 text-primary" size={18} />
+                <div>
+                  <h3 className="font-bold">
+                    {location.name || "Địa điểm chưa đặt tên"}
+                  </h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {location.address || "Chưa nhập địa chỉ"}
+                  </p>
+                </div>
+              </header>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {Object.entries(schoolModelOptionLabels).map(
+                  ([model, label]) => {
+                    const checked = selectedModels.includes(model);
+                    return (
+                      <label
+                        key={model}
+                        className="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3 hover:bg-muted/30"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(event) => {
+                            const nextModels = event.target.checked
+                              ? [...selectedModels, model]
+                              : selectedModels.filter(
+                                  (selected) => selected !== model,
+                                );
+                            onModelsChange(location, nextModels);
+                          }}
+                          className="mt-1 accent-primary"
+                          data-testid={`checkbox-school-model-${location.id}-${getSchoolModelForm(model).number}`}
+                        />
+                        <span>
+                          <span className="block text-sm font-semibold">
+                            Mẫu số {getSchoolModelForm(model).number} · {label}
+                          </span>
+                          <span className="mt-1 block text-xs leading-5 text-muted-foreground">
+                            {getSchoolModelForm(model).description}
+                          </span>
+                        </span>
+                      </label>
+                    );
+                  },
+                )}
+              </div>
+              {selectedModels.length === 0 ? (
+                <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                  Chọn ít nhất một mô hình cho địa điểm này.
+                </p>
+              ) : (
+                <div className="mt-5 grid gap-3">
+                  {selectedModels.map((model) => {
+                    const modelRows = siteRows.filter(
+                      ({ row }) => schoolFieldText(row.model) === model,
+                    );
+                    const hasSeparateProviders =
+                      model !== "BATT tự tổ chức";
+                    return (
+                      <div
+                        key={model}
+                        className="rounded-lg bg-secondary/40 p-3"
+                        data-testid={`school-model-units-${location.id}-${getSchoolModelForm(model).number}`}
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <h4 className="text-sm font-bold">
+                            Mẫu số {getSchoolModelForm(model).number} · {model}
+                          </h4>
+                          {hasSeparateProviders && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => onAddProvider(location, model)}
+                              data-testid={`button-add-school-provider-${location.id}-${getSchoolModelForm(model).number}`}
+                            >
+                              <Plus size={15} />
+                              Thêm đơn vị
+                            </Button>
+                          )}
+                        </div>
+                        <div className="mt-3 grid gap-2">
+                          {modelRows.map(({ row, rowIndex }, unitIndex) => (
+                            <div
+                              key={schoolFieldText(row.id) || rowIndex}
+                              className="flex items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2"
+                            >
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold">
+                                  {hasSeparateProviders
+                                    ? `Đơn vị ${unitIndex + 1}`
+                                    : "Bếp ăn do trường tự tổ chức"}
+                                </p>
+                                <p className="mt-0.5 text-xs text-muted-foreground">
+                                  Mẫu kê khai riêng · Mẫu số{" "}
+                                  {getSchoolModelForm(model).number}
+                                </p>
+                              </div>
+                              {hasSeparateProviders && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="shrink-0 text-destructive"
+                                  onClick={() =>
+                                    onRemoveRow(
+                                      schoolFieldText(row.id) ||
+                                        String(rowIndex),
+                                    )
+                                  }
+                                  aria-label={`Xóa đơn vị ${unitIndex + 1}`}
+                                  data-testid={`button-remove-school-model-row-${schoolFieldText(row.id) || rowIndex}`}
+                                >
+                                  <Trash2 size={15} />
+                                </Button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function SchoolOperatingModelDetails({
+  rows,
+  operatingFields,
+  getLocationForRow,
+  onChange,
+}: {
+  rows: RepeatableValue;
+  operatingFields: NonNullable<CriteriaDefinition["repeatableFields"]>;
+  getLocationForRow: (
+    row: Record<string, string | string[]>,
+  ) => SchoolLocationRecord | undefined;
+  onChange: (rowId: string, key: string, value: string) => void;
+}) {
+  const selectedRows = rows
+    .map((row, rowIndex) => ({ row, rowIndex }))
+    .filter(({ row }) => Boolean(schoolModelFormMap[schoolFieldText(row.model)]));
+  return (
+    <section
+      className="paper-model-forms"
+      data-testid="school-operating-model-details"
+    >
+      <div className="paper-model-intro">
+        <p className="paper-model-kicker">THÔNG TIN QUY MÔ HOẠT ĐỘNG</p>
+        <h2>Công suất và giá thành theo từng mô hình</h2>
+        <p>
+          Nhập số liệu riêng cho từng phiếu. Nếu một mô hình có nhiều đơn vị,
+          không gộp công suất hoặc giá thành của các đơn vị vào cùng một dòng.
+        </p>
+      </div>
+      <div className="mt-5 grid gap-4">
+        {selectedRows.map(({ row, rowIndex }) => {
+          const model = schoolFieldText(row.model);
+          const location = getLocationForRow(row);
+          const rowId = schoolFieldText(row.id) || String(rowIndex);
+          return (
+            <article
+              key={rowId}
+              className="rounded-xl border border-border bg-card p-4 sm:p-5"
+              data-testid={`school-operating-model-row-${rowId}`}
+            >
+              <header className="mb-4 border-b border-border pb-3">
+                <p className="text-xs font-bold uppercase tracking-wide text-primary">
+                  Mẫu số {getSchoolModelForm(model).number} · {location?.name}
+                </p>
+                <h3 className="mt-1 font-bold">{model}</h3>
+                {location?.address && (
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {location.address}
+                  </p>
+                )}
+              </header>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {operatingFields.map((field) => {
+                  const value = schoolFieldText(row[field.key]);
+                  const inputId = `school-operating-${rowId}-${field.key}`;
+                  return (
+                    <label key={field.key} htmlFor={inputId}>
+                      <span className="mb-1.5 block text-sm font-semibold">
+                        {field.label}
+                        {field.required && (
+                          <span className="text-destructive"> *</span>
+                        )}
+                      </span>
+                      {field.answerType === "select" ? (
+                        <select
+                          id={inputId}
+                          value={value}
+                          onChange={(event) =>
+                            onChange(rowId, field.key, event.target.value)
+                          }
+                          className="focus-ring h-11 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                          data-testid={`select-school-operating-${rowId}-${field.key}`}
+                        >
+                          <option value="">Chọn mức giá</option>
+                          {(field.options ?? []).map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          id={inputId}
+                          type={field.answerType === "number" ? "number" : "text"}
+                          min={field.answerType === "number" ? 0 : undefined}
+                          step={field.answerType === "number" ? 1 : undefined}
+                          value={value}
+                          onChange={(event) =>
+                            onChange(rowId, field.key, event.target.value)
+                          }
+                          className="focus-ring h-11 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                          placeholder={
+                            field.answerType === "number"
+                              ? "Nhập số suất"
+                              : undefined
+                          }
+                          data-testid={`input-school-operating-${rowId}-${field.key}`}
+                        />
+                      )}
+                    </label>
+                  );
+                })}
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function SchoolApplicationReview({
+  locations,
+  getRowsForLocation,
+  missingGeneralFields,
+  locationIssues,
+  modelValidation,
+  providerNameForRow,
+  onGoToStep,
+  onRemoveLocation,
+  onRemoveModelRow,
+  confirmationChecked,
+  onConfirmationChange,
+}: {
+  locations: SchoolLocationRecord[];
+  getRowsForLocation: (
+    location: SchoolLocationRecord,
+  ) => { row: Record<string, string | string[]>; rowIndex: number }[];
+  missingGeneralFields: string[];
+  locationIssues: string[];
+  modelValidation: {
+    missingProviderLinks: {
+      rowId: string;
+      locationId: string;
+      model: string;
+      locationName: string;
+    }[];
+    missingModelDetails: {
+      rowId: string;
+      locationId: string;
+      model: string;
+      labels: string[];
+    }[];
+  };
+  providerNameForRow: (rowIndex: number) => string;
+  onGoToStep: (step: number) => void;
+  onRemoveLocation: (location: SchoolLocationRecord) => void;
+  onRemoveModelRow: (rowId: string) => void;
+  confirmationChecked: boolean;
+  onConfirmationChange: (checked: boolean) => void;
+}) {
+  const issueCount =
+    missingGeneralFields.length +
+    locationIssues.length +
+    modelValidation.missingProviderLinks.length +
+    modelValidation.missingModelDetails.length;
+  return (
+    <section className="paper-model-forms" data-testid="school-review-step">
+      <div className="paper-model-intro">
+        <p className="paper-model-kicker">BƯỚC 6 · RÀ SOÁT VÀ GỬI</p>
+        <h2>Kiểm tra cấu trúc hồ sơ</h2>
+        <p>
+          Xác nhận mỗi địa điểm, mô hình và đơn vị có thông tin riêng trước khi
+          gửi. Chọn “Sửa” để quay lại đúng phần kê khai.
+        </p>
+      </div>
+      <div
+        className={`mt-5 flex items-start gap-3 rounded-xl border p-4 ${
+          issueCount
+            ? "border-amber-300 bg-amber-50 text-amber-950"
+            : "border-emerald-300 bg-emerald-50 text-emerald-950"
+        }`}
+        role="status"
+        data-testid="school-review-status"
+      >
+        {issueCount ? (
+          <TriangleAlert className="mt-0.5 shrink-0" size={19} />
+        ) : (
+          <CheckCircle2 className="mt-0.5 shrink-0" size={19} />
+        )}
+        <div>
+          <p className="font-bold">
+            {issueCount
+              ? `Còn ${issueCount} mục cần kiểm tra`
+              : "Các mục bắt buộc đã có thông tin"}
+          </p>
+          {issueCount > 0 && (
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
+              {missingGeneralFields.slice(0, 4).map((issue) => (
+                <li key={`general-${issue}`}>Thông tin chung: {issue}</li>
+              ))}
+              {locationIssues.slice(0, 4).map((issue) => (
+                <li key={`location-${issue}`}>{issue}</li>
+              ))}
+              {modelValidation.missingProviderLinks.slice(0, 4).map((issue) => (
+                <li key={`provider-${issue.rowId}`}>
+                  Chưa liên kết đơn vị đã đăng ký: {issue.model} ·{" "}
+                  {issue.locationName}
+                </li>
+              ))}
+              {modelValidation.missingModelDetails.slice(0, 4).map((issue) => (
+                <li key={`details-${issue.rowId}`}>
+                  {issue.model}: còn thiếu{" "}
+                  {issue.labels.slice(0, 3).join(", ")}
+                  {issue.labels.length > 3 ? "…" : ""}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+      <div className="mt-5 grid gap-4">
+        {locations.map((location) => {
+          const siteRows = getRowsForLocation(location);
+          return (
+            <article
+              key={location.id}
+              className="rounded-xl border border-border bg-card p-4"
+              data-testid={`school-review-location-${location.id}`}
+            >
+              <header className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-3">
+                <div className="flex items-start gap-3">
+                  <MapPin className="mt-0.5 shrink-0 text-primary" size={18} />
+                  <div>
+                    <h3 className="font-bold">
+                      {location.name || "Địa điểm chưa đặt tên"}
+                    </h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {location.address || "Chưa nhập địa chỉ"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onGoToStep(1)}
+                  >
+                    Sửa địa điểm
+                  </Button>
+                  {location.kind !== "main" && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive"
+                      onClick={() => onRemoveLocation(location)}
+                      aria-label={`Xóa ${location.name}`}
+                    >
+                      <Trash2 size={15} />
+                      Xóa
+                    </Button>
+                  )}
+                </div>
+              </header>
+              {siteRows.length === 0 ? (
+                <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                  Chưa khai báo mô hình hoạt động tại địa điểm này.
+                </p>
+              ) : (
+                <div className="mt-3 grid gap-3">
+                  {siteRows.map(({ row, rowIndex }) => {
+                    const model = schoolFieldText(row.model);
+                    const modelForm = getSchoolModelForm(model);
+                    const rowId = schoolFieldText(row.id) || String(rowIndex);
+                    const detailIssue =
+                      modelValidation.missingModelDetails.find(
+                        (issue) => issue.rowId === rowId,
+                      );
+                    const providerIssue =
+                      modelValidation.missingProviderLinks.find(
+                        (issue) => issue.rowId === rowId,
+                      );
+                    const incomplete = Boolean(detailIssue || providerIssue);
+                    const providerName = providerNameForRow(rowIndex);
+                    const editStep =
+                      model === "BATT tự tổ chức" ? 4 : 3;
+                    return (
+                      <div
+                        key={rowId}
+                        className="rounded-lg border border-border/80 p-3"
+                        data-testid={`school-review-model-${rowId}`}
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="flex items-start gap-2">
+                            {incomplete ? (
+                              <TriangleAlert
+                                className="mt-0.5 shrink-0 text-amber-700"
+                                size={17}
+                              />
+                            ) : (
+                              <CheckCircle2
+                                className="mt-0.5 shrink-0 text-emerald-700"
+                                size={17}
+                              />
+                            )}
+                            <div>
+                              <p className="font-semibold">
+                                Mẫu số {modelForm.number} · {model}
+                              </p>
+                              <p className="mt-1 text-sm text-muted-foreground">
+                                {model === "BATT tự tổ chức"
+                                  ? "Bếp ăn do cơ sở giáo dục tự tổ chức"
+                                  : providerName || "Chưa khai báo đơn vị thực hiện"}
+                              </p>
+                              <p
+                                className={`mt-1 text-xs font-semibold ${
+                                  incomplete
+                                    ? "text-amber-800"
+                                    : "text-emerald-800"
+                                }`}
+                              >
+                                {incomplete
+                                  ? "Cần bổ sung thông tin/hồ sơ"
+                                  : "Đã khai báo đầy đủ"}
+                              </p>
+                              {detailIssue && (
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                  Thiếu: {detailIssue.labels.slice(0, 4).join(", ")}
+                                  {detailIssue.labels.length > 4 ? "…" : ""}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => onGoToStep(editStep)}
+                            >
+                              Sửa
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive"
+                              onClick={() => onRemoveModelRow(rowId)}
+                              aria-label={`Xóa Mẫu số ${modelForm.number}`}
+                            >
+                              <Trash2 size={15} />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </article>
+          );
+        })}
+      </div>
+      <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-card p-4">
+        <input
+          type="checkbox"
+          checked={confirmationChecked}
+          onChange={(event) => onConfirmationChange(event.target.checked)}
+          className="mt-1 accent-primary"
+          data-testid="checkbox-school-confirmation"
+        />
+        <span className="text-sm leading-6">
+          Tôi xác nhận thông tin kê khai phản ánh đúng thực tế và chịu trách
+          nhiệm về tính đầy đủ, trung thực, chính xác của hồ sơ.
+        </span>
+      </label>
+    </section>
+  );
+}
+
 function SchoolModelDetails({
   criteriaSet,
   rows,
+  locations,
   fields,
   files,
   registeredProviders,
@@ -4206,9 +5446,11 @@ function SchoolModelDetails({
   onFilesFor,
   onRemoveFile,
   showValidationErrors,
+  mode,
 }: {
   criteriaSet: CriteriaSet;
   rows: RepeatableValue;
+  locations: SchoolLocationRecord[];
   fields: Record<string, CriteriaValue>;
   files: Attachment[];
   registeredProviders: RegisteredMealProvider[];
@@ -4218,19 +5460,44 @@ function SchoolModelDetails({
   onFilesFor: (fieldKey: string, event: ChangeEvent<HTMLInputElement>) => void;
   onRemoveFile: (name: string, fieldKey?: string) => void;
   showValidationErrors: boolean;
+  mode: "providers" | "details";
 }) {
+  const resolveLocation = (row: Record<string, string | string[]>) => {
+    const storedId = schoolFieldText(row.siteId);
+    const storedAddress = schoolFieldText(row.siteAddress).trim().toLowerCase();
+    return (
+      locations.find((location) => location.id === storedId) ??
+      locations.find(
+        (location) =>
+          storedAddress &&
+          location.address.trim().toLowerCase() === storedAddress,
+      ) ??
+      locations[0]
+    );
+  };
   const selectedRows = rows
     .map((row, rowIndex) => ({ row, rowIndex }))
-    .filter(({ row }) => Boolean(schoolModelFormMap[String(row.model ?? "")]));
+    .filter(({ row }) => {
+      const model = String(row.model ?? "");
+      return (
+        Boolean(schoolModelFormMap[model]) &&
+        (mode === "details" || model !== "BATT tự tổ chức")
+      );
+    });
   if (selectedRows.length === 0) {
     return (
       <div className="paper-model-empty">
         <Info size={18} />
         <div>
-          <strong>Chọn mô hình để mở mẫu kê khai chi tiết.</strong>
+          <strong>
+            {mode === "providers"
+              ? "Chưa có mô hình cần khai báo đơn vị riêng."
+              : "Chọn mô hình để mở mẫu kê khai chi tiết."}
+          </strong>
           <p>
-            Mẫu số 01–04 sẽ xuất hiện tại đây theo từng mô hình đã chọn ở Mục 3.
-            Mỗi mô hình và địa điểm được kê khai bằng một mẫu riêng.
+            {mode === "providers"
+              ? "BATT tự tổ chức không cần khai báo đơn vị bên ngoài. Nếu cơ sở có BATT hợp đồng, nhận suất ăn sẵn hoặc căng tin, hãy chọn mô hình tại Bước 3."
+              : "Mẫu số 01–04 sẽ xuất hiện tại đây theo từng mô hình đã chọn. Mỗi địa điểm và mô hình được kê khai bằng một mẫu riêng."}
           </p>
         </div>
       </div>
@@ -4240,17 +5507,40 @@ function SchoolModelDetails({
   return (
     <div className="paper-model-forms">
       <div className="paper-model-intro">
-        <p className="paper-model-kicker">PHẦN KÊ KHAI THEO MÔ HÌNH</p>
-        <h2>Biểu mẫu chi tiết được mở tự động</h2>
+        <p className="paper-model-kicker">
+          {mode === "providers"
+            ? "BƯỚC 4 · ĐƠN VỊ THỰC HIỆN / CUNG CẤP"
+            : "BƯỚC 5 · THÔNG TIN CHI TIẾT THEO MÔ HÌNH"}
+        </p>
+        <h2>
+          {mode === "providers"
+            ? "Khai riêng từng đơn vị"
+            : "Hoàn thiện phiếu theo từng mô hình"}
+        </h2>
         <p>
-          Mỗi địa điểm, mô hình hoạt động và đơn vị cung cấp dịch vụ được kê
-          khai thành một mẫu riêng. Không gộp thông tin giữa các dòng.
+          {mode === "providers"
+            ? "Thông tin pháp lý, hợp đồng và phụ trách an toàn thực phẩm được lưu riêng cho từng đơn vị tại từng địa điểm."
+            : "Các điều kiện hoạt động, an toàn thực phẩm, kiểm thực và lưu mẫu được kê khai cho đúng địa điểm và mô hình."}
         </p>
       </div>
       {selectedRows.map(({ row, rowIndex }) => {
         const model = String(row.model ?? "");
         const modelForm = getSchoolModelForm(model);
-        const detailItems = getSchoolModelDetailItems(criteriaSet, model);
+        const location = resolveLocation(row);
+        const unitNumber =
+          selectedRows
+            .filter(
+              (candidate) =>
+                String(candidate.row.model ?? "") === model &&
+                resolveLocation(candidate.row)?.id === location?.id,
+            )
+            .findIndex((candidate) => candidate.rowIndex === rowIndex) + 1;
+        const allDetailItems = getSchoolModelDetailItems(criteriaSet, model);
+        const detailItems = allDetailItems.filter((item) =>
+          mode === "providers"
+            ? schoolProviderDetailItem(item)
+            : !schoolProviderDetailItem(item),
+        );
         const detailGroups = criteriaSet.groups
           .filter((group) =>
             detailItems.some((item) => item.groupId === group.id),
@@ -4260,12 +5550,13 @@ function SchoolModelDetails({
           <article
             key={`school-model-form-${rowIndex}`}
             className="paper-model-form"
-            data-testid={`school-model-form-${modelForm.number}-${rowIndex + 1}`}
+            data-testid={`school-model-form-${modelForm.number}-${rowIndex + 1}-${mode}`}
           >
             <header className="paper-model-form-header">
               <div>
                 <p className="paper-model-number">
-                  MẪU SỐ {modelForm.number} · ĐỊA ĐIỂM {rowIndex + 1}
+                  MẪU SỐ {modelForm.number} · {location?.name ?? "Địa điểm"}
+                  {mode === "providers" ? ` · ĐƠN VỊ ${unitNumber}` : ""}
                 </p>
                 <h3>{modelForm.title}</h3>
                 <p>{modelForm.description}</p>
