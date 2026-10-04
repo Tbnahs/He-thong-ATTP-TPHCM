@@ -14,3 +14,15 @@ The review must mirror what was actually submitted, including repeated entries a
 **Why:** The user repeatedly emphasized that reviewers must see all declared registration content without omissions.
 
 **How to apply:** When a registration field is added or changed, update its saved submission data and the review rendering together. Preserve access to old records and surface missing historical data explicitly.
+
+An application is approved only when its reviewer record includes the officer’s full name, position, phone, email, signature, and review time. Pending applications must not carry reviewer sign-off. Do not invent an officer identity for an older approval that lacks this information; return it to an unreviewed state until it can be signed correctly. When an active account has permission to review applications, prefill its details but let the officer edit them before approval.
+
+**Why:** The user requires clear accountability for each approval, while demo and older browser-stored records may not contain a real sign-off.
+
+**How to apply:** Validate all sign-off fields at the approval action, persist the sign-off with the application, and treat incomplete historical approvals as unreviewed rather than fabricating reviewer details.
+
+The application-review workflow has exactly three statuses: pending, needs-more-info, and approved. Do not add rejection, warning, or stopped states to application records. Other modules may use their own monitoring statuses. When loading legacy application records with an unsupported status, normalize them to pending and clear stale review sign-off/publication state.
+
+**Why:** The user explicitly limited “Duyệt hồ sơ” to “Chờ duyệt”, “Yêu cầu bổ sung”, and “Đã duyệt”.
+
+**How to apply:** Keep the application type, sample data, review actions, filters, exports, and legacy-storage normalization aligned with those three statuses. Keep unrelated facility-monitoring and product-review status models separate.

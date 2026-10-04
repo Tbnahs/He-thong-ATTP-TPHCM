@@ -22,7 +22,7 @@ const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
 export const createApprovedFacility = (
   application: Application,
-  reviewer = "Nguyễn Minh Anh",
+  reviewer = application.reviewer?.name ?? "Chưa cập nhật",
 ): ApprovedFacility => ({
   application: clone(application),
   approvedAt: formatApprovalDate(application.submittedAt),
@@ -79,7 +79,7 @@ export const readApprovedFacilities = (): ApprovedFacility[] => {
 
 export const syncApprovedFacility = (
   application: Application,
-  reviewer = "Nguyễn Minh Anh",
+  reviewer = application.reviewer?.name ?? "Chưa cập nhật",
 ) => {
   if (typeof window === "undefined" || !isProfileApplication(application)) return;
   const saved = readApprovedFacilities().filter(

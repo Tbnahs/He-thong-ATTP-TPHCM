@@ -242,6 +242,7 @@ export function findManagedAdminAccount(username: string) {
       position: String(account.position ?? ""),
       phone: String(account.phone ?? ""),
       email: String(account.email ?? ""),
+      signature: String(account.signature ?? ""),
       username: String(account.username ?? normalizedUsername),
       role,
       status: String(account.status ?? ""),

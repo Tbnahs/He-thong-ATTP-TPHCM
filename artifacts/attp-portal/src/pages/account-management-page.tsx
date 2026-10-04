@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { AdminShell } from "@/components/portal-ui";
+import { SignatureDisplay, SignaturePad } from "@/components/signature-pad";
 import {
   adminNavigationSections,
   createDefaultAdminPermissions,
@@ -60,6 +61,7 @@ type Account = {
   position: string;
   phone: string;
   email: string;
+  signature: string;
   username: string;
   password?: string;
   role: AccountRole;
@@ -87,6 +89,7 @@ type AccountForm = Pick<
   | "position"
   | "phone"
   | "email"
+  | "signature"
   | "username"
   | "role"
   | "permissions"
@@ -157,6 +160,7 @@ const initialAccounts: Account[] = [
     position: "Quản trị viên hệ thống",
     phone: "028.3930.6001",
     email: "bangiamdoc@attp.hochiminhcity.gov.vn",
+    signature: "Nguyễn Văn Quản Trị",
     username: "admin.attp",
     role: "director",
     status: "Đang hoạt động",
@@ -177,6 +181,7 @@ const initialAccounts: Account[] = [
     position: "Trưởng phòng",
     phone: "0912.345.678",
     email: "hungnm@attp.hochiminhcity.gov.vn",
+    signature: "Nguyễn Mạnh Hùng",
     username: "qlcoso.attp",
     role: "specialist",
     status: "Đang hoạt động",
@@ -197,6 +202,7 @@ const initialAccounts: Account[] = [
     position: "Chuyên viên phụ trách",
     phone: "0987.654.321",
     email: "mailt@attp.hochiminhcity.gov.vn",
+    signature: "Lê Thị Mai",
     username: "giamsat.bepan",
     role: "specialist",
     status: "Đang hoạt động",
@@ -217,6 +223,7 @@ const initialAccounts: Account[] = [
     position: "Chuyên viên Y tế",
     phone: "0908.123.456",
     email: "van.ttt@phuonggovap.gov.vn",
+    signature: "Trần Thị Thanh Vân",
     username: "gov_phuong_govap",
     role: "ward",
     status: "Đang hoạt động",
@@ -237,6 +244,7 @@ const initialAccounts: Account[] = [
     position: "Cán bộ phụ trách",
     phone: "0913.456.789",
     email: "anh.pm@phuongvungtau.gov.vn",
+    signature: "Phạm Minh Anh",
     username: "ubnd_vungtau",
     role: "ward",
     status: "Đang hoạt động",
@@ -257,6 +265,7 @@ const initialAccounts: Account[] = [
     position: "Cán bộ văn hóa - xã hội",
     phone: "0905.222.333",
     email: "tam.dm@phuongthudaumot.gov.vn",
+    signature: "Đỗ Minh Tâm",
     username: "ubnd_thudaumot",
     role: "ward",
     status: "Đang khóa",
@@ -282,6 +291,7 @@ const accountExcelColumns = [
   { key: "position", label: "Chức vụ", required: false },
   { key: "phone", label: "Số điện thoại", required: false },
   { key: "email", label: "Email", required: false },
+  { key: "signature", label: "Chữ ký điện tử", required: false },
   { key: "username", label: "Tên đăng nhập", required: true },
   { key: "role", label: "Vai trò", required: false },
   { key: "status", label: "Trạng thái", required: false },
@@ -323,6 +333,7 @@ function accountToExcelRow(account: Account): Record<string, string | number> {
     "Chức vụ": account.position,
     "Số điện thoại": account.phone,
     Email: account.email,
+    "Chữ ký điện tử": account.signature,
     "Tên đăng nhập": account.username,
     "Vai trò": account.role,
     "Trạng thái": account.status,
@@ -519,6 +530,7 @@ function parseAccountImport(
       position: row.position || "",
       phone: row.phone || "",
       email: row.email || "",
+      signature: row.signature || "",
       username,
       role,
       status: normalizeExcelText(row.status).includes("khoa") ? "Đang khóa" : "Đang hoạt động",
@@ -553,6 +565,7 @@ function accountToForm(account?: Account): AccountForm {
       position: account.position,
       phone: account.phone,
       email: account.email,
+      signature: account.signature || "",
       username: account.username,
       role: account.role,
       permissions: account.permissions,
@@ -569,6 +582,7 @@ function accountToForm(account?: Account): AccountForm {
     position: "",
     phone: "",
     email: "",
+    signature: "",
     username: "",
     role: "ward",
     permissions: makePermissions("ward"),
@@ -707,6 +721,7 @@ export function AdminAccountsPage() {
       const parsed = JSON.parse(stored) as Account[];
       return parsed.map((account) => ({
         ...account,
+        signature: account.signature || "",
         permissions: normalizeAdminPermissions(
           account.permissions,
           account.role,
@@ -1022,6 +1037,16 @@ export function AdminAccountsPage() {
                     placeholder="Nhập địa chỉ email"
                     type="email"
                   />
+                  <div className="md:col-span-2">
+                    <SignaturePad
+                      label="Chữ ký điện tử"
+                      value={form.signature}
+                      onChange={(value) => updateForm("signature", value)}
+                    />
+                    <p className="mt-2 text-xs text-slate-500">
+                      Cán bộ có thể chỉnh sửa chữ ký ngay trước khi duyệt.
+                    </p>
+                  </div>
                 </div>
               </SectionCard>
             </div>
@@ -1194,6 +1219,13 @@ export function AdminAccountsPage() {
                 <div>
                   <p className="detail-label">Chức vụ</p>
                   <p className="detail-value">{selectedAccount.position}</p>
+                </div>
+                <div>
+                  <p className="detail-label">Chữ ký điện tử</p>
+                  <SignatureDisplay
+                    value={selectedAccount.signature || ""}
+                    className="mt-1 block"
+                  />
                 </div>
                 <div>
                   <p className="detail-label">Loại đơn vị</p>

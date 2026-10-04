@@ -2,4 +2,4 @@
 - [Artifact verification](artifact-verification.md) — hydrate pnpm workspaces from the lockfile; manual Vite builds need the artifact PORT.
 - [Excel in frontend-only portal](excel-frontend-portal.md) — browser-only Excel exports/imports use SheetJS; persistence still needs a backend.
 - [Facility history integration](facility-history-api.md) — approved profiles can display portal and external-system history now; production sync needs an explicit API contract.
-- [Registration review compatibility](registration-schema-compatibility.md) — keep review fields, repeated entries, and evidence aligned with each submitted form.
+- [Registration review compatibility](registration-schema-compatibility.md) — preserve submitted forms and sign-off; the review queue has only three statuses.

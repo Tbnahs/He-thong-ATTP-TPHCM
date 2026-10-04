@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import { AdminShell } from "@/components/portal-ui";
+import { SignaturePad } from "@/components/signature-pad";
 import { findManagedAdminAccount } from "@/lib/admin-permissions";
 
 type ManagedAccount = NonNullable<
@@ -78,6 +79,7 @@ export function AdminProfilePage() {
     position: account?.position || "",
     phone: account?.phone || "",
     email: account?.email || "",
+    signature: account?.signature || "",
   }));
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -121,6 +123,7 @@ export function AdminProfilePage() {
       position: profileForm.position.trim(),
       phone: profileForm.phone.trim(),
       email: profileForm.email.trim(),
+      signature: profileForm.signature.trim(),
     });
     if (!saved) {
       setError("Không thể cập nhật hồ sơ. Vui lòng thử lại.");
@@ -322,6 +325,16 @@ export function AdminProfilePage() {
                   className="mt-1.5 h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-medium outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
                 />
               </label>
+              <div className="sm:col-span-2">
+                <SignaturePad
+                  label="Chữ ký điện tử"
+                  value={profileForm.signature}
+                  onChange={(value) => updateProfileForm("signature", value)}
+                />
+                <span className="mt-1 block text-xs font-normal text-slate-500">
+                  Bạn có thể sửa chữ ký trong biểu mẫu xét duyệt trước khi xác nhận.
+                </span>
+              </div>
               <div className="sm:col-span-2">
                 <button
                   type="button"

@@ -93,6 +93,7 @@ import {
   type CriteriaDefinition,
   type CriteriaGroup,
   type CriteriaSet,
+  type ApplicationStatus,
   type ListApplicationsParams,
   type ListPublicRecordsCategory,
   type NewsCategory,
@@ -7512,6 +7513,34 @@ function ChevronDownIcon({ open }: { open: boolean }) {
   );
 }
 
+function ApplicationStatusBadge({ status }: { status: ApplicationStatus }) {
+  const statuses: Record<ApplicationStatus, { label: string; className: string }> =
+    {
+      pending: {
+        label: "Chờ duyệt",
+        className: "bg-amber-100 text-amber-900",
+      },
+      "needs-more-info": {
+        label: "Yêu cầu bổ sung",
+        className: "bg-orange-100 text-orange-900",
+      },
+      approved: {
+        label: "Đã duyệt",
+        className: "bg-emerald-100 text-emerald-900",
+      },
+    };
+  const item = statuses[status];
+  return (
+    <span
+      className={`inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-bold ${item.className}`}
+      data-testid={`status-${status}`}
+    >
+      <span className="status-dot bg-current" />
+      {item.label}
+    </span>
+  );
+}
+
 export function AdminDashboard() {
   const [status, setStatus] =
     useState<ListApplicationsParams["status"]>("pending");
@@ -7570,11 +7599,8 @@ export function AdminDashboard() {
               data-testid="select-admin-status"
             >
               <option value="pending">Chờ duyệt</option>
-              <option value="needs-more-info">Cần bổ sung</option>
-              <option value="approved">PASS</option>
-              <option value="warning">Cảnh báo / tạm dừng</option>
-              <option value="stopped">Dừng hoạt động</option>
-              <option value="rejected">Từ chối</option>
+              <option value="needs-more-info">Yêu cầu bổ sung</option>
+              <option value="approved">Đã duyệt</option>
             </select>
           </div>
         </div>
@@ -7597,7 +7623,7 @@ export function AdminDashboard() {
                         <span className="font-mono text-xs font-semibold text-primary">
                           {app.reference}
                         </span>
-                        <StatusPill status={app.status} />
+                        <ApplicationStatusBadge status={app.status} />
                       </div>
                       <h3 className="mt-1 font-bold">{app.applicantName}</h3>
                       <p className="mt-1 text-sm text-muted-foreground">
@@ -9027,9 +9053,7 @@ function LegacyAdminApplicationPage() {
     setNotice(
       action === "approve"
         ? "Đã chấm điểm và xử lý hồ sơ."
-        : action === "reject"
-          ? "Hồ sơ đã được ghi nhận từ chối."
-          : "Đã lưu yêu cầu bổ sung.",
+        : "Đã lưu yêu cầu bổ sung.",
     );
   };
   if (!application)
@@ -9066,7 +9090,7 @@ function LegacyAdminApplicationPage() {
               {application.address} · {application.contact}
             </p>
           </div>
-          <StatusPill status={application.status} />
+          <ApplicationStatusBadge status={application.status} />
         </div>
         <div className="mt-8 grid gap-6 lg:grid-cols-[1.25fr_.75fr]">
           <div className="space-y-6">
@@ -9151,14 +9175,6 @@ function LegacyAdminApplicationPage() {
                 data-testid="button-review-more-info"
               >
                 <Info size={16} /> Yêu cầu bổ sung
-              </Button>
-              <Button
-                onClick={() => submitReview("reject")}
-                variant="destructive"
-                className="h-11 rounded-xl"
-                data-testid="button-review-reject"
-              >
-                <X size={16} /> Từ chối hồ sơ
               </Button>
             </div>
             <p className="mt-4 text-xs leading-5 text-muted-foreground">
@@ -10089,7 +10105,7 @@ export function AdminApplicationPage() {
             <span className="text-slate-300">/</span>
             <span className="truncate text-slate-600">Chi tiết xét duyệt</span>
           </div>
-          <StatusPill status={application.status} />
+          <ApplicationStatusBadge status={application.status} />
         </div>
 
         <section className="mt-3 overflow-hidden rounded-2xl bg-[#123d36] text-white shadow-[0_12px_32px_rgba(18,61,54,.12)]">
@@ -10133,10 +10149,10 @@ export function AdminApplicationPage() {
                 </p>
                 <p className="mt-1 text-xs font-bold text-[#f4c95d] sm:text-sm">
                   {application.status === "approved"
-                    ? "Đạt"
+                    ? "Đã duyệt"
                     : application.status === "needs-more-info"
-                      ? "Cần bổ sung"
-                      : "Chưa xử lý"}
+                      ? "Yêu cầu bổ sung"
+                      : "Chờ duyệt"}
                 </p>
               </div>
             </div>
@@ -10269,8 +10285,8 @@ export function AdminApplicationPage() {
                   data-testid="select-application-evaluation"
                 >
                   <option value="">Chọn kết quả đánh giá</option>
-                  <option value="passed">Đạt — duyệt hồ sơ</option>
-                  <option value="failed">Cần bổ sung thông tin</option>
+                  <option value="passed">Đã duyệt</option>
+                  <option value="failed">Yêu cầu bổ sung</option>
                 </select>
               </label>
             </section>

@@ -17,11 +17,8 @@ export type ListPublicRecordsCategory =
 export type ApplicationStatus =
   | "pending"
   | "needs-more-info"
-  | "approved"
-  | "warning"
-  | "stopped"
-  | "rejected";
-export type ReviewAction = "approve" | "needs-more-info" | "reject";
+  | "approved";
+export type ReviewAction = "approve" | "needs-more-info";
 
 export interface Attachment {
   name: string;
@@ -132,7 +129,17 @@ export interface Application {
   criteriaSnapshot: CriteriaDefinition[];
   criteriaGroups: CriteriaGroup[];
   scoreBreakdown: Record<string, number>;
+  reviewer?: ApplicationReviewer;
   published?: boolean;
+}
+export interface ApplicationReviewer {
+  name: string;
+  position: string;
+  phone: string;
+  email: string;
+  signature: string;
+  accountId?: string;
+  reviewedAt: string;
 }
 export interface ListApplicationsParams {
   status?: ApplicationStatus;
@@ -3124,6 +3131,7 @@ const createSampleApplication = (
     sampleFacilityNames[type][sampleOrdinal % sampleFacilityNames[type].length];
   const address = sampleAddresses[index % sampleAddresses.length];
   const contact = `090${String(100000 + index * 731).slice(-6)}`;
+  const submittedAt = sampleDate(index);
   const data: Record<string, unknown> = {};
   const attachments: Attachment[] = [];
 
@@ -3329,6 +3337,44 @@ const createSampleApplication = (
     );
   }
 
+  if (status === "needs-more-info") {
+    criteriaSet.criteria
+      .filter((item) => {
+        if (
+          !item.active ||
+          item.required ||
+          !isRegistrationCriteriaVisible(item, data, type)
+        ) {
+          return false;
+        }
+        const value = data[item.key];
+        if (item.answerType === "file") {
+          return attachments.some((file) => file.fieldKey === item.key);
+        }
+        if (item.answerType === "repeatable") {
+          return Array.isArray(value) && value.length > 0;
+        }
+        return value !== undefined && value !== "";
+      })
+      .slice(0, 2)
+      .forEach((item) => {
+        if (item.answerType === "file") {
+          for (let attachmentIndex = attachments.length - 1; attachmentIndex >= 0; attachmentIndex -= 1) {
+            if (attachments[attachmentIndex].fieldKey === item.key) {
+              attachments.splice(attachmentIndex, 1);
+            }
+          }
+        } else {
+          data[item.key] = item.answerType === "repeatable" ? [] : "";
+          for (let attachmentIndex = attachments.length - 1; attachmentIndex >= 0; attachmentIndex -= 1) {
+            if (attachments[attachmentIndex].fieldKey?.startsWith(`${item.key}.`)) {
+              attachments.splice(attachmentIndex, 1);
+            }
+          }
+        }
+      });
+  }
+
   const scoreBreakdown = Object.fromEntries(
     criteriaSet.criteria
       .filter((item) => item.maxScore > 0)
@@ -3342,14 +3388,12 @@ const createSampleApplication = (
     applicantName,
     address,
     contact,
-    submittedAt: sampleDate(index),
+    submittedAt,
     status,
-    score: status === "approved" ? 100 : status === "needs-more-info" ? 76 : status === "rejected" ? 48 : 0,
+    score: status === "approved" ? 100 : status === "needs-more-info" ? 76 : 0,
     reviewNote: status === "needs-more-info"
       ? "Vui lòng bổ sung minh chứng và cập nhật thông tin còn thiếu."
-      : status === "rejected"
-        ? "Hồ sơ chưa đáp ứng đầy đủ điều kiện theo bộ tiêu chí hiện hành."
-        : null,
+      : null,
     isThirdParty: type === "school" || index % 4 === 0,
     criteriaVersion: criteriaSet.version,
     criteriaSnapshot: criteriaSet.criteria,
@@ -3357,7 +3401,50 @@ const createSampleApplication = (
     data,
     attachments,
     scoreBreakdown,
+    reviewer:
+      status === "approved"
+        ? createSampleReviewer(index, submittedAt)
+        : undefined,
     published: status === "approved",
+  };
+};
+
+const sampleReviewers = [
+  {
+    name: "Nguyễn Mạnh Hùng",
+    position: "Trưởng phòng Quản lý cơ sở",
+    phone: "0912.345.678",
+    email: "hungnm@attp.hochiminhcity.gov.vn",
+    signature: "Nguyễn Mạnh Hùng",
+    accountId: "acct-inspection",
+  },
+  {
+    name: "Lê Thị Mai",
+    position: "Chuyên viên phụ trách",
+    phone: "0987.654.321",
+    email: "mailt@attp.hochiminhcity.gov.vn",
+    signature: "Lê Thị Mai",
+    accountId: "acct-food",
+  },
+  {
+    name: "Trần Thị Thanh Vân",
+    position: "Chuyên viên Y tế",
+    phone: "0908.123.456",
+    email: "van.ttt@phuonggovap.gov.vn",
+    signature: "Trần Thị Thanh Vân",
+    accountId: "acct-govap",
+  },
+] satisfies Omit<ApplicationReviewer, "reviewedAt">[];
+
+const createSampleReviewer = (
+  seed: number,
+  submittedAt: string,
+): ApplicationReviewer => {
+  const reviewedDate = new Date(submittedAt);
+  reviewedDate.setDate(reviewedDate.getDate() + 2);
+  return {
+    ...sampleReviewers[Math.abs(seed) % sampleReviewers.length],
+    reviewedAt: reviewedDate.toISOString(),
   };
 };
 
@@ -3366,11 +3453,11 @@ const sampleApplications: Application[] = [
   createSampleApplication(8, "food-supplier", "needs-more-info"),
   createSampleApplication(9, "meal-provider", "pending"),
   createSampleApplication(10, "meal-provider", "needs-more-info"),
-  createSampleApplication(11, "meal-provider", "warning"),
+  createSampleApplication(11, "meal-provider", "pending"),
   createSampleApplication(12, "school", "pending", ["BATT tự tổ chức"]),
   createSampleApplication(13, "school", "needs-more-info", ["BATT hợp đồng"]),
   createSampleApplication(14, "school", "pending", ["Nhận suất ăn sẵn"]),
-  createSampleApplication(15, "school", "warning", ["Căng tin trường học"]),
+  createSampleApplication(15, "school", "pending", ["Căng tin trường học"]),
 ];
 
 export const applications: Application[] = [
@@ -3716,6 +3803,11 @@ applications
     application.data = data;
     application.attachments = generated.attachments;
     application.scoreBreakdown = generated.scoreBreakdown;
+    if (application.status === "approved") {
+      application.reviewer ??= createSampleReviewer(index, application.submittedAt);
+    } else {
+      application.reviewer = undefined;
+    }
     application.published = application.status === "approved";
   });
 
@@ -3737,20 +3829,78 @@ const isSeededApplication = (id: string) =>
   (id.startsWith("sample-app-") &&
     applications.some((application) => application.id === id));
 
+const hasCompleteReviewer = (reviewer?: ApplicationReviewer) =>
+  Boolean(
+    reviewer?.name.trim() &&
+      reviewer.position.trim() &&
+      reviewer.phone.trim() &&
+      reviewer.email.trim() &&
+      reviewer.signature.trim() &&
+      reviewer.reviewedAt,
+  );
+
+const normalizeStoredApplicationStatus = (status: unknown): ApplicationStatus =>
+  status === "approved" || status === "needs-more-info"
+    ? status
+    : "pending";
+
 if (typeof window !== "undefined") {
   readStoredApplications().forEach((storedApplication) => {
     const existing = applications.find(
       (application) => application.id === storedApplication.id,
     );
     if (existing && isSeededApplication(existing.id)) {
-      existing.status = storedApplication.status;
-      existing.reviewNote = storedApplication.reviewNote;
+      existing.status = normalizeStoredApplicationStatus(
+        storedApplication.status,
+      );
+      if (
+        existing.status === "approved" &&
+        !hasCompleteReviewer(storedApplication.reviewer)
+      ) {
+        existing.status = "pending";
+      }
+      existing.reviewNote =
+        existing.status === "needs-more-info"
+          ? storedApplication.reviewNote
+          : null;
       existing.score = storedApplication.score;
-      existing.published = storedApplication.published;
+      existing.reviewer =
+        existing.status === "approved"
+          ? storedApplication.reviewer ?? existing.reviewer
+          : undefined;
+      existing.published = existing.status === "approved";
     } else if (existing) {
       Object.assign(existing, storedApplication);
+      existing.status = normalizeStoredApplicationStatus(existing.status);
+      if (
+        existing.status === "approved" &&
+        !hasCompleteReviewer(existing.reviewer)
+      ) {
+        existing.status = "pending";
+      }
+      if (existing.status !== "needs-more-info") existing.reviewNote = null;
+      if (existing.status !== "approved") existing.reviewer = undefined;
+      existing.published = existing.status === "approved";
     } else if (!storedApplication.id.startsWith("sample-app-")) {
-      applications.unshift(storedApplication);
+      const restoredApplication = { ...storedApplication };
+      restoredApplication.status = normalizeStoredApplicationStatus(
+        restoredApplication.status,
+      );
+      if (
+        restoredApplication.status === "approved" &&
+        !hasCompleteReviewer(restoredApplication.reviewer)
+      ) {
+        restoredApplication.status = "pending";
+      }
+      if (restoredApplication.status !== "needs-more-info") {
+        restoredApplication.reviewNote = null;
+      }
+      if (restoredApplication.status !== "approved") {
+        restoredApplication.reviewer = undefined;
+      }
+      restoredApplication.published =
+        restoredApplication.status === "approved";
+      applications.unshift(restoredApplication);
     }
   });
 }
