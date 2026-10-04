@@ -495,7 +495,13 @@ const adminMenuIcons: Record<AdminMenuPermissionId, LucideIcon> = {
   reports: BarChart3,
 };
 
-export function AdminShell({ children }: { children: ReactNode }) {
+export function AdminShell({
+  children,
+  reviewLayout = false,
+}: {
+  children: ReactNode;
+  reviewLayout?: boolean;
+}) {
   const [location] = useLocation();
   const [, navigate] = useLocation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -544,7 +550,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
                   ? "Dashboard giám sát"
                   : "Bàn xét duyệt";
   return (
-    <div className="admin-shell portal-noise min-h-[100dvh] bg-[#f9fafb] lg:grid lg:grid-cols-[252px_1fr]">
+    <div
+      className={`admin-shell portal-noise min-h-[100dvh] bg-[#f9fafb] ${reviewLayout ? "" : "lg:grid lg:grid-cols-[252px_1fr]"}`}
+    >
+      {!reviewLayout && (
       <aside className="hidden min-h-[100dvh] bg-[#123d36] text-sidebar-foreground lg:flex lg:flex-col">
         <div className="border-b border-white/10 px-5 py-5">
           <Link
@@ -622,8 +631,62 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </span>
         </div>
       </aside>
+      )}
       <main className="admin-shell__main min-w-0">
-        <div className="admin-shell__header border-b border-slate-200/80 bg-white/90 px-5 py-4 shadow-[0_1px_0_rgba(15,23,42,.03)] backdrop-blur lg:px-10">
+        <div
+          className={`admin-shell__header border-b px-5 py-3 backdrop-blur sm:px-6 lg:px-10 ${
+            reviewLayout
+              ? "border-white/10 bg-[#123d36] text-white shadow-none"
+              : "border-slate-200/80 bg-white/90 py-4 shadow-[0_1px_0_rgba(15,23,42,.03)]"
+          }`}
+        >
+          {reviewLayout ? (
+            <div className="mx-auto flex max-w-[1480px] items-center justify-between gap-4">
+              <Link
+                href="/admin"
+                className="focus-ring flex min-w-0 items-center gap-3"
+                data-testid="link-review-brand-home"
+              >
+                <img
+                  src={emblemPath}
+                  alt="Quốc huy Việt Nam"
+                  className="h-10 w-10 shrink-0 object-contain"
+                />
+                <span className="min-w-0 leading-tight">
+                  <strong className="block truncate text-[11px] font-extrabold tracking-wide text-white sm:text-xs">
+                    SỞ AN TOÀN THỰC PHẨM
+                  </strong>
+                  <span className="mt-1 block text-[9px] font-semibold tracking-[.08em] text-white/65 sm:text-[10px]">
+                    THÀNH PHỐ HỒ CHÍ MINH
+                  </span>
+                </span>
+              </Link>
+              <div className="flex shrink-0 items-center gap-3 sm:gap-4">
+                <span className="hidden text-xs font-semibold text-white/70 sm:block">
+                  Bàn xét duyệt hồ sơ
+                </span>
+                <Link
+                  href={hasManagedAccount ? "/admin/profile" : "/admin"}
+                  className="focus-ring flex items-center gap-2 rounded-full border border-white/15 bg-white/5 py-1 pl-1 pr-3 text-xs font-bold text-white hover:bg-white/10"
+                  data-testid="link-reviewer-profile"
+                >
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#f4c95d] text-[#123d36]">
+                    <ShieldCheck size={14} />
+                  </span>
+                  <span className="hidden sm:inline">Admin</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="focus-ring rounded-lg px-2 py-2 text-white/75 transition hover:bg-white/10 hover:text-white"
+                  aria-label="Đăng xuất"
+                  data-testid="button-reviewer-logout"
+                >
+                  <LogOut size={17} />
+                </button>
+              </div>
+            </div>
+          ) : (
           <div className="flex items-center justify-between">
             <div className="flex min-w-0 items-center gap-3 lg:hidden">
               <BrandMark compact />
@@ -689,8 +752,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
               </button>
             </div>
           </div>
+          )}
         </div>
-        {mobileNavOpen && (
+        {!reviewLayout && mobileNavOpen && (
           <nav
             className="border-b border-slate-200 bg-white px-4 py-3 shadow-sm lg:hidden"
             aria-label="Điều hướng cán bộ trên điện thoại"

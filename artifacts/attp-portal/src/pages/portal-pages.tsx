@@ -10074,229 +10074,188 @@ export function AdminApplicationPage() {
       </AdminShell>
     );
   return (
-    <AdminShell>
-      <div className="mx-auto max-w-[1480px] px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
+    <AdminShell reviewLayout>
+      <div className="mx-auto max-w-[1480px] px-4 py-4 sm:px-6 lg:px-8 lg:py-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Link
-            href="/admin"
-            className="focus-ring inline-flex items-center gap-2 text-sm font-bold text-[#16604f]"
-            data-testid="link-back-admin"
-          >
-            <ArrowLeft size={16} /> Quay lại danh sách hồ sơ
-          </Link>
+          <div className="flex min-w-0 items-center gap-2 text-xs font-semibold text-slate-500 sm:text-sm">
+            <Link
+              href="/admin"
+              className="focus-ring inline-flex items-center gap-1.5 text-[#16604f] hover:text-[#123d36]"
+              data-testid="link-back-admin"
+            >
+              <ArrowLeft size={15} /> Danh sách hồ sơ
+            </Link>
+            <span className="text-slate-300">/</span>
+            <span className="truncate text-slate-600">Chi tiết xét duyệt</span>
+          </div>
           <StatusPill status={application.status} />
         </div>
-        <section className="mt-5 overflow-hidden rounded-[1.5rem] bg-[#123d36] text-white shadow-xl shadow-[#123d36]/10">
-          <div className="flex flex-col gap-6 px-5 py-6 sm:px-7 lg:flex-row lg:items-center lg:justify-between lg:px-9 lg:py-8">
-            <div className="flex items-start gap-4">
-              <div className="hidden h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-[#f4c95d] sm:flex">
-                <Building2 size={27} />
+
+        <section className="mt-3 overflow-hidden rounded-2xl bg-[#123d36] text-white shadow-[0_12px_32px_rgba(18,61,54,.12)]">
+          <div className="flex flex-col gap-4 px-4 py-4 sm:px-6 sm:py-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10 text-[#f4c95d] sm:flex">
+                <Building2 size={22} />
               </div>
-              <div>
-                <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-[#f4c95d]">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2 text-[10px] font-extrabold uppercase tracking-[.1em] text-[#f4c95d] sm:text-xs">
                   <span>{application.reference}</span>
-                  <span className="text-white/35">•</span>
+                  <span className="text-white/35">·</span>
                   <span>{typeNames[application.type]}</span>
-                  <span className="text-white/35">•</span>
+                  <span className="text-white/35">·</span>
                   <span>
                     {application.published ? "Đã công bố" : "Chưa công bố"}
                   </span>
                 </div>
-                <h1 className="mt-2 max-w-3xl text-2xl font-extrabold tracking-tight sm:text-4xl">
+                <h1 className="mt-1.5 break-words text-xl font-extrabold tracking-tight sm:text-2xl">
                   {application.applicantName}
                 </h1>
-                <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/65">
+                <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-white/70 sm:text-sm">
                   <span>{application.address}</span>
-                  <span>•</span>
+                  <span className="hidden sm:inline">·</span>
                   <span>{application.contact}</span>
                 </p>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:w-auto sm:min-w-[270px]">
-              <div className="rounded-xl bg-white/10 p-3">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-white/55">
-                  Ngày nộp
+            <div className="grid grid-cols-2 gap-2 sm:min-w-[250px]">
+              <div className="rounded-xl bg-white/[.08] px-3 py-2.5">
+                <p className="text-[9px] font-bold uppercase tracking-[.12em] text-white/55">
+                  Ngày nộp hồ sơ
                 </p>
-                <p className="mt-1 text-sm font-bold">
+                <p className="mt-1 text-xs font-bold sm:text-sm">
                   {formatDate(application.submittedAt)}
                 </p>
               </div>
-              <div className="rounded-xl bg-white/10 p-3">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-white/55">
-                  Đánh giá
+              <div className="rounded-xl bg-white/[.08] px-3 py-2.5">
+                <p className="text-[9px] font-bold uppercase tracking-[.12em] text-white/55">
+                  Kết quả đánh giá
                 </p>
-                <p className="mt-1 text-sm font-bold text-[#f4c95d]">
+                <p className="mt-1 text-xs font-bold text-[#f4c95d] sm:text-sm">
                   {application.status === "approved"
                     ? "Đạt"
                     : application.status === "needs-more-info"
-                      ? "Không đạt"
-                      : "Chưa đánh giá"}
+                      ? "Cần bổ sung"
+                      : "Chưa xử lý"}
                 </p>
               </div>
             </div>
           </div>
         </section>
-        <section className="mt-7">
-          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[.16em] text-[#16604f]">
-                PHẦN 01 · TIẾP NHẬN
-              </p>
-              <h2 className="mt-2 text-2xl font-extrabold text-slate-900">
-                Thông tin cơ sở đã khai báo
-              </h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Nội dung được giữ nguyên theo form mà cơ sở đã điền khi đăng ký.
-              </p>
-            </div>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">
-              <CheckCircle2 size={14} className="text-emerald-600" /> Đã tiếp
-              nhận {formatDate(application.submittedAt)}
-            </span>
-          </div>
-          <div className="rounded-[1.5rem] border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-            <div className="space-y-4">
-              {formGroups.map((group, groupIndex) => {
-                const groupCriteria = criteria.filter(
-                  (item) => item.groupId === group.id,
-                );
-                if (!groupCriteria.length) return null;
-                return (
-                  <article
-                    key={group.id}
-                    className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
-                  >
-                    <header className="flex flex-col gap-3 border-b border-slate-200 bg-[#e7f2ef]/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-                      <div className="flex min-w-0 items-start gap-3">
-                        <span className="inline-flex h-8 min-w-8 shrink-0 items-center justify-center rounded-md border border-[#16604f]/20 bg-white px-2 text-xs font-extrabold text-[#16604f]">
-                          {String(groupIndex + 1).padStart(2, "0")}
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-extrabold uppercase tracking-[.12em] text-[#16604f]">
-                            Phần {String(groupIndex + 1).padStart(2, "0")}
-                          </p>
-                          <h3 className="mt-0.5 font-extrabold leading-5 text-slate-900">
-                            {group.name}
-                          </h3>
-                        </div>
-                      </div>
-                      <span className="shrink-0 text-xs font-semibold text-slate-500">
-                        {groupCriteria.length} nội dung kê khai
-                      </span>
-                    </header>
-                    <dl className="grid gap-3 bg-slate-50/50 p-3 sm:grid-cols-2 sm:p-4 lg:grid-cols-3">
-                      {groupCriteria.map((item) => (
-                        <div
-                          key={item.key}
-                          className="min-w-0 rounded-xl border border-slate-200 bg-white p-3"
-                        >
-                          <dt className="text-xs font-bold leading-5 text-slate-600">
-                            {item.label}
-                          </dt>
-                          {item.description ? (
-                            <p className="mt-1 text-xs leading-5 text-slate-500">
-                              {item.description}
-                            </p>
-                          ) : null}
-                          <dd>
-                            <ApplicationAnswerDisplay
-                              item={item}
-                              data={application.data ?? {}}
-                              attachments={application.attachments}
-                            />
-                          </dd>
-                        </div>
-                      ))}
-                    </dl>
-                  </article>
-                );
-              })}
-              {application.type === "school" && (
-                <SubmittedSchoolModelForms
-                  forms={application.data.schoolModelForms}
-                />
-              )}
-            </div>
-            {application.reviewNote && (
-              <div className="mt-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                <Info size={17} className="mt-0.5 shrink-0" />
-                <p>
-                  <strong>Ghi chú đang lưu:</strong> {application.reviewNote}
-                </p>
+
+        <div className="mt-4 grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_310px] xl:gap-5">
+          <main className="min-w-0 space-y-4">
+            <section>
+              <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <p className="text-[10px] font-extrabold uppercase tracking-[.15em] text-[#16604f]">
+                    PHẦN 01 · TIẾP NHẬN
+                  </p>
+                  <h2 className="mt-1 text-lg font-extrabold text-slate-900 sm:text-xl">
+                    Thông tin cơ sở đã khai báo
+                  </h2>
+                  <p className="mt-1 text-xs leading-5 text-slate-500 sm:text-sm">
+                    Nội dung được giữ nguyên theo hồ sơ cơ sở đã gửi.
+                  </p>
+                </div>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e7f2ef] px-2.5 py-1.5 text-[10px] font-bold text-[#16604f] sm:text-xs">
+                  <CheckCircle2 size={13} className="text-emerald-600" />
+                  Đã tiếp nhận {formatDate(application.submittedAt)}
+                </span>
               </div>
-            )}
-          </div>
-        </section>
-        <section className="mt-6 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#e7f2ef] text-[#16604f]">
-                <ImagePlus size={19} />
-              </div>
-              <div>
-                <h3 className="text-lg font-extrabold text-slate-900">
-                  Thư viện minh chứng
-                </h3>
-                <p className="mt-1 text-sm text-slate-500">
-                  Bấm vào ảnh hoặc file để xem chi tiết.
-                </p>
-              </div>
-            </div>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-              {application.attachments.length} tệp
-            </span>
-          </div>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {application.attachments.map((file) => (
-              <button
-                type="button"
-                key={file.name}
-                onClick={() => setNotice(`Tệp minh chứng: ${file.name}`)}
-                className="group flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-left transition hover:border-[#16604f]/30 hover:bg-[#f7faf9]"
-                data-testid={`button-preview-attachment-${file.name}`}
-              >
-                <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-[#e7f2ef]">
-                  {file.kind.startsWith("image/") ? (
-                    <img
-                      src={heroFoodImage}
-                      alt={file.name}
-                      className="h-full w-full object-cover transition-transform group-hover:scale-105"
+              <div className="rounded-xl border border-[#dce4dd] bg-white p-2.5 shadow-sm sm:p-3">
+                <div className="space-y-3">
+                  {formGroups.map((group, groupIndex) => {
+                    const groupCriteria = criteria.filter(
+                      (item) => item.groupId === group.id,
+                    );
+                    if (!groupCriteria.length) return null;
+                    return (
+                      <article
+                        key={group.id}
+                        className="overflow-hidden rounded-lg border border-[#e0e7e1] bg-white"
+                      >
+                        <header className="flex flex-col gap-2 border-b border-[#e0e7e1] bg-[#eef4f0] px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex min-w-0 items-center gap-2.5">
+                            <span className="inline-flex h-7 min-w-7 shrink-0 items-center justify-center rounded-md border border-[#16604f]/15 bg-white px-1.5 text-[10px] font-extrabold text-[#16604f]">
+                              {String(groupIndex + 1).padStart(2, "0")}
+                            </span>
+                            <div className="min-w-0">
+                              <p className="text-[9px] font-extrabold uppercase tracking-[.12em] text-[#16604f]">
+                                Phần {String(groupIndex + 1).padStart(2, "0")}
+                              </p>
+                              <h3 className="mt-0.5 text-xs font-extrabold leading-5 text-slate-900 sm:text-sm">
+                                {group.name}
+                              </h3>
+                            </div>
+                          </div>
+                          <span className="shrink-0 pl-9 text-[10px] font-semibold text-slate-500 sm:pl-0 sm:text-xs">
+                            {groupCriteria.length} nội dung kê khai
+                          </span>
+                        </header>
+                        <dl className="grid gap-2 bg-[#fbfcfa] p-2 sm:grid-cols-2 sm:p-3 xl:grid-cols-3">
+                          {groupCriteria.map((item) => (
+                            <div
+                              key={item.key}
+                              className="min-w-0 rounded-lg border border-[#e5eae6] bg-white p-2.5"
+                            >
+                              <dt className="text-[10px] font-bold leading-4 text-slate-600 sm:text-xs">
+                                {item.label}
+                              </dt>
+                              {item.description ? (
+                                <p className="mt-1 text-[10px] leading-4 text-slate-500">
+                                  {item.description}
+                                </p>
+                              ) : null}
+                              <dd className="text-xs">
+                                <ApplicationAnswerDisplay
+                                  item={item}
+                                  data={application.data ?? {}}
+                                  attachments={application.attachments}
+                                />
+                              </dd>
+                            </div>
+                          ))}
+                        </dl>
+                      </article>
+                    );
+                  })}
+                  {application.type === "school" && (
+                    <SubmittedSchoolModelForms
+                      forms={application.data.schoolModelForms}
                     />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-[#16604f]">
-                      <FileText size={23} />
-                    </div>
                   )}
                 </div>
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-bold text-slate-800">
-                    {file.name}
-                  </span>
-                  <span className="mt-1 flex items-center gap-1 text-xs text-slate-500">
-                    <Eye size={13} /> {(file.size / 1024 / 1024).toFixed(1)}MB ·
-                    Xem
-                  </span>
+                {application.reviewNote && (
+                  <div className="mt-3 flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+                    <Info size={15} className="mt-0.5 shrink-0" />
+                    <p>
+                      <strong>Ghi chú xử lý:</strong> {application.reviewNote}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            <section className="rounded-xl border border-[#dce4dd] bg-white p-3 shadow-sm sm:p-4">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#e7f2ef] text-[#16604f]">
+                  <ClipboardCheck size={16} />
                 </span>
-              </button>
-            ))}
-          </div>
-        </section>
-        <section className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_350px]">
-          <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-            <p className="text-xs font-bold uppercase tracking-[.16em] text-[#16604f]">
-              PHẦN 03 · ĐÁNH GIÁ
-            </p>
-            <h2 className="mt-2 text-xl font-extrabold text-slate-900">
-              Kết quả xử lý hồ sơ
-            </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-              Cán bộ chọn kết quả đánh giá dựa trên nội dung form và minh chứng
-              cơ sở đã cung cấp.
-            </p>
-            <div className="mt-6 rounded-2xl border border-[#16604f]/15 bg-[#f7faf9] p-5">
-              <label className="block">
-                <span className="mb-2 block text-sm font-bold text-slate-700">
-                  Đánh giá
+                <div>
+                  <p className="text-[9px] font-extrabold uppercase tracking-[.14em] text-[#16604f]">
+                    PHẦN 02 · THẨM ĐỊNH
+                  </p>
+                  <h2 className="mt-0.5 text-sm font-extrabold text-slate-900 sm:text-base">
+                    Kết quả đánh giá hồ sơ
+                  </h2>
+                </div>
+              </div>
+              <p className="mt-2 text-xs leading-5 text-slate-500">
+                Chọn kết quả sau khi kiểm tra thông tin và minh chứng đính kèm.
+              </p>
+              <label className="mt-3 block">
+                <span className="mb-1.5 block text-xs font-bold text-slate-700">
+                  Kết quả xử lý
                 </span>
                 <select
                   value={evaluation}
@@ -10305,64 +10264,189 @@ export function AdminApplicationPage() {
                       event.target.value as "" | "passed" | "failed",
                     )
                   }
-                  className="focus-ring h-12 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold"
+                  className="focus-ring h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-800 sm:text-sm"
                   data-testid="select-application-evaluation"
                 >
                   <option value="">Chọn kết quả đánh giá</option>
-                  <option value="passed">Đạt</option>
-                  <option value="failed">Không đạt</option>
+                  <option value="passed">Đạt — duyệt hồ sơ</option>
+                  <option value="failed">Cần bổ sung thông tin</option>
                 </select>
               </label>
-            </div>
-          </div>
-          <aside className="h-fit rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm lg:sticky lg:top-6">
-            <p className="text-xs font-bold uppercase tracking-[.16em] text-[#16604f]">
-              THAO TÁC CÁN BỘ
-            </p>
-            <h2 className="mt-2 text-xl font-extrabold text-slate-900">
-              Lưu và công bố
-            </h2>
-            {evaluation === "failed" && (
-              <label className="mt-5 block">
-                <span className="mb-2 block text-sm font-bold text-slate-700">
-                  Nội dung yêu cầu bổ sung
+            </section>
+          </main>
+
+          <aside className="space-y-3 lg:sticky lg:top-4">
+            <section className="rounded-xl border border-[#dce4dd] bg-white p-3 shadow-sm sm:p-4">
+              <div className="flex items-start gap-2.5">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#e7f2ef] text-[#16604f]">
+                  <UserRound size={16} />
                 </span>
-                <textarea
-                  value={supplementNote}
-                  onChange={(event) => setSupplementNote(event.target.value)}
-                  placeholder="Nhập rõ giấy tờ hoặc thông tin cơ sở cần bổ sung..."
-                  className="focus-ring min-h-32 w-full rounded-xl border border-slate-200 p-3 text-sm"
-                  data-testid="textarea-supplement-request"
-                />
-              </label>
-            )}
-            <div className="mt-5 space-y-2">
-              <button
-                type="button"
-                onClick={() => {
-                  if (!evaluation) {
-                    setNotice("Vui lòng chọn kết quả trong trường Đánh giá.");
-                    return;
+                <div className="min-w-0 flex-1">
+                  <p className="text-[9px] font-extrabold uppercase tracking-[.14em] text-[#16604f]">
+                    NGƯỜI ĐĂNG KÝ
+                  </p>
+                  <h2 className="mt-1 break-words text-sm font-extrabold leading-5 text-slate-900">
+                    {application.applicantName}
+                  </h2>
+                  <p className="mt-0.5 text-[10px] font-medium text-slate-500">
+                    {typeNames[application.type]}
+                  </p>
+                </div>
+              </div>
+              <dl className="mt-3 space-y-2 border-t border-slate-100 pt-3 text-xs">
+                <div>
+                  <dt className="text-[10px] font-semibold text-slate-500">
+                    Địa chỉ cơ sở
+                  </dt>
+                  <dd className="mt-0.5 flex items-start gap-1.5 font-semibold leading-5 text-slate-800">
+                    <MapPin size={13} className="mt-0.5 shrink-0 text-[#16604f]" />
+                    <span>{application.address}</span>
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[10px] font-semibold text-slate-500">
+                    Điện thoại liên hệ
+                  </dt>
+                  <dd className="mt-0.5 font-semibold text-slate-800">
+                    {application.contact}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[10px] font-semibold text-slate-500">
+                    Ngày nộp hồ sơ
+                  </dt>
+                  <dd className="mt-0.5 flex items-center gap-1.5 font-semibold text-slate-800">
+                    <CalendarDays size={13} className="text-[#16604f]" />
+                    {formatDate(application.submittedAt)}
+                  </dd>
+                </div>
+              </dl>
+            </section>
+
+            <section className="rounded-xl border border-[#dce4dd] bg-white p-3 shadow-sm sm:p-4">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <ImagePlus size={16} className="text-[#16604f]" />
+                  <h2 className="text-sm font-extrabold text-slate-900">
+                    Tệp minh chứng
+                  </h2>
+                </div>
+                <span className="rounded-full bg-[#eef4f0] px-2 py-1 text-[10px] font-bold text-[#16604f]">
+                  {application.attachments.length} tệp
+                </span>
+              </div>
+              <p className="mt-1 text-[10px] leading-4 text-slate-500">
+                Chọn tệp để xem thông tin đính kèm.
+              </p>
+              <div className="mt-2.5 space-y-1.5">
+                {application.attachments.length ? (
+                  application.attachments.map((file) => (
+                    <button
+                      type="button"
+                      key={file.name}
+                      onClick={() => setNotice(`Tệp minh chứng: ${file.name}`)}
+                      className="group flex w-full min-w-0 items-center gap-2 rounded-lg border border-slate-100 bg-[#fbfcfa] p-2 text-left transition hover:border-[#16604f]/25 hover:bg-[#f2f7f4]"
+                      data-testid={`button-preview-attachment-${file.name}`}
+                    >
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-md bg-[#e7f2ef] text-[#16604f]">
+                        {file.kind.startsWith("image/") ? (
+                          <img
+                            src={heroFoodImage}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <FileText size={15} />
+                        )}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[10px] font-bold leading-4 text-slate-800 sm:text-xs">
+                          {file.name}
+                        </span>
+                        <span className="mt-0.5 flex items-center gap-1 text-[9px] text-slate-500">
+                          <Eye size={11} />
+                          {(file.size / 1024 / 1024).toFixed(1)} MB · Xem
+                        </span>
+                      </span>
+                    </button>
+                  ))
+                ) : (
+                  <p className="rounded-lg bg-slate-50 px-3 py-3 text-xs text-slate-500">
+                    Hồ sơ chưa có tệp minh chứng.
+                  </p>
+                )}
+              </div>
+            </section>
+
+            <section className="rounded-xl border border-[#dce4dd] bg-white p-3 shadow-sm sm:p-4">
+              <div className="flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#eef4f0] text-[#16604f]">
+                  <ClipboardCheck size={16} />
+                </span>
+                <div>
+                  <p className="text-[9px] font-extrabold uppercase tracking-[.14em] text-[#16604f]">
+                    THAO TÁC CÁN BỘ
+                  </p>
+                  <h2 className="mt-0.5 text-sm font-extrabold text-slate-900">
+                    Xử lý hồ sơ
+                  </h2>
+                </div>
+              </div>
+              {evaluation === "failed" && (
+                <label className="mt-3 block">
+                  <span className="mb-1.5 block text-xs font-bold text-slate-700">
+                    Nội dung cần cơ sở bổ sung
+                  </span>
+                  <textarea
+                    value={supplementNote}
+                    onChange={(event) => setSupplementNote(event.target.value)}
+                    placeholder="Ghi rõ giấy tờ hoặc thông tin cần bổ sung..."
+                    className="focus-ring min-h-24 w-full rounded-lg border border-slate-200 p-2.5 text-xs leading-5"
+                    data-testid="textarea-supplement-request"
+                  />
+                </label>
+              )}
+              <div className="mt-3 space-y-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!evaluation) {
+                      setNotice("Vui lòng chọn kết quả đánh giá trước khi lưu.");
+                      return;
+                    }
+                    if (evaluation === "passed") publish();
+                    else requestSupplement();
+                  }}
+                  disabled={
+                    !evaluation ||
+                    (evaluation === "failed" && !supplementNote.trim())
                   }
-                  if (evaluation === "passed") publish();
-                  else requestSupplement();
-                }}
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#16604f] px-4 text-sm font-bold text-white shadow-sm hover:bg-[#123d36]"
-                data-testid="button-review-save-and-publish"
-              >
-                <Check size={16} />{" "}
-                {evaluation === "passed"
-                  ? "Lưu hồ sơ và công bố"
-                  : "Lưu yêu cầu bổ sung"}
-              </button>
-            </div>
-            <p className="mt-4 text-xs leading-5 text-slate-500">
-              Nếu chọn “Đạt”, hồ sơ được lưu và xuất hiện trong danh sách công
-              khai. Nếu chọn “Không đạt”, cán bộ phải nhập nội dung yêu cầu bổ
-              sung.
-            </p>
+                  className={`flex min-h-10 w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-extrabold text-white shadow-sm transition sm:text-sm ${
+                    evaluation === "failed"
+                      ? "bg-[#a4473c] hover:bg-[#87372e]"
+                      : "bg-[#16604f] hover:bg-[#123d36]"
+                  } disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none`}
+                  data-testid="button-review-save-and-publish"
+                >
+                  {evaluation === "failed" ? (
+                    <Send size={14} />
+                  ) : (
+                    <Check size={15} />
+                  )}
+                  {evaluation === "passed"
+                    ? "Duyệt hồ sơ và công bố"
+                    : evaluation === "failed"
+                      ? "Gửi yêu cầu bổ sung"
+                      : "Chọn kết quả để xử lý"}
+                </button>
+              </div>
+              <p className="mt-2.5 text-[10px] leading-4 text-slate-500">
+                Hồ sơ đạt sẽ được công bố. Hồ sơ cần bổ sung sẽ được trả về cơ
+                sở kèm ghi chú.
+              </p>
+            </section>
           </aside>
-        </section>
+        </div>
       </div>
       {notice && <Notice message={notice} onClose={() => setNotice("")} />}
     </AdminShell>
