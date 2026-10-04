@@ -78,6 +78,7 @@ import {
   getAddressWardOptions,
   getCriteriaSet,
   getPublicRecords,
+  isRegistrationCriteriaVisible,
   newsItems,
   regionalPublicRecords,
   saveApplicationRecord,
@@ -3600,31 +3601,7 @@ function ApplicationForm({
     setNotice("");
   };
   const isVisible = (item: CriteriaDefinition) => {
-    if (type === "school" && item.key === "educationLevelOther") {
-      const selectedLevels = fields.educationLevels;
-      return (
-        Array.isArray(selectedLevels) &&
-        (selectedLevels as string[]).includes("Khác")
-      );
-    }
-    if (!item.dependsOn) return true;
-    const dependency = fields[item.dependsOn.key];
-    const current = Array.isArray(dependency)
-      ? (dependency[0] ?? "")
-      : typeof dependency === "string"
-        ? dependency
-        : "";
-    if (
-      item.dependsOn.equals !== undefined &&
-      current !== item.dependsOn.equals
-    )
-      return false;
-    if (
-      item.dependsOn.notEquals !== undefined &&
-      current === item.dependsOn.notEquals
-    )
-      return false;
-    return true;
+    return isRegistrationCriteriaVisible(item, fields, type);
   };
   const removeFile = (name: string, fieldKey?: string) =>
     setFiles((prev) =>
@@ -3940,6 +3917,7 @@ function ApplicationForm({
               key: item.key,
               label: item.label,
               answerType: item.answerType,
+              dependsOn: item.dependsOn,
               value: value ?? "",
               files:
                 item.answerType === "file"
@@ -9956,7 +9934,15 @@ export function AdminApplicationPage() {
           (item) => !snapshotKeys.has(item.key),
         ),
       ]
-        .filter((item) => item.active)
+        .filter(
+          (item) =>
+            item.active &&
+            isRegistrationCriteriaVisible(
+              item,
+              application.data ?? {},
+              application.type,
+            ),
+        )
         .sort((a, b) => a.order - b.order)
     : [];
   const snapshotGroupIds = new Set(

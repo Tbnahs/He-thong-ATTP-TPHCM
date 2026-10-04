@@ -2528,6 +2528,34 @@ export const criteriaHistory: Record<ApplicationType, CriteriaHistoryEntry[]> =
   { "food-supplier": [], "meal-provider": [], school: [] };
 export const getCriteriaSet = (type: ApplicationType): CriteriaSet =>
   structuredClone(criteria[type]);
+export const isRegistrationCriteriaVisible = (
+  item: CriteriaDefinition,
+  fields: Record<string, unknown>,
+  type: ApplicationType,
+) => {
+  if (type === "school" && item.key === "educationLevelOther") {
+    const levels = fields.educationLevels;
+    return Array.isArray(levels) && levels.includes("Khác");
+  }
+  if (!item.dependsOn) return true;
+  const dependency = fields[item.dependsOn.key];
+  const current = Array.isArray(dependency)
+    ? (dependency[0] ?? "")
+    : typeof dependency === "string"
+      ? dependency
+      : "";
+  if (
+    item.dependsOn.equals !== undefined &&
+    current !== item.dependsOn.equals
+  )
+    return false;
+  if (
+    item.dependsOn.notEquals !== undefined &&
+    current === item.dependsOn.notEquals
+  )
+    return false;
+  return true;
+};
 const getPublishedRecords = (): PublicRecord[] => {
   if (typeof window === "undefined") return [];
   try {
@@ -2644,13 +2672,398 @@ const sampleRepeatableValue = (
     if (field.key === "providerId") return `provider-${String(1 + (index % 6)).padStart(3, "0")}`;
     return field.options?.[index % (field.options.length || 1)] ?? `Lựa chọn ${index}`;
   }
+  if (field.answerType === "yes-no") return field.options?.[0] ?? "Có";
+  if (field.answerType === "multi-select")
+    return field.options?.slice(0, Math.min(2, field.options.length)) ?? [];
+  if (field.answerType === "date")
+    return `2026-${String(1 + (index % 9)).padStart(2, "0")}-15`;
   return `${field.label} mẫu ${index + 1}`;
+};
+
+type SampleSchoolModelField = {
+  key: string;
+  label: string;
+  answerType: CriteriaAnswerType;
+  options?: string[];
+  required?: boolean;
+  dependsOn?: CriteriaDefinition["dependsOn"];
+  repeatableFields?: CriteriaDefinition["repeatableFields"];
+};
+
+const sampleSchoolModelForms: Record<
+  string,
+  { formNumber: string; title: string; providerName?: string }
+> = {
+  "BATT tự tổ chức": {
+    formNumber: "01",
+    title: "Bếp ăn tập thể do cơ sở giáo dục tự tổ chức",
+  },
+  "BATT hợp đồng": {
+    formNumber: "02",
+    title: "Bếp ăn tập thể hợp đồng",
+    providerName: "Công ty Suất ăn Minh Tâm",
+  },
+  "Nhận suất ăn sẵn": {
+    formNumber: "03",
+    title: "Cơ sở giáo dục nhận suất ăn sẵn",
+    providerName: "Công ty Suất ăn Việt An",
+  },
+  "Căng tin trường học": {
+    formNumber: "04",
+    title: "Căng tin trong cơ sở giáo dục",
+    providerName: "Căng tin Trường học An Phú",
+  },
+};
+
+const sampleSchoolContactFields: NonNullable<
+  CriteriaDefinition["repeatableFields"]
+> = [
+  { key: "name", label: "Ông/bà", answerType: "text", required: true },
+  { key: "title", label: "Chức vụ", answerType: "text", required: true },
+  {
+    key: "phone",
+    label: "Số điện thoại liên hệ",
+    answerType: "text",
+    required: true,
+  },
+  { key: "email", label: "Email liên hệ", answerType: "text" },
+];
+
+const sampleSchoolDocumentFields: NonNullable<
+  CriteriaDefinition["repeatableFields"]
+> = [
+  {
+    key: "documentType",
+    label: "Loại giấy chứng nhận / giấy tờ",
+    answerType: "select",
+    options: [
+      "Giấy chứng nhận cơ sở đủ điều kiện ATTP",
+      "ISO 22000:2018",
+      "HACCP",
+      "Chuỗi ATTP",
+      "Giấy tờ pháp lý khác",
+    ],
+    required: true,
+  },
+  { key: "number", label: "Số cấp / số giấy tờ", answerType: "text", required: true },
+  { key: "issueDate", label: "Ngày cấp", answerType: "date", required: true },
+  { key: "expiryDate", label: "Ngày hết hiệu lực", answerType: "date" },
+  { key: "issuer", label: "Nơi cấp", answerType: "text", required: true },
+  {
+    key: "location",
+    label: "Địa điểm được cấp chứng nhận",
+    answerType: "text",
+    required: true,
+  },
+  {
+    key: "scope",
+    label: "Phạm vi loại hình được cấp chứng nhận",
+    answerType: "text",
+    required: true,
+  },
+  { key: "evidence", label: "Tệp minh chứng", answerType: "file" },
+];
+
+const sampleSchoolDeliveryFields: NonNullable<
+  CriteriaDefinition["repeatableFields"]
+> = [
+  { key: "siteName", label: "Địa điểm cơ sở giáo dục", answerType: "text", required: true },
+  { key: "morningTime", label: "Ca sáng - thời điểm giao/nhận", answerType: "text" },
+  { key: "morningQuantity", label: "Ca sáng - số suất", answerType: "number" },
+  { key: "lunchTime", label: "Ca trưa - thời điểm giao/nhận", answerType: "text" },
+  { key: "lunchQuantity", label: "Ca trưa - số suất", answerType: "number" },
+  { key: "snackTime", label: "Ca xế - thời điểm giao/nhận", answerType: "text" },
+  { key: "snackQuantity", label: "Ca xế - số suất", answerType: "number" },
+  { key: "afternoonTime", label: "Ca chiều - thời điểm giao/nhận", answerType: "text" },
+  { key: "afternoonQuantity", label: "Ca chiều - số suất", answerType: "number" },
+];
+
+const sampleSchoolServiceFields = (): SampleSchoolModelField[] => [
+  {
+    key: "registeredProviderId",
+    label: "Đơn vị cung cấp đã đăng ký trên hệ thống",
+    answerType: "select",
+    required: false,
+  },
+  { key: "serviceLegalName", label: "Tên tổ chức/cá nhân/đơn vị thực hiện (trụ sở chính)", answerType: "text" },
+  { key: "serviceHeadquartersAddress", label: "Địa chỉ trụ sở chính", answerType: "text" },
+  { key: "serviceTaxCode", label: "Mã số doanh nghiệp/mã số thuế hoặc mã định danh hợp pháp khác", answerType: "text" },
+  { key: "serviceIssueDate", label: "Ngày cấp", answerType: "date" },
+  { key: "serviceIssuePlace", label: "Nơi cấp", answerType: "text" },
+  { key: "serviceInitialRegistrationDate", label: "Ngày đăng ký lần đầu", answerType: "date" },
+  { key: "serviceAmendmentDate", label: "Ngày đăng ký thay đổi gần nhất", answerType: "date" },
+  { key: "serviceAmendmentSequence", label: "Lần thay đổi thứ", answerType: "number" },
+  { key: "serviceRepresentative", label: "Người đại diện theo pháp luật/chủ cơ sở", answerType: "text" },
+  { key: "serviceRepresentativeTitle", label: "Chức danh", answerType: "text" },
+  { key: "serviceSiteName", label: "Tên cơ sở/địa điểm thực hiện", answerType: "text" },
+  { key: "serviceSiteAddress", label: "Địa chỉ", answerType: "text" },
+  { key: "serviceSiteBusinessCode", label: "Mã số chi nhánh/mã số địa điểm kinh doanh", answerType: "text" },
+  { key: "serviceSiteIssueDate", label: "Ngày cấp", answerType: "date" },
+  { key: "serviceSiteIssuePlace", label: "Nơi cấp", answerType: "text" },
+  { key: "serviceSiteInitialRegistrationDate", label: "Ngày đăng ký lần đầu", answerType: "date" },
+  { key: "serviceSiteAmendmentDate", label: "Ngày đăng ký thay đổi gần nhất", answerType: "date" },
+  { key: "serviceSiteAmendmentSequence", label: "Lần thay đổi thứ", answerType: "number" },
+  { key: "serviceSiteRepresentative", label: "Người đại diện", answerType: "text" },
+  { key: "serviceSiteRepresentativeTitle", label: "Chức danh", answerType: "text" },
+  {
+    key: "serviceFoodSafetyContacts",
+    label: "Thông tin người phụ trách ATTP của đơn vị thực hiện",
+    answerType: "repeatable",
+    repeatableFields: sampleSchoolContactFields,
+  },
+  { key: "serviceContractNumber", label: "Hợp đồng - số hợp đồng", answerType: "text" },
+  { key: "serviceContractDate", label: "Hợp đồng - ngày ký", answerType: "date" },
+  {
+    key: "serviceQualityCertificates",
+    label: "Giấy chứng nhận quản lý chất lượng của đơn vị",
+    answerType: "repeatable",
+    repeatableFields: sampleSchoolDocumentFields,
+  },
+];
+
+const sampleSchoolSpecificFields = (
+  model: string,
+): SampleSchoolModelField[] => {
+  if (model === "BATT hợp đồng" || model === "Nhận suất ăn sẵn") {
+    const fields = sampleSchoolServiceFields();
+    fields[0] = {
+      ...fields[0],
+      label:
+        model === "BATT hợp đồng"
+          ? "Đơn vị thực hiện nấu ăn đã đăng ký trên hệ thống"
+          : "Đơn vị cung cấp suất ăn đã đăng ký trên hệ thống",
+    };
+    if (model === "Nhận suất ăn sẵn") {
+      fields.push(
+        {
+          key: "readyMealDeliverySites",
+          label: "Danh sách địa điểm, thời điểm giao nhận và số lượng suất ăn",
+          answerType: "repeatable",
+          repeatableFields: sampleSchoolDeliveryFields,
+        },
+        {
+          key: "readyMealReceivingPoint",
+          label: "Địa điểm tập kết, giao/nhận suất ăn tại cơ sở giáo dục",
+          answerType: "text",
+        },
+      );
+      fields[1].label =
+        "Tên tổ chức/cá nhân/đơn vị cung cấp suất ăn (trụ sở chính)";
+      fields[11].label = "Tên cơ sở/địa điểm nấu ăn (xưởng chế biến/bếp nấu)";
+    }
+    return fields;
+  }
+  if (model !== "Căng tin trường học") return [];
+  return [
+    {
+      key: "registeredProviderId",
+      label: "Đơn vị kinh doanh căng tin đã đăng ký trên hệ thống",
+      answerType: "select",
+      required: false,
+    },
+    { key: "canteenName", label: "Tên tổ chức/cá nhân/đơn vị kinh doanh căng tin", answerType: "text" },
+    { key: "canteenAddress", label: "Địa chỉ", answerType: "text" },
+    { key: "canteenIdentifier", label: "Mã số chi nhánh/mã số địa điểm kinh doanh/mã số thuế hoặc mã định danh hợp pháp khác", answerType: "text" },
+    { key: "canteenIssueDate", label: "Ngày cấp", answerType: "date" },
+    { key: "canteenIssuePlace", label: "Nơi cấp", answerType: "text" },
+    { key: "canteenInitialRegistrationDate", label: "Ngày đăng ký lần đầu", answerType: "date" },
+    { key: "canteenAmendmentDate", label: "Ngày đăng ký thay đổi gần nhất", answerType: "date" },
+    { key: "canteenAmendmentSequence", label: "Lần thay đổi thứ", answerType: "number" },
+    { key: "canteenRepresentative", label: "Người đại diện theo pháp luật/chủ cơ sở", answerType: "text" },
+    { key: "canteenTitle", label: "Chức danh", answerType: "text" },
+    { key: "canteenOtherInfo", label: "Thông tin khác", answerType: "text", required: false },
+    {
+      key: "canteenFoodSafetyContacts",
+      label: "Thông tin người phụ trách ATTP của đơn vị kinh doanh căng tin",
+      answerType: "repeatable",
+      repeatableFields: sampleSchoolContactFields,
+    },
+    { key: "canteenContractNumber", label: "Hợp đồng căng tin - số hợp đồng", answerType: "text" },
+    { key: "canteenContractDate", label: "Hợp đồng căng tin - ngày ký", answerType: "date" },
+    {
+      key: "canteenQualityCertificates",
+      label: "Giấy chứng nhận/hồ sơ chất lượng của đơn vị kinh doanh căng tin",
+      answerType: "repeatable",
+      repeatableFields: sampleSchoolDocumentFields,
+    },
+    { key: "canteenOtherLegalDocuments", label: "Các hồ sơ pháp lý khác", answerType: "text" },
+  ];
+};
+
+const sampleSchoolModelExcluded: Record<string, Set<string>> = {
+  "BATT hợp đồng": new Set(["qualityCertificateStatus", "qualityCertificates"]),
+  "Nhận suất ăn sẵn": new Set([
+    "qualityCertificateStatus",
+    "qualityCertificates",
+    "preparationArea",
+    "processingArea",
+    "separatePreparationRoom",
+    "separateProcessingRoom",
+    "separateServingRoom",
+    "processDescription",
+    "rawStorageEquipment",
+    "rawStorageInventory",
+    "prepTables",
+    "cookingEquipment",
+    "cookingUtensilInventory",
+    "cookingStove",
+    "stoveInventory",
+    "transportBetweenSchools",
+    "transportContainers",
+  ]),
+  "Căng tin trường học": new Set(["qualityCertificateStatus", "qualityCertificates"]),
+};
+
+const sampleSchoolValue = (
+  field: SampleSchoolModelField,
+  index: number,
+  type: ApplicationType,
+) => {
+  if (field.answerType === "file") return "";
+  if (field.answerType === "repeatable") {
+    return [
+      Object.fromEntries(
+        (field.repeatableFields ?? []).map((nestedField) => [
+          nestedField.key,
+          nestedField.answerType === "file"
+            ? ""
+            : sampleRepeatableValue(nestedField, index, type),
+        ]),
+      ),
+    ];
+  }
+  if (field.key === "registeredProviderId") return "";
+  if (field.answerType === "number") return String(2 + (index % 8));
+  if (field.answerType === "date")
+    return `2026-${String(1 + (index % 9)).padStart(2, "0")}-15`;
+  if (field.answerType === "yes-no") return field.options?.[0] ?? "Có";
+  if (field.answerType === "multi-select")
+    return field.options?.slice(0, Math.min(2, field.options.length)) ?? [];
+  if (field.answerType === "select")
+    return field.options?.[0] ?? "";
+  return `${field.label} mẫu ${index + 1}`;
+};
+
+const buildSampleSchoolForms = (
+  criteriaSet: CriteriaSet,
+  data: Record<string, unknown>,
+  attachments: Attachment[],
+  models: string[],
+  index: number,
+  applicantName: string,
+  address: string,
+) => {
+  const siteId = `school-site-${index}`;
+  const siteName = applicantName;
+  const siteAddress = address;
+  const locations = [{ id: siteId, name: siteName, address: siteAddress, kind: "main" }];
+  data.schoolLocations = locations;
+  data.schoolSubmissionConfirmed = "true";
+  data.addressMain = address;
+  data.addressBranches = [];
+  data.foodSafetyContacts = [
+    { name: "Nguyễn Thị Hương", title: "Phụ trách ATTP", phone: "0901234567", email: "attp@example.vn" },
+    { name: "Trần Minh Anh", title: "Đại diện cơ sở", phone: "0907654321", email: "daihien@example.vn" },
+  ];
+  const uniqueModels = [...new Set(models)].filter(
+    (model) => Boolean(sampleSchoolModelForms[model]),
+  );
+  const operatingModels = uniqueModels.map((model, rowIndex) => {
+    const form = sampleSchoolModelForms[model];
+    const id = `school-model-${index}-${form.formNumber}`;
+    return {
+      id,
+      model,
+      siteId,
+      siteName,
+      siteAddress,
+      formNumber: form.formNumber,
+      formLabel: `Mẫu số ${form.formNumber}`,
+      rowIndex,
+    };
+  });
+  data.operatingModels = operatingModels.map(({ rowIndex: _rowIndex, ...row }) => row);
+  data.schoolModelDetails = {};
+  const forms = operatingModels.map((row) => {
+    const formDefinition = sampleSchoolModelForms[row.model];
+    const baseFields = criteriaSet.criteria
+      .filter(
+        (item) =>
+          item.groupId !== "school-group-1" &&
+          item.groupId !== "school-group-2" &&
+          !sampleSchoolModelExcluded[row.model]?.has(item.key),
+      )
+      .map((item) => ({
+        ...item,
+        label:
+          row.model === "Nhận suất ăn sẵn"
+            ? ({
+                totalFoodStaff: "Tổng số người tham gia hoạt động có liên quan đến thực phẩm",
+                directFoodStaff: "Số người trực tiếp giao/chia suất",
+                directFullTimeFoodStaff: "Số lao động trực tiếp toàn thời gian",
+                directPartTimeFoodStaff: "Số lao động trực tiếp bán thời gian",
+                indirectFoodStaff: "Số người không trực tiếp",
+                protectiveClothing: "Bảo hộ lao động cho nhân viên tại nơi nhận suất ăn",
+                foodSafetyPractice: "Thực hành an toàn thực phẩm tại cơ sở giáo dục (nơi nhận suất ăn)",
+                threeStepInspection: "Kiểm thực 03 bước tại cơ sở giáo dục (nơi nhận suất ăn)",
+              } as Record<string, string>)[item.key] ?? item.label
+            : row.model === "BATT hợp đồng"
+              ? ({
+                  totalFoodStaff: "Tổng số người tham gia hoạt động chế biến, nấu ăn tại đơn vị thực hiện",
+                  directFoodStaff: "Số người trực tiếp sơ chế/chế biến/chia suất tại đơn vị thực hiện",
+                  indirectFoodStaff: "Số người không trực tiếp tại đơn vị thực hiện",
+                } as Record<string, string>)[item.key] ?? item.label
+              : row.model === "Căng tin trường học" && item.key === "totalFoodStaff"
+                ? "Tổng số người tham gia hoạt động có liên quan đến thực phẩm"
+                : item.label,
+      }));
+    const modelFields: SampleSchoolModelField[] = [
+      ...baseFields,
+      ...sampleSchoolSpecificFields(row.model),
+    ];
+    const fields = modelFields.map((field) => {
+      const scopedKey = `schoolModelDetails.${row.id}.${field.key}`;
+      const value =
+        field.answerType === "file"
+          ? ""
+          : field.key in data
+            ? data[field.key]
+            : sampleSchoolValue(field, index, "school");
+      (data.schoolModelDetails as Record<string, unknown>)[scopedKey] = value;
+      return {
+        key: field.key,
+        label: field.label,
+        answerType: field.answerType,
+        value,
+        dependsOn: field.dependsOn,
+        files:
+          field.answerType === "file"
+            ? attachments
+                .filter((file) => file.fieldKey === scopedKey)
+                .map((file) => file.name)
+            : [],
+      };
+    });
+    return {
+      id: row.id,
+      model: row.model,
+      siteId: row.siteId,
+      siteName: row.siteName,
+      siteAddress: row.siteAddress,
+      formNumber: row.formNumber,
+      providerId: "",
+      providerName: formDefinition.providerName ?? "",
+      fields,
+    };
+  });
+  data.schoolModelForms = forms;
 };
 
 const createSampleApplication = (
   index: number,
   type: ApplicationType,
   status: ApplicationStatus,
+  schoolModels?: string[],
 ): Application => {
   const criteriaSet = getCriteriaSet(type);
   const sampleOrdinal = Math.floor((index - 1) / 3);
@@ -2662,6 +3075,7 @@ const createSampleApplication = (
   const attachments: Attachment[] = [];
 
   for (const item of criteriaSet.criteria) {
+    if (!isRegistrationCriteriaVisible(item, data, type)) continue;
     if (item.answerType === "file") {
       attachments.push({
         name: sampleAttachmentName(type, index, item.key),
@@ -2821,44 +3235,45 @@ const createSampleApplication = (
   }
 
   if (type === "school") {
-    const mealModel = sampleOrdinal % 3 === 0
-      ? "Tự nấu"
-      : sampleOrdinal % 3 === 1
-        ? "Liên kết đơn vị suất ăn"
-        : "Thuê đơn vị nấu tại bếp trường";
+    const modelChoices = Object.keys(sampleSchoolModelForms);
+    const selectedModels =
+      schoolModels ??
+      [modelChoices[sampleOrdinal % modelChoices.length]];
     data.schoolLevel = ["Mầm non", "Tiểu học", "THCS", "THPT"][index % 4];
     data.hasFoodSafetyLead = "Có";
     data.foodSafetyLeadName = ["Lê Thị Hương", "Võ Minh Châu", "Đặng Quốc Bảo"][index % 3];
     data.foodSafetyLeadTitle = "Cán bộ phụ trách ATTP";
     data.foodSafetyLeadPhone = `098${String(300000 + index * 517).slice(-6)}`;
-    data.mealModel = mealModel;
-    if (mealModel === "Tự nấu") {
-      data.selfCookStaffTotal = String(6 + (sampleOrdinal % 5));
-    } else {
-      data.linkedMealProviders = [
-        {
-          source: "Đơn vị đã đăng ký",
-          providerId: `provider-${String(1 + (sampleOrdinal % 6)).padStart(3, "0")}`,
-          providerName:
-            sampleFacilityNames["meal-provider"][
-              sampleOrdinal % sampleFacilityNames["meal-provider"].length
-            ],
-          taxCode: `031${String(5000000 + index * 101).slice(-7)}`,
-        },
-      ];
-    }
+    data.selfCookStaffTotal = String(6 + (sampleOrdinal % 5));
+    data.linkedMealProviders = [
+      {
+        source: "Nhập trực tiếp",
+        providerName:
+          sampleFacilityNames["meal-provider"][
+            sampleOrdinal % sampleFacilityNames["meal-provider"].length
+          ],
+        taxCode: `031${String(5000000 + index * 101).slice(-7)}`,
+      },
+    ];
     data.deliveryReception = "Xe tải bảo ôn, giao nhận từ 06:00 đến 07:00";
     data.kitchenOneWay = "Có";
     data.sampleStorage = "Có";
     data.sampleCabinetCount = String(1 + (index % 2));
-    if (mealModel === "Thuê đơn vị nấu tại bếp trường") {
-      data.hiredKitchenName =
-        sampleFacilityNames["meal-provider"][
-          (sampleOrdinal + 1) % sampleFacilityNames["meal-provider"].length
-        ];
-      data.hiredKitchenTaxCode = `031${String(5200000 + index * 103).slice(-7)}`;
-      data.hiredKitchenStaffCount = String(8 + (sampleOrdinal % 4));
-    }
+    data.hiredKitchenName =
+      sampleFacilityNames["meal-provider"][
+        (sampleOrdinal + 1) % sampleFacilityNames["meal-provider"].length
+      ];
+    data.hiredKitchenTaxCode = `031${String(5200000 + index * 103).slice(-7)}`;
+    data.hiredKitchenStaffCount = String(8 + (sampleOrdinal % 4));
+    buildSampleSchoolForms(
+      criteriaSet,
+      data,
+      attachments,
+      selectedModels,
+      index,
+      applicantName,
+      address,
+    );
   }
 
   const scoreBreakdown = Object.fromEntries(
@@ -2893,31 +3308,17 @@ const createSampleApplication = (
   };
 };
 
-const schoolSampleStatuses: ApplicationStatus[] = [
-  "approved",
-  "approved",
-  "approved",
-  "needs-more-info",
-  "approved",
-  "approved",
-  "approved",
-  "warning",
-  "approved",
-  "approved",
-  "approved",
-  "rejected",
+const sampleApplications: Application[] = [
+  createSampleApplication(7, "food-supplier", "pending"),
+  createSampleApplication(8, "food-supplier", "needs-more-info"),
+  createSampleApplication(9, "meal-provider", "pending"),
+  createSampleApplication(10, "meal-provider", "needs-more-info"),
+  createSampleApplication(11, "meal-provider", "warning"),
+  createSampleApplication(12, "school", "pending", ["BATT tự tổ chức"]),
+  createSampleApplication(13, "school", "needs-more-info", ["BATT hợp đồng"]),
+  createSampleApplication(14, "school", "pending", ["Nhận suất ăn sẵn"]),
+  createSampleApplication(15, "school", "warning", ["Căng tin trường học"]),
 ];
-
-const sampleApplications: Application[] = Array.from({ length: 36 }, (_, offset) => {
-  const index = offset + 1;
-  const type: ApplicationType = ["food-supplier", "meal-provider", "school"][index % 3] as ApplicationType;
-  const sampleOrdinal = Math.floor(offset / 3);
-  const status =
-    type === "school"
-      ? schoolSampleStatuses[sampleOrdinal % schoolSampleStatuses.length]
-      : sampleStatuses[offset % sampleStatuses.length];
-  return createSampleApplication(index, type, status);
-});
 
 export const applications: Application[] = [
   {
@@ -2997,9 +3398,9 @@ export const applications: Application[] = [
     id: "app-002",
     reference: "HS-2026-0037",
     type: "school",
-    applicantName: "Trường Mầm non Hoa Sen",
-    address: "35 Nguyễn Du, Quận 1, TP.HCM",
-    contact: "028 3822 4567",
+    applicantName: "Trường THCS ABC",
+    address: "40 Nguyễn Thái Học, P. Cầu Ông Lãnh, TP.HCM",
+    contact: "028 3822 0003",
     submittedAt: "2026-08-12T14:10:00+07:00",
     status: "needs-more-info",
     score: 82,
@@ -3207,6 +3608,64 @@ export const applications: Application[] = [
   ...sampleApplications,
 ];
 
+applications
+  .filter((application) => /^app-00[1-6]$/.test(application.id))
+  .forEach((application, index) => {
+    const generated = createSampleApplication(
+      40 + index,
+      application.type,
+      application.status,
+      application.id === "app-002"
+        ? [
+            "BATT tự tổ chức",
+            "BATT hợp đồng",
+            "Nhận suất ăn sẵn",
+            "Căng tin trường học",
+          ]
+        : undefined,
+    );
+    const data = {
+      ...generated.data,
+      applicantName: application.applicantName,
+      address: application.address,
+      addressDetail: application.address,
+      addressProvince: "TP. Hồ Chí Minh",
+      addressWard: "Phường Cầu Ông Lãnh",
+      contact: application.contact,
+    };
+    if (application.type === "school") {
+      data.addressMain = application.address;
+      data.schoolLocations = (
+        data.schoolLocations as Array<Record<string, unknown>>
+      ).map((location) => ({
+        ...location,
+        name: application.applicantName,
+        address: application.address,
+      }));
+      data.operatingModels = (
+        data.operatingModels as Array<Record<string, unknown>>
+      ).map((model) => ({
+        ...model,
+        siteName: application.applicantName,
+        siteAddress: application.address,
+      }));
+      data.schoolModelForms = (
+        data.schoolModelForms as Array<Record<string, unknown>>
+      ).map((form) => ({
+        ...form,
+        siteName: application.applicantName,
+        siteAddress: application.address,
+      }));
+    }
+    application.criteriaVersion = generated.criteriaVersion;
+    application.criteriaSnapshot = generated.criteriaSnapshot;
+    application.criteriaGroups = generated.criteriaGroups;
+    application.data = data;
+    application.attachments = generated.attachments;
+    application.scoreBreakdown = generated.scoreBreakdown;
+    application.published = application.status === "approved";
+  });
+
 const storedApplicationsKey = "attp-submitted-applications";
 const readStoredApplications = (): Application[] => {
   if (typeof window === "undefined") return [];
@@ -3220,13 +3679,26 @@ const readStoredApplications = (): Application[] => {
   }
 };
 
+const isSeededApplication = (id: string) =>
+  /^app-00[1-6]$/.test(id) ||
+  (id.startsWith("sample-app-") &&
+    applications.some((application) => application.id === id));
+
 if (typeof window !== "undefined") {
   readStoredApplications().forEach((storedApplication) => {
     const existing = applications.find(
       (application) => application.id === storedApplication.id,
     );
-    if (existing) Object.assign(existing, storedApplication);
-    else applications.unshift(storedApplication);
+    if (existing && isSeededApplication(existing.id)) {
+      existing.status = storedApplication.status;
+      existing.reviewNote = storedApplication.reviewNote;
+      existing.score = storedApplication.score;
+      existing.published = storedApplication.published;
+    } else if (existing) {
+      Object.assign(existing, storedApplication);
+    } else if (!storedApplication.id.startsWith("sample-app-")) {
+      applications.unshift(storedApplication);
+    }
   });
 }
 
