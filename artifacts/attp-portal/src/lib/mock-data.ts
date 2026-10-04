@@ -2869,7 +2869,7 @@ const sampleSchoolSpecificFields = (
     return fields.map((field, order) => ({ ...field, order: 99 + order }));
   }
   if (model !== "Căng tin trường học") return [];
-  return [
+  const fields: SampleSchoolModelField[] = [
     {
       key: "registeredProviderId",
       label: "Đơn vị kinh doanh căng tin đã đăng ký trên hệ thống",
@@ -2902,7 +2902,8 @@ const sampleSchoolSpecificFields = (
       repeatableFields: sampleSchoolDocumentFields,
     },
     { key: "canteenOtherLegalDocuments", label: "Các hồ sơ pháp lý khác", answerType: "text" },
-  ].map((field, order) => ({ ...field, order: 99 + order }));
+  ];
+  return fields.map((field, order) => ({ ...field, order: 99 + order }));
 };
 
 const sampleSchoolModelExcluded: Record<string, Set<string>> = {
@@ -3043,6 +3044,32 @@ const buildSampleSchoolForms = (
     ].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     const fields = modelFields.map((field) => {
       const scopedKey = `schoolModelDetails.${row.id}.${field.key}`;
+      const value =
+        field.answerType === "file"
+          ? ""
+          : field.key in data
+            ? data[field.key]
+            : sampleSchoolValue(field, index, "school");
+      if (field.answerType === "repeatable" && Array.isArray(value)) {
+        value.forEach((entry, entryIndex) => {
+          if (typeof entry !== "object" || entry === null || Array.isArray(entry)) return;
+          for (const nestedField of field.repeatableFields ?? []) {
+            if (nestedField.answerType !== "file") continue;
+            const fieldKey = `${scopedKey}.${entryIndex}.${nestedField.key}`;
+            const name = sampleAttachmentName(
+              "school",
+              index,
+              `${row.formNumber}-${field.key}-${entryIndex + 1}-${nestedField.key}`,
+            );
+            attachments.push({
+              name,
+              kind: "application/pdf",
+              size: 180000 + index * 5000,
+              fieldKey,
+            });
+          }
+        });
+      }
       if (
         field.answerType === "file" &&
         !attachments.some((attachment) => attachment.fieldKey === scopedKey)
@@ -3054,17 +3081,12 @@ const buildSampleSchoolForms = (
           fieldKey: scopedKey,
         });
       }
-      const value =
-        field.answerType === "file"
-          ? ""
-          : field.key in data
-            ? data[field.key]
-            : sampleSchoolValue(field, index, "school");
       data[scopedKey] = value;
       return {
         key: field.key,
         label: field.label,
         answerType: field.answerType,
+        repeatableFields: field.repeatableFields,
         value,
         dependsOn: field.dependsOn,
         files:
@@ -3655,7 +3677,7 @@ applications
           ]
         : undefined,
     );
-    const data = {
+    const data: Record<string, unknown> = {
       ...generated.data,
       applicantName: application.applicantName,
       address: application.address,

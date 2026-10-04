@@ -822,7 +822,7 @@ const schoolModelDetailLabelOverrides: Record<string, Record<string, string>> = 
     mealShiftCapacity: "Số suất/lượt phục vụ theo từng buổi",
   },
 };
-const getSchoolModelDetailItems = (
+export const getSchoolModelDetailItems = (
   criteriaSet: CriteriaSet,
   model: string,
 ) => {
@@ -3917,6 +3917,7 @@ function ApplicationForm({
               key: item.key,
               label: item.label,
               answerType: item.answerType,
+              repeatableFields: item.repeatableFields,
               dependsOn: item.dependsOn,
               value: value ?? "",
               files:
