@@ -2533,6 +2533,12 @@ export const isRegistrationCriteriaVisible = (
   fields: Record<string, unknown>,
   type: ApplicationType,
 ) => {
+  if (
+    type === "school" &&
+    (!["school-survey-metadata", "school-group-1"].includes(item.groupId) ||
+      ["addressMain", "addressBranches", "operatingModels"].includes(item.key))
+  )
+    return false;
   if (type === "school" && item.key === "educationLevelOther") {
     const levels = fields.educationLevels;
     return Array.isArray(levels) && levels.includes("Khác");
@@ -2639,15 +2645,6 @@ const sampleAddresses = [
   "12 Lê Lợi, Phường Bến Nghé, TP. Hồ Chí Minh",
 ];
 
-const sampleStatuses: ApplicationStatus[] = [
-  "pending",
-  "approved",
-  "needs-more-info",
-  "approved",
-  "warning",
-  "rejected",
-];
-
 const sampleDate = (index: number) =>
   `2026-${String(1 + (index % 8)).padStart(2, "0")}-${String(
     3 + ((index * 3) % 24),
@@ -2684,6 +2681,7 @@ type SampleSchoolModelField = {
   key: string;
   label: string;
   answerType: CriteriaAnswerType;
+  order?: number;
   options?: string[];
   required?: boolean;
   dependsOn?: CriteriaDefinition["dependsOn"];
@@ -2833,6 +2831,26 @@ const sampleSchoolSpecificFields = (
           ? "Đơn vị thực hiện nấu ăn đã đăng ký trên hệ thống"
           : "Đơn vị cung cấp suất ăn đã đăng ký trên hệ thống",
     };
+    fields[1].label =
+      model === "BATT hợp đồng"
+        ? "Tên tổ chức/cá nhân/đơn vị thực hiện nấu ăn (trụ sở chính)"
+        : "Tên tổ chức/cá nhân/đơn vị cung cấp suất ăn (trụ sở chính)";
+    fields[11].label =
+      model === "BATT hợp đồng"
+        ? "Tên cơ sở/địa điểm thực hiện tổ chức nấu ăn"
+        : "Tên cơ sở/địa điểm nấu ăn (xưởng chế biến/bếp nấu)";
+    fields[21].label =
+      model === "BATT hợp đồng"
+        ? "Thông tin người phụ trách ATTP của đơn vị thực hiện"
+        : "Thông tin người phụ trách ATTP của đơn vị cung cấp suất ăn";
+    fields[22].label =
+      model === "BATT hợp đồng"
+        ? "Hợp đồng thuê nấu - số hợp đồng"
+        : "Hợp đồng cung cấp suất ăn - số hợp đồng";
+    fields[23].label =
+      model === "BATT hợp đồng"
+        ? "Hợp đồng thuê nấu - ngày ký"
+        : "Hợp đồng cung cấp suất ăn - ngày ký";
     if (model === "Nhận suất ăn sẵn") {
       fields.push(
         {
@@ -2847,11 +2865,8 @@ const sampleSchoolSpecificFields = (
           answerType: "text",
         },
       );
-      fields[1].label =
-        "Tên tổ chức/cá nhân/đơn vị cung cấp suất ăn (trụ sở chính)";
-      fields[11].label = "Tên cơ sở/địa điểm nấu ăn (xưởng chế biến/bếp nấu)";
     }
-    return fields;
+    return fields.map((field, order) => ({ ...field, order: 99 + order }));
   }
   if (model !== "Căng tin trường học") return [];
   return [
@@ -2887,7 +2902,7 @@ const sampleSchoolSpecificFields = (
       repeatableFields: sampleSchoolDocumentFields,
     },
     { key: "canteenOtherLegalDocuments", label: "Các hồ sơ pháp lý khác", answerType: "text" },
-  ];
+  ].map((field, order) => ({ ...field, order: 99 + order }));
 };
 
 const sampleSchoolModelExcluded: Record<string, Set<string>> = {
@@ -2983,7 +2998,6 @@ const buildSampleSchoolForms = (
     };
   });
   data.operatingModels = operatingModels.map(({ rowIndex: _rowIndex, ...row }) => row);
-  data.schoolModelDetails = {};
   const forms = operatingModels.map((row) => {
     const formDefinition = sampleSchoolModelForms[row.model];
     const baseFields = criteriaSet.criteria
@@ -3015,21 +3029,38 @@ const buildSampleSchoolForms = (
                 } as Record<string, string>)[item.key] ?? item.label
               : row.model === "Căng tin trường học" && item.key === "totalFoodStaff"
                 ? "Tổng số người tham gia hoạt động có liên quan đến thực phẩm"
+                : row.model === "Căng tin trường học" &&
+                    item.key === "directFoodStaff"
+                  ? "Số người trực tiếp tham gia"
+                  : row.model === "Căng tin trường học" &&
+                      item.key === "mealShiftCapacity"
+                    ? "Số suất/lượt phục vụ theo từng buổi"
                 : item.label,
       }));
     const modelFields: SampleSchoolModelField[] = [
       ...baseFields,
       ...sampleSchoolSpecificFields(row.model),
-    ];
+    ].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     const fields = modelFields.map((field) => {
       const scopedKey = `schoolModelDetails.${row.id}.${field.key}`;
+      if (
+        field.answerType === "file" &&
+        !attachments.some((attachment) => attachment.fieldKey === scopedKey)
+      ) {
+        attachments.push({
+          name: sampleAttachmentName("school", index, `${row.formNumber}-${field.key}`),
+          kind: "application/pdf",
+          size: 280000 + index * 7000,
+          fieldKey: scopedKey,
+        });
+      }
       const value =
         field.answerType === "file"
           ? ""
           : field.key in data
             ? data[field.key]
             : sampleSchoolValue(field, index, "school");
-      (data.schoolModelDetails as Record<string, unknown>)[scopedKey] = value;
+      data[scopedKey] = value;
       return {
         key: field.key,
         label: field.label,
@@ -3404,7 +3435,7 @@ export const applications: Application[] = [
     submittedAt: "2026-08-12T14:10:00+07:00",
     status: "needs-more-info",
     score: 82,
-    reviewNote: "Cần bổ sung ảnh khu lưu mẫu thức ăn.",
+    reviewNote: "Cần đối chiếu thông tin đơn vị và mô hình hoạt động theo Mẫu 01–04.",
     isThirdParty: true,
     criteriaVersion: "SC-2026.1",
     criteriaSnapshot: getCriteriaSet("school").criteria,

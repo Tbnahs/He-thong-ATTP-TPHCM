@@ -8993,10 +8993,19 @@ function LegacyAdminApplicationPage() {
     setScores(application.scoreBreakdown ?? {});
     setNote(application.reviewNote ?? "");
   }, [application?.id, application?.criteriaVersion]);
-  const criteria =
-    application?.criteriaSnapshot
-      ?.filter((item) => item.active)
-      .sort((a, b) => a.order - b.order) ?? [];
+  const criteria = application
+    ? application.criteriaSnapshot
+        .filter(
+          (item) =>
+            item.active &&
+            isRegistrationCriteriaVisible(
+              item,
+              application.data ?? {},
+              application.type,
+            ),
+        )
+        .sort((a, b) => a.order - b.order)
+    : [];
   const ordinaryCriteria = criteria;
   const computedScore = Math.round(
     ordinaryCriteria.reduce(
@@ -9657,6 +9666,7 @@ function SubmittedSchoolModelForms({ forms }: { forms: unknown }) {
           answerType?: string;
           value?: unknown;
           files?: string[];
+          dependsOn?: { key: string; equals?: string; notEquals?: string };
         }>;
       }>)
     : [];
@@ -9670,7 +9680,28 @@ function SubmittedSchoolModelForms({ forms }: { forms: unknown }) {
         Chi tiết Mẫu 01–04
       </h3>
       <div className="mt-4 space-y-4">
-        {submittedForms.map((form, formIndex) => (
+        {submittedForms.map((form, formIndex) => {
+          const visibleFields = (form.fields ?? []).filter((field) => {
+            if (!field.dependsOn) return true;
+            const dependency = form.fields?.find(
+              (candidate) => candidate.key === field.dependsOn?.key,
+            )?.value;
+            const current = Array.isArray(dependency)
+              ? (dependency[0] ?? "")
+              : typeof dependency === "string"
+                ? dependency
+                : "";
+            if (
+              field.dependsOn.equals !== undefined &&
+              current !== field.dependsOn.equals
+            )
+              return false;
+            return !(
+              field.dependsOn.notEquals !== undefined &&
+              current === field.dependsOn.notEquals
+            );
+          });
+          return (
           <article
             key={`${form.formNumber ?? formIndex}-${formIndex}`}
             className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
@@ -9696,12 +9727,12 @@ function SubmittedSchoolModelForms({ forms }: { forms: unknown }) {
               </div>
               </div>
               <span className="shrink-0 text-xs font-semibold text-slate-500">
-                {(form.fields ?? []).length} nội dung kê khai
+                {visibleFields.length} nội dung kê khai
               </span>
             </header>
-            {(form.fields ?? []).length ? (
+            {visibleFields.length ? (
               <dl className="grid gap-3 p-3 sm:grid-cols-2 sm:p-4 lg:grid-cols-3">
-                {(form.fields ?? []).map((field) => {
+                {visibleFields.map((field) => {
                   const value =
                     field.answerType === "file"
                       ? field.files?.join(", ") || "—"
@@ -9733,7 +9764,8 @@ function SubmittedSchoolModelForms({ forms }: { forms: unknown }) {
               </p>
             )}
           </article>
-        ))}
+          );
+        })}
       </div>
     </section>
   );

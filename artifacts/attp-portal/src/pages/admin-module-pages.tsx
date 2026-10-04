@@ -45,6 +45,7 @@ import {
 import {
   applications,
   getCriteriaSet,
+  isRegistrationCriteriaVisible,
   regionalPublicRecords,
   saveApplicationRecord,
   schoolOptions,
@@ -935,8 +936,10 @@ function SchoolModelRegistrationPanel({ forms }: { forms: unknown }) {
         fields?: Array<{
           key: string;
           label: string;
+          answerType?: string;
           value?: unknown;
           files?: string[];
+          dependsOn?: { key: string; equals?: string; notEquals?: string };
         }>;
       }>)
     : [];
@@ -952,7 +955,28 @@ function SchoolModelRegistrationPanel({ forms }: { forms: unknown }) {
         </p>
       ) : (
         <div className="mt-5 space-y-4">
-          {submittedForms.map((form, formIndex) => (
+          {submittedForms.map((form, formIndex) => {
+            const visibleFields = (form.fields ?? []).filter((field) => {
+              if (!field.dependsOn) return true;
+              const dependency = form.fields?.find(
+                (candidate) => candidate.key === field.dependsOn?.key,
+              )?.value;
+              const current = Array.isArray(dependency)
+                ? (dependency[0] ?? "")
+                : typeof dependency === "string"
+                  ? dependency
+                  : "";
+              if (
+                field.dependsOn.equals !== undefined &&
+                current !== field.dependsOn.equals
+              )
+                return false;
+              return !(
+                field.dependsOn.notEquals !== undefined &&
+                current === field.dependsOn.notEquals
+              );
+            });
+            return (
             <article
               key={`${form.formNumber ?? formIndex}-${formIndex}`}
               className="overflow-hidden rounded-2xl border border-border bg-card"
@@ -974,12 +998,12 @@ function SchoolModelRegistrationPanel({ forms }: { forms: unknown }) {
                   </div>
                 </div>
                 <span className="shrink-0 text-xs font-semibold text-muted-foreground">
-                  {(form.fields ?? []).length} nội dung kê khai
+                  {visibleFields.length} nội dung kê khai
                 </span>
               </header>
-              {(form.fields ?? []).length ? (
+              {visibleFields.length ? (
                 <dl className="grid gap-3 p-3 sm:grid-cols-2 sm:p-4 lg:grid-cols-3">
-                  {(form.fields ?? []).map((field) => (
+                  {visibleFields.map((field) => (
                     <div
                       key={field.key}
                       className="min-w-0 rounded-xl border border-border/80 bg-background p-3"
@@ -1002,7 +1026,8 @@ function SchoolModelRegistrationPanel({ forms }: { forms: unknown }) {
                 </p>
               )}
             </article>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -2841,9 +2866,7 @@ export function AdminFacilitiesPage() {
   }, [selectedApplication?.id, selectedApplication?.reviewNote, selectedApplication?.status]);
 
   const applicationRows: FacilityManagementRow[] = [
-    ...applications
-      .filter((app) => app.status !== "approved")
-      .map((app) => ({
+    ...applications.map((app) => ({
         id: `application-${app.id}`,
         name: app.applicantName,
         province: String(app.data.addressProvince ?? "TP. Hồ Chí Minh"),
@@ -2869,27 +2892,22 @@ export function AdminFacilitiesPage() {
   ];
 
   const rows = useMemo(() => {
-    const source =
-      activeTab === "all"
-        ? [
-            ...facilityManagementData.suppliers,
-            ...facilityManagementData.schools,
-            ...facilityManagementData.food,
-            ...applicationRows,
-            ...importedRows,
-          ]
-        : [
-            ...facilityManagementData[
-              activeTab as Exclude<FacilityManagementTab, "all">
-            ],
-            ...importedRows.filter((row) => {
-              if (activeTab === "food")
-                return row.category === "Cơ sở cung cấp thực phẩm";
-              if (activeTab === "schools")
-                return row.category === "Trường học có bếp ăn bán trú";
-              return row.category === "Cơ sở cung cấp suất ăn";
-            }),
-          ];
+    const activeType =
+      activeTab === "schools"
+        ? "school"
+        : activeTab === "food"
+          ? "food-supplier"
+          : activeTab === "suppliers"
+            ? "meal-provider"
+            : undefined;
+    const source = [
+      ...applicationRows.filter(
+        (row) => !activeType || getRowRegistrationType(row) === activeType,
+      ),
+      ...importedRows.filter(
+        (row) => !activeType || getRowRegistrationType(row) === activeType,
+      ),
+    ];
     return source.filter((row) => {
       const haystack =
         `${row.name} ${row.address} ${row.ward} ${row.contact}`.toLowerCase();
@@ -2899,16 +2917,19 @@ export function AdminFacilitiesPage() {
           managementStatusLabel(row.status) === statusFilter)
       );
     });
-  }, [activeTab, importedRows, search, statusFilter]);
+  }, [activeTab, applicationRows, importedRows, search, statusFilter]);
 
   const tabCounts = {
-    all:
-      facilityManagementData.suppliers.length +
-      facilityManagementData.schools.length +
-      facilityManagementData.food.length,
-    suppliers: facilityManagementData.suppliers.length,
-    schools: facilityManagementData.schools.length,
-    food: facilityManagementData.food.length,
+    all: applicationRows.length + importedRows.length,
+    suppliers:
+      applicationRows.filter((row) => getRowRegistrationType(row) === "meal-provider").length +
+      importedRows.filter((row) => getRowRegistrationType(row) === "meal-provider").length,
+    schools:
+      applicationRows.filter((row) => getRowRegistrationType(row) === "school").length +
+      importedRows.filter((row) => getRowRegistrationType(row) === "school").length,
+    food:
+      applicationRows.filter((row) => getRowRegistrationType(row) === "food-supplier").length +
+      importedRows.filter((row) => getRowRegistrationType(row) === "food-supplier").length,
   };
 
   const formatNumber = (value?: number) =>
@@ -2960,11 +2981,28 @@ export function AdminFacilitiesPage() {
     selectedApplication?.attachments ?? selectedStoredAccount?.registration?.files ?? [];
   const selectedCriteria = selectedApplication
     ? selectedApplication.criteriaSnapshot
-        .filter((item) => item.active)
+        .filter(
+          (item) =>
+            item.active &&
+            selectedRegistrationType !== undefined &&
+            isRegistrationCriteriaVisible(
+              item,
+              selectedRegistrationFields ?? {},
+              selectedRegistrationType,
+            ),
+        )
         .sort((a, b) => a.order - b.order)
     : selectedRegistrationType
       ? getCriteriaSet(selectedRegistrationType).criteria
-          .filter((item) => item.active)
+          .filter(
+            (item) =>
+              item.active &&
+              isRegistrationCriteriaVisible(
+                item,
+                selectedRegistrationFields ?? {},
+                selectedRegistrationType,
+              ),
+          )
           .sort((a, b) => a.order - b.order)
     : [];
   const selectedGroups = selectedApplication
@@ -3657,6 +3695,13 @@ export function AdminFacilitiesPage() {
                     );
                   })}
                 </div>
+                {selectedRegistrationType === "school" && (
+                  <div className="mt-6 rounded-2xl border border-border bg-background p-4 sm:p-6">
+                    <SchoolModelRegistrationPanel
+                      forms={selectedRegistrationFields.schoolModelForms}
+                    />
+                  </div>
+                )}
                 {selectedApplication?.reviewNote && (
                   <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
                     <Info size={17} className="mt-0.5 shrink-0" />
@@ -3825,9 +3870,6 @@ export function AdminFacilityDetailPage() {
       applicationId: app.id,
     }));
     const allRows = [
-      ...facilityManagementData.suppliers,
-      ...facilityManagementData.schools,
-      ...facilityManagementData.food,
       ...applicationRows,
       ...getStoredRegistrationRows(),
     ];
@@ -3873,29 +3915,6 @@ export function AdminFacilityDetailPage() {
     application?.type ??
     row.storedAccount?.registration?.type ??
     getRowRegistrationType(row);
-  const snapshotCriteria = application?.criteriaSnapshot ?? [];
-  const snapshotKeys = new Set(snapshotCriteria.map((item) => item.key));
-  const registrationCriteria = registrationType
-    ? [
-        ...snapshotCriteria,
-        ...getCriteriaSet(registrationType).criteria.filter(
-          (item) => !snapshotKeys.has(item.key),
-        ),
-      ]
-        .filter((item) => item.active)
-        .sort((a, b) => a.order - b.order)
-    : [];
-  const snapshotGroupIds = new Set(
-    (application?.criteriaGroups ?? []).map((group) => group.id),
-  );
-  const registrationGroups = registrationType
-    ? [
-        ...(application?.criteriaGroups ?? []),
-        ...getCriteriaSet(registrationType).groups.filter(
-          (group) => !snapshotGroupIds.has(group.id),
-        ),
-      ].sort((a, b) => a.order - b.order)
-    : [];
   const registrationFields =
     application?.data ??
     row.storedAccount?.registration?.fields ??
@@ -3910,6 +3929,37 @@ export function AdminFacilityDetailPage() {
       students: row.students,
       demand: row.demand,
     } satisfies Record<string, unknown>);
+  const snapshotCriteria = application?.criteriaSnapshot ?? [];
+  const snapshotKeys = new Set(snapshotCriteria.map((item) => item.key));
+  const registrationCriteria = registrationType
+    ? [
+        ...snapshotCriteria,
+        ...getCriteriaSet(registrationType).criteria.filter(
+          (item) => !snapshotKeys.has(item.key),
+        ),
+      ]
+        .filter(
+          (item) =>
+            item.active &&
+            isRegistrationCriteriaVisible(
+              item,
+              registrationFields,
+              registrationType,
+            ),
+        )
+        .sort((a, b) => a.order - b.order)
+    : [];
+  const snapshotGroupIds = new Set(
+    (application?.criteriaGroups ?? []).map((group) => group.id),
+  );
+  const registrationGroups = registrationType
+    ? [
+        ...(application?.criteriaGroups ?? []),
+        ...getCriteriaSet(registrationType).groups.filter(
+          (group) => !snapshotGroupIds.has(group.id),
+        ),
+      ].sort((a, b) => a.order - b.order)
+    : [];
   const registrationFiles =
     application?.attachments ?? row.storedAccount?.registration?.files ?? [];
   const registrant = getFacilityRegistrant(application, row.storedAccount) ?? {
