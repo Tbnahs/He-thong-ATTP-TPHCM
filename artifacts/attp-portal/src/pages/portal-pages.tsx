@@ -8696,6 +8696,96 @@ function formatApplicationAnswer(
   return formatAnswer(data[item.key]);
 }
 
+function ApplicationAnswerDisplay({
+  item,
+  data,
+  attachments,
+}: {
+  item: CriteriaDefinition;
+  data: Record<string, unknown>;
+  attachments: Attachment[];
+}) {
+  if (item.answerType === "file") {
+    const files = attachments
+      .filter((file) => file.fieldKey === item.key)
+      .map((file) => file.name);
+    return files.length ? (
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {files.map((file) => (
+          <span
+            key={file}
+            className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-[#16604f]/15 bg-[#e7f2ef] px-2 py-1 text-xs font-semibold text-[#16604f]"
+          >
+            <FileText size={13} className="shrink-0" />
+            <span className="break-all">{file}</span>
+          </span>
+        ))}
+      </div>
+    ) : (
+      <p className="mt-1.5 text-sm font-medium text-slate-400">—</p>
+    );
+  }
+
+  if (item.answerType === "repeatable") {
+    const rows = Array.isArray(data[item.key])
+      ? (data[item.key] as Record<string, unknown>[])
+      : [];
+    return rows.length ? (
+      <div className="mt-2 space-y-2">
+        {rows.map((row, rowIndex) => (
+          <article
+            key={String(row.id ?? rowIndex)}
+            className="rounded-lg border border-slate-200 bg-white p-3"
+          >
+            <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#16604f]">
+              Dòng kê khai {rowIndex + 1}
+            </p>
+            <dl className="mt-2 grid gap-x-4 gap-y-3 sm:grid-cols-2">
+              {(item.repeatableFields ?? []).map((field) => {
+                const rowFiles = attachments
+                  .filter(
+                    (file) =>
+                      file.fieldKey === `${item.key}.${rowIndex}.${field.key}`,
+                  )
+                  .map((file) => file.name);
+                const value =
+                  field.answerType === "file"
+                    ? rowFiles.join(", ") || formatAnswer(row[field.key])
+                    : formatAnswer(row[field.key]);
+                return (
+                  <div key={field.key} className="min-w-0">
+                    <dt className="text-xs font-medium text-slate-500">
+                      {field.label}
+                    </dt>
+                    <dd className="mt-0.5 break-words text-sm font-semibold text-slate-800">
+                      {value}
+                    </dd>
+                  </div>
+                );
+              })}
+            </dl>
+          </article>
+        ))}
+      </div>
+    ) : (
+      <p className="mt-1.5 text-sm font-medium text-slate-400">—</p>
+    );
+  }
+
+  const answer = formatAnswer(data[item.key]);
+  return (
+    <p
+      className={`mt-1.5 whitespace-pre-line break-words text-sm ${
+        answer === "—"
+          ? "font-medium text-slate-400"
+          : "font-semibold text-slate-800"
+      }`}
+    >
+      {answer}
+    </p>
+  );
+}
+
 function CriteriaReviewPanel({
   criteria,
   criteriaGroups,
@@ -9594,53 +9684,76 @@ function SubmittedSchoolModelForms({ forms }: { forms: unknown }) {
     : [];
   if (!submittedForms.length) return null;
   return (
-    <section className="mt-7 rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5 sm:p-7">
+    <section className="mt-7 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
       <p className="text-xs font-bold uppercase tracking-[.16em] text-emerald-800">
         KÊ KHAI THEO MẪU
       </p>
       <h3 className="mt-2 text-xl font-extrabold text-slate-900">
         Chi tiết Mẫu 01–04
       </h3>
-      <div className="mt-5 space-y-5">
+      <div className="mt-4 space-y-4">
         {submittedForms.map((form, formIndex) => (
           <article
             key={`${form.formNumber ?? formIndex}-${formIndex}`}
-            className="rounded-xl border border-emerald-200 bg-white p-4"
+            className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
           >
-            <div className="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 pb-3">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-emerald-800">
-                  Mẫu số {form.formNumber ?? "—"} · {form.model ?? "Mô hình"}
-                </p>
+            <header className="flex flex-col gap-2 border-b border-slate-200 bg-[#e7f2ef]/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+              <div className="flex min-w-0 items-start gap-3">
+                <span className="inline-flex h-8 shrink-0 items-center rounded-md border border-[#16604f]/20 bg-white px-2 text-xs font-extrabold text-[#16604f]">
+                  MẪU {form.formNumber ?? "—"}
+                </span>
+                <div className="min-w-0">
+                  <h4 className="font-extrabold leading-5 text-slate-900">
+                    {form.model ?? "Mô hình hoạt động"}
+                  </h4>
                 {form.providerName ? (
-                  <p className="mt-1 text-sm font-semibold text-slate-700">
-                    Đơn vị liên kết đã đăng ký: {form.providerName}
+                  <p className="mt-1 text-xs font-medium text-slate-600">
+                    Đơn vị liên quan: {form.providerName}
                   </p>
                 ) : (
-                  <p className="mt-1 text-sm text-amber-800">
-                    Chưa liên kết đơn vị đăng ký; nhà trường có thể bổ sung sau.
+                  <p className="mt-1 text-xs text-amber-800">
+                    Chưa liên kết đơn vị đăng ký
                   </p>
                 )}
               </div>
-            </div>
-            <dl className="mt-3 grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
-              {(form.fields ?? []).map((field) => {
-                const value =
-                  field.answerType === "file"
-                    ? field.files?.join(", ") || "—"
-                    : formatAnswer(field.value);
-                return (
-                  <div key={field.key} className="min-w-0">
-                    <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                      {field.label}
-                    </dt>
-                    <dd className="mt-1.5 whitespace-pre-line break-words text-sm font-semibold text-slate-800">
-                      {value}
-                    </dd>
-                  </div>
-                );
-              })}
-            </dl>
+              </div>
+              <span className="shrink-0 text-xs font-semibold text-slate-500">
+                {(form.fields ?? []).length} nội dung kê khai
+              </span>
+            </header>
+            {(form.fields ?? []).length ? (
+              <dl className="grid gap-3 p-3 sm:grid-cols-2 sm:p-4 lg:grid-cols-3">
+                {(form.fields ?? []).map((field) => {
+                  const value =
+                    field.answerType === "file"
+                      ? field.files?.join(", ") || "—"
+                      : formatAnswer(field.value);
+                  return (
+                    <div
+                      key={field.key}
+                      className="min-w-0 rounded-xl border border-slate-200 bg-slate-50/70 p-3"
+                    >
+                      <dt className="text-xs font-bold leading-5 text-slate-500">
+                        {field.label}
+                      </dt>
+                      <dd
+                        className={`mt-1.5 whitespace-pre-line break-words text-sm ${
+                          value === "—"
+                            ? "font-medium text-slate-400"
+                            : "font-semibold text-slate-800"
+                        }`}
+                      >
+                        {value}
+                      </dd>
+                    </div>
+                  );
+                })}
+              </dl>
+            ) : (
+              <p className="p-4 text-sm text-slate-500">
+                Chưa có nội dung kê khai cho mẫu này.
+              </p>
+            )}
           </article>
         ))}
       </div>
@@ -10023,35 +10136,61 @@ export function AdminApplicationPage() {
               nhận {formatDate(application.submittedAt)}
             </span>
           </div>
-          <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-            <div className="space-y-7">
-              {formGroups.map((group) => {
+          <div className="rounded-[1.5rem] border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+            <div className="space-y-4">
+              {formGroups.map((group, groupIndex) => {
                 const groupCriteria = criteria.filter(
                   (item) => item.groupId === group.id,
                 );
                 if (!groupCriteria.length) return null;
                 return (
-                  <div key={group.id}>
-                    <h3 className="border-b border-slate-200 pb-2 text-sm font-extrabold text-[#16604f]">
-                      {group.name}
-                    </h3>
-                    <dl className="mt-3 grid gap-x-7 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
+                  <article
+                    key={group.id}
+                    className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
+                  >
+                    <header className="flex flex-col gap-3 border-b border-slate-200 bg-[#e7f2ef]/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <span className="inline-flex h-8 min-w-8 shrink-0 items-center justify-center rounded-md border border-[#16604f]/20 bg-white px-2 text-xs font-extrabold text-[#16604f]">
+                          {String(groupIndex + 1).padStart(2, "0")}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-extrabold uppercase tracking-[.12em] text-[#16604f]">
+                            Phần {String(groupIndex + 1).padStart(2, "0")}
+                          </p>
+                          <h3 className="mt-0.5 font-extrabold leading-5 text-slate-900">
+                            {group.name}
+                          </h3>
+                        </div>
+                      </div>
+                      <span className="shrink-0 text-xs font-semibold text-slate-500">
+                        {groupCriteria.length} nội dung kê khai
+                      </span>
+                    </header>
+                    <dl className="grid gap-3 bg-slate-50/50 p-3 sm:grid-cols-2 sm:p-4 lg:grid-cols-3">
                       {groupCriteria.map((item) => (
-                        <div key={item.key} className="min-w-0">
-                          <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                        <div
+                          key={item.key}
+                          className="min-w-0 rounded-xl border border-slate-200 bg-white p-3"
+                        >
+                          <dt className="text-xs font-bold leading-5 text-slate-600">
                             {item.label}
                           </dt>
-                          <dd className="mt-1.5 break-words text-sm font-bold text-slate-800">
-                            {formatApplicationAnswer(
-                              item,
-                              application.data ?? {},
-                              application.attachments,
-                            )}
+                          {item.description ? (
+                            <p className="mt-1 text-xs leading-5 text-slate-500">
+                              {item.description}
+                            </p>
+                          ) : null}
+                          <dd>
+                            <ApplicationAnswerDisplay
+                              item={item}
+                              data={application.data ?? {}}
+                              attachments={application.attachments}
+                            />
                           </dd>
                         </div>
                       ))}
                     </dl>
-                  </div>
+                  </article>
                 );
               })}
               {application.type === "school" && (

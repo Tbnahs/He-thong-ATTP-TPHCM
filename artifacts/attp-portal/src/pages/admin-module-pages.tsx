@@ -835,6 +835,97 @@ const formatManagementAnswer = (
   return formatManagementScalar(value);
 };
 
+function ManagementAnswerDisplay({
+  value,
+  repeatableFields,
+  files,
+  attachments,
+  fieldKey,
+}: {
+  value: unknown;
+  repeatableFields?: ManagementRepeatableField[];
+  files?: string[];
+  attachments?: { fieldKey?: string; name: string }[];
+  fieldKey?: string;
+}) {
+  const answerFiles =
+    files?.length
+      ? files
+      : attachments
+          ?.filter((file) => file.fieldKey === fieldKey)
+          .map((file) => file.name) ?? [];
+  if (answerFiles.length) {
+    return (
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {answerFiles.map((file) => (
+          <span
+            key={file}
+            className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-primary/15 bg-primary/5 px-2 py-1 text-xs font-semibold text-primary"
+          >
+            <FileText size={13} className="shrink-0" />
+            <span className="break-all">{file}</span>
+          </span>
+        ))}
+      </div>
+    );
+  }
+
+  const repeatedRows =
+    Array.isArray(value) &&
+    repeatableFields?.length &&
+    value.every((item) => typeof item === "object" && item !== null)
+      ? (value as Array<Record<string, unknown>>)
+      : null;
+
+  if (repeatedRows) {
+    return repeatedRows.length ? (
+      <div className="mt-2 space-y-2">
+        {repeatedRows.map((row, index) => (
+          <article
+            key={String(row.id ?? index)}
+            className="rounded-lg border border-border/80 bg-background p-3"
+          >
+            <p className="text-[10px] font-extrabold uppercase tracking-wider text-primary">
+              Dòng kê khai {index + 1}
+            </p>
+            <dl className="mt-2 grid gap-x-4 gap-y-3 sm:grid-cols-2">
+              {(repeatableFields ?? []).map((field) => (
+                <div key={field.key} className="min-w-0">
+                  <dt className="text-xs font-medium text-muted-foreground">
+                    {field.label}
+                  </dt>
+                  <dd className="mt-0.5 break-words text-sm font-semibold">
+                    {attachments
+                      ?.filter(
+                        (file) =>
+                          file.fieldKey === `${fieldKey}.${index}.${field.key}`,
+                      )
+                      .map((file) => file.name)
+                      .join(", ") || formatManagementScalar(row[field.key], field)}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </article>
+        ))}
+      </div>
+    ) : (
+      <p className="mt-1.5 text-sm text-muted-foreground">Chưa có nội dung kê khai.</p>
+    );
+  }
+
+  const answer = formatManagementAnswer(value, repeatableFields);
+  return (
+    <p
+      className={`mt-1.5 whitespace-pre-line break-words text-sm ${
+        answer === "—" ? "font-medium text-muted-foreground" : "font-semibold text-foreground"
+      }`}
+    >
+      {answer}
+    </p>
+  );
+}
+
 function SchoolModelRegistrationPanel({ forms }: { forms: unknown }) {
   const submittedForms = Array.isArray(forms)
     ? (forms as Array<{
@@ -860,34 +951,56 @@ function SchoolModelRegistrationPanel({ forms }: { forms: unknown }) {
           Chưa có dữ liệu mẫu chi tiết trong hồ sơ này.
         </p>
       ) : (
-        <div className="mt-5 space-y-5">
+        <div className="mt-5 space-y-4">
           {submittedForms.map((form, formIndex) => (
             <article
               key={`${form.formNumber ?? formIndex}-${formIndex}`}
-              className="rounded-xl border border-border bg-background p-4"
+              className="overflow-hidden rounded-2xl border border-border bg-card"
             >
-              <p className="text-sm font-extrabold text-primary">
-                Mẫu số {form.formNumber ?? "—"} · {form.model ?? "Mô hình"}
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {form.providerName
-                  ? `Đơn vị đã đăng ký: ${form.providerName}`
-                  : "Chưa liên kết đơn vị đăng ký; trường có thể bổ sung sau."}
-              </p>
-              <dl className="mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
-                {(form.fields ?? []).map((field) => (
-                  <div key={field.key} className="min-w-0">
-                    <dt className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                      {field.label}
-                    </dt>
-                    <dd className="mt-1.5 whitespace-pre-line break-words text-sm font-semibold">
-                      {field.files?.length
-                        ? field.files.join(", ")
-                        : formatManagementAnswer(field.value)}
-                    </dd>
+              <header className="flex flex-col gap-2 border-b border-border bg-secondary/35 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="inline-flex h-8 shrink-0 items-center rounded-md border border-primary/25 bg-card px-2 text-xs font-extrabold text-primary">
+                    MẪU {form.formNumber ?? "—"}
+                  </span>
+                  <div className="min-w-0">
+                    <h3 className="font-extrabold leading-5">
+                      {form.model ?? "Mô hình hoạt động"}
+                    </h3>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {form.providerName
+                        ? `Đơn vị liên quan: ${form.providerName}`
+                        : "Chưa liên kết đơn vị đăng ký"}
+                    </p>
                   </div>
-                ))}
-              </dl>
+                </div>
+                <span className="shrink-0 text-xs font-semibold text-muted-foreground">
+                  {(form.fields ?? []).length} nội dung kê khai
+                </span>
+              </header>
+              {(form.fields ?? []).length ? (
+                <dl className="grid gap-3 p-3 sm:grid-cols-2 sm:p-4 lg:grid-cols-3">
+                  {(form.fields ?? []).map((field) => (
+                    <div
+                      key={field.key}
+                      className="min-w-0 rounded-xl border border-border/80 bg-background p-3"
+                    >
+                      <dt className="text-xs font-bold leading-5 text-muted-foreground">
+                        {field.label}
+                      </dt>
+                      <dd>
+                        <ManagementAnswerDisplay
+                          value={field.value}
+                          files={field.files}
+                        />
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              ) : (
+                <p className="p-4 text-sm text-muted-foreground">
+                  Chưa có nội dung kê khai cho mẫu này.
+                </p>
+              )}
             </article>
           ))}
         </div>
@@ -3908,46 +4021,71 @@ export function AdminFacilityDetailPage() {
               {application ? `Đã tiếp nhận ${submittedAt}` : "Hồ sơ cơ sở"}
             </span>
           </div>
-          <div className="mt-5 space-y-7 rounded-2xl border border-border bg-background p-4 sm:p-6">
-            {registrationGroups.map((group) => {
+          <div className="mt-5 space-y-4">
+            {registrationGroups.map((group, groupIndex) => {
               const groupCriteria = registrationCriteria.filter(
                 (item) => item.groupId === group.id,
               );
               if (!groupCriteria.length) return null;
               return (
-                <div key={group.id}>
-                  <h3 className="border-b border-border pb-2 text-sm font-extrabold text-primary">
-                    {group.name}
-                  </h3>
-                  <dl className="mt-3 grid gap-x-7 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
+                <article
+                  key={group.id}
+                  className="overflow-hidden rounded-2xl border border-border bg-card"
+                >
+                  <header className="flex flex-col gap-3 border-b border-border bg-secondary/35 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <span className="inline-flex h-8 min-w-8 shrink-0 items-center justify-center rounded-md border border-primary/25 bg-card px-2 text-xs font-extrabold text-primary">
+                        {String(groupIndex + 1).padStart(2, "0")}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-extrabold uppercase tracking-[.12em] text-primary">
+                          Phần {String(groupIndex + 1).padStart(2, "0")}
+                        </p>
+                        <h3 className="mt-0.5 font-extrabold leading-5">
+                          {group.name}
+                        </h3>
+                      </div>
+                    </div>
+                    <span className="shrink-0 text-xs font-semibold text-muted-foreground">
+                      {groupCriteria.length} nội dung kê khai
+                    </span>
+                  </header>
+                  <dl className="grid gap-3 p-3 sm:grid-cols-2 sm:p-4 lg:grid-cols-3">
                     {groupCriteria.map((item) => {
-                      const value =
-                        item.answerType === "file"
-                          ? registrationFiles
-                              .filter((file) => file.fieldKey === item.key)
-                              .map((file) => file.name)
-                              .join(", ") || "—"
-                          : formatManagementAnswer(
-                              registrationFields[item.key],
-                              item.repeatableFields,
-                            );
                       return (
-                        <div key={item.key} className="min-w-0">
-                          <dt className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                        <div
+                          key={item.key}
+                          className="min-w-0 rounded-xl border border-border/80 bg-background p-3"
+                        >
+                          <dt className="text-xs font-bold leading-5 text-muted-foreground">
                             {item.label}
                           </dt>
-                          <dd className="mt-1.5 whitespace-pre-line break-words text-sm font-bold">
-                            {value}
+                          {item.description ? (
+                            <p className="mt-1 text-xs leading-5 text-muted-foreground/80">
+                              {item.description}
+                            </p>
+                          ) : null}
+                          <dd>
+                            <ManagementAnswerDisplay
+                              value={
+                                item.answerType === "file"
+                                  ? undefined
+                                  : registrationFields[item.key]
+                              }
+                              repeatableFields={item.repeatableFields}
+                              attachments={registrationFiles}
+                              fieldKey={item.key}
+                            />
                           </dd>
                         </div>
                       );
                     })}
                   </dl>
-                </div>
+                </article>
               );
             })}
-            {!registrationGroups.length && (
-              <p className="text-sm text-muted-foreground">
+            {!registrationCriteria.length && (
+              <p className="rounded-xl border border-dashed border-border p-5 text-sm text-muted-foreground">
                 Chưa có cấu hình trường đăng ký cho loại cơ sở này.
               </p>
             )}
