@@ -2741,16 +2741,13 @@ export function FacilityApplicationsPage() {
       getDemoSupplementRequestsForApplication(application.id),
     ]),
   );
-  const supplementRequests = accountApplications.flatMap((application) =>
-    (requestsByApplication.get(application.id) ?? []).map((request) => ({
-      application,
-      request,
-    })),
-  );
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordNotice, setPasswordNotice] = useState("");
+  const [activeAccountTab, setActiveAccountTab] = useState<
+    "applications" | "password"
+  >("applications");
 
   const updatePassword = (event: FormEvent) => {
     event.preventDefault();
@@ -2787,10 +2784,14 @@ export function FacilityApplicationsPage() {
           <div>
             <p className="mono-label text-primary">TÀI KHOẢN CƠ SỞ</p>
             <h1 className="display-tight mt-2 text-3xl font-extrabold">
-              Hồ sơ của tôi
+              {activeAccountTab === "applications"
+                ? "Hồ sơ của tôi"
+                : "Đổi mật khẩu"}
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Theo dõi tiến độ và nhận yêu cầu bổ sung tại đây.
+              {activeAccountTab === "applications"
+                ? "Theo dõi tiến độ và nhận yêu cầu bổ sung tại đây."
+                : "Cập nhật mật khẩu cho tài khoản cơ sở."}
             </p>
           </div>
           {account && (
@@ -2808,11 +2809,6 @@ export function FacilityApplicationsPage() {
           )}
         </div>
 
-        <p className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">
-          Bản demo lưu tài khoản và thông báo trong trình duyệt hiện tại; dữ liệu
-          chưa được đồng bộ sang thiết bị khác.
-        </p>
-
         {!account ? (
           <section className="mt-6 rounded-2xl border border-border bg-card p-6">
             <h2 className="text-lg font-extrabold">
@@ -2828,7 +2824,51 @@ export function FacilityApplicationsPage() {
           </section>
         ) : (
           <>
-            <section className="mt-6 space-y-4" aria-label="Danh sách hồ sơ">
+            <div
+              className="mt-6 flex gap-1 border-b border-border"
+              role="tablist"
+              aria-label="Tài khoản cơ sở"
+            >
+              <button
+                id="tab-facility-applications"
+                type="button"
+                role="tab"
+                aria-selected={activeAccountTab === "applications"}
+                aria-controls="panel-facility-applications"
+                onClick={() => setActiveAccountTab("applications")}
+                className={`focus-ring -mb-px border-b-2 px-4 py-3 text-sm font-bold transition-colors ${
+                  activeAccountTab === "applications"
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Hồ sơ của tôi
+              </button>
+              <button
+                id="tab-facility-password"
+                type="button"
+                role="tab"
+                aria-selected={activeAccountTab === "password"}
+                aria-controls="panel-facility-password"
+                onClick={() => setActiveAccountTab("password")}
+                className={`focus-ring -mb-px border-b-2 px-4 py-3 text-sm font-bold transition-colors ${
+                  activeAccountTab === "password"
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Đổi mật khẩu
+              </button>
+            </div>
+            <section
+              id="panel-facility-applications"
+              role="tabpanel"
+              aria-labelledby="tab-facility-applications"
+              tabIndex={0}
+              hidden={activeAccountTab !== "applications"}
+              className="mt-6 space-y-4"
+              aria-label="Danh sách hồ sơ"
+            >
               {accountApplications.length === 0 ? (
                 <div className="rounded-2xl border border-border bg-card p-6">
                   <h2 className="font-extrabold">Chưa có hồ sơ đăng ký</h2>
@@ -2873,7 +2913,7 @@ export function FacilityApplicationsPage() {
                           </p>
                           {openRequest && (
                             <Link
-                              href={`/facility/supplement/${openRequest.token}`}
+                              href={`/supplement/${openRequest.token}`}
                               className="focus-ring mt-3 inline-flex min-h-10 items-center gap-2 rounded-lg bg-amber-900 px-4 py-2 text-sm font-bold text-white hover:bg-amber-800"
                               data-testid={`link-respond-supplement-${application.id}`}
                             >
@@ -2882,63 +2922,30 @@ export function FacilityApplicationsPage() {
                           )}
                         </div>
                       )}
+                      <Link
+                        href={`/facility/applications/${encodeURIComponent(application.id)}/form`}
+                        className="focus-ring mt-4 inline-flex min-h-10 items-center gap-2 rounded-lg border border-primary/25 px-4 py-2 text-sm font-bold text-primary hover:bg-secondary"
+                        data-testid={`link-view-submitted-form-${application.id}`}
+                      >
+                        <FileText size={15} />
+                        {application.status === "needs-more-info"
+                          ? "Mở lại biểu mẫu để bổ sung"
+                          : "Xem biểu mẫu đã nộp"}
+                      </Link>
                     </article>
                   );
                 })
               )}
             </section>
 
-            <section className="mt-8 rounded-2xl border border-border bg-card p-5 sm:p-6">
-              <div className="flex items-center gap-2">
-                <Bell size={18} className="text-primary" />
-                <h2 className="text-lg font-extrabold">Yêu cầu bổ sung</h2>
-              </div>
-              {supplementRequests.length === 0 ? (
-                <p className="mt-3 text-sm text-muted-foreground">
-                  Chưa có yêu cầu bổ sung nào trong tài khoản.
-                </p>
-              ) : (
-                <div className="mt-4 space-y-3">
-                  {supplementRequests.map(({ application, request }) => (
-                    <article
-                      key={request.token}
-                      className="rounded-xl border border-border bg-background p-4"
-                      data-testid={`card-supplement-request-${request.token}`}
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="font-bold">
-                          {application.reference} · {application.applicantName}
-                        </p>
-                        <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-bold text-primary">
-                          {request.status === "open"
-                            ? "Chờ cơ sở phản hồi"
-                            : request.status === "submitted"
-                              ? "Đã gửi bổ sung"
-                              : "Yêu cầu đã được thay thế"}
-                        </span>
-                      </div>
-                      <p className="mt-2 whitespace-pre-line text-sm leading-6 text-muted-foreground">
-                        {request.reason}
-                      </p>
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        Ngày gửi {formatDate(request.createdAt)}
-                      </p>
-                      {request.status === "open" && (
-                        <Link
-                          href={`/facility/supplement/${request.token}`}
-                          className="focus-ring mt-3 inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:bg-primary/90"
-                          data-testid={`link-open-supplement-${request.token}`}
-                        >
-                          <FileText size={15} /> Mở biểu mẫu bổ sung
-                        </Link>
-                      )}
-                    </article>
-                  ))}
-                </div>
-              )}
-            </section>
-
-            <section className="mt-8 rounded-2xl border border-border bg-card p-5 sm:p-6">
+            <section
+              id="panel-facility-password"
+              role="tabpanel"
+              aria-labelledby="tab-facility-password"
+              tabIndex={0}
+              hidden={activeAccountTab !== "password"}
+              className="mt-6 rounded-2xl border border-border bg-card p-5 sm:p-6"
+            >
               <div className="flex items-center gap-2">
                 <LockKeyhole size={18} className="text-primary" />
                 <h2 className="text-lg font-extrabold">Đổi mật khẩu</h2>
@@ -2994,6 +3001,100 @@ export function FacilityApplicationsPage() {
             </section>
           </>
         )}
+      </main>
+    </PublicShell>
+  );
+}
+
+export function FacilityApplicationFormPage() {
+  const { id = "" } = useParams<{ id: string }>();
+  const sessionUsername =
+    sessionStorage.getItem("attp-session-username") || "";
+  const accounts = readFacilityAccounts();
+  const activeAccount = accounts.find(
+    (item) =>
+      item.username.toLowerCase() === sessionUsername.toLowerCase() ||
+      item.email.toLowerCase() === sessionUsername.toLowerCase(),
+  );
+  const applicationAccount = accounts.find(
+    (item) => item.username.toLowerCase() === id.toLowerCase(),
+  );
+  const application = applications.find((item) => item.id === id);
+
+  if (
+    !application ||
+    !activeAccount ||
+    !applicationAccount ||
+    applicationAccount.email.toLowerCase() !==
+      activeAccount.email.toLowerCase()
+  ) {
+    return <NotFound />;
+  }
+
+  const savedApplicationFields = application.data as
+    | Record<string, unknown>
+    | undefined;
+  const savedAccountFields = applicationAccount.registration?.fields as
+    | Record<string, unknown>
+    | undefined;
+  const hasSavedAnswers =
+    Object.keys(savedApplicationFields ?? {}).length > 0 ||
+    Object.keys(savedAccountFields ?? {}).length > 0;
+  const hasOriginalCriteria =
+    Array.isArray(application.criteriaSnapshot) &&
+    application.criteriaSnapshot.length > 0;
+  const canEdit =
+    application.status === "needs-more-info" && hasSavedAnswers;
+  return (
+    <PublicShell>
+      <main className="mx-auto max-w-7xl px-5 py-9 lg:px-8 lg:py-12">
+        <Link
+          href="/facility/applications"
+          className="focus-ring inline-flex items-center gap-2 text-sm font-bold text-primary hover:underline"
+        >
+          <ArrowLeft size={16} /> Quay lại hồ sơ của tôi
+        </Link>
+        <div className="mt-5 flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-border bg-card p-5">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wide text-primary">
+              {application.reference} · {typeNames[application.type]}
+            </p>
+            <h1 className="mt-1 text-xl font-extrabold">
+              {application.applicantName}
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {!hasSavedAnswers
+                ? "Hồ sơ cũ không còn dữ liệu kê khai để khôi phục biểu mẫu đã nộp."
+                : !hasOriginalCriteria
+                  ? "Không còn bản chụp bộ câu hỏi gốc. Các câu trả lời còn lưu được nạp vào biểu mẫu tham khảo; mục không có dữ liệu sẽ để trống."
+                  : canEdit
+                    ? "Cập nhật trực tiếp trên biểu mẫu đã nộp; các câu trả lời hiện có được giữ nguyên."
+                    : "Đây là biểu mẫu và các câu trả lời đã nộp, ở chế độ chỉ xem."}
+            </p>
+          </div>
+          <ApplicationStatusBadge status={application.status} />
+        </div>
+        <section className="mt-6">
+          {hasSavedAnswers ? (
+            <ApplicationForm
+              key={application.id}
+              mode="edit"
+              account={applicationAccount}
+              initialSnapshot={applicationAccount.registration}
+              supplementApplication={application}
+              readOnly={!canEdit}
+            />
+          ) : (
+            <div
+              className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-950"
+              role="note"
+            >
+              Không thể hiển thị lại biểu mẫu vì bản ghi cũ không lưu câu trả
+              lời kê khai. Trang không tạo dữ liệu thay thế. Vui lòng liên hệ
+              cán bộ tiếp nhận để được hướng dẫn.
+            </div>
+          )}
+        </section>
       </main>
     </PublicShell>
   );
@@ -3613,10 +3714,16 @@ export function ApplicationForm({
   ) => void;
   readOnly?: boolean;
 }) {
+  const applicationFields = supplementApplication?.data;
   const startingFields =
-    supplementApplication?.data ?? initialSnapshot?.fields ?? {};
+    applicationFields && Object.keys(applicationFields).length > 0
+      ? applicationFields
+      : initialSnapshot?.fields ?? applicationFields ?? {};
+  const applicationFiles = supplementApplication?.attachments;
   const startingFiles =
-    supplementApplication?.attachments ?? initialSnapshot?.files ?? [];
+    applicationFiles && applicationFiles.length > 0
+      ? applicationFiles
+      : initialSnapshot?.files ?? applicationFiles ?? [];
   const [type, setType] = useState<ApplicationType>(
     supplementApplication?.type || initialSnapshot?.type || "school",
   );
@@ -3704,16 +3811,20 @@ export function ApplicationForm({
     });
   }, [type]);
   const currentFormSet = getCriteriaSet(type);
+  const savedCriteria = supplementApplication?.criteriaSnapshot;
+  const savedGroups = supplementApplication?.criteriaGroups;
   const formSet =
-    mode === "supplement" &&
-    supplementApplication?.criteriaSnapshot.length
+    (mode === "supplement" || mode === "edit") &&
+    supplementApplication &&
+    Array.isArray(savedCriteria) &&
+    savedCriteria.length > 0
       ? {
           ...currentFormSet,
           version:
             supplementApplication.criteriaVersion || currentFormSet.version,
-          criteria: supplementApplication.criteriaSnapshot,
-          groups: supplementApplication.criteriaGroups.length
-            ? supplementApplication.criteriaGroups
+          criteria: savedCriteria,
+          groups: Array.isArray(savedGroups) && savedGroups.length > 0
+            ? savedGroups
             : currentFormSet.groups,
         }
       : currentFormSet;
@@ -5238,7 +5349,9 @@ export function ApplicationForm({
               ? "Kê khai theo tình trạng thực tế tại thời điểm khảo sát; nội dung không phát sinh hoặc không áp dụng cần ghi rõ."
               : mode === "supplement"
                 ? "Rà soát lại hồ sơ đăng ký đã gửi và cập nhật trực tiếp những nội dung cần bổ sung."
-                : `Đang chỉnh sửa hồ sơ của ${account?.email || "cơ sở đăng ký"}.`}
+                : readOnly
+                  ? "Biểu mẫu và câu trả lời đã nộp đang được mở ở chế độ chỉ xem."
+                  : `Đang chỉnh sửa hồ sơ của ${account?.email || "cơ sở đăng ký"}.`}
           </p>
           {type === "school" && (
             <div className="paper-form-guidance">
@@ -5289,16 +5402,17 @@ export function ApplicationForm({
             />
           )}
           <fieldset disabled={readOnly} className="contents">
-          {mode === "supplement" &&
+          {(mode === "supplement" || mode === "edit") &&
             supplementApplication &&
-            supplementApplication.criteriaSnapshot.length === 0 && (
+            (!Array.isArray(supplementApplication.criteriaSnapshot) ||
+              supplementApplication.criteriaSnapshot.length === 0) && (
               <p
                 className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950"
                 role="note"
               >
                 Hồ sơ cũ không lưu bản chụp bộ câu hỏi tại thời điểm đăng ký.
-                Các câu trả lời đã lưu được giữ nguyên; những mục không có dữ
-                liệu trong hồ sơ cũ sẽ được để trống để cơ sở kiểm tra.
+                Các câu trả lời còn lưu được giữ nguyên; mục không có dữ liệu sẽ
+                để trống và không thể xác định nội dung đã kê khai ban đầu.
               </p>
             )}
           {(type !== "school" || schoolStep === 0) && groups.map((group, groupIndex) => {

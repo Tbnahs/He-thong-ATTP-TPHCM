@@ -265,7 +265,6 @@ export function PublicHeader() {
         ["/lookup", "Tra cứu"],
         ["/news", "Tin tức & sự kiện"],
         ["/facility/applications", "Hồ sơ của tôi"],
-        ["/facility/incidents", "Cảnh báo ATTP"],
       ]
     : [
         ["/", "Tổng quan"],
