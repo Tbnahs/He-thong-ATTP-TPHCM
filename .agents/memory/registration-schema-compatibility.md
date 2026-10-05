@@ -38,3 +38,9 @@ In the school application list, show grade level and student count from the subm
 **Why:** The user asked for those two values to reflect what applicants entered on their form and to remove the demand column.
 
 **How to apply:** Read the current and legacy school form keys from each saved application or stored registration account when building review rows.
+
+For “Yêu cầu bổ sung”, retain the reviewing officer’s required contact details separately from the final approval sign-off. The facility must be able to see who requested the information; “needs more info” is a reviewed outcome, but not an approval.
+
+**Why:** The user requires reviewer name, position, phone, and email during review, and those details must remain visible to the facility without misrepresenting the record as approved.
+
+**How to apply:** Store the supplemental-review contact with the request and the application; use it for the facility notice. Keep the signed approval reviewer record reserved for approved applications.

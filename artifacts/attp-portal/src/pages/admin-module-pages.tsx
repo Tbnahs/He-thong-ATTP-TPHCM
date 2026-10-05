@@ -4265,11 +4265,17 @@ export function AdminFacilitiesPage() {
   );
 }
 
+type RegistrationAttachmentPreviewFile = Omit<
+  Partial<Attachment>,
+  "name"
+> &
+  Pick<Attachment, "name">;
+
 function RegistrationAttachmentPreviewDialog({
   file,
   onClose,
 }: {
-  file: Attachment;
+  file: RegistrationAttachmentPreviewFile;
   onClose: () => void;
 }) {
   const [previewUrl, setPreviewUrl] = useState<string>();
@@ -4326,9 +4332,11 @@ function RegistrationAttachmentPreviewDialog({
   }, [onClose]);
 
   const isImage =
-    file.kind.startsWith("image/") || /\.(jpe?g|png|gif|webp)$/i.test(file.name);
+    file.kind?.startsWith("image/") ||
+    /\.(jpe?g|png|gif|webp)$/i.test(file.name);
   const isPdf =
-    file.kind === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    file.kind === "application/pdf" ||
+    file.name.toLowerCase().endsWith(".pdf");
 
   return (
     <div
@@ -4355,7 +4363,7 @@ function RegistrationAttachmentPreviewDialog({
             </h2>
             <p className="mt-1 text-xs text-muted-foreground">
               {file.kind || "Không rõ định dạng"}
-              {file.size > 0
+              {file.size && file.size > 0
                 ? ` · ${(file.size / 1024 / 1024).toFixed(2)} MB`
                 : ""}
             </p>
@@ -4443,6 +4451,8 @@ export function AdminFacilityDetailPage() {
   const { facilityId = "" } = useParams<{ facilityId: string }>();
   const [, navigate] = useLocation();
   const [notice, setNotice] = useState("");
+  const [previewFile, setPreviewFile] =
+    useState<RegistrationAttachmentPreviewFile | null>(null);
   const [reviewNote, setReviewNote] = useState("");
   const [demoSupplementRequest, setDemoSupplementRequest] =
     useState<DemoSupplementRequest>();
@@ -4503,10 +4513,26 @@ export function AdminFacilityDetailPage() {
     setDetailStatus(application?.status ?? row?.status ?? "approved");
     setReviewNote(application?.reviewNote ?? "");
     setReviewerForm({
-      name: application?.reviewer?.name ?? reviewerAccount?.responsibleName ?? "",
-      position: application?.reviewer?.position ?? reviewerAccount?.position ?? "",
-      phone: application?.reviewer?.phone ?? reviewerAccount?.phone ?? "",
-      email: application?.reviewer?.email ?? reviewerAccount?.email ?? "",
+      name:
+        reviewerAccount?.responsibleName ??
+        application?.supplementReviewer?.name ??
+        application?.reviewer?.name ??
+        "",
+      position:
+        reviewerAccount?.position ??
+        application?.supplementReviewer?.position ??
+        application?.reviewer?.position ??
+        "",
+      phone:
+        reviewerAccount?.phone ??
+        application?.supplementReviewer?.phone ??
+        application?.reviewer?.phone ??
+        "",
+      email:
+        reviewerAccount?.email ??
+        application?.supplementReviewer?.email ??
+        application?.reviewer?.email ??
+        "",
       signature:
         application?.reviewer?.signature ?? reviewerAccount?.signature ?? "",
     });
@@ -4524,6 +4550,10 @@ export function AdminFacilityDetailPage() {
     application?.reviewer?.phone,
     application?.reviewer?.email,
     application?.reviewer?.signature,
+    application?.supplementReviewer?.name,
+    application?.supplementReviewer?.position,
+    application?.supplementReviewer?.phone,
+    application?.supplementReviewer?.email,
     reviewerAccount?.id,
     reviewerAccount?.responsibleName,
     reviewerAccount?.position,
@@ -4654,6 +4684,7 @@ export function AdminFacilityDetailPage() {
         ...(reviewerAccount ? { accountId: reviewerAccount.id } : {}),
         reviewedAt: new Date().toISOString(),
       };
+      application.supplementReviewer = undefined;
       application.status = "approved";
       application.reviewNote = null;
       application.published = true;
@@ -4718,6 +4749,7 @@ export function AdminFacilityDetailPage() {
       );
       return;
     }
+    application.supplementReviewer = reviewer;
     application.status = "needs-more-info";
     application.reviewNote = reviewNote.trim();
     application.reviewer = undefined;
@@ -4980,25 +5012,38 @@ export function AdminFacilityDetailPage() {
                   {registrationFiles.map((file) => (
                     <li
                       key={`${file.fieldKey ?? "attachment"}-${file.name}`}
-                      className="flex min-w-0 items-center gap-3 rounded-xl border border-border p-3"
+                      className="overflow-hidden rounded-xl border border-border"
                     >
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
-                        {file.kind?.startsWith("image/") ? (
-                          <ImagePlus size={17} />
-                        ) : (
-                          <FileText size={17} />
-                        )}
-                      </span>
-                      <span className="min-w-0">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewFile(file)}
+                        className="focus-ring flex w-full min-w-0 items-center gap-3 p-3 text-left transition-colors hover:bg-secondary/50"
+                        aria-label={`Xem trước tệp ${file.name}`}
+                        aria-haspopup="dialog"
+                        data-testid={`button-preview-detail-attachment-${file.name}`}
+                      >
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
+                          {file.kind?.startsWith("image/") ? (
+                            <ImagePlus size={17} />
+                          ) : (
+                            <FileText size={17} />
+                          )}
+                        </span>
+                        <span className="min-w-0 flex-1">
                           <span className="block break-all text-base font-semibold leading-6">
-                          {file.name}
-                        </span>
+                            {file.name}
+                          </span>
                           <span className="mt-1 block text-sm text-muted-foreground">
-                          {file.size
-                            ? `${(file.size / 1024 / 1024).toFixed(1)} MB`
-                            : "Dung lượng chưa cập nhật"}
+                            {file.size
+                              ? `${(file.size / 1024 / 1024).toFixed(1)} MB`
+                              : "Dung lượng chưa cập nhật"}
+                          </span>
                         </span>
-                      </span>
+                        <span className="inline-flex shrink-0 items-center gap-1 text-sm font-bold text-primary">
+                          <Eye size={15} />
+                          Xem
+                        </span>
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -5265,6 +5310,12 @@ export function AdminFacilityDetailPage() {
             ×
           </button>
         </div>
+      )}
+      {previewFile && (
+        <RegistrationAttachmentPreviewDialog
+          file={previewFile}
+          onClose={() => setPreviewFile(null)}
+        />
       )}
     </AdminShell>
   );

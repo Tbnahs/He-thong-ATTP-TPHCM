@@ -226,15 +226,8 @@ export function PublicHeader() {
   const facilityAccountName =
     sessionStorage.getItem("attp-session-username") || "coso.demo";
   const notificationStorageKey = `attp-read-notifications:${facilityAccountName}`;
-  const notifications = [
-    {
-      id: "incident-update",
-      title: "Cảnh báo ATTP cần cập nhật",
-      text: "Sở vừa gửi cảnh báo. Vui lòng mở hồ sơ và gửi thông tin thực tế của nhà trường.",
-      time: "Mới nhất",
-      href: "/facility/incidents",
-    },
-    ...(facilityAccount && facilityAccountName !== "coso.demo"
+  const notifications =
+    facilityAccount && facilityAccountName !== "coso.demo"
       ? getDemoSupplementRequestsForApplication(facilityAccountName)
           .filter((request) => request.status === "open")
           .map((request) => ({
@@ -245,10 +238,9 @@ export function PublicHeader() {
               day: "2-digit",
               month: "2-digit",
             }).format(new Date(request.createdAt)),
-            href: `/facility/supplement/${request.token}`,
+            href: `/facility/applications/${encodeURIComponent(request.applicationId)}/form`,
           }))
-      : []),
-  ];
+      : [];
   const [readNotifications, setReadNotifications] = useState<string[]>(() => {
     try {
       return JSON.parse(sessionStorage.getItem(notificationStorageKey) || "[]");
@@ -295,7 +287,7 @@ export function PublicHeader() {
     sessionStorage.setItem(notificationStorageKey, JSON.stringify(nextRead));
     setNotificationsOpen(false);
     const notification = notifications.find((item) => item.id === id);
-    navigate(notification?.href ?? "/facility/incidents");
+    navigate(notification?.href ?? "/facility/applications");
   };
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 shadow-[0_8px_30px_hsl(158_37%_15%/.04)] backdrop-blur-xl">
@@ -346,42 +338,53 @@ export function PublicHeader() {
                       <div>
                         <p className="text-sm font-extrabold">Thông báo</p>
                         <p className="mt-0.5 text-xs text-muted-foreground">
-                          {unreadCount
-                            ? `${unreadCount} thông báo chưa đọc`
-                            : "Bạn đã xem hết thông báo"}
+                          {notifications.length === 0
+                            ? "Chưa có thông báo liên quan đến hồ sơ"
+                            : unreadCount
+                              ? `${unreadCount} thông báo chưa đọc`
+                              : "Bạn đã xem hết thông báo hồ sơ"}
                         </p>
                       </div>
                       <Bell size={16} className="text-primary" />
                     </div>
                     <div className="divide-y divide-border">
-                      {notifications.map((item) => (
-                        <button
-                          type="button"
-                          key={item.id}
-                          onClick={() => openNotification(item.id)}
-                          className={`focus-ring block w-full px-4 py-3 text-left transition-colors hover:bg-secondary ${readNotifications.includes(item.id) ? "bg-card" : "bg-secondary/45"}`}
-                          data-testid={`button-notification-${item.id}`}
+                      {notifications.length === 0 ? (
+                        <p
+                          className="px-4 py-5 text-center text-sm text-muted-foreground"
+                          data-testid="empty-facility-notifications"
                         >
-                          <div className="flex items-start gap-3">
-                            <span
-                              className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${readNotifications.includes(item.id) ? "bg-border" : "bg-destructive"}`}
-                            />
-                            <span className="min-w-0">
-                              <span className="flex items-center justify-between gap-3">
-                                <span className="text-sm font-bold text-foreground">
-                                  {item.title}
+                          Chưa có thông báo hồ sơ.
+                        </p>
+                      ) : (
+                        notifications.map((item) => (
+                          <button
+                            type="button"
+                            key={item.id}
+                            onClick={() => openNotification(item.id)}
+                            className={`focus-ring block w-full px-4 py-3 text-left transition-colors hover:bg-secondary ${readNotifications.includes(item.id) ? "bg-card" : "bg-secondary/45"}`}
+                            data-testid={`button-notification-${item.id}`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <span
+                                className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${readNotifications.includes(item.id) ? "bg-border" : "bg-destructive"}`}
+                              />
+                              <span className="min-w-0">
+                                <span className="flex items-center justify-between gap-3">
+                                  <span className="text-sm font-bold text-foreground">
+                                    {item.title}
+                                  </span>
+                                  <span className="shrink-0 text-[11px] font-medium text-muted-foreground">
+                                    {item.time}
+                                  </span>
                                 </span>
-                                <span className="shrink-0 text-[11px] font-medium text-muted-foreground">
-                                  {item.time}
+                                <span className="mt-1 block text-xs leading-5 text-muted-foreground">
+                                  {item.text}
                                 </span>
                               </span>
-                              <span className="mt-1 block text-xs leading-5 text-muted-foreground">
-                                {item.text}
-                              </span>
-                            </span>
-                          </div>
-                        </button>
-                      ))}
+                            </div>
+                          </button>
+                        ))
+                      )}
                     </div>
                     <Link
                       href="/facility/applications"

@@ -59,7 +59,10 @@ import {
   findManagedAdminAccount,
   getFirstAllowedAdminPath,
 } from "@/lib/admin-permissions";
-import { getDemoSupplementRequestsForApplication } from "@/lib/demo-supplements";
+import {
+  getLatestDemoSupplementForApplication,
+  submitDemoSupplement,
+} from "@/lib/demo-supplements";
 import { Button } from "@/components/ui/button";
 import NotFound from "@/pages/not-found";
 import {
@@ -2716,6 +2719,214 @@ export function RegisterPage() {
   );
 }
 
+function FacilityApplicationSupplementEditor({
+  application,
+  applicationAccount,
+  showApplicationIdentity = false,
+}: {
+  application: Application;
+  applicationAccount: FacilityAccount;
+  showApplicationIdentity?: boolean;
+}) {
+  const [supplementRequest, setSupplementRequest] = useState(() =>
+    getLatestDemoSupplementForApplication(application.id),
+  );
+  useEffect(() => {
+    setSupplementRequest(getLatestDemoSupplementForApplication(application.id));
+  }, [application.id]);
+
+  const savedApplicationFields = application.data as
+    | Record<string, unknown>
+    | undefined;
+  const savedAccountFields = applicationAccount.registration?.fields as
+    | Record<string, unknown>
+    | undefined;
+  const hasSavedAnswers =
+    Object.keys(savedApplicationFields ?? {}).length > 0 ||
+    Object.keys(savedAccountFields ?? {}).length > 0;
+  const hasOriginalCriteria =
+    Array.isArray(application.criteriaSnapshot) &&
+    application.criteriaSnapshot.length > 0;
+  const canEdit =
+    application.status === "needs-more-info" && hasSavedAnswers;
+  const hasOpenRequest = supplementRequest?.status === "open";
+  const canResubmit =
+    canEdit && (!supplementRequest || hasOpenRequest);
+  const reviewer =
+    supplementRequest?.reviewer ??
+    application.supplementReviewer ??
+    application.reviewer;
+  const requestReason =
+    supplementRequest?.reason || application.reviewNote || "";
+
+  const submitSupplement = (
+    updatedData: Record<string, unknown>,
+    applicationAttachments: Attachment[],
+    attachments: Attachment[],
+  ) => {
+    if (!supplementRequest || supplementRequest.status !== "open") {
+      throw new Error("Không còn yêu cầu bổ sung đang mở cho hồ sơ này.");
+    }
+    const submittedRequest = submitDemoSupplement({
+      token: supplementRequest.token,
+      updatedData,
+      applicationAttachments,
+      attachments,
+    });
+    setSupplementRequest(submittedRequest);
+  };
+
+  return (
+    <div className="space-y-5">
+      {showApplicationIdentity && (
+        <div className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-border bg-card p-5">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wide text-primary">
+              {application.reference} · {typeNames[application.type]}
+            </p>
+            <h1 className="mt-1 text-xl font-extrabold">
+              {application.applicantName}
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {!hasSavedAnswers
+                ? "Hồ sơ cũ không còn dữ liệu kê khai để khôi phục biểu mẫu đã nộp."
+                : !hasOriginalCriteria
+                  ? "Không còn bản chụp bộ câu hỏi gốc. Các câu trả lời còn lưu được nạp vào biểu mẫu tham khảo; mục không có dữ liệu sẽ để trống."
+                  : canEdit
+                    ? "Cập nhật trực tiếp trên biểu mẫu đã nộp; các câu trả lời hiện có được giữ nguyên."
+                    : "Đây là biểu mẫu và các câu trả lời đã nộp, ở chế độ chỉ xem."}
+            </p>
+          </div>
+          <ApplicationStatusBadge status={application.status} />
+        </div>
+      )}
+
+      {application.status === "needs-more-info" && (
+        <section
+          className="rounded-2xl border border-amber-300 bg-amber-50 p-5 text-amber-950 sm:p-6"
+          aria-labelledby={`facility-supplement-request-${application.id}`}
+          data-testid="panel-facility-supplement-request"
+        >
+          {!showApplicationIdentity && (
+            <p className="text-xs font-bold uppercase tracking-wide text-amber-800">
+              {application.reference} · {typeNames[application.type]} ·{" "}
+              {application.applicantName}
+            </p>
+          )}
+          <div className="mt-1 flex items-start gap-3">
+            <Info className="mt-0.5 shrink-0 text-amber-800" size={20} />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-extrabold uppercase tracking-wide text-amber-800">
+                Yêu cầu bổ sung hồ sơ
+              </p>
+              <h2
+                id={`facility-supplement-request-${application.id}`}
+                className="mt-1 text-lg font-extrabold"
+              >
+                Thông tin cán bộ yêu cầu bổ sung
+              </h2>
+              <dl className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-xl border border-amber-200 bg-white/70 p-3">
+                  <dt className="text-xs font-semibold text-amber-900/70">
+                    Tên cán bộ
+                  </dt>
+                  <dd className="mt-1 break-words text-sm font-bold">
+                    {reviewer?.name || "Chưa cập nhật"}
+                  </dd>
+                </div>
+                <div className="rounded-xl border border-amber-200 bg-white/70 p-3">
+                  <dt className="text-xs font-semibold text-amber-900/70">
+                    Số điện thoại cán bộ
+                  </dt>
+                  <dd className="mt-1 break-words text-sm font-bold">
+                    {reviewer?.phone ? (
+                      <a
+                        href={`tel:${reviewer.phone}`}
+                        className="hover:underline"
+                      >
+                        {reviewer.phone}
+                      </a>
+                    ) : (
+                      "Chưa cập nhật"
+                    )}
+                  </dd>
+                </div>
+                <div className="rounded-xl border border-amber-200 bg-white/70 p-3">
+                  <dt className="text-xs font-semibold text-amber-900/70">
+                    Chức vụ
+                  </dt>
+                  <dd className="mt-1 break-words text-sm font-bold">
+                    {reviewer?.position || "Chưa cập nhật"}
+                  </dd>
+                </div>
+                <div className="rounded-xl border border-amber-200 bg-white/70 p-3">
+                  <dt className="text-xs font-semibold text-amber-900/70">
+                    Email cán bộ
+                  </dt>
+                  <dd className="mt-1 break-all text-sm font-bold">
+                    {reviewer?.email ? (
+                      <a
+                        href={`mailto:${reviewer.email}`}
+                        className="hover:underline"
+                      >
+                        {reviewer.email}
+                      </a>
+                    ) : (
+                      "Chưa cập nhật"
+                    )}
+                  </dd>
+                </div>
+              </dl>
+              <div className="mt-3 rounded-xl border border-amber-200 bg-white/70 p-4">
+                <h3 className="text-sm font-extrabold">
+                  Nội dung yêu cầu bổ sung
+                </h3>
+                <p className="mt-2 whitespace-pre-line text-sm leading-6">
+                  {requestReason || "Chưa có nội dung yêu cầu được lưu."}
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {application.status === "needs-more-info" &&
+        supplementRequest &&
+        supplementRequest.status !== "open" && (
+          <p
+            className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950"
+            role="status"
+          >
+            {supplementRequest.status === "submitted"
+              ? "Yêu cầu này đã được gửi lại. Vui lòng tải lại hồ sơ để xem trạng thái mới nhất."
+              : "Yêu cầu bổ sung đã hết hạn. Vui lòng liên hệ cán bộ tiếp nhận để tạo yêu cầu mới."}
+          </p>
+        )}
+
+      {hasSavedAnswers ? (
+        <ApplicationForm
+          key={application.id}
+          mode={hasOpenRequest ? "supplement" : "edit"}
+          account={applicationAccount}
+          initialSnapshot={applicationAccount.registration}
+          supplementApplication={application}
+          onSupplementSubmit={hasOpenRequest ? submitSupplement : undefined}
+          readOnly={!canResubmit}
+        />
+      ) : (
+        <div
+          className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-950"
+          role="note"
+        >
+          Không thể hiển thị lại biểu mẫu vì bản ghi cũ không lưu câu trả lời kê
+          khai. Trang không tạo dữ liệu thay thế. Vui lòng liên hệ cán bộ tiếp
+          nhận để được hướng dẫn.
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function FacilityApplicationsPage() {
   const accountName = sessionStorage.getItem("attp-session-username") || "";
   const allAccounts = readFacilityAccounts();
@@ -2735,12 +2946,6 @@ export function FacilityApplicationsPage() {
   const accountApplications = applications
     .filter((application) => linkedApplicationIds.has(application.id))
     .sort((left, right) => right.submittedAt.localeCompare(left.submittedAt));
-  const requestsByApplication = new Map(
-    accountApplications.map((application) => [
-      application.id,
-      getDemoSupplementRequestsForApplication(application.id),
-    ]),
-  );
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -2879,9 +3084,28 @@ export function FacilityApplicationsPage() {
                 </div>
               ) : (
                 accountApplications.map((application) => {
-                  const openRequest = (
-                    requestsByApplication.get(application.id) ?? []
-                  ).find((request) => request.status === "open");
+                  if (application.status === "needs-more-info") {
+                    const applicationAccount = linkedAccounts.find(
+                      (item) =>
+                        item.username.toLowerCase() ===
+                        application.id.toLowerCase(),
+                    );
+                    return applicationAccount ? (
+                      <FacilityApplicationSupplementEditor
+                        key={application.id}
+                        application={application}
+                        applicationAccount={applicationAccount}
+                      />
+                    ) : (
+                      <p
+                        key={application.id}
+                        className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"
+                        role="alert"
+                      >
+                        Không tìm thấy tài khoản gắn với hồ sơ cần bổ sung.
+                      </p>
+                    );
+                  }
                   return (
                     <article
                       key={application.id}
@@ -2902,35 +3126,12 @@ export function FacilityApplicationsPage() {
                         </div>
                         <ApplicationStatusBadge status={application.status} />
                       </div>
-                      {application.status === "needs-more-info" && (
-                        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
-                          <p className="text-xs font-extrabold uppercase tracking-wide text-amber-900">
-                            Cán bộ yêu cầu bổ sung
-                          </p>
-                          <p className="mt-2 whitespace-pre-line text-sm leading-6 text-amber-950">
-                            {application.reviewNote ||
-                              "Vui lòng xem yêu cầu trong mục thông báo."}
-                          </p>
-                          {openRequest && (
-                            <Link
-                              href={`/supplement/${openRequest.token}`}
-                              className="focus-ring mt-3 inline-flex min-h-10 items-center gap-2 rounded-lg bg-amber-900 px-4 py-2 text-sm font-bold text-white hover:bg-amber-800"
-                              data-testid={`link-respond-supplement-${application.id}`}
-                            >
-                              <FileText size={15} /> Bổ sung hồ sơ
-                            </Link>
-                          )}
-                        </div>
-                      )}
                       <Link
                         href={`/facility/applications/${encodeURIComponent(application.id)}/form`}
                         className="focus-ring mt-4 inline-flex min-h-10 items-center gap-2 rounded-lg border border-primary/25 px-4 py-2 text-sm font-bold text-primary hover:bg-secondary"
                         data-testid={`link-view-submitted-form-${application.id}`}
                       >
-                        <FileText size={15} />
-                        {application.status === "needs-more-info"
-                          ? "Mở lại biểu mẫu để bổ sung"
-                          : "Xem biểu mẫu đã nộp"}
+                        <FileText size={15} /> Xem biểu mẫu đã nộp
                       </Link>
                     </article>
                   );
@@ -3008,6 +3209,12 @@ export function FacilityApplicationsPage() {
 
 export function FacilityApplicationFormPage() {
   const { id = "" } = useParams<{ id: string }>();
+  const [supplementRequest, setSupplementRequest] = useState(() =>
+    getLatestDemoSupplementForApplication(id),
+  );
+  useEffect(() => {
+    setSupplementRequest(getLatestDemoSupplementForApplication(id));
+  }, [id]);
   const sessionUsername =
     sessionStorage.getItem("attp-session-username") || "";
   const accounts = readFacilityAccounts();
@@ -3045,6 +3252,32 @@ export function FacilityApplicationFormPage() {
     application.criteriaSnapshot.length > 0;
   const canEdit =
     application.status === "needs-more-info" && hasSavedAnswers;
+  const hasOpenRequest = supplementRequest?.status === "open";
+  const canResubmit =
+    canEdit && (!supplementRequest || hasOpenRequest);
+  const reviewer =
+    supplementRequest?.reviewer ??
+    application.supplementReviewer ??
+    application.reviewer;
+  const requestReason =
+    supplementRequest?.reason || application.reviewNote || "";
+  const submitSupplement = (
+    updatedData: Record<string, unknown>,
+    applicationAttachments: Attachment[],
+    attachments: Attachment[],
+  ) => {
+    if (!supplementRequest || supplementRequest.status !== "open") {
+      throw new Error("Không còn yêu cầu bổ sung đang mở cho hồ sơ này.");
+    }
+    const submittedRequest = submitDemoSupplement({
+      token: supplementRequest.token,
+      updatedData,
+      applicationAttachments,
+      attachments,
+    });
+    setSupplementRequest(submittedRequest);
+  };
+
   return (
     <PublicShell>
       <main className="mx-auto max-w-7xl px-5 py-9 lg:px-8 lg:py-12">
@@ -3074,15 +3307,112 @@ export function FacilityApplicationFormPage() {
           </div>
           <ApplicationStatusBadge status={application.status} />
         </div>
+        {application.status === "needs-more-info" && (
+          <section
+            className="mt-6 rounded-2xl border border-amber-300 bg-amber-50 p-5 text-amber-950 sm:p-6"
+            aria-labelledby="facility-supplement-request-title"
+            data-testid="panel-facility-supplement-request"
+          >
+            <div className="flex items-start gap-3">
+              <Info className="mt-0.5 shrink-0 text-amber-800" size={20} />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-extrabold uppercase tracking-wide text-amber-800">
+                  Yêu cầu bổ sung hồ sơ
+                </p>
+                <h2
+                  id="facility-supplement-request-title"
+                  className="mt-1 text-lg font-extrabold"
+                >
+                  Thông tin cán bộ yêu cầu bổ sung
+                </h2>
+                <dl className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <div className="rounded-xl border border-amber-200 bg-white/70 p-3">
+                    <dt className="text-xs font-semibold text-amber-900/70">
+                      Tên cán bộ
+                    </dt>
+                    <dd className="mt-1 break-words text-sm font-bold">
+                      {reviewer?.name || "Chưa cập nhật"}
+                    </dd>
+                  </div>
+                  <div className="rounded-xl border border-amber-200 bg-white/70 p-3">
+                    <dt className="text-xs font-semibold text-amber-900/70">
+                      Số điện thoại cán bộ
+                    </dt>
+                    <dd className="mt-1 break-words text-sm font-bold">
+                      {reviewer?.phone ? (
+                        <a
+                          href={`tel:${reviewer.phone}`}
+                          className="hover:underline"
+                        >
+                          {reviewer.phone}
+                        </a>
+                      ) : (
+                        "Chưa cập nhật"
+                      )}
+                    </dd>
+                  </div>
+                  <div className="rounded-xl border border-amber-200 bg-white/70 p-3">
+                    <dt className="text-xs font-semibold text-amber-900/70">
+                      Chức vụ
+                    </dt>
+                    <dd className="mt-1 break-words text-sm font-bold">
+                      {reviewer?.position || "Chưa cập nhật"}
+                    </dd>
+                  </div>
+                  <div className="rounded-xl border border-amber-200 bg-white/70 p-3">
+                    <dt className="text-xs font-semibold text-amber-900/70">
+                      Email cán bộ
+                    </dt>
+                    <dd className="mt-1 break-all text-sm font-bold">
+                      {reviewer?.email ? (
+                        <a
+                          href={`mailto:${reviewer.email}`}
+                          className="hover:underline"
+                        >
+                          {reviewer.email}
+                        </a>
+                      ) : (
+                        "Chưa cập nhật"
+                      )}
+                    </dd>
+                  </div>
+                </dl>
+                <div className="mt-3 rounded-xl border border-amber-200 bg-white/70 p-4">
+                  <h3 className="text-sm font-extrabold">
+                    Nội dung yêu cầu bổ sung
+                  </h3>
+                  <p className="mt-2 whitespace-pre-line text-sm leading-6">
+                    {requestReason || "Chưa có nội dung yêu cầu được lưu."}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+        {application.status === "needs-more-info" &&
+          supplementRequest &&
+          supplementRequest.status !== "open" && (
+            <p
+              className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950"
+              role="status"
+            >
+              {supplementRequest.status === "submitted"
+                ? "Yêu cầu này đã được gửi lại. Vui lòng tải lại hồ sơ để xem trạng thái mới nhất."
+                : "Yêu cầu bổ sung đã hết hạn. Vui lòng liên hệ cán bộ tiếp nhận để tạo yêu cầu mới."}
+            </p>
+          )}
         <section className="mt-6">
           {hasSavedAnswers ? (
             <ApplicationForm
               key={application.id}
-              mode="edit"
+              mode={hasOpenRequest ? "supplement" : "edit"}
               account={applicationAccount}
               initialSnapshot={applicationAccount.registration}
               supplementApplication={application}
-              readOnly={!canEdit}
+              onSupplementSubmit={
+                hasOpenRequest ? submitSupplement : undefined
+              }
+              readOnly={!canResubmit}
             />
           ) : (
             <div
@@ -3714,6 +4044,11 @@ export function ApplicationForm({
   ) => void;
   readOnly?: boolean;
 }) {
+  const isResubmitting = useRef(
+    mode === "supplement" ||
+      (mode === "edit" &&
+        supplementApplication?.status === "needs-more-info"),
+  ).current;
   const applicationFields = supplementApplication?.data;
   const startingFields =
     applicationFields && Object.keys(applicationFields).length > 0
@@ -5007,7 +5342,7 @@ export function ApplicationForm({
       try {
         onSupplementSubmit(input.data, input.attachments, newFiles);
         setSubmitted(true);
-        setNotice("Thông tin bổ sung đã được gửi tới cán bộ chuyên môn.");
+        setNotice("Hồ sơ đã được gửi lại cho cán bộ chuyên môn.");
       } catch (submissionError) {
         setNotice(
           submissionError instanceof Error
@@ -5068,7 +5403,9 @@ export function ApplicationForm({
     setNotice(
       mode === "register"
         ? "Đăng ký thành công. Hồ sơ đã được tiếp nhận để cán bộ chuyên môn rà soát."
-        : "Hồ sơ đã được cập nhật và chuyển tới cán bộ chuyên môn rà soát.",
+        : isResubmitting
+          ? "Hồ sơ đã được gửi lại cho cán bộ chuyên môn rà soát."
+          : "Hồ sơ đã được cập nhật và chuyển tới cán bộ chuyên môn rà soát.",
     );
   };
   if (submitted)
@@ -5080,21 +5417,21 @@ export function ApplicationForm({
         <p className="mono-label mt-7 text-primary">
           {mode === "register"
             ? "TẠO TÀI KHOẢN THÀNH CÔNG"
-            : mode === "supplement"
-              ? "ĐÃ GỬI HỒ SƠ BỔ SUNG"
+            : isResubmitting
+              ? "ĐÃ GỬI LẠI HỒ SƠ"
               : "ĐÃ CẬP NHẬT HỒ SƠ"}
         </p>
         <h1 className="display-tight mt-3 text-4xl font-extrabold">
           {mode === "register"
             ? "Đã tiếp nhận hồ sơ đăng ký."
-            : mode === "supplement"
-              ? "Đã gửi thông tin bổ sung."
+            : isResubmitting
+              ? "Đã gửi lại hồ sơ bổ sung."
               : "Thông tin đã được lưu."}
         </h1>
         <p className="mx-auto mt-4 max-w-lg text-sm leading-6 text-muted-foreground">
           {mode === "register"
             ? "Cán bộ sẽ gửi yêu cầu bổ sung trong tài khoản cơ sở. Hãy lưu thông tin đăng nhập bên dưới để theo dõi hồ sơ."
-            : mode === "supplement"
+            : isResubmitting
               ? "Hồ sơ đã được chuyển lại cho cán bộ chuyên môn rà soát."
               : "Bạn có thể tiếp tục chỉnh sửa hồ sơ khi nhận yêu cầu bổ sung từ cán bộ chuyên môn."}
         </p>
@@ -5674,8 +6011,8 @@ export function ApplicationForm({
                   >
                     {mode === "register"
                       ? "Nộp hồ sơ đăng ký"
-                      : mode === "supplement"
-                        ? "Gửi hồ sơ bổ sung"
+                      : isResubmitting
+                        ? "Gửi lại hồ sơ"
                         : "Lưu thay đổi hồ sơ"}{" "}
                     <Send size={16} />
                   </Button>
@@ -5703,8 +6040,8 @@ export function ApplicationForm({
               >
                 {mode === "register"
                   ? "Nộp hồ sơ đăng ký"
-                  : mode === "supplement"
-                    ? "Gửi hồ sơ bổ sung"
+                  : isResubmitting
+                    ? "Gửi lại hồ sơ"
                     : "Lưu thay đổi hồ sơ"}{" "}
                 <Send size={16} />
               </Button>

@@ -132,13 +132,16 @@ export interface Application {
   criteriaGroups: CriteriaGroup[];
   scoreBreakdown: Record<string, number>;
   reviewer?: ApplicationReviewer;
+  supplementReviewer?: ApplicationReviewerContact;
   published?: boolean;
 }
-export interface ApplicationReviewer {
+export interface ApplicationReviewerContact {
   name: string;
   position: string;
   phone: string;
   email: string;
+}
+export interface ApplicationReviewer extends ApplicationReviewerContact {
   signature: string;
   accountId?: string;
   reviewedAt: string;
@@ -3474,6 +3477,10 @@ const createSampleApplication = (
       status === "approved"
         ? createSampleReviewer(index, submittedAt)
         : undefined,
+    supplementReviewer:
+      status === "needs-more-info"
+        ? createSampleReviewer(index, submittedAt)
+        : undefined,
     published: status === "approved",
   };
 };
@@ -3620,6 +3627,7 @@ export const applications: Application[] = [
     status: "needs-more-info",
     score: 82,
     reviewNote: "Cần đối chiếu thông tin đơn vị và mô hình hoạt động theo Mẫu 01–04.",
+    supplementReviewer: sampleReviewers[1],
     isThirdParty: true,
     criteriaVersion: "SC-2026.1",
     criteriaSnapshot: getCriteriaSet("school").criteria,
@@ -3953,6 +3961,13 @@ if (typeof window !== "undefined") {
         existing.status === "approved"
           ? storedApplication.reviewer ?? existing.reviewer
           : undefined;
+      existing.supplementReviewer =
+        existing.status === "approved"
+          ? undefined
+          : (storedApplication.supplementReviewer ??
+            (existing.status === "needs-more-info"
+              ? existing.supplementReviewer
+              : undefined));
       existing.published = existing.status === "approved";
     } else if (existing) {
       Object.assign(existing, storedApplication);
@@ -3965,6 +3980,7 @@ if (typeof window !== "undefined") {
       }
       if (existing.status !== "needs-more-info") existing.reviewNote = null;
       if (existing.status !== "approved") existing.reviewer = undefined;
+      if (existing.status === "approved") existing.supplementReviewer = undefined;
       existing.published = existing.status === "approved";
     } else if (!storedApplication.id.startsWith("sample-app-")) {
       const restoredApplication = { ...storedApplication };
@@ -3982,6 +3998,8 @@ if (typeof window !== "undefined") {
       }
       if (restoredApplication.status !== "approved") {
         restoredApplication.reviewer = undefined;
+      } else {
+        restoredApplication.supplementReviewer = undefined;
       }
       restoredApplication.published =
         restoredApplication.status === "approved";
