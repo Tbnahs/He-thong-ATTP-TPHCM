@@ -727,6 +727,40 @@ const getRowRegistrationType = (
 const getFacilityRegistrationLabel = (row: FacilityManagementRow) =>
   getRegistrationCategory(getRowRegistrationType(row) ?? "food-supplier");
 
+const formatSchoolLevels = (
+  data: Record<string, unknown>,
+): string | undefined => {
+  const toValues = (value: unknown): string[] =>
+    (Array.isArray(value) ? value : [value])
+      .map((item) =>
+        typeof item === "string" || typeof item === "number"
+          ? String(item).trim()
+          : "",
+      )
+      .filter(Boolean);
+  const currentLevels = toValues(data.educationLevels);
+  const legacyLevels = toValues(
+    data.schoolLevel ?? data.educationLevel ?? data.level,
+  );
+  const levels = currentLevels.length ? currentLevels : legacyLevels;
+  const otherLevel =
+    typeof data.educationLevelOther === "string"
+      ? data.educationLevelOther.trim()
+      : "";
+  const includesOther = levels.some(
+    (level) => level.toLocaleLowerCase() === "khác",
+  );
+  const formattedLevels = levels.map((level) =>
+    level.toLocaleLowerCase() === "khác" && otherLevel
+      ? `Khác: ${otherLevel}`
+      : level,
+  );
+  if (otherLevel && !includesOther) {
+    formattedLevels.push(`Khác: ${otherLevel}`);
+  }
+  return [...new Set(formattedLevels)].join(", ") || undefined;
+};
+
 const getStoredRegistrationRows = (): FacilityManagementRow[] =>
   readStoredFacilityAccounts()
     .map((account, index): FacilityManagementRow | null => {
@@ -759,10 +793,7 @@ const getStoredRegistrationRows = (): FacilityManagementRow[] =>
         contact: String(contact ?? "—"),
         status: "pending",
         capacity: Number(fields.totalCapacity || fields.studentTotal || 0),
-        level:
-          String(
-            fields.schoolLevel || fields.educationLevel || fields.level || "",
-          ).trim() || undefined,
+        level: formatSchoolLevels(fields),
         students: readRegistrationCount(
           fields.studentTotal,
           fields.boardingStudentTotal,
@@ -3090,13 +3121,7 @@ export function AdminFacilitiesPage() {
         contact: app.contact,
         status: app.status,
         capacity: 0,
-        level:
-          String(
-            app.data.schoolLevel ||
-              app.data.educationLevel ||
-              app.data.level ||
-              "",
-          ).trim() || undefined,
+        level: formatSchoolLevels(app.data),
         students: readRegistrationCount(
           app.data.studentTotal,
           app.data.boardingStudentTotal,
@@ -3591,7 +3616,6 @@ export function AdminFacilitiesPage() {
                   ) : activeTab === "food" ? (
                     <>
                       <th className="px-4 py-4">Nhóm thực phẩm</th>
-                      <th className="px-4 py-4 text-right">Công suất/ngày</th>
                       <th className="px-4 py-4 text-right">Cập nhật</th>
                     </>
                   ) : null}
@@ -3621,7 +3645,9 @@ export function AdminFacilitiesPage() {
                       )}
                       {activeTab === "schools" ? (
                         <>
-                          <td className="px-4 py-4">{row.level || "—"}</td>
+                          <td className="px-4 py-4">
+                            {row.level || "Chưa khai báo"}
+                          </td>
                           <td className="px-4 py-4 text-right font-bold">
                             {row.students === undefined
                               ? "—"
@@ -3631,7 +3657,6 @@ export function AdminFacilitiesPage() {
                       ) : activeTab === "food" ? (
                         <>
                           <td className="px-4 py-4">{row.category}</td>
-                          <td className="px-4 py-4 text-right font-bold">{formatNumber(row.capacity)}</td>
                           <td className="px-4 py-4 text-right">{row.updated}</td>
                         </>
                       ) : null}
@@ -3683,7 +3708,7 @@ export function AdminFacilitiesPage() {
                     <>
                       <div>
                         <dt className="text-xs font-bold text-muted-foreground">Cấp học</dt>
-                        <dd className="mt-1">{row.level || "—"}</dd>
+                        <dd className="mt-1">{row.level || "Chưa khai báo"}</dd>
                       </div>
                       <div>
                         <dt className="text-xs font-bold text-muted-foreground">Số học sinh</dt>
@@ -3694,16 +3719,10 @@ export function AdminFacilitiesPage() {
                     </>
                   ) : null}
                   {activeTab === "food" ? (
-                    <>
-                      <div>
-                        <dt className="text-xs font-bold text-muted-foreground">Nhóm thực phẩm</dt>
-                        <dd className="mt-1">{row.category || "—"}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs font-bold text-muted-foreground">Công suất/ngày</dt>
-                        <dd className="mt-1 font-bold">{formatNumber(row.capacity)}</dd>
-                      </div>
-                    </>
+                    <div>
+                      <dt className="text-xs font-bold text-muted-foreground">Nhóm thực phẩm</dt>
+                      <dd className="mt-1">{row.category || "—"}</dd>
+                    </div>
                   ) : null}
                   <div>
                     <dt className="text-xs font-bold text-muted-foreground">Ngày cập nhật</dt>
