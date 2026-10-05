@@ -15,13 +15,6 @@ import {
 } from "@/lib/file-upload";
 import type { Attachment } from "@/lib/mock-data";
 
-const demoSupplementAttachment: Attachment = {
-  name: "[DEMO] Giay-chung-nhan-ATTP.pdf",
-  kind: "application/pdf",
-  size: 0,
-  fieldKey: "supplement",
-};
-
 export function SupplementApplicationPage() {
   const { token = "" } = useParams<{ token: string }>();
   const [request, setRequest] = useState<DemoSupplementRequest | undefined>(
@@ -29,7 +22,6 @@ export function SupplementApplicationPage() {
   );
   const [response, setResponse] = useState("");
   const [files, setFiles] = useState<File[]>([]);
-  const [includeDemoAttachment, setIncludeDemoAttachment] = useState(false);
   const [error, setError] = useState("");
   const [fileInputKey, setFileInputKey] = useState(0);
   const application = applications.find(
@@ -49,14 +41,6 @@ export function SupplementApplicationPage() {
     setFileInputKey((current) => current + 1);
   };
 
-  const fillDemoResponse = () => {
-    setResponse(
-      "Đã bổ sung giấy chứng nhận ATTP còn hiệu lực. Kính đề nghị cán bộ kiểm tra.",
-    );
-    setIncludeDemoAttachment(true);
-    setError("");
-  };
-
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!request) return;
@@ -65,15 +49,12 @@ export function SupplementApplicationPage() {
       return;
     }
 
-    const attachments: Attachment[] = [
-      ...files.map((file) => ({
-        name: file.name,
-        kind: file.type || "application/octet-stream",
-        size: file.size,
-        fieldKey: "supplement",
-      })),
-      ...(includeDemoAttachment ? [demoSupplementAttachment] : []),
-    ];
+    const attachments: Attachment[] = files.map((file) => ({
+      name: file.name,
+      kind: file.type || "application/octet-stream",
+      size: file.size,
+      fieldKey: "supplement",
+    }));
 
     try {
       const submitted = submitDemoSupplement({
@@ -207,20 +188,7 @@ export function SupplementApplicationPage() {
             ) : (
               <form onSubmit={onSubmit} className="space-y-5">
                 <label className="block text-sm font-bold">
-                  <span>
-                    Nội dung phản hồi <span className="text-rose-600">*</span>
-                  </span>
-                  <span className="mt-2 flex justify-end">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={fillDemoResponse}
-                      data-testid="button-fill-supplement-demo"
-                    >
-                      Điền mẫu demo
-                    </Button>
-                  </span>
+                  Nội dung phản hồi <span className="text-rose-600">*</span>
                   <textarea
                     required
                     id="supplement-response"
@@ -270,12 +238,6 @@ export function SupplementApplicationPage() {
                           </li>
                         ))}
                       </ul>
-                    )}
-                    {includeDemoAttachment && (
-                      <p className="mt-3 text-sm font-medium text-muted-foreground">
-                        <Paperclip size={15} className="mr-2 inline" />
-                        {demoSupplementAttachment.name} — tệp mẫu, không tải lên
-                      </p>
                     )}
                   </div>
                 </div>

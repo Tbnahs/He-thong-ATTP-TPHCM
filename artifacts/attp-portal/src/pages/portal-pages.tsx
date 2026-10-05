@@ -3213,6 +3213,7 @@ function ApplicationForm({
     initialSnapshot?.files || [],
   );
   const [notice, setNotice] = useState("");
+  const [demoFillNotice, setDemoFillNotice] = useState("");
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [schoolStep, setSchoolStep] = useState(0);
@@ -3361,6 +3362,7 @@ function ApplicationForm({
     setFields({});
     setFiles([]);
     setNotice("");
+    setDemoFillNotice("");
   };
   const commitSchoolLocations = (nextLocations: SchoolLocationRecord[]) => {
     const oldLocations = schoolLocations;
@@ -3665,6 +3667,292 @@ function ApplicationForm({
         ? answer.length === 0
         : !String(answer).trim();
     });
+  const fillDemoRegistration = () => {
+    const hasMeaningfulValue = (value: unknown): boolean => {
+      if (typeof value === "string") return Boolean(value.trim()) && value !== "false";
+      if (Array.isArray(value)) return value.some(hasMeaningfulValue);
+      if (typeof value === "object" && value !== null) {
+        return Object.values(value).some(hasMeaningfulValue);
+      }
+      return value !== undefined && value !== null && value !== false;
+    };
+    const hasExistingValues =
+      files.length > 0 ||
+      Object.entries(fields).some(
+        ([key, value]) =>
+          key !== "schoolSubmissionConfirmed" && hasMeaningfulValue(value),
+      );
+    if (
+      hasExistingValues &&
+      !window.confirm(
+        "Điền dữ liệu demo sẽ thay thế thông tin đang nhập. Bạn muốn tiếp tục?",
+      )
+    ) {
+      return;
+    }
+
+    const sampleApplication = applications.find(
+      (application) => application.type === type,
+    );
+    const demoFields = structuredClone(
+      (sampleApplication?.data ?? {}) as Record<string, CriteriaValue>,
+    );
+    const demoFiles: Attachment[] = (sampleApplication?.attachments ?? []).map(
+      ({ previewUrl: _previewUrl, ...file }) => ({
+        ...file,
+        name: file.name.startsWith("[DEMO]") ? file.name : `[DEMO] ${file.name}`,
+        size: 0,
+      }),
+    );
+    const demoNames: Record<ApplicationType, string> = {
+      school: "Trường Tiểu học Demo",
+      "meal-provider": "Công ty Suất ăn Demo",
+      "food-supplier": "Công ty Thực phẩm Demo",
+    };
+    const demoAddress =
+      "123 Đường Demo, phường Bến Nghé, TP. Hồ Chí Minh";
+    const demoName = demoNames[type];
+    const provinceOptions =
+      formSet?.criteria.find((item) => item.key === "addressProvince")
+        ?.options ?? [];
+    const wardOptions =
+      formSet?.criteria.find((item) => item.key === "addressWard")?.options ??
+      [];
+    const demoProvince =
+      provinceOptions.find((option) => option.includes("Hồ Chí Minh")) ??
+      provinceOptions[0] ??
+      "TP. Hồ Chí Minh";
+    const demoWard =
+      wardOptions.find((option) => option.includes("Bến Nghé")) ??
+      wardOptions[0] ??
+      "Phường Bến Nghé";
+
+    Object.assign(demoFields, {
+      applicantName: demoName,
+      facilityName: demoName,
+      legalName: demoName,
+      taxCode: "0310000123",
+      address: demoAddress,
+      addressProvince: demoProvince,
+      addressWard: demoWard,
+      addressDetail: "123 Đường Demo",
+      addressMain: demoAddress,
+      contact: "028 1234 5678",
+      email: `demo.${type}@example.com`,
+      licenseNumber: "ATTP-DEMO-2026",
+      licenseExpires: "2027-12-31",
+    });
+    if (type === "school") {
+      demoFields.schoolLevel = "Tiểu học";
+    }
+
+    const makeDemoAnswer = (
+      key: string,
+      label: string,
+      answerType: CriteriaAnswerType,
+      options: string[] = [],
+    ): string | string[] => {
+      const normalized = `${key} ${label}`.toLocaleLowerCase("vi");
+      if (answerType === "number") return "120";
+      if (answerType === "date") return "2027-12-31";
+      if (answerType === "yes-no") {
+        return options.includes("Có") ? "Có" : options[0] ?? "Có";
+      }
+      if (answerType === "select") {
+        if (key === "addressProvince" && options.includes(demoProvince)) {
+          return demoProvince;
+        }
+        if (key === "addressWard" && options.includes(demoWard)) {
+          return demoWard;
+        }
+        return options[0] ?? "Demo";
+      }
+      if (answerType === "multi-select") {
+        return options.length > 0 ? [options[0]] : [];
+      }
+      if (normalized.includes("email")) return `demo.${type}@example.com`;
+      if (
+        normalized.includes("phone") ||
+        normalized.includes("điện thoại") ||
+        normalized.includes("liên hệ")
+      )
+        return "0900 000 123";
+      if (
+        normalized.includes("tax") ||
+        normalized.includes("mã số thuế") ||
+        normalized.includes("citizenid")
+      )
+        return "0310000123";
+      if (
+        normalized.includes("address") ||
+        normalized.includes("địa chỉ")
+      )
+        return demoAddress;
+      if (
+        normalized.includes("representative") ||
+        normalized.includes("contactname") ||
+        normalized.includes("người phụ trách")
+      )
+        return "Nguyễn Văn Demo";
+      if (
+        normalized.includes("applicant") ||
+        normalized.includes("facilityname") ||
+        normalized.includes("tên đơn vị") ||
+        normalized.includes("tên trường")
+      )
+        return demoName;
+      if (
+        normalized.includes("license") ||
+        normalized.includes("giấy phép")
+      )
+        return "ATTP-DEMO-2026";
+      if (
+        normalized.includes("time") ||
+        normalized.includes("thời điểm")
+      )
+        return "07:00";
+      if (
+        normalized.includes("description") ||
+        normalized.includes("quy trình") ||
+        normalized.includes("mô tả")
+      )
+        return "Nội dung minh họa phục vụ trình diễn.";
+      return "Thông tin demo";
+    };
+    const addDemoFile = (fieldKey: string, label: string) => {
+      if (demoFiles.some((file) => file.fieldKey === fieldKey)) return;
+      const imageLike = /ảnh|hình|photo|kho|phương tiện/i.test(label);
+      const extension = imageLike ? "jpg" : "pdf";
+      demoFiles.push({
+        name: `[DEMO] ${label.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "minh-chung"}.${extension}`,
+        kind: imageLike ? "image/jpeg" : "application/pdf",
+        size: 0,
+        fieldKey,
+      });
+    };
+    const fillCriterion = (
+      item: CriteriaDefinition,
+      valueKey: string,
+      attachmentPrefix = valueKey,
+    ) => {
+      if (item.answerType === "file") {
+        if (item.required) addDemoFile(attachmentPrefix, item.label);
+        return;
+      }
+      if (item.answerType === "repeatable") {
+        const savedRows = Array.isArray(demoFields[valueKey])
+          ? structuredClone(demoFields[valueKey] as RepeatableValue)
+          : [];
+        const minimumRows =
+          type === "school" && item.key === "foodSafetyContacts"
+            ? 2
+            : item.required
+              ? 1
+              : 0;
+        while (savedRows.length < minimumRows) savedRows.push({});
+        for (const [rowIndex, row] of savedRows.entries()) {
+          for (const field of item.repeatableFields ?? []) {
+            if (hasMeaningfulValue(row[field.key])) continue;
+            if (field.answerType === "file") {
+              if (field.required) {
+                addDemoFile(
+                  `${attachmentPrefix}.${rowIndex}.${field.key}`,
+                  field.label,
+                );
+              }
+            } else if (field.required) {
+              row[field.key] = makeDemoAnswer(
+                field.key,
+                field.label,
+                field.answerType,
+                field.options ?? [],
+              );
+            }
+          }
+        }
+        if (savedRows.length > 0) demoFields[valueKey] = savedRows;
+        return;
+      }
+      if (!hasMeaningfulValue(demoFields[valueKey])) {
+        demoFields[valueKey] = makeDemoAnswer(
+          item.key,
+          item.label,
+          item.answerType,
+          item.options,
+        );
+      }
+    };
+
+    const demoCriteria = (formSet?.criteria ?? [])
+      .filter((item) => {
+        if (!item.active) return false;
+        if (type === "school" && !isSchoolRegistrationField(item)) return false;
+        return !(
+          type === "school" &&
+          ["addressMain", "addressBranches", "operatingModels"].includes(
+            item.key,
+          )
+        );
+      })
+      .sort((left, right) => left.order - right.order);
+    for (let pass = 0; pass < 3; pass += 1) {
+      for (const item of demoCriteria) {
+        if (!isRegistrationCriteriaVisible(item, demoFields, type)) continue;
+        fillCriterion(item, item.key);
+      }
+    }
+
+    if (type === "school" && formSet) {
+      const siteId = "demo-school-site";
+      const modelId = "demo-school-model";
+      const model = "BATT tự tổ chức";
+      demoFields.addressMain = demoAddress;
+      demoFields.addressBranches = "";
+      demoFields.schoolLocations = [
+        {
+          id: siteId,
+          name: demoName,
+          address: demoAddress,
+          kind: "main",
+        },
+      ];
+      const operatingRow: Record<string, string | string[]> = {
+        id: modelId,
+        model,
+        siteId,
+        siteName: demoName,
+        siteAddress: demoAddress,
+      };
+      for (const field of schoolOperatingModelFields) {
+        if (!field.required) continue;
+        operatingRow[field.key] = makeDemoAnswer(
+          field.key,
+          field.label,
+          field.answerType,
+          field.options ?? [],
+        );
+      }
+      demoFields.operatingModels = [operatingRow];
+      for (const item of getSchoolModelDetailItems(formSet, model)) {
+        if (!item.active || item.key === "operatingModels") continue;
+        fillCriterion(
+          item,
+          `schoolModelDetails.${modelId}.${item.key}`,
+          `schoolModelDetails.${modelId}.${item.key}`,
+        );
+      }
+    }
+
+    setFields(demoFields);
+    setFiles(demoFiles);
+    setSchoolStep(0);
+    setSchoolConfirmed(false);
+    setSubmitAttempted(false);
+    setNotice("");
+    setDemoFillNotice(
+      "Đã điền dữ liệu minh họa cho nhóm đã chọn. Tệp chỉ là tên giả lập; hồ sơ chưa được nộp.",
+    );
+  };
   const isLinkedProviderModel = (model: string) =>
     model === "BATT hợp đồng" ||
     model === "Nhận suất ăn sẵn" ||
@@ -4342,6 +4630,30 @@ function ApplicationForm({
               ? "Kê khai theo tình trạng thực tế tại thời điểm khảo sát; nội dung không phát sinh hoặc không áp dụng cần ghi rõ."
               : `Đang chỉnh sửa hồ sơ của ${account?.email || "cơ sở đăng ký"}.`}
           </p>
+          {mode === "register" && (
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={fillDemoRegistration}
+                data-testid="button-fill-registration-demo"
+              >
+                Điền nhanh mẫu demo
+              </Button>
+              <p className="text-xs leading-5 text-muted-foreground">
+                Điền dữ liệu minh họa cho nhóm đang chọn; không tự nộp hồ sơ.
+              </p>
+              {demoFillNotice && (
+                <p
+                  className="w-full text-xs font-semibold text-primary"
+                  role="status"
+                  data-testid="status-registration-demo-fill"
+                >
+                  {demoFillNotice}
+                </p>
+              )}
+            </div>
+          )}
           {type === "school" && (
             <div className="paper-form-guidance">
               <p className="paper-guidance-title">
