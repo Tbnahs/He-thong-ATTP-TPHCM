@@ -13,6 +13,7 @@ import {
   PublicLookupDetailPage,
   NewsDetailPage,
   NewsPage,
+  FacilityApplicationsPage,
   RegisterPage,
 } from "@/pages/portal-pages";
 import {
@@ -172,6 +173,11 @@ function Router() {
           <AdminGuard>
             <IncidentListPage />
           </AdminGuard>
+        </Route>
+        <Route path="/facility/applications">
+          <FacilityGuard>
+            <FacilityApplicationsPage />
+          </FacilityGuard>
         </Route>
         <Route path="/facility/incidents/:id">
           <FacilityGuard>
