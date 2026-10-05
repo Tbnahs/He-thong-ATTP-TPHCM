@@ -2643,6 +2643,11 @@ const sampleFacilityNames: Record<ApplicationType, string[]> = {
   ],
 };
 
+const sampleSupplementRecipientEmails: Record<number, string> = {
+  7: "tranbaohan240903@gmail.com",
+  9: "han640698@gmail.com",
+};
+
 const sampleSchoolProfiles = [
   { name: "Trường Mầm non Hoa Hồng", educationLevel: "Mầm non" },
   { name: "Trường Tiểu học Lê Lợi", educationLevel: "Tiểu học" },
@@ -3390,6 +3395,14 @@ const createSampleApplication = (
       address,
       contact,
     );
+  }
+
+  const sampleRecipientEmail = sampleSupplementRecipientEmails[index];
+  if (sampleRecipientEmail) {
+    data.email = sampleRecipientEmail;
+    if (type === "meal-provider") {
+      data.foodSafetyContactEmail = sampleRecipientEmail;
+    }
   }
 
   if (status === "needs-more-info") {
