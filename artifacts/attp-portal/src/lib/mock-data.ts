@@ -2646,6 +2646,7 @@ const sampleFacilityNames: Record<ApplicationType, string[]> = {
 const sampleSupplementRecipientEmails: Record<number, string> = {
   7: "tranbaohan240903@gmail.com",
   9: "han640698@gmail.com",
+  13: "baohannah6@gmail.com",
 };
 
 const sampleSchoolProfiles = [
