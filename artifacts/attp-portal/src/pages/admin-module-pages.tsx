@@ -911,12 +911,14 @@ function ManagementAnswerDisplay({
   files,
   attachments,
   fieldKey,
+  readable = false,
 }: {
   value: unknown;
   repeatableFields?: ManagementRepeatableField[];
   files?: string[];
   attachments?: { fieldKey?: string; name: string }[];
   fieldKey?: string;
+  readable?: boolean;
 }) {
   const answerFiles =
     files?.length
@@ -930,7 +932,9 @@ function ManagementAnswerDisplay({
         {answerFiles.map((file) => (
           <span
             key={file}
-            className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-primary/15 bg-primary/5 px-2 py-1 text-xs font-semibold text-primary"
+            className={`inline-flex max-w-full items-center gap-1.5 rounded-md border border-primary/15 bg-primary/5 px-2 py-1 font-semibold text-primary ${
+              readable ? "text-sm" : "text-xs"
+            }`}
           >
             <FileText size={13} className="shrink-0" />
             <span className="break-all">{file}</span>
@@ -955,7 +959,11 @@ function ManagementAnswerDisplay({
             key={String(row.id ?? index)}
             className="rounded-lg border border-border/80 bg-background p-3"
           >
-            <p className="text-xs font-extrabold uppercase tracking-wider text-primary">
+            <p
+              className={`font-extrabold uppercase tracking-wider text-primary ${
+                readable ? "text-sm" : "text-xs"
+              }`}
+            >
               Dòng kê khai {index + 1}
             </p>
             <dl className="mt-2 grid gap-x-4 gap-y-3 sm:grid-cols-2">
@@ -964,7 +972,11 @@ function ManagementAnswerDisplay({
               <dt className="text-sm font-medium text-muted-foreground">
                     {field.label}
                   </dt>
-              <dd className="mt-1 break-words text-sm font-semibold leading-6">
+              <dd
+                className={`mt-1 break-words font-semibold ${
+                  readable ? "text-base leading-7" : "text-sm leading-6"
+                }`}
+              >
                     {attachments
                       ?.filter(
                         (file) =>
@@ -980,14 +992,18 @@ function ManagementAnswerDisplay({
         ))}
       </div>
     ) : (
-      <p className="mt-1.5 text-sm text-muted-foreground">Chưa có nội dung kê khai.</p>
+      <p className={`mt-1.5 text-muted-foreground ${readable ? "text-base leading-7" : "text-sm"}`}>
+        Chưa có nội dung kê khai.
+      </p>
     );
   }
 
   const answer = formatManagementAnswer(value, repeatableFields);
   return (
     <p
-      className={`mt-1.5 whitespace-pre-line break-words text-sm ${
+      className={`mt-1.5 whitespace-pre-line break-words ${
+        readable ? "text-base leading-7" : "text-sm"
+      } ${
         answer === "—" ? "font-medium text-muted-foreground" : "font-semibold text-foreground"
       }`}
     >
@@ -1000,10 +1016,12 @@ function SchoolModelRegistrationPanel({
   forms,
   registrationData,
   attachments = [],
+  readable = false,
 }: {
   forms: unknown;
   registrationData?: Record<string, unknown>;
   attachments?: Array<{ name: string; fieldKey?: string; kind?: string; size?: number }>;
+  readable?: boolean;
 }) {
   type SubmittedField = {
     key: string;
@@ -1133,27 +1151,27 @@ function SchoolModelRegistrationPanel({
       <header className="flex flex-col gap-3 border-b border-border bg-secondary/35 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
         <div>
           <p className="mono-label text-primary">BIỂU MẪU CƠ SỞ GIÁO DỤC</p>
-          <h2 className="mt-1 text-xl font-extrabold">
+          <h2 className={`mt-1 font-extrabold ${readable ? "text-2xl" : "text-xl"}`}>
             Khai báo theo mô hình · Mẫu 01–04
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className={`mt-1 text-muted-foreground ${readable ? "text-base leading-7" : "text-sm"}`}>
             Hiển thị từng mô hình đã chọn cùng toàn bộ trường lặp và minh chứng.
           </p>
         </div>
-        <span className="inline-flex shrink-0 items-center gap-2 rounded-full bg-background px-3 py-1.5 text-xs font-bold text-muted-foreground">
+        <span className={`inline-flex shrink-0 items-center gap-2 rounded-full bg-background px-3 py-1.5 font-bold text-muted-foreground ${readable ? "text-sm" : "text-xs"}`}>
           <Layers3 size={14} className="text-primary" />
           {submittedForms.length} mô hình
         </span>
       </header>
       {!submittedForms.length ? (
-        <p className="m-4 rounded-xl border border-dashed border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 sm:m-5">
+        <p className={`m-4 rounded-xl border border-dashed border-amber-300 bg-amber-50 p-4 sm:m-5 ${readable ? "text-base leading-7" : "text-sm"} text-amber-900`}>
           Hồ sơ này chưa lưu dữ liệu mô hình Mẫu 01–04. Không có thông tin để
           đối chiếu ngoài các nội dung đã kê khai ở phần trên.
         </p>
       ) : (
         <div className="space-y-3 p-3 sm:p-4">
           {reconstructedCount > 0 ? (
-            <p className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs leading-5 text-sky-900">
+            <p className={`rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sky-900 ${readable ? "text-sm leading-6" : "text-xs leading-5"}`}>
               {reconstructedCount === submittedForms.length
                 ? "Biểu mẫu được dựng từ dữ liệu đăng ký đã lưu vì hồ sơ cũ chưa có bản chụp riêng của Mẫu 01–04."
                 : `${reconstructedCount} mô hình được dựng từ dữ liệu đăng ký đã lưu do hồ sơ chưa có đủ bản chụp riêng.`}
@@ -1194,7 +1212,7 @@ function SchoolModelRegistrationPanel({
                     <h3 className="font-extrabold leading-5">
                       {form.model ?? "Mô hình hoạt động"}
                     </h3>
-                    <p className="mt-1 text-xs text-muted-foreground">
+                    <p className={`mt-1 text-muted-foreground ${readable ? "text-sm leading-6" : "text-xs"}`}>
                       {[form.siteName, form.siteAddress]
                         .filter(Boolean)
                         .join(" · ") ||
@@ -1204,7 +1222,7 @@ function SchoolModelRegistrationPanel({
                     </p>
                   </div>
                 </div>
-                <span className="flex shrink-0 items-center gap-2 text-xs font-semibold text-muted-foreground">
+                <span className={`flex shrink-0 items-center gap-2 font-semibold text-muted-foreground ${readable ? "text-sm" : "text-xs"}`}>
                   {visibleFields.length} trường kê khai
                   <ChevronDown
                     size={16}
@@ -1214,19 +1232,19 @@ function SchoolModelRegistrationPanel({
               </summary>
               <div className="border-t border-border bg-card">
                 {form.providerName ? (
-                  <p className="border-b border-border bg-secondary/20 px-4 py-2 text-xs text-muted-foreground">
+                  <p className={`border-b border-border bg-secondary/20 px-4 py-2 text-muted-foreground ${readable ? "text-sm leading-6" : "text-xs"}`}>
                     Đơn vị liên quan:{" "}
                     <strong className="text-foreground">{form.providerName}</strong>
                   </p>
                 ) : null}
               {visibleFields.length ? (
-                <dl className="grid gap-2 p-3 sm:grid-cols-2 sm:p-4 xl:grid-cols-3">
+                <dl className={`grid gap-3 p-3 sm:grid-cols-2 sm:p-4 ${readable ? "" : "xl:grid-cols-3"}`}>
                   {visibleFields.map((field) => (
                     <div
                       key={field.key}
-                      className="min-w-0 rounded-lg border border-border/80 bg-background p-3"
+                      className={`min-w-0 rounded-lg border border-border/80 bg-background ${readable ? "p-4" : "p-3"}`}
                     >
-                      <dt className="text-xs font-bold leading-5 text-muted-foreground">
+                      <dt className={`font-bold leading-6 text-muted-foreground ${readable ? "text-sm" : "text-xs"}`}>
                         {field.label}
                       </dt>
                       <dd>
@@ -1234,6 +1252,7 @@ function SchoolModelRegistrationPanel({
                           <ManagementAnswerDisplay
                             value={field.value}
                             files={field.files}
+                            readable={readable}
                           />
                         ) : (
                         <ManagementAnswerDisplay
@@ -1247,6 +1266,7 @@ function SchoolModelRegistrationPanel({
                           files={field.files}
                           attachments={attachments}
                           fieldKey={`schoolModelDetails.${form.id ?? formIndex}.${field.key}`}
+                          readable={readable}
                         />
                         )}
                       </dd>
@@ -1254,7 +1274,7 @@ function SchoolModelRegistrationPanel({
                   ))}
                 </dl>
               ) : (
-                <p className="p-4 text-sm text-muted-foreground">
+                <p className={`p-4 text-muted-foreground ${readable ? "text-base leading-7" : "text-sm"}`}>
                   Chưa có nội dung kê khai cho mẫu này.
                 </p>
               )}
@@ -3552,12 +3572,12 @@ export function AdminFacilitiesPage() {
                 className={`flex min-h-[76px] items-center justify-between rounded-2xl border px-4 py-3 text-left transition ${toneClasses}`}
               >
                 <span>
-                  <span className="block text-sm font-bold">{label}</span>
-                  <span className="mt-1 block text-xs text-muted-foreground">
+                   <span className="block text-base font-bold">{label}</span>
+                   <span className="mt-1 block text-sm text-muted-foreground">
                     {selected ? "Bấm để bỏ lọc" : "Lọc danh sách"}
                   </span>
                 </span>
-                <span className="text-2xl font-extrabold tabular-nums">{count}</span>
+                 <span className="text-3xl font-extrabold tabular-nums">{count}</span>
               </button>
             );
           })}
@@ -3571,14 +3591,14 @@ export function AdminFacilitiesPage() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Tìm tên cơ sở, địa chỉ, số điện thoại..."
-                className="focus-ring h-12 w-full rounded-xl border border-input bg-background pl-10 pr-3 text-sm"
+                className="focus-ring h-12 w-full rounded-xl border border-input bg-background pl-10 pr-3 text-base"
                 data-testid="input-facilities-search"
               />
             </label>
             <select
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
-              className="focus-ring h-12 rounded-xl border border-input bg-background px-3 text-sm font-semibold"
+              className="focus-ring h-12 rounded-xl border border-input bg-background px-3 text-base font-semibold"
               data-testid="select-facilities-status"
             >
               {[
@@ -3590,13 +3610,13 @@ export function AdminFacilitiesPage() {
                 <option key={item}>{item}</option>
               ))}
             </select>
-            <span className="text-sm font-semibold text-muted-foreground">
+            <span className="text-base font-semibold text-muted-foreground">
               {rows.length} bản ghi hiển thị
             </span>
           </div>
           <div className="hidden overflow-x-auto md:block">
              <table
-               className={`w-full text-left text-sm ${
+               className={`w-full text-left text-base ${
                  activeTab === "suppliers"
                    ? "min-w-[640px]"
                    : activeTab === "schools"
@@ -3604,7 +3624,7 @@ export function AdminFacilitiesPage() {
                       : "min-w-[920px]"
                }`}
              >
-              <thead className="bg-secondary/70 text-xs font-extrabold uppercase tracking-wide text-muted-foreground">
+              <thead className="bg-secondary/70 text-sm font-bold text-foreground">
                 <tr>
                   <th className="px-5 py-4">Cơ sở</th>
                   {activeTab === "all" ? (
@@ -3634,9 +3654,9 @@ export function AdminFacilitiesPage() {
               <tbody className="divide-y divide-border">
                 {rows.map((row) => (
                     <tr key={row.id} className="transition-colors hover:bg-secondary/30">
-                      <td className="max-w-[260px] px-5 py-4 font-bold">
+                    <td className="max-w-[260px] px-5 py-4 font-bold leading-6">
                         {row.name}
-                        <span className="mt-1 block text-xs font-medium text-muted-foreground">
+                        <span className="mt-1 block text-sm font-medium text-muted-foreground">
                           {row.ward} · Cập nhật {row.updated}
                         </span>
                       </td>
@@ -3645,11 +3665,11 @@ export function AdminFacilitiesPage() {
                           <td className="px-4 py-4">
                             {getFacilityRegistrationLabel(row)}
                           </td>
-                          <td className="max-w-[280px] px-4 py-4 leading-6 text-muted-foreground">{row.address}</td>
+                          <td className="max-w-[280px] px-4 py-4 leading-7 text-muted-foreground">{row.address}</td>
                           <td className="px-4 py-4 text-muted-foreground">{row.contact}</td>
                         </>
                       ) : (
-                        <td className="max-w-[300px] px-4 py-4 leading-6 text-muted-foreground">{row.address}</td>
+                        <td className="max-w-[300px] px-4 py-4 leading-7 text-muted-foreground">{row.address}</td>
                       )}
                       {activeTab === "schools" ? (
                         <>
@@ -3674,7 +3694,7 @@ export function AdminFacilitiesPage() {
                       <td className="px-5 py-4 text-right">
                         <Link
                           href={`/admin/facilities/${row.id}`}
-                          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-primary/30 px-3 text-sm font-bold text-primary hover:bg-primary hover:text-primary-foreground"
+                          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-primary/30 px-3 text-base font-bold text-primary hover:bg-primary hover:text-primary-foreground"
                           data-testid={`button-view-facility-detail-${row.id}`}
                         >
                           <Eye size={16} /> Mở hồ sơ
@@ -3687,39 +3707,39 @@ export function AdminFacilitiesPage() {
           </div>
           <div className="divide-y divide-border md:hidden">
             {rows.map((row) => (
-              <article key={row.id} className="space-y-3 p-4">
+              <article key={row.id} className="space-y-4 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h3 className="break-words text-base font-extrabold leading-6">
+                    <h3 className="break-words text-lg font-extrabold leading-7">
                       {row.name}
                     </h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
+                    <p className="mt-1 text-base leading-6 text-muted-foreground">
                       {getFacilityRegistrationLabel(row)}
                     </p>
                   </div>
                   <StatusPill status={managementStatusLabel(row.status)} />
                 </div>
-                <dl className="grid grid-cols-2 gap-x-4 gap-y-3 rounded-xl bg-secondary/35 p-3 text-sm">
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-4 rounded-xl bg-secondary/35 p-4 text-base">
                   <div className="col-span-2">
-                    <dt className="text-xs font-bold text-muted-foreground">Địa chỉ</dt>
-                    <dd className="mt-1 leading-5">{row.address}</dd>
+                    <dt className="text-sm font-bold text-muted-foreground">Địa chỉ</dt>
+                    <dd className="mt-1 leading-7">{row.address}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-bold text-muted-foreground">Xã / phường</dt>
+                    <dt className="text-sm font-bold text-muted-foreground">Xã / phường</dt>
                     <dd className="mt-1">{row.ward}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-bold text-muted-foreground">Liên hệ</dt>
+                    <dt className="text-sm font-bold text-muted-foreground">Liên hệ</dt>
                     <dd className="mt-1 break-words">{row.contact}</dd>
                   </div>
                   {activeTab === "schools" ? (
                     <>
                       <div>
-                        <dt className="text-xs font-bold text-muted-foreground">Cấp học</dt>
+                        <dt className="text-sm font-bold text-muted-foreground">Cấp học</dt>
                         <dd className="mt-1">{row.level || "Chưa khai báo"}</dd>
                       </div>
                       <div>
-                        <dt className="text-xs font-bold text-muted-foreground">Số học sinh</dt>
+                        <dt className="text-sm font-bold text-muted-foreground">Số học sinh</dt>
                         <dd className="mt-1 font-bold">
                           {row.students === undefined ? "—" : formatNumber(row.students)}
                         </dd>
@@ -3728,18 +3748,18 @@ export function AdminFacilitiesPage() {
                   ) : null}
                   {activeTab === "food" ? (
                     <div>
-                      <dt className="text-xs font-bold text-muted-foreground">Nhóm thực phẩm</dt>
+                      <dt className="text-sm font-bold text-muted-foreground">Nhóm thực phẩm</dt>
                       <dd className="mt-1">{row.category || "—"}</dd>
                     </div>
                   ) : null}
                   <div>
-                    <dt className="text-xs font-bold text-muted-foreground">Ngày cập nhật</dt>
+                    <dt className="text-sm font-bold text-muted-foreground">Ngày cập nhật</dt>
                     <dd className="mt-1">{row.updated}</dd>
                   </div>
                 </dl>
                 <Link
                   href={`/admin/facilities/${row.id}`}
-                  className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground"
+                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-base font-bold text-primary-foreground"
                   data-testid={`button-view-facility-detail-mobile-${row.id}`}
                 >
                   <Eye size={16} /> Xem chi tiết hồ sơ
@@ -3748,7 +3768,7 @@ export function AdminFacilitiesPage() {
             ))}
           </div>
           {!rows.length && (
-            <div className="px-5 py-12 text-center text-sm text-muted-foreground">
+            <div className="px-5 py-12 text-center text-base text-muted-foreground">
               Không tìm thấy dữ liệu phù hợp.
             </div>
           )}
@@ -4747,7 +4767,7 @@ export function AdminFacilityDetailPage() {
           </div>
         </section>
 
-        <div className="mt-6 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_380px] xl:gap-7">
+        <div className="mt-6 grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:gap-7">
           <main className="min-w-0 space-y-6">
             <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
               <div className="flex flex-wrap items-end justify-between gap-3">
@@ -4776,16 +4796,16 @@ export function AdminFacilityDetailPage() {
                       key={group.id}
                       className="overflow-hidden rounded-xl border border-border bg-background"
                     >
-                      <header className="flex flex-col gap-3 border-b border-border bg-secondary/45 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                      <header className="flex flex-col gap-3 border-b border-border bg-secondary/45 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                         <div className="flex min-w-0 items-start gap-3">
                           <span className="inline-flex h-9 min-w-9 shrink-0 items-center justify-center rounded-lg border border-primary/25 bg-card px-2 text-sm font-extrabold text-primary">
                             {String(groupIndex + 1).padStart(2, "0")}
                           </span>
                           <div className="min-w-0">
-                            <p className="text-[11px] font-extrabold uppercase tracking-[.12em] text-primary">
+                            <p className="text-xs font-extrabold uppercase tracking-[.12em] text-primary">
                               Phần {String(groupIndex + 1).padStart(2, "0")}
                             </p>
-                            <h3 className="mt-1 text-base font-extrabold leading-6">
+                            <h3 className="mt-1 text-lg font-extrabold leading-7">
                               {group.name}
                             </h3>
                           </div>
@@ -4794,21 +4814,21 @@ export function AdminFacilityDetailPage() {
                           {groupCriteria.length} nội dung kê khai
                         </span>
                       </header>
-                      <dl className="grid gap-3 bg-card p-3 sm:grid-cols-2 sm:p-4 xl:gap-4">
+                      <dl className="grid gap-x-8 bg-card px-5 pb-2 sm:grid-cols-2 sm:px-6">
                         {groupCriteria.map((item) => (
                           <div
                             key={item.key}
-                            className="min-w-0 rounded-xl border border-border/80 bg-background p-4"
+                            className="min-w-0 border-b border-border/80 py-5"
                           >
-                            <dt className="text-sm font-bold leading-6 text-foreground">
+                            <dt className="text-sm font-semibold leading-6 text-muted-foreground">
                               {item.label}
                             </dt>
                             {item.description ? (
-                              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                              <p className="mt-1 text-sm leading-6 text-muted-foreground">
                                 {item.description}
                               </p>
                             ) : null}
-                            <dd className="mt-2 text-sm leading-6">
+                            <dd className="mt-2 text-base leading-7">
                               <ManagementAnswerDisplay
                                 value={
                                   item.answerType === "file"
@@ -4818,6 +4838,7 @@ export function AdminFacilityDetailPage() {
                                 repeatableFields={item.repeatableFields}
                                 attachments={registrationFiles}
                                 fieldKey={item.key}
+                                readable
                               />
                             </dd>
                           </div>
@@ -4839,18 +4860,19 @@ export function AdminFacilityDetailPage() {
                 forms={registrationFields.schoolModelForms}
                 registrationData={registrationFields}
                 attachments={registrationFiles}
+                readable
               />
             )}
           </main>
 
-          <aside className="space-y-4 lg:sticky lg:top-5">
+          <aside className="space-y-4 xl:sticky xl:top-5">
             <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
               <div className="flex items-start gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
                   <UserRound size={18} />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-[11px] font-extrabold uppercase tracking-[.12em] text-primary">NGƯỜI ĐĂNG KÝ</p>
+                  <p className="text-xs font-extrabold uppercase tracking-[.12em] text-primary">NGƯỜI ĐĂNG KÝ</p>
                   <h2 className="mt-1.5 break-words text-lg font-extrabold">
                     {registrant.name}
                   </h2>
@@ -4868,10 +4890,10 @@ export function AdminFacilityDetailPage() {
                   ["Loại cơ sở", registrationType ? getRegistrationCategory(registrationType) : "—"],
                 ].map(([label, value]) => (
                   <div key={label} className="min-w-0">
-                    <dt className="text-xs font-bold text-muted-foreground">
+                    <dt className="text-sm font-bold text-muted-foreground">
                       {label}
                     </dt>
-                    <dd className="mt-1 break-words text-sm font-semibold leading-5">
+                    <dd className="mt-1 break-words text-base font-semibold leading-6">
                       {value}
                     </dd>
                   </div>
@@ -4884,7 +4906,7 @@ export function AdminFacilityDetailPage() {
                 <MapPin size={16} className="text-primary" />
                 <h2 className="text-base font-extrabold">Thông tin nhanh</h2>
               </div>
-              <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-4">
+              <dl className="mt-4 grid gap-3">
                 {[
                   ["Tỉnh/thành phố", row.province],
                   ["Xã/phường", row.ward],
@@ -4896,10 +4918,10 @@ export function AdminFacilityDetailPage() {
                   ["Cập nhật", row.updated],
                 ].map(([label, value]) => (
                   <div key={label} className="min-w-0">
-                    <dt className="text-xs font-semibold leading-5 text-muted-foreground">
+                    <dt className="text-sm font-semibold leading-6 text-muted-foreground">
                       {label}
                     </dt>
-                    <dd className="mt-1 break-words text-sm font-semibold leading-5">
+                    <dd className="mt-1 break-words text-base font-semibold leading-7">
                       {value || "—"}
                     </dd>
                   </div>
@@ -4910,7 +4932,7 @@ export function AdminFacilityDetailPage() {
             <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-extrabold uppercase tracking-[.12em] text-primary">MINH CHỨNG</p>
+                  <p className="text-xs font-extrabold uppercase tracking-[.12em] text-primary">MINH CHỨNG</p>
                   <h2 className="mt-1 text-base font-extrabold">Tệp đính kèm</h2>
                 </div>
                 <span className="rounded-full bg-secondary px-3 py-1.5 text-sm font-bold text-muted-foreground">
@@ -4918,7 +4940,7 @@ export function AdminFacilityDetailPage() {
                 </span>
               </div>
               {registrationFiles.length ? (
-                <ul className="mt-4 max-h-[360px] space-y-2 overflow-y-auto pr-1">
+                <ul className="mt-4 space-y-2">
                   {registrationFiles.map((file) => (
                     <li
                       key={`${file.fieldKey ?? "attachment"}-${file.name}`}
@@ -4932,10 +4954,10 @@ export function AdminFacilityDetailPage() {
                         )}
                       </span>
                       <span className="min-w-0">
-                          <span className="block break-all text-sm font-semibold leading-5">
+                          <span className="block break-all text-base font-semibold leading-6">
                           {file.name}
                         </span>
-                          <span className="mt-1 block text-xs text-muted-foreground">
+                          <span className="mt-1 block text-sm text-muted-foreground">
                           {file.size
                             ? `${(file.size / 1024 / 1024).toFixed(1)} MB`
                             : "Dung lượng chưa cập nhật"}
@@ -4955,8 +4977,8 @@ export function AdminFacilityDetailPage() {
               <div className="flex items-center gap-2">
                 <ClipboardCheck size={17} className="text-primary" />
                 <div>
-                  <p className="text-[11px] font-extrabold uppercase tracking-[.12em] text-primary">XỬ LÝ HỒ SƠ</p>
-                  <h2 className="mt-1 text-base font-extrabold">Kết luận xét duyệt</h2>
+                  <p className="text-xs font-extrabold uppercase tracking-[.12em] text-primary">XỬ LÝ HỒ SƠ</p>
+                  <h2 className="mt-1 text-lg font-extrabold">Kết luận xét duyệt</h2>
                 </div>
               </div>
               {currentStatus === "approved" ? (
@@ -4968,19 +4990,19 @@ export function AdminFacilityDetailPage() {
                     <dl className="mt-3 grid gap-3 rounded-xl border border-emerald-200 bg-white p-4 text-sm sm:grid-cols-2">
                       <div>
                         <dt className="text-xs font-bold text-muted-foreground">Cán bộ duyệt</dt>
-                        <dd className="mt-0.5 font-semibold">{application.reviewer.name}</dd>
+                      <dd className="mt-0.5 text-base font-semibold">{application.reviewer.name}</dd>
                       </div>
                       <div>
                         <dt className="text-xs font-bold text-muted-foreground">Chức vụ</dt>
-                        <dd className="mt-0.5 font-semibold">{application.reviewer.position}</dd>
+                      <dd className="mt-0.5 text-base font-semibold">{application.reviewer.position}</dd>
                       </div>
                       <div>
                         <dt className="text-xs font-bold text-muted-foreground">Số điện thoại</dt>
-                        <dd className="mt-0.5 font-semibold">{application.reviewer.phone}</dd>
+                      <dd className="mt-0.5 text-base font-semibold">{application.reviewer.phone}</dd>
                       </div>
                       <div>
                         <dt className="text-xs font-bold text-muted-foreground">Email</dt>
-                        <dd className="mt-0.5 break-all font-semibold">{application.reviewer.email}</dd>
+                      <dd className="mt-0.5 break-all text-base font-semibold">{application.reviewer.email}</dd>
                       </div>
                       <div className="sm:col-span-2">
                         <dt className="text-xs font-bold text-muted-foreground">Chữ ký</dt>
@@ -4990,7 +5012,7 @@ export function AdminFacilityDetailPage() {
                       </div>
                       <div className="sm:col-span-2">
                         <dt className="text-xs font-bold text-muted-foreground">Thời điểm duyệt</dt>
-                        <dd className="mt-0.5 font-semibold">
+                        <dd className="mt-0.5 text-base font-semibold">
                           {new Intl.DateTimeFormat("vi-VN", {
                             dateStyle: "medium",
                             timeStyle: "short",
@@ -5049,7 +5071,7 @@ export function AdminFacilityDetailPage() {
                                 [key]: event.target.value,
                               }))
                             }
-                            className="focus-ring mt-1.5 h-11 w-full rounded-lg border border-input bg-background px-3 text-sm font-medium"
+                            className="focus-ring mt-1.5 h-12 w-full rounded-lg border border-input bg-background px-3 text-base font-medium"
                             placeholder={`Nhập ${label.toLowerCase()}`}
                             data-testid={`input-reviewer-${key}`}
                           />
@@ -5078,7 +5100,7 @@ export function AdminFacilityDetailPage() {
                       onChange={(event) => setReviewNote(event.target.value)}
                       rows={4}
                       placeholder="Nêu rõ trường hoặc minh chứng cơ sở cần bổ sung..."
-                      className="focus-ring w-full resize-y rounded-xl border border-input bg-background p-3.5 text-sm leading-6"
+                      className="focus-ring w-full resize-y rounded-xl border border-input bg-background p-3.5 text-base leading-7"
                       data-testid="textarea-facility-review-note"
                     />
                   </label>
@@ -5086,7 +5108,7 @@ export function AdminFacilityDetailPage() {
                     <button
                       type="button"
                       onClick={requestSupplement}
-                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-900 hover:bg-amber-100"
+                      className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-base font-bold text-amber-900 hover:bg-amber-100"
                       data-testid="button-request-supplement-facility-detail"
                     >
                       <Mail size={15} /> Tạo email yêu cầu bổ sung
@@ -5094,7 +5116,7 @@ export function AdminFacilityDetailPage() {
                     <button
                       type="button"
                       onClick={approve}
-                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-3 py-2 text-sm font-bold text-primary-foreground hover:bg-primary/90"
+                      className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary px-3 py-2 text-base font-bold text-primary-foreground hover:bg-primary/90"
                       data-testid="button-approve-facility-detail"
                     >
                       <CheckCircle2 size={16} /> Duyệt và công bố
