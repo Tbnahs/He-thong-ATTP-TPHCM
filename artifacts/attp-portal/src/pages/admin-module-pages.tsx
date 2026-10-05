@@ -917,16 +917,16 @@ function ManagementAnswerDisplay({
             key={String(row.id ?? index)}
             className="rounded-lg border border-border/80 bg-background p-3"
           >
-            <p className="text-[10px] font-extrabold uppercase tracking-wider text-primary">
+            <p className="text-xs font-extrabold uppercase tracking-wider text-primary">
               Dòng kê khai {index + 1}
             </p>
             <dl className="mt-2 grid gap-x-4 gap-y-3 sm:grid-cols-2">
               {(repeatableFields ?? []).map((field) => (
                 <div key={field.key} className="min-w-0">
-                  <dt className="text-xs font-medium text-muted-foreground">
+              <dt className="text-sm font-medium text-muted-foreground">
                     {field.label}
                   </dt>
-                  <dd className="mt-0.5 break-words text-sm font-semibold">
+              <dd className="mt-1 break-words text-sm font-semibold leading-6">
                     {attachments
                       ?.filter(
                         (file) =>
@@ -3146,6 +3146,32 @@ export function AdminFacilitiesPage() {
     });
   }, [activeTab, applicationRows, importedRows, search, statusFilter]);
 
+  const activeRegistrationType =
+    activeTab === "schools"
+      ? "school"
+      : activeTab === "food"
+        ? "food-supplier"
+        : activeTab === "suppliers"
+          ? "meal-provider"
+          : undefined;
+  const rowsForStatusCounts = [...applicationRows, ...importedRows].filter(
+    (row) => {
+      const matchesType =
+        !activeRegistrationType ||
+        getRowRegistrationType(row) === activeRegistrationType;
+      const searchableText =
+        `${row.name} ${row.address} ${row.ward} ${row.contact}`.toLowerCase();
+      return matchesType && searchableText.includes(search.trim().toLowerCase());
+    },
+  );
+  const statusCounts = {
+    pending: rowsForStatusCounts.filter((row) => row.status === "pending").length,
+    needsMoreInfo: rowsForStatusCounts.filter(
+      (row) => row.status === "needs-more-info",
+    ).length,
+    approved: rowsForStatusCounts.filter((row) => row.status === "approved").length,
+  };
+
   const tabCounts = {
     all: applicationRows.length + importedRows.length,
     suppliers:
@@ -3466,6 +3492,44 @@ export function AdminFacilitiesPage() {
           ))}
         </div>
 
+        <section className="mt-5 grid gap-3 sm:grid-cols-3" aria-label="Lọc nhanh theo trạng thái">
+          {([
+            ["Chờ duyệt", "pending", statusCounts.pending, "amber"],
+            ["Yêu cầu bổ sung", "needs-more-info", statusCounts.needsMoreInfo, "blue"],
+            ["Đã duyệt", "approved", statusCounts.approved, "emerald"],
+          ] as const).map(([label, value, count, tone]) => {
+            const selected = statusFilter === label;
+            const toneClasses = {
+              amber: selected
+                ? "border-amber-300 bg-amber-50 text-amber-950"
+                : "border-border bg-card text-foreground hover:border-amber-300",
+              blue: selected
+                ? "border-sky-300 bg-sky-50 text-sky-950"
+                : "border-border bg-card text-foreground hover:border-sky-300",
+              emerald: selected
+                ? "border-emerald-300 bg-emerald-50 text-emerald-950"
+                : "border-border bg-card text-foreground hover:border-emerald-300",
+            }[tone];
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setStatusFilter(selected ? "Tất cả trạng thái" : label)}
+                aria-pressed={selected}
+                className={`flex min-h-[76px] items-center justify-between rounded-2xl border px-4 py-3 text-left transition ${toneClasses}`}
+              >
+                <span>
+                  <span className="block text-sm font-bold">{label}</span>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    {selected ? "Bấm để bỏ lọc" : "Lọc danh sách"}
+                  </span>
+                </span>
+                <span className="text-2xl font-extrabold tabular-nums">{count}</span>
+              </button>
+            );
+          })}
+        </section>
+
         <section className="mt-5 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
           <div className="flex flex-col gap-3 border-b border-border p-4 sm:p-5 lg:flex-row lg:items-center">
             <label className="relative flex-1">
@@ -3474,14 +3538,14 @@ export function AdminFacilitiesPage() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Tìm tên cơ sở, địa chỉ, số điện thoại..."
-                className="focus-ring h-11 w-full rounded-xl border border-input bg-background pl-9 pr-3 text-sm"
+                className="focus-ring h-12 w-full rounded-xl border border-input bg-background pl-10 pr-3 text-sm"
                 data-testid="input-facilities-search"
               />
             </label>
             <select
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
-              className="focus-ring h-11 rounded-xl border border-input bg-background px-3 text-sm font-semibold"
+              className="focus-ring h-12 rounded-xl border border-input bg-background px-3 text-sm font-semibold"
               data-testid="select-facilities-status"
             >
               {[
@@ -3493,55 +3557,55 @@ export function AdminFacilitiesPage() {
                 <option key={item}>{item}</option>
               ))}
             </select>
-            <span className="text-xs font-semibold text-muted-foreground">
+            <span className="text-sm font-semibold text-muted-foreground">
               {rows.length} bản ghi hiển thị
             </span>
           </div>
-          <div className="overflow-x-auto">
+          <div className="hidden overflow-x-auto md:block">
              <table
-               className={`w-full text-left text-xs ${
+               className={`w-full text-left text-sm ${
                  activeTab === "suppliers"
                    ? "min-w-[640px]"
                    : activeTab === "schools"
-                     ? "min-w-[820px]"
-                     : "min-w-[980px]"
+                      ? "min-w-[780px]"
+                      : "min-w-[920px]"
                }`}
              >
-              <thead className="bg-secondary/70 text-[10px] font-extrabold uppercase tracking-wide text-muted-foreground">
+              <thead className="bg-secondary/70 text-xs font-extrabold uppercase tracking-wide text-muted-foreground">
                 <tr>
-                  <th className="px-5 py-3">Cơ sở</th>
+                  <th className="px-5 py-4">Cơ sở</th>
                   {activeTab === "all" ? (
                     <>
-                      <th className="px-4 py-3">Loại cơ sở</th>
-                      <th className="px-4 py-3">Địa chỉ</th>
-                      <th className="px-4 py-3">Liên hệ</th>
+                      <th className="px-4 py-4">Loại cơ sở</th>
+                      <th className="px-4 py-4">Địa chỉ</th>
+                      <th className="px-4 py-4">Liên hệ</th>
                     </>
                   ) : (
-                    <th className="px-4 py-3">Địa chỉ</th>
+                    <th className="px-4 py-4">Địa chỉ</th>
                   )}
                   {activeTab === "schools" ? (
                     <>
-                      <th className="px-4 py-3">Cấp học</th>
-                      <th className="px-4 py-3 text-right">Học sinh (số lượng)</th>
+                      <th className="px-4 py-4">Cấp học</th>
+                      <th className="px-4 py-4 text-right">Học sinh</th>
                     </>
                   ) : activeTab === "food" ? (
                     <>
-                      <th className="px-4 py-3">Nhóm thực phẩm</th>
-                      <th className="px-4 py-3 text-right">Công suất/ngày</th>
-                      <th className="px-4 py-3 text-right">Cập nhật</th>
+                      <th className="px-4 py-4">Nhóm thực phẩm</th>
+                      <th className="px-4 py-4 text-right">Công suất/ngày</th>
+                      <th className="px-4 py-4 text-right">Cập nhật</th>
                     </>
                   ) : null}
-                  <th className="px-4 py-3">Trạng thái</th>
-                  <th className="px-5 py-3 text-right">Chi tiết</th>
+                  <th className="px-4 py-4">Trạng thái</th>
+                  <th className="px-5 py-4 text-right">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {rows.map((row) => (
                     <tr key={row.id} className="transition-colors hover:bg-secondary/30">
-                      <td className="px-5 py-4 font-bold">
+                      <td className="max-w-[260px] px-5 py-4 font-bold">
                         {row.name}
-                        <span className="mt-1 block text-[10px] font-medium text-muted-foreground">
-                          {row.ward} · {row.contact}
+                        <span className="mt-1 block text-xs font-medium text-muted-foreground">
+                          {row.ward} · Cập nhật {row.updated}
                         </span>
                       </td>
                       {activeTab === "all" ? (
@@ -3549,11 +3613,11 @@ export function AdminFacilitiesPage() {
                           <td className="px-4 py-4">
                             {getFacilityRegistrationLabel(row)}
                           </td>
-                          <td className="px-4 py-4 text-muted-foreground">{row.address}</td>
+                          <td className="max-w-[280px] px-4 py-4 leading-6 text-muted-foreground">{row.address}</td>
                           <td className="px-4 py-4 text-muted-foreground">{row.contact}</td>
                         </>
                       ) : (
-                        <td className="px-4 py-4 text-muted-foreground">{row.address}</td>
+                        <td className="max-w-[300px] px-4 py-4 leading-6 text-muted-foreground">{row.address}</td>
                       )}
                       {activeTab === "schools" ? (
                         <>
@@ -3577,17 +3641,84 @@ export function AdminFacilitiesPage() {
                       <td className="px-5 py-4 text-right">
                         <Link
                           href={`/admin/facilities/${row.id}`}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
-                          aria-label={`Xem chi tiết ${row.name}`}
+                          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-primary/30 px-3 text-sm font-bold text-primary hover:bg-primary hover:text-primary-foreground"
                           data-testid={`button-view-facility-detail-${row.id}`}
                         >
-                          <Eye size={16} />
+                          <Eye size={16} /> Mở hồ sơ
                         </Link>
                       </td>
                     </tr>
                   ))}
               </tbody>
             </table>
+          </div>
+          <div className="divide-y divide-border md:hidden">
+            {rows.map((row) => (
+              <article key={row.id} className="space-y-3 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="break-words text-base font-extrabold leading-6">
+                      {row.name}
+                    </h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {getFacilityRegistrationLabel(row)}
+                    </p>
+                  </div>
+                  <StatusPill status={managementStatusLabel(row.status)} />
+                </div>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-3 rounded-xl bg-secondary/35 p-3 text-sm">
+                  <div className="col-span-2">
+                    <dt className="text-xs font-bold text-muted-foreground">Địa chỉ</dt>
+                    <dd className="mt-1 leading-5">{row.address}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-bold text-muted-foreground">Xã / phường</dt>
+                    <dd className="mt-1">{row.ward}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-bold text-muted-foreground">Liên hệ</dt>
+                    <dd className="mt-1 break-words">{row.contact}</dd>
+                  </div>
+                  {activeTab === "schools" ? (
+                    <>
+                      <div>
+                        <dt className="text-xs font-bold text-muted-foreground">Cấp học</dt>
+                        <dd className="mt-1">{row.level || "—"}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs font-bold text-muted-foreground">Số học sinh</dt>
+                        <dd className="mt-1 font-bold">
+                          {row.students === undefined ? "—" : formatNumber(row.students)}
+                        </dd>
+                      </div>
+                    </>
+                  ) : null}
+                  {activeTab === "food" ? (
+                    <>
+                      <div>
+                        <dt className="text-xs font-bold text-muted-foreground">Nhóm thực phẩm</dt>
+                        <dd className="mt-1">{row.category || "—"}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs font-bold text-muted-foreground">Công suất/ngày</dt>
+                        <dd className="mt-1 font-bold">{formatNumber(row.capacity)}</dd>
+                      </div>
+                    </>
+                  ) : null}
+                  <div>
+                    <dt className="text-xs font-bold text-muted-foreground">Ngày cập nhật</dt>
+                    <dd className="mt-1">{row.updated}</dd>
+                  </div>
+                </dl>
+                <Link
+                  href={`/admin/facilities/${row.id}`}
+                  className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground"
+                  data-testid={`button-view-facility-detail-mobile-${row.id}`}
+                >
+                  <Eye size={16} /> Xem chi tiết hồ sơ
+                </Link>
+              </article>
+            ))}
           </div>
           {!rows.length && (
             <div className="px-5 py-12 text-center text-sm text-muted-foreground">
@@ -4295,59 +4426,83 @@ export function AdminFacilityDetailPage() {
 
   return (
     <AdminShell reviewLayout>
-      <div className="mx-auto max-w-[1480px] px-4 py-4 sm:px-6 lg:px-8 lg:py-5">
+      <div className="mx-auto max-w-[1540px] px-4 py-5 sm:px-6 lg:px-10 lg:py-7">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link
             href="/admin/facilities"
-            className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:underline"
+            className="inline-flex min-h-10 items-center gap-2 rounded-lg text-sm font-bold text-primary hover:underline"
             data-testid="link-back-to-facilities"
           >
             <ArrowLeft size={16} /> Duyệt hồ sơ
             <span className="font-normal text-muted-foreground">/ Chi tiết cơ sở</span>
           </Link>
-          <StatusPill status={managementStatusLabel(currentStatus)} />
+          <div className="flex items-center gap-2">
+            <span className="hidden text-xs font-semibold text-muted-foreground sm:inline">
+              Trạng thái hồ sơ
+            </span>
+            <StatusPill status={managementStatusLabel(currentStatus)} />
+          </div>
         </div>
 
-        <section className="mt-4 overflow-hidden rounded-2xl bg-[#123d36] text-white shadow-sm">
-          <div className="grid gap-4 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-center lg:px-7">
+        <section className="mt-4 overflow-hidden rounded-2xl border border-[#123d36]/10 bg-[#123d36] text-white shadow-sm">
+          <div className="grid gap-5 px-5 py-6 sm:px-7 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-center lg:px-8">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-[#f4c95d]">
-                <span>{application?.reference ?? row.id}</span>
-                <span className="text-white/35">•</span>
-                <span>{registrationType ? getRegistrationCategory(registrationType) : row.category ?? "Cơ sở"}</span>
-                <span className="text-white/35">•</span>
-                <span>{application?.published ? "Đã công bố" : "Hồ sơ cơ sở"}</span>
+                <span className="rounded-full bg-white/10 px-3 py-1.5">
+                  Mã hồ sơ: {application?.reference ?? row.id}
+                </span>
+                <span className="rounded-full bg-white/10 px-3 py-1.5">
+                  {registrationType ? getRegistrationCategory(registrationType) : row.category ?? "Cơ sở"}
+                </span>
+                {application?.published ? (
+                  <span className="rounded-full bg-emerald-300/15 px-3 py-1.5 text-emerald-100">
+                    Đã công bố
+                  </span>
+                ) : null}
               </div>
-              <h1 className="mt-2 break-words text-2xl font-extrabold tracking-tight sm:text-3xl">
+              <h1 className="mt-3 break-words text-2xl font-extrabold tracking-tight sm:text-3xl lg:text-[34px]">
                 {row.name}
               </h1>
-              <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm text-white/70">
-                <span>{row.address}</span>
-                <span>•</span>
-                <span>{row.contact}</span>
+              <p className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm leading-6 text-white/80">
+                <span className="inline-flex min-w-0 items-start gap-2">
+                  <MapPin size={16} className="mt-1 shrink-0 text-[#f4c95d]" />
+                  <span>{row.address}, {row.ward}, {row.province}</span>
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <ClipboardCheck size={15} className="text-[#f4c95d]" />
+                  Ngày nộp {submittedAt}
+                </span>
               </p>
             </div>
-            <div className="grid gap-2">
-              <div className="rounded-xl bg-white/10 p-3">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-white/55">
-                  Ngày nộp
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-white/10 bg-white/[.07] p-4">
+                <p className="text-xs font-bold text-white/65">
+                  Tình trạng
                 </p>
-                <p className="mt-1 text-sm font-bold">{submittedAt}</p>
+                <p className="mt-1.5 text-base font-extrabold">{managementStatusLabel(currentStatus)}</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[.07] p-4">
+                <p className="text-xs font-bold text-white/65">
+                  Loại hình
+                </p>
+                <p className="mt-1.5 text-sm font-extrabold leading-5">
+                  {registrationType ? getRegistrationCategory(registrationType) : row.category ?? "Cơ sở"}
+                </p>
               </div>
             </div>
           </div>
         </section>
 
-        <div className="mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_330px] xl:gap-6">
-          <main className="min-w-0 space-y-5">
-            <section className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
+        <div className="mt-6 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_380px] xl:gap-7">
+          <main className="min-w-0 space-y-6">
+            <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
-                  <p className="mono-label text-primary">HỒ SƠ ĐÃ NỘP</p>
-                  <h2 className="mt-1 text-xl font-extrabold">
+                  <p className="text-xs font-extrabold uppercase tracking-[.14em] text-primary">HỒ SƠ ĐÃ NỘP</p>
+                  <h2 className="mt-1.5 text-xl font-extrabold sm:text-2xl">
                     Thông tin cơ sở đã khai báo
                   </h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
                     Nội dung được đối chiếu theo loại hồ sơ và các trường đã điền trên portal.
                   </p>
                 </div>
@@ -4356,7 +4511,7 @@ export function AdminFacilityDetailPage() {
                   {application ? `Đã tiếp nhận ${submittedAt}` : "Hồ sơ cơ sở"}
                 </span>
               </div>
-              <div className="mt-5 space-y-4">
+              <div className="mt-6 space-y-5">
                 {registrationGroups.map((group, groupIndex) => {
                   const groupCriteria = registrationCriteria.filter(
                     (item) => item.groupId === group.id,
@@ -4367,39 +4522,39 @@ export function AdminFacilityDetailPage() {
                       key={group.id}
                       className="overflow-hidden rounded-xl border border-border bg-background"
                     >
-                      <header className="flex flex-col gap-3 border-b border-border bg-secondary/35 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                      <header className="flex flex-col gap-3 border-b border-border bg-secondary/45 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                         <div className="flex min-w-0 items-start gap-3">
-                          <span className="inline-flex h-8 min-w-8 shrink-0 items-center justify-center rounded-md border border-primary/25 bg-card px-2 text-xs font-extrabold text-primary">
+                          <span className="inline-flex h-9 min-w-9 shrink-0 items-center justify-center rounded-lg border border-primary/25 bg-card px-2 text-sm font-extrabold text-primary">
                             {String(groupIndex + 1).padStart(2, "0")}
                           </span>
                           <div className="min-w-0">
-                            <p className="text-[10px] font-extrabold uppercase tracking-[.12em] text-primary">
+                            <p className="text-[11px] font-extrabold uppercase tracking-[.12em] text-primary">
                               Phần {String(groupIndex + 1).padStart(2, "0")}
                             </p>
-                            <h3 className="mt-0.5 font-extrabold leading-5">
+                            <h3 className="mt-1 text-base font-extrabold leading-6">
                               {group.name}
                             </h3>
                           </div>
                         </div>
-                        <span className="shrink-0 text-xs font-semibold text-muted-foreground">
+                        <span className="shrink-0 text-sm font-semibold text-muted-foreground">
                           {groupCriteria.length} nội dung kê khai
                         </span>
                       </header>
-                      <dl className="grid gap-2 bg-card p-2 sm:grid-cols-2 sm:p-3 xl:grid-cols-3">
+                      <dl className="grid gap-3 bg-card p-3 sm:grid-cols-2 sm:p-4 xl:gap-4">
                         {groupCriteria.map((item) => (
                           <div
                             key={item.key}
-                            className="min-w-0 rounded-lg border border-border/80 bg-background p-3"
+                            className="min-w-0 rounded-xl border border-border/80 bg-background p-4"
                           >
-                            <dt className="text-xs font-bold leading-5 text-muted-foreground">
+                            <dt className="text-sm font-bold leading-6 text-foreground">
                               {item.label}
                             </dt>
                             {item.description ? (
-                              <p className="mt-1 text-xs leading-5 text-muted-foreground/80">
+                              <p className="mt-1 text-xs leading-5 text-muted-foreground">
                                 {item.description}
                               </p>
                             ) : null}
-                            <dd>
+                            <dd className="mt-2 text-sm leading-6">
                               <ManagementAnswerDisplay
                                 value={
                                   item.answerType === "file"
@@ -4418,7 +4573,7 @@ export function AdminFacilityDetailPage() {
                   );
                 })}
                 {!registrationCriteria.length && (
-                  <p className="rounded-xl border border-dashed border-border p-5 text-sm text-muted-foreground">
+                  <p className="rounded-xl border border-dashed border-border p-5 text-sm leading-6 text-muted-foreground">
                     Chưa có cấu hình trường đăng ký cho loại cơ sở này.
                   </p>
                 )}
@@ -4434,18 +4589,18 @@ export function AdminFacilityDetailPage() {
             )}
           </main>
 
-          <aside className="space-y-4 lg:sticky lg:top-4">
-            <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+          <aside className="space-y-4 lg:sticky lg:top-5">
+            <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
               <div className="flex items-start gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
                   <UserRound size={18} />
                 </span>
                 <div className="min-w-0">
-                  <p className="mono-label text-primary">NGƯỜI ĐĂNG KÝ</p>
-                  <h2 className="mt-1 break-words text-lg font-extrabold">
+                  <p className="text-[11px] font-extrabold uppercase tracking-[.12em] text-primary">NGƯỜI ĐĂNG KÝ</p>
+                  <h2 className="mt-1.5 break-words text-lg font-extrabold">
                     {registrant.name}
                   </h2>
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <p className="mt-1 text-sm text-muted-foreground">
                     {registrant.isLinked ? "Đã liên kết tài khoản" : "Tài khoản hồ sơ"}
                   </p>
                 </div>
@@ -4459,10 +4614,10 @@ export function AdminFacilityDetailPage() {
                   ["Loại cơ sở", registrationType ? getRegistrationCategory(registrationType) : "—"],
                 ].map(([label, value]) => (
                   <div key={label} className="min-w-0">
-                    <dt className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    <dt className="text-xs font-bold text-muted-foreground">
                       {label}
                     </dt>
-                    <dd className="mt-0.5 break-words text-sm font-semibold">
+                    <dd className="mt-1 break-words text-sm font-semibold leading-5">
                       {value}
                     </dd>
                   </div>
@@ -4470,12 +4625,12 @@ export function AdminFacilityDetailPage() {
               </dl>
             </section>
 
-            <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+            <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
               <div className="flex items-center gap-2">
                 <MapPin size={16} className="text-primary" />
-                <h2 className="font-extrabold">Thông tin nhanh</h2>
+                <h2 className="text-base font-extrabold">Thông tin nhanh</h2>
               </div>
-              <dl className="mt-4 grid grid-cols-2 gap-x-3 gap-y-4">
+              <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-4">
                 {[
                   ["Tỉnh/thành phố", row.province],
                   ["Xã/phường", row.ward],
@@ -4487,10 +4642,10 @@ export function AdminFacilityDetailPage() {
                   ["Cập nhật", row.updated],
                 ].map(([label, value]) => (
                   <div key={label} className="min-w-0">
-                    <dt className="text-[10px] font-bold leading-4 text-muted-foreground">
+                    <dt className="text-xs font-semibold leading-5 text-muted-foreground">
                       {label}
                     </dt>
-                    <dd className="mt-0.5 break-words text-xs font-semibold">
+                    <dd className="mt-1 break-words text-sm font-semibold leading-5">
                       {value || "—"}
                     </dd>
                   </div>
@@ -4498,13 +4653,13 @@ export function AdminFacilityDetailPage() {
               </dl>
             </section>
 
-            <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+            <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="mono-label text-primary">MINH CHỨNG</p>
-                  <h2 className="mt-1 font-extrabold">Tệp đính kèm</h2>
+                  <p className="text-[11px] font-extrabold uppercase tracking-[.12em] text-primary">MINH CHỨNG</p>
+                  <h2 className="mt-1 text-base font-extrabold">Tệp đính kèm</h2>
                 </div>
-                <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-bold text-muted-foreground">
+                <span className="rounded-full bg-secondary px-3 py-1.5 text-sm font-bold text-muted-foreground">
                   {registrationFiles.length}
                 </span>
               </div>
@@ -4513,9 +4668,9 @@ export function AdminFacilityDetailPage() {
                   {registrationFiles.map((file) => (
                     <li
                       key={`${file.fieldKey ?? "attachment"}-${file.name}`}
-                      className="flex min-w-0 items-center gap-2.5 rounded-xl border border-border p-2.5"
+                      className="flex min-w-0 items-center gap-3 rounded-xl border border-border p-3"
                     >
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
                         {file.kind?.startsWith("image/") ? (
                           <ImagePlus size={17} />
                         ) : (
@@ -4523,10 +4678,10 @@ export function AdminFacilityDetailPage() {
                         )}
                       </span>
                       <span className="min-w-0">
-                        <span className="block break-all text-xs font-semibold leading-5">
+                          <span className="block break-all text-sm font-semibold leading-5">
                           {file.name}
                         </span>
-                        <span className="mt-0.5 block text-[10px] text-muted-foreground">
+                          <span className="mt-1 block text-xs text-muted-foreground">
                           {file.size
                             ? `${(file.size / 1024 / 1024).toFixed(1)} MB`
                             : "Dung lượng chưa cập nhật"}
@@ -4536,18 +4691,18 @@ export function AdminFacilityDetailPage() {
                   ))}
                 </ul>
               ) : (
-                <p className="mt-4 text-sm text-muted-foreground">
+                  <p className="mt-4 text-sm leading-6 text-muted-foreground">
                   Chưa có tệp minh chứng.
                 </p>
               )}
             </section>
 
-            <section className="rounded-2xl border border-primary/15 bg-secondary/30 p-4 shadow-sm">
+            <section className="rounded-2xl border border-primary/20 bg-secondary/30 p-5 shadow-sm">
               <div className="flex items-center gap-2">
                 <ClipboardCheck size={17} className="text-primary" />
                 <div>
-                  <p className="mono-label text-primary">XỬ LÝ HỒ SƠ</p>
-                  <h2 className="mt-1 font-extrabold">Kết luận xét duyệt</h2>
+                  <p className="text-[11px] font-extrabold uppercase tracking-[.12em] text-primary">XỬ LÝ HỒ SƠ</p>
+                  <h2 className="mt-1 text-base font-extrabold">Kết luận xét duyệt</h2>
                 </div>
               </div>
               {currentStatus === "approved" ? (
@@ -4556,31 +4711,31 @@ export function AdminFacilityDetailPage() {
                     Hồ sơ đã được duyệt và đang hiển thị trên cổng thông tin công khai.
                   </p>
                   {application?.reviewer ? (
-                    <dl className="mt-3 grid gap-3 rounded-xl border border-emerald-200 bg-white p-3 text-xs sm:grid-cols-2">
+                    <dl className="mt-3 grid gap-3 rounded-xl border border-emerald-200 bg-white p-4 text-sm sm:grid-cols-2">
                       <div>
-                        <dt className="font-bold text-muted-foreground">Cán bộ duyệt</dt>
+                        <dt className="text-xs font-bold text-muted-foreground">Cán bộ duyệt</dt>
                         <dd className="mt-0.5 font-semibold">{application.reviewer.name}</dd>
                       </div>
                       <div>
-                        <dt className="font-bold text-muted-foreground">Chức vụ</dt>
+                        <dt className="text-xs font-bold text-muted-foreground">Chức vụ</dt>
                         <dd className="mt-0.5 font-semibold">{application.reviewer.position}</dd>
                       </div>
                       <div>
-                        <dt className="font-bold text-muted-foreground">Số điện thoại</dt>
+                        <dt className="text-xs font-bold text-muted-foreground">Số điện thoại</dt>
                         <dd className="mt-0.5 font-semibold">{application.reviewer.phone}</dd>
                       </div>
                       <div>
-                        <dt className="font-bold text-muted-foreground">Email</dt>
+                        <dt className="text-xs font-bold text-muted-foreground">Email</dt>
                         <dd className="mt-0.5 break-all font-semibold">{application.reviewer.email}</dd>
                       </div>
                       <div className="sm:col-span-2">
-                        <dt className="font-bold text-muted-foreground">Chữ ký</dt>
+                        <dt className="text-xs font-bold text-muted-foreground">Chữ ký</dt>
                         <dd className="mt-1 border-b border-emerald-300 pb-1">
                           <SignatureDisplay value={application.reviewer.signature} />
                         </dd>
                       </div>
                       <div className="sm:col-span-2">
-                        <dt className="font-bold text-muted-foreground">Thời điểm duyệt</dt>
+                        <dt className="text-xs font-bold text-muted-foreground">Thời điểm duyệt</dt>
                         <dd className="mt-0.5 font-semibold">
                           {new Intl.DateTimeFormat("vi-VN", {
                             dateStyle: "medium",
@@ -4590,35 +4745,35 @@ export function AdminFacilityDetailPage() {
                       </div>
                     </dl>
                   ) : (
-                    <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+                    <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
                       Hồ sơ cũ chưa có đủ thông tin cán bộ ký duyệt. Cần bổ sung thông tin trước khi công nhận kết quả duyệt.
                     </p>
                   )}
                 </>
               ) : !application ? (
-                <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm leading-5 text-amber-900">
+                <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm leading-6 text-amber-900">
                   Tài khoản này chưa liên kết với bản ghi đơn đăng ký; chưa thể
                   lưu kết luận xét duyệt tại đây.
                 </p>
               ) : (
                 <>
-                  <div className="mt-4 rounded-xl border border-primary/15 bg-white p-3">
+                  <div className="mt-4 rounded-xl border border-primary/15 bg-white p-4">
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div>
-                        <p className="text-xs font-extrabold">Thông tin cán bộ duyệt</p>
-                        <p className="mt-1 text-[11px] leading-5 text-muted-foreground">
+                        <p className="text-sm font-extrabold">Thông tin cán bộ duyệt</p>
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">
                           {reviewerAccount
                             ? `Tự điền từ tài khoản ${reviewerAccount.username}; có thể chỉnh sửa trước khi duyệt.`
                             : "Nhập thông tin cán bộ xét duyệt. Các trường này chỉ được lưu khi hồ sơ được duyệt."}
                         </p>
                       </div>
                       {reviewerAccount ? (
-                        <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">
+                          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
                           Tài khoản có quyền duyệt
                         </span>
                       ) : null}
                     </div>
-                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <div className="mt-4 grid gap-3">
                       {([
                         ["name", "Họ tên người duyệt", "text"],
                         ["position", "Chức vụ", "text"],
@@ -4627,7 +4782,7 @@ export function AdminFacilityDetailPage() {
                       ] as const).map(([key, label, type]) => (
                         <label
                           key={key}
-                          className="text-xs font-bold"
+                          className="text-sm font-bold"
                         >
                           {label} <span className="text-rose-600">*</span>
                           <input
@@ -4640,7 +4795,7 @@ export function AdminFacilityDetailPage() {
                                 [key]: event.target.value,
                               }))
                             }
-                            className="focus-ring mt-1.5 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-medium"
+                            className="focus-ring mt-1.5 h-11 w-full rounded-lg border border-input bg-background px-3 text-sm font-medium"
                             placeholder={`Nhập ${label.toLowerCase()}`}
                             data-testid={`input-reviewer-${key}`}
                           />
@@ -4661,7 +4816,7 @@ export function AdminFacilityDetailPage() {
                     </div>
                   </div>
                   <label className="mt-4 block">
-                    <span className="mb-1.5 block text-xs font-bold">
+                      <span className="mb-1.5 block text-sm font-bold">
                       Nội dung yêu cầu bổ sung
                     </span>
                     <textarea
@@ -4669,7 +4824,7 @@ export function AdminFacilityDetailPage() {
                       onChange={(event) => setReviewNote(event.target.value)}
                       rows={4}
                       placeholder="Nêu rõ trường hoặc minh chứng cơ sở cần bổ sung..."
-                      className="focus-ring w-full resize-y rounded-xl border border-input bg-background p-3 text-sm"
+                      className="focus-ring w-full resize-y rounded-xl border border-input bg-background p-3.5 text-sm leading-6"
                       data-testid="textarea-facility-review-note"
                     />
                   </label>
@@ -4677,7 +4832,7 @@ export function AdminFacilityDetailPage() {
                     <button
                       type="button"
                       onClick={requestSupplement}
-                      className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-900 hover:bg-amber-100"
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-900 hover:bg-amber-100"
                       data-testid="button-request-supplement-facility-detail"
                     >
                       <Info size={15} /> Yêu cầu bổ sung
@@ -4694,7 +4849,7 @@ export function AdminFacilityDetailPage() {
                 </>
               )}
               {application?.reviewNote ? (
-                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+                  <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
                   <strong>Ghi chú đã gửi:</strong> {application.reviewNote}
                 </div>
               ) : null}
