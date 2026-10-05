@@ -56,7 +56,9 @@ import {
   type ApplicationReviewer,
   type ApplicationStatus,
   type ApplicationType,
+  type Attachment,
 } from "@/lib/mock-data";
+import { readAttachmentContent } from "@/lib/attachment-content";
 import { syncApprovedFacility } from "@/lib/approved-facilities";
 import { findManagedAdminAccount } from "@/lib/admin-permissions";
 import {
@@ -3097,6 +3099,7 @@ export function AdminFacilitiesPage() {
     missingFields: string[];
   };
   const [notice, setNotice] = useState("");
+  const [previewFile, setPreviewFile] = useState<Attachment | null>(null);
   const [reviewNote, setReviewNote] = useState("");
   const [reviewConclusion, setReviewConclusion] = useState<
     "" | "pending" | "approved" | "needs-more-info"
@@ -4116,14 +4119,21 @@ export function AdminFacilitiesPage() {
                       <button
                         type="button"
                         key={`${file.fieldKey ?? "attachment"}-${file.name}`}
-                        onClick={() =>
-                          setNotice(`Tệp minh chứng: ${file.name}`)
-                        }
+                        onClick={() => setPreviewFile(file)}
                         className="group flex min-w-0 items-center gap-3 rounded-xl border border-border bg-card p-3 text-left transition hover:border-primary/30 hover:bg-secondary/30"
+                        aria-label={`Xem trước tệp ${file.name}`}
+                        aria-haspopup="dialog"
                         data-testid={`button-preview-facility-attachment-${file.name}`}
                       >
                         <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-secondary">
-                          {file.kind?.startsWith("image/") ? (
+                          {file.kind?.startsWith("image/") &&
+                          file.previewUrl ? (
+                            <img
+                              src={file.previewUrl}
+                              alt=""
+                              className="h-full w-full object-cover"
+                            />
+                          ) : file.kind?.startsWith("image/") ? (
                             <div className="flex h-full items-center justify-center text-primary">
                               <ImagePlus size={22} />
                             </div>
@@ -4196,6 +4206,12 @@ export function AdminFacilitiesPage() {
           </div>
         </div>
       )}
+      {previewFile && (
+        <RegistrationAttachmentPreviewDialog
+          file={previewFile}
+          onClose={() => setPreviewFile(null)}
+        />
+      )}
       {notice && (
         <div className="fixed bottom-5 right-5 z-50 max-w-sm rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-xl" role="status">
           {notice}
@@ -4203,6 +4219,175 @@ export function AdminFacilitiesPage() {
         </div>
       )}
     </AdminShell>
+  );
+}
+
+function RegistrationAttachmentPreviewDialog({
+  file,
+  onClose,
+}: {
+  file: Attachment;
+  onClose: () => void;
+}) {
+  const [previewUrl, setPreviewUrl] = useState<string>();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    let objectUrl: string | undefined;
+    setPreviewUrl(undefined);
+    setLoading(true);
+
+    const loadPreview = async () => {
+      if (file.previewUrl) {
+        setPreviewUrl(file.previewUrl);
+        setLoading(false);
+        return;
+      }
+      if (!file.previewStorageKey) {
+        setPreviewUrl(undefined);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const blob = await readAttachmentContent(file.previewStorageKey);
+        if (!blob) {
+          if (!cancelled) setPreviewUrl(undefined);
+          return;
+        }
+        objectUrl = URL.createObjectURL(blob);
+        if (!cancelled) setPreviewUrl(objectUrl);
+      } catch {
+        if (!cancelled) setPreviewUrl(undefined);
+      } finally {
+        if (!cancelled) setLoading(false);
+        else if (objectUrl) URL.revokeObjectURL(objectUrl);
+      }
+    };
+
+    void loadPreview();
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [file]);
+
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
+
+  const isImage =
+    file.kind.startsWith("image/") || /\.(jpe?g|png|gif|webp)$/i.test(file.name);
+  const isPdf =
+    file.kind === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/70 p-3 sm:p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="registration-attachment-preview-title"
+      onClick={onClose}
+    >
+      <div
+        className="flex max-h-[94vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-card shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <header className="flex items-start justify-between gap-4 border-b border-border px-4 py-3 sm:px-6">
+          <div className="min-w-0">
+            <p className="text-xs font-bold uppercase tracking-wide text-primary">
+              XEM TỆP MINH CHỨNG
+            </p>
+            <h2
+              id="registration-attachment-preview-title"
+              className="mt-1 truncate text-base font-extrabold"
+            >
+              {file.name}
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {file.kind || "Không rõ định dạng"}
+              {file.size > 0
+                ? ` · ${(file.size / 1024 / 1024).toFixed(2)} MB`
+                : ""}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-secondary hover:text-foreground"
+            aria-label="Đóng bản xem trước"
+            data-testid="button-close-attachment-preview"
+          >
+            <X size={18} />
+          </button>
+        </header>
+
+        <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-slate-100 p-3 sm:p-5">
+          {loading ? (
+            <div className="text-sm font-semibold text-muted-foreground">
+              Đang tải bản xem trước…
+            </div>
+          ) : previewUrl && isImage ? (
+            <img
+              src={previewUrl}
+              alt={`Bản xem trước ${file.name}`}
+              className="max-h-[72vh] max-w-full object-contain"
+            />
+          ) : previewUrl && isPdf ? (
+            <iframe
+              src={previewUrl}
+              title={`Bản xem trước ${file.name}`}
+              className="h-[72vh] w-full rounded-lg border border-border bg-white"
+            />
+          ) : previewUrl ? (
+            <div className="text-center">
+              <FileText size={42} className="mx-auto text-primary" />
+              <p className="mt-3 text-sm font-semibold">
+                Định dạng này chưa hỗ trợ xem trực tiếp.
+              </p>
+            </div>
+          ) : (
+            <div className="max-w-lg rounded-xl border border-amber-200 bg-amber-50 p-5 text-center text-amber-950">
+              <FileText size={34} className="mx-auto text-amber-700" />
+              <p className="mt-3 font-bold">
+                Chưa có nội dung tệp để xem trước
+              </p>
+              <p className="mt-2 text-sm leading-6">
+                Hồ sơ này chỉ lưu tên và thông tin tệp; nội dung gốc không có
+                trong dữ liệu hiện có. Không thể mở hoặc tải tệp này từ hồ sơ.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 sm:px-6">
+          <p className="text-xs text-muted-foreground">
+            {isImage
+              ? "Ảnh minh chứng"
+              : isPdf
+                ? "Tài liệu PDF"
+                : "Tệp đính kèm"}
+          </p>
+          {previewUrl && (
+            <a
+              href={previewUrl}
+              download={file.name}
+              className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-primary-foreground hover:bg-primary/90"
+              data-testid="link-download-attachment-preview"
+            >
+              <Download size={16} />
+              Tải tệp
+            </a>
+          )}
+        </footer>
+      </div>
+    </div>
   );
 }
 

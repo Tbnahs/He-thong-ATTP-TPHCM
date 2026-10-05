@@ -26,6 +26,7 @@ export interface Attachment {
   size: number;
   fieldKey?: string;
   previewUrl?: string;
+  previewStorageKey?: string;
 }
 export interface CriteriaSource {
   id: string;

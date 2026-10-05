@@ -110,6 +110,10 @@ import {
   EVIDENCE_MAX_SIZE_LABEL,
   validateEvidenceFiles,
 } from "@/lib/file-upload";
+import {
+  deleteAttachmentContent,
+  saveAttachmentContent,
+} from "@/lib/attachment-content";
 import { syncApprovedFacility } from "@/lib/approved-facilities";
 import {
   createDemoRegistrationProfile,
@@ -3568,19 +3572,53 @@ function ApplicationForm({
       event.target.value = "";
       return;
     }
-    const previews = await Promise.all(chosen.map(readFilePreview));
+    const prepared = await Promise.all(
+      chosen.map(async (file) => {
+        const previewUrl = await readFilePreview(file);
+        const isPdf =
+          file.type.toLowerCase() === "application/pdf" ||
+          file.name.toLowerCase().endsWith(".pdf");
+        let previewStorageKey: string | undefined;
+        let storageFailed = false;
+        if (isPdf) {
+          const key = crypto.randomUUID();
+          try {
+            await saveAttachmentContent(key, file);
+            previewStorageKey = key;
+          } catch {
+            storageFailed = true;
+          }
+        }
+        return {
+          attachment: {
+            name: file.name,
+            kind:
+              file.type ||
+              (isPdf
+                ? "application/pdf"
+                : file.name.toLowerCase().endsWith(".png")
+                  ? "image/png"
+                  : "image/jpeg"),
+            size: file.size,
+            previewUrl,
+            previewStorageKey,
+          },
+          storageFailed,
+        };
+      }),
+    );
     setFiles((prev) => [
       ...prev,
-      ...chosen.map((file, index) => ({
-        name: file.name,
-        kind: file.type,
-        size: file.size,
-        previewUrl: previews[index],
-      })),
+      ...prepared.map((item) => item.attachment),
     ]);
+    setNotice(
+      prepared.some((item) => item.storageFailed)
+        ? "Tệp đã được đính kèm nhưng không lưu được bản xem trước PDF trên thiết bị này."
+        : "",
+    );
     event.target.value = "";
   };
-  const addFilesFor = (
+  const addFilesFor = async (
     fieldKey: string,
     event: ChangeEvent<HTMLInputElement>,
   ) => {
@@ -3591,31 +3629,72 @@ function ApplicationForm({
       event.target.value = "";
       return;
     }
-    void Promise.all(chosen.map(readFilePreview)).then((previews) => {
-      setFiles((prev) => [
-        ...prev,
-        ...chosen.map((file, index) => ({
-          name: file.name,
-          kind: file.type,
-          size: file.size,
-          fieldKey,
-          previewUrl: previews[index],
-        })),
-      ]);
-    });
+    const prepared = await Promise.all(
+      chosen.map(async (file) => {
+        const previewUrl = await readFilePreview(file);
+        const isPdf =
+          file.type.toLowerCase() === "application/pdf" ||
+          file.name.toLowerCase().endsWith(".pdf");
+        let previewStorageKey: string | undefined;
+        let storageFailed = false;
+        if (isPdf) {
+          const key = crypto.randomUUID();
+          try {
+            await saveAttachmentContent(key, file);
+            previewStorageKey = key;
+          } catch {
+            storageFailed = true;
+          }
+        }
+        return {
+          attachment: {
+            name: file.name,
+            kind:
+              file.type ||
+              (isPdf
+                ? "application/pdf"
+                : file.name.toLowerCase().endsWith(".png")
+                  ? "image/png"
+                  : "image/jpeg"),
+            size: file.size,
+            fieldKey,
+            previewUrl,
+            previewStorageKey,
+          },
+          storageFailed,
+        };
+      }),
+    );
+    setFiles((prev) => [
+      ...prev,
+      ...prepared.map((item) => item.attachment),
+    ]);
     event.target.value = "";
-    setNotice("");
+    setNotice(
+      prepared.some((item) => item.storageFailed)
+        ? "Tệp đã được đính kèm nhưng không lưu được bản xem trước PDF trên thiết bị này."
+        : "",
+    );
   };
   const isVisible = (item: CriteriaDefinition) => {
     return isRegistrationCriteriaVisible(item, fields, type);
   };
-  const removeFile = (name: string, fieldKey?: string) =>
+  const removeFile = (name: string, fieldKey?: string) => {
+    const removed = files.filter(
+      (file) =>
+        file.name === name && (!fieldKey || file.fieldKey === fieldKey),
+    );
+    removed.forEach((file) => {
+      if (file.previewStorageKey)
+        void deleteAttachmentContent(file.previewStorageKey).catch(() => {});
+    });
     setFiles((prev) =>
       prev.filter(
         (file) =>
           !(file.name === name && (!fieldKey || file.fieldKey === fieldKey)),
       ),
     );
+  };
   const formFields =
     formSet?.criteria
       .filter((item) => {
