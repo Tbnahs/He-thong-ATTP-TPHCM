@@ -1002,14 +1002,58 @@ type SchoolMealProviderLink = {
 };
 const facilityAccountsStorageKey = "attp-facility-accounts";
 const demoFacilityInitialPassword = "Aa@123456";
+const demoFacilityAccountProfiles = [
+  { applicationId: "app-001", email: "lienhe.anphu@example.com" },
+  { applicationId: "app-002", email: "truong.thcsabc@example.vn" },
+  { applicationId: "app-003", email: "lienhe.minhtam@example.com" },
+  { applicationId: "sample-app-007", email: "donvi.mau007@example.vn" },
+] as const;
 const mealProviderSchoolLinksStorageKey = "attp-meal-provider-school-links";
 const schoolMealProviderLinksStorageKey = "attp-school-meal-provider-links";
 const readFacilityAccounts = (): FacilityAccount[] => {
   if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(
+    const storedAccounts = JSON.parse(
       window.localStorage.getItem(facilityAccountsStorageKey) || "[]",
     ) as FacilityAccount[];
+    const accounts = Array.isArray(storedAccounts) ? storedAccounts : [];
+    const demoAccounts = demoFacilityAccountProfiles.flatMap(
+      ({ applicationId, email }) => {
+        const application = applications.find(
+          (item) => item.id === applicationId,
+        );
+        if (
+          !application ||
+          accounts.some(
+            (account) =>
+              account.username.toLowerCase() === applicationId.toLowerCase() ||
+              account.email.toLowerCase() === email.toLowerCase(),
+          )
+        ) {
+          return [];
+        }
+        return [
+          {
+            email,
+            password: demoFacilityInitialPassword,
+            username: applicationId,
+            registration: {
+              type: application.type,
+              fields: application.data as Record<string, CriteriaValue>,
+              files: application.attachments,
+              submittedAt: application.submittedAt.slice(0, 10),
+            },
+          },
+        ];
+      },
+    );
+    if (demoAccounts.length === 0) return accounts;
+    const seededAccounts = [...accounts, ...demoAccounts];
+    window.localStorage.setItem(
+      facilityAccountsStorageKey,
+      JSON.stringify(seededAccounts),
+    );
+    return seededAccounts;
   } catch {
     return [];
   }
@@ -2962,6 +3006,14 @@ export function AdminLoginPage() {
   );
   const [password, setPassword] = useState("");
   const [notice, setNotice] = useState("");
+  const demoAccounts = demoFacilityAccountProfiles.flatMap(
+    ({ applicationId, email }) => {
+      const application = applications.find(
+        (item) => item.id === applicationId,
+      );
+      return application ? [{ application, email }] : [];
+    },
+  );
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -3100,11 +3152,52 @@ export function AdminLoginPage() {
                 <LogIn size={17} /> Đăng nhập
               </Button>
             </form>
-            <p className="mt-5 rounded-xl bg-secondary/70 p-3 text-xs leading-5 text-muted-foreground">
-              <strong className="text-foreground">Bản mẫu:</strong> dùng tên
-              `canbo.demo` để vào Admin hoặc `coso.demo` để vào portal cơ sở.
-              Khi vận hành thật, hệ thống sẽ nhận diện vai trò từ tài khoản được
-              cấp.
+            <section className="mt-5 rounded-2xl border border-border bg-secondary/40 p-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h3 className="text-sm font-extrabold">
+                  Tài khoản cơ sở mẫu
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Mật khẩu chung:{" "}
+                  <strong className="text-foreground">
+                    {demoFacilityInitialPassword}
+                  </strong>
+                </p>
+              </div>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                Chọn một hồ sơ để tự điền thông tin đăng nhập. Các tài khoản
+                mẫu được lưu trên trình duyệt này.
+              </p>
+              <div className="mt-3 grid gap-2">
+                {demoAccounts.map(({ application, email }) => (
+                  <button
+                    key={application.id}
+                    type="button"
+                    onClick={() => {
+                      setUsername(email);
+                      setPassword(demoFacilityInitialPassword);
+                      setNotice("");
+                    }}
+                    className="focus-ring flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-background px-3 py-3 text-left transition-colors hover:border-primary/40 hover:bg-primary/5"
+                    data-testid={`button-demo-facility-${application.id}`}
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-bold">
+                        {application.applicantName}
+                      </span>
+                      <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                        {email} · {application.reference}
+                      </span>
+                    </span>
+                    <ApplicationStatusBadge status={application.status} />
+                  </button>
+                ))}
+              </div>
+            </section>
+            <p className="mt-3 rounded-xl bg-secondary/70 p-3 text-xs leading-5 text-muted-foreground">
+              <strong className="text-foreground">Tài khoản cán bộ demo:</strong>{" "}
+              `canbo.demo`. Tài khoản cơ sở mẫu chỉ phục vụ xem thử, không dùng
+              cho vận hành thật.
             </p>
             <Link
               href="/"
