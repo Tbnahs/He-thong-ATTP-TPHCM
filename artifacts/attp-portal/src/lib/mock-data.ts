@@ -2641,6 +2641,39 @@ const sampleFacilityNames: Record<ApplicationType, string[]> = {
   ],
 };
 
+const sampleSchoolProfiles = [
+  { name: "Trường Mầm non Hoa Hồng", educationLevel: "Mầm non" },
+  { name: "Trường Tiểu học Lê Lợi", educationLevel: "Tiểu học" },
+  { name: "Trường THCS Nguyễn Bỉnh Khiêm", educationLevel: "THCS" },
+  { name: "Trường THPT Trần Phú", educationLevel: "THPT" },
+];
+
+const sampleApplicantName = (type: ApplicationType, index: number) => {
+  const firstSampleIndex =
+    type === "food-supplier" ? 7 : type === "meal-provider" ? 9 : 12;
+  const ordinal = Math.max(0, index - firstSampleIndex);
+  if (type === "school") {
+    return sampleSchoolProfiles[ordinal % sampleSchoolProfiles.length].name;
+  }
+  const names = sampleFacilityNames[type];
+  return names[ordinal % names.length];
+};
+
+const schoolEducationLevelFor = (name: string, fallbackIndex = 0) => {
+  const normalized = name.toLocaleLowerCase("vi");
+  const profile = sampleSchoolProfiles.find(
+    (item) => item.name.toLocaleLowerCase("vi") === normalized,
+  );
+  if (profile) return profile.educationLevel;
+  if (normalized.includes("mầm non")) return "Mầm non";
+  if (normalized.includes("tiểu học")) return "Tiểu học";
+  if (/\bthcs\b/i.test(name)) return "THCS";
+  if (/\bthpt\b/i.test(name)) return "THPT";
+  return sampleSchoolProfiles[
+    Math.abs(fallbackIndex) % sampleSchoolProfiles.length
+  ].educationLevel;
+};
+
 const sampleAddresses = [
   "18 Nguyễn Hữu Thọ, Phường Tân Hưng, TP. Hồ Chí Minh",
   "42 Nguyễn Thị Minh Khai, Phường Đa Kao, TP. Hồ Chí Minh",
@@ -2650,6 +2683,7 @@ const sampleAddresses = [
   "205 Phan Văn Trị, Phường 11, TP. Hồ Chí Minh",
   "67 Quốc lộ 22, Xã Hóc Môn, TP. Hồ Chí Minh",
   "12 Lê Lợi, Phường Bến Nghé, TP. Hồ Chí Minh",
+  "73 Lý Thường Kiệt, Phường Bảy Hiền, TP. Hồ Chí Minh",
 ];
 
 const sampleDate = (index: number) =>
@@ -2975,6 +3009,7 @@ const buildSampleSchoolForms = (
   index: number,
   applicantName: string,
   address: string,
+  contact: string,
 ) => {
   const siteId = `school-site-${index}`;
   const siteName = applicantName;
@@ -2984,9 +3019,37 @@ const buildSampleSchoolForms = (
   data.schoolSubmissionConfirmed = "true";
   data.addressMain = address;
   data.addressBranches = [];
+  const contactNames = [
+    "Nguyễn Thị Hương",
+    "Trần Minh Anh",
+    "Võ Hoàng Anh",
+    "Lê Thu Trang",
+    "Phạm Minh Châu",
+    "Đặng Quốc Bảo",
+    "Nguyễn Thanh Tâm",
+    "Bùi Hải Yến",
+    "Phan Ngọc Linh",
+    "Lý Quốc Huy",
+  ];
+  const contactStart =
+    index === 41
+      ? 8
+      : index >= 12 && index <= 15
+        ? (index - 12) * 2
+        : (index * 2) % contactNames.length;
   data.foodSafetyContacts = [
-    { name: "Nguyễn Thị Hương", title: "Phụ trách ATTP", phone: "0901234567", email: "attp@example.vn" },
-    { name: "Trần Minh Anh", title: "Đại diện cơ sở", phone: "0907654321", email: "daihien@example.vn" },
+    {
+      name: contactNames[contactStart],
+      title: "Phụ trách ATTP",
+      phone: contact,
+      email: `attp.mau${String(index).padStart(3, "0")}@example.vn`,
+    },
+    {
+      name: contactNames[(contactStart + 1) % contactNames.length],
+      title: "Đại diện cơ sở",
+      phone: `097${String(400000 + index * 619).slice(-6)}`,
+      email: `daihien.mau${String(index).padStart(3, "0")}@example.vn`,
+    },
   ];
   const uniqueModels = [...new Set(models)].filter(
     (model) => Boolean(sampleSchoolModelForms[model]),
@@ -2994,12 +3057,29 @@ const buildSampleSchoolForms = (
   const operatingModels = uniqueModels.map((model, rowIndex) => {
     const form = sampleSchoolModelForms[model];
     const id = `school-model-${index}-${form.formNumber}`;
+    const capacity = 320 + ((index + rowIndex) % 5) * 70;
+    const morningCapacity = Math.round(capacity * 0.15);
+    const snackCapacity = Math.round(capacity * 0.1);
+    const dinnerCapacity = Math.round(capacity * 0.05);
+    const lunchCapacity =
+      capacity - morningCapacity - snackCapacity - dinnerCapacity;
     return {
       id,
       model,
       siteId,
       siteName,
       siteAddress,
+      capacity: String(capacity),
+      morningCapacity: String(morningCapacity),
+      lunchCapacity: String(lunchCapacity),
+      snackCapacity: String(snackCapacity),
+      dinnerCapacity: String(dinnerCapacity),
+      priceRange: [
+        "Dưới 25.000 đồng",
+        "Từ 25.000 đến 30.000 đồng",
+        "Từ 30.000 đến 35.000 đồng",
+        "Trên 35.000 đồng",
+      ][(index + rowIndex) % 4],
       formNumber: form.formNumber,
       formLabel: `Mẫu số ${form.formNumber}`,
       rowIndex,
@@ -3051,9 +3131,15 @@ const buildSampleSchoolForms = (
     ].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     const fields = modelFields.map((field) => {
       const scopedKey = `schoolModelDetails.${row.id}.${field.key}`;
+      const providerName =
+        field.key === "serviceLegalName" || field.key === "canteenName"
+          ? formDefinition.providerName
+          : undefined;
       const value =
         field.answerType === "file"
           ? ""
+          : providerName
+            ? providerName
           : field.key in data
             ? data[field.key]
             : sampleSchoolValue(field, index, "school");
@@ -3127,9 +3213,8 @@ const createSampleApplication = (
 ): Application => {
   const criteriaSet = getCriteriaSet(type);
   const sampleOrdinal = Math.floor((index - 1) / 3);
-  const applicantName =
-    sampleFacilityNames[type][sampleOrdinal % sampleFacilityNames[type].length];
-  const address = sampleAddresses[index % sampleAddresses.length];
+  const applicantName = sampleApplicantName(type, index);
+  let address = sampleAddresses[index % sampleAddresses.length];
   const contact = `090${String(100000 + index * 731).slice(-6)}`;
   const submittedAt = sampleDate(index);
   const data: Record<string, unknown> = {};
@@ -3184,22 +3269,38 @@ const createSampleApplication = (
     }
   }
 
-  Object.assign(data, {
-    applicantName,
-    taxCode: `031${String(9000000 + index * 137).slice(-7)}`,
-    address,
-    addressProvince: "TP. Hồ Chí Minh",
-    addressWard: ["Phường Tân Hưng", "Phường Đa Kao", "Phường Bến Nghé", "Xã Hóc Môn"][
-      index % 4
-    ],
-    addressDetail: address.split(",")[0],
-    contact,
-    email: `donvi.mau${String(index + 1).padStart(2, "0")}@example.vn`,
-    licenseNumber: `ATTP-HCM-2026-${String(100 + index).padStart(4, "0")}`,
-    licenseExpires: "2027-12-31",
-  });
+  data.applicantName = applicantName;
 
   if (type === "food-supplier") {
+    const provinceOptions =
+      criteriaSet.criteria.find((item) => item.key === "addressProvince")
+        ?.options ?? [];
+    const wardOptions =
+      criteriaSet.criteria.find((item) => item.key === "addressWard")
+        ?.options ?? [];
+    const hcmWards = wardOptions.slice(0, 8);
+    const addressDetail = address.split(",")[0].trim();
+    const matchingWard = address
+      .split(",")
+      .map((part) => part.trim())
+      .find((part) => wardOptions.includes(part));
+    const addressWard =
+      matchingWard ??
+      hcmWards[((index - 7) % hcmWards.length + hcmWards.length) % hcmWards.length];
+    const addressProvince = provinceOptions.includes("TP. Hồ Chí Minh")
+      ? "TP. Hồ Chí Minh"
+      : provinceOptions[index % provinceOptions.length] ?? "";
+    data.taxCode = `031${String(9000000 + index * 137).slice(-7)}`;
+    data.addressProvince = addressProvince;
+    data.addressWard = addressWard;
+    data.addressDetail = addressDetail;
+    data.contact = contact;
+    data.email = `donvi.mau${String(index).padStart(3, "0")}@example.vn`;
+    data.licenseNumber = `ATTP-HCM-2026-${String(100 + index).padStart(4, "0")}`;
+    data.licenseExpires = `2027-${String(1 + (index % 12)).padStart(2, "0")}-${String(
+      1 + ((index * 7) % 27),
+    ).padStart(2, "0")}`;
+    address = [addressDetail, addressWard, addressProvince].join(", ");
     data.products = [
       {
         category: ["Rau củ quả", "Thịt gia súc", "Thủy sản", "Trứng"][index % 4],
@@ -3224,75 +3325,48 @@ const createSampleApplication = (
   }
 
   if (type === "meal-provider") {
-    for (let attachmentIndex = attachments.length - 1; attachmentIndex >= 0; attachmentIndex -= 1) {
-      const fieldKey = attachments[attachmentIndex].fieldKey ?? "";
-      if (fieldKey.startsWith("suppliers.") || fieldKey.startsWith("servingSchools.")) {
-        attachments.splice(attachmentIndex, 1);
-      }
-    }
+    const capacity = 500 + (index % 8) * 150;
+    const breakfastCapacity = Math.round(capacity * 0.15);
+    const snackCapacity = Math.round(capacity * 0.1);
+    const dinnerCapacity = Math.round(capacity * 0.05);
     const staffTotal = 20 + (index % 5) * 8;
-    data.staffTotal = String(staffTotal);
-    data.fullTimeStaff = String(staffTotal - 4);
+    data.taxCode = `031${String(9000000 + index * 137).slice(-7)}`;
+    data.headquartersAddress = address;
+    data.facilityName = `${applicantName} - Cơ sở chế biến`;
+    data.facilityAddress = address;
+    data.foodSafetyContactName = [
+      "Nguyễn Hoàng Anh",
+      "Trần Thị Mai",
+      "Phạm Minh Đức",
+      "Võ Ngọc Hân",
+      "Lê Quốc Bảo",
+      "Đặng Minh Thư",
+    ][index % 6];
+    data.foodSafetyContactTitle = "Phụ trách an toàn thực phẩm";
+    data.foodSafetyContactPhone = contact;
+    data.foodSafetyContactEmail = `attp.donvi${String(index).padStart(3, "0")}@example.vn`;
+    data.totalCapacity = String(capacity);
+    data.breakfastCapacity = String(breakfastCapacity);
+    data.lunchCapacity = String(
+      capacity - breakfastCapacity - snackCapacity - dinnerCapacity,
+    );
+    data.snackCapacity = String(snackCapacity);
+    data.dinnerCapacity = String(dinnerCapacity);
+    data.servingUnitCount = String(3 + (index % 4));
+    data.totalStaff = String(staffTotal);
+    data.directStaff = String(staffTotal - 4);
+    data.fullTimeStaff = String(staffTotal - 7);
     data.partTimeStaff = "3";
-    data.outsourcedStaff = "1";
-    data.trainedFoodSafetyStaff = String(staffTotal - 1);
+    data.indirectStaff = "4";
+    data.indirectFullTimeStaff = "3";
+    data.indirectPartTimeStaff = "1";
+    data.trainedStaff = String(staffTotal - 1);
+    data.trainedStaffTotal = String(staffTotal);
     data.healthCheckedStaff = String(staffTotal);
-    data.foodSafetyManagerName = ["Nguyễn Hoàng Anh", "Trần Thị Mai", "Phạm Minh Đức"][
-      index % 3
-    ];
-    data.foodSafetyManagerTitle = "Phụ trách bếp ăn";
-    data.foodSafetyManagerPhone = `091${String(200000 + index * 419).slice(-6)}`;
-    data.suppliers = [
-      {
-        name: sampleFacilityNames["food-supplier"][index % sampleFacilityNames["food-supplier"].length],
-        taxCode: `031${String(6000000 + index * 127).slice(-7)}`,
-        contract: sampleAttachmentName(type, index, "hop-dong-nha-cung-cap"),
-      },
-      {
-        name: sampleFacilityNames["food-supplier"][(index + 3) % sampleFacilityNames["food-supplier"].length],
-        taxCode: `031${String(6100000 + index * 127).slice(-7)}`,
-        contract: sampleAttachmentName(type, index, "hop-dong-nha-cung-cap-2"),
-      },
-    ];
-    data.servingSchools = [
-      {
-        schoolId: schoolOptions[index % schoolOptions.length].id,
-        evidence: sampleAttachmentName(type, index, "hop-dong-truong"),
-      },
-      {
-        schoolId: schoolOptions[(index + 2) % schoolOptions.length].id,
-        evidence: sampleAttachmentName(type, index, "hop-dong-truong-2"),
-      },
-    ];
-    data.dailyCapacity = String(500 + (index % 8) * 150);
-    data.averageMealPrice = String(22000 + (index % 6) * 1500);
-    data.deliveryVehicles = [
-      {
-        vehicleType: index % 2 ? "Xe máy có thùng chuyên dụng" : "Xe tải bảo ôn",
-        ownershipType: index % 3 ? "Chuyên dụng" : "Thuê ngoài",
-        quantity: String(2 + (index % 7)),
-      },
-    ];
-    data.vehicleType = [String((data.deliveryVehicles as Array<Record<string, unknown>>)[0].vehicleType)];
-    data.ownershipType = (data.deliveryVehicles as Array<Record<string, unknown>>)[0].ownershipType;
-    data.hasSampleCabinet = "Có";
-    data.sampleCabinetCount = String(1 + (index % 3));
-    for (const [rowIndex, row] of (data.suppliers as Array<Record<string, unknown>>).entries()) {
-      attachments.push({
-        name: String(row.contract),
-        kind: "application/pdf",
-        size: 360000 + index * 5000,
-        fieldKey: `suppliers.${rowIndex}.contract`,
-      });
-    }
-    for (const [rowIndex, row] of (data.servingSchools as Array<Record<string, unknown>>).entries()) {
-      attachments.push({
-        name: String(row.evidence),
-        kind: "application/pdf",
-        size: 410000 + index * 6000,
-        fieldKey: `servingSchools.${rowIndex}.evidence`,
-      });
-    }
+    data.healthCheckedStaffTotal = String(staffTotal);
+    data.totalArea = String(900 + (index % 6) * 100);
+    data.processingArea = String(240 + (index % 4) * 20);
+    data.servingArea = String(180 + (index % 4) * 15);
   }
 
   if (type === "school") {
@@ -3300,32 +3374,10 @@ const createSampleApplication = (
     const selectedModels =
       schoolModels ??
       [modelChoices[sampleOrdinal % modelChoices.length]];
-    data.schoolLevel = ["Mầm non", "Tiểu học", "THCS", "THPT"][index % 4];
-    data.hasFoodSafetyLead = "Có";
-    data.foodSafetyLeadName = ["Lê Thị Hương", "Võ Minh Châu", "Đặng Quốc Bảo"][index % 3];
-    data.foodSafetyLeadTitle = "Cán bộ phụ trách ATTP";
-    data.foodSafetyLeadPhone = `098${String(300000 + index * 517).slice(-6)}`;
-    data.selfCookStaffTotal = String(6 + (sampleOrdinal % 5));
-    data.linkedMealProviders = [
-      {
-        source: "Nhập trực tiếp",
-        providerName:
-          sampleFacilityNames["meal-provider"][
-            sampleOrdinal % sampleFacilityNames["meal-provider"].length
-          ],
-        taxCode: `031${String(5000000 + index * 101).slice(-7)}`,
-      },
-    ];
-    data.deliveryReception = "Xe tải bảo ôn, giao nhận từ 06:00 đến 07:00";
-    data.kitchenOneWay = "Có";
-    data.sampleStorage = "Có";
-    data.sampleCabinetCount = String(1 + (index % 2));
-    data.hiredKitchenName =
-      sampleFacilityNames["meal-provider"][
-        (sampleOrdinal + 1) % sampleFacilityNames["meal-provider"].length
-      ];
-    data.hiredKitchenTaxCode = `031${String(5200000 + index * 103).slice(-7)}`;
-    data.hiredKitchenStaffCount = String(8 + (sampleOrdinal % 4));
+    data.educationLevels = [schoolEducationLevelFor(applicantName, index)];
+    data.studentTotal = String(480 + (index % 6) * 65);
+    data.boardingStudentTotal = String(90 + (index % 5) * 20);
+    data.citizenId = String(790000000000 + index * 103);
     buildSampleSchoolForms(
       criteriaSet,
       data,
@@ -3334,6 +3386,7 @@ const createSampleApplication = (
       index,
       applicantName,
       address,
+      contact,
     );
   }
 

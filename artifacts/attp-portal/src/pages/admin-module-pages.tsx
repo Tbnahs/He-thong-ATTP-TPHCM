@@ -628,6 +628,23 @@ const readStoredFacilityAccounts = (): StoredFacilityAccount[] => {
   }
 };
 
+const readRegistrationCount = (...values: unknown[]): number | undefined => {
+  const value = values.find(
+    (item) =>
+      item !== undefined &&
+      item !== null &&
+      String(item).trim() !== "",
+  );
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : undefined;
+  }
+  if (value === undefined) return undefined;
+  const digits = String(value).replace(/[^\d]/g, "");
+  if (!digits) return undefined;
+  const count = Number(digits);
+  return Number.isFinite(count) ? count : undefined;
+};
+
 const getFacilityRegistrant = (
   application?: Application,
   storedAccount?: StoredFacilityAccount,
@@ -742,6 +759,15 @@ const getStoredRegistrationRows = (): FacilityManagementRow[] =>
         contact: String(contact ?? "—"),
         status: "pending",
         capacity: Number(fields.totalCapacity || fields.studentTotal || 0),
+        level:
+          String(
+            fields.schoolLevel || fields.educationLevel || fields.level || "",
+          ).trim() || undefined,
+        students: readRegistrationCount(
+          fields.studentTotal,
+          fields.boardingStudentTotal,
+          fields.studentCount,
+        ),
         category: getRegistrationCategory(account.registration?.type),
         updated: account.registration?.submittedAt
           ? new Intl.DateTimeFormat("vi-VN").format(
@@ -3064,6 +3090,18 @@ export function AdminFacilitiesPage() {
         contact: app.contact,
         status: app.status,
         capacity: 0,
+        level:
+          String(
+            app.data.schoolLevel ||
+              app.data.educationLevel ||
+              app.data.level ||
+              "",
+          ).trim() || undefined,
+        students: readRegistrationCount(
+          app.data.studentTotal,
+          app.data.boardingStudentTotal,
+          app.data.studentCount,
+        ),
         category: getRegistrationCategory(app.type),
         updated: new Intl.DateTimeFormat("vi-VN").format(
           new Date(app.submittedAt),
@@ -3216,7 +3254,7 @@ export function AdminFacilitiesPage() {
         "Mã hồ sơ": selectedApplication.reference,
         "Loại hình": getRegistrationCategory(selectedApplication.type),
         "Liên hệ": selectedApplication.contact,
-        "Kết quả": "Đạt",
+        "Kết quả": "Đã duyệt",
       },
       applicationData: selectedApplication.data,
       attachments: selectedApplication.attachments,
@@ -3460,7 +3498,15 @@ export function AdminFacilitiesPage() {
             </span>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] text-left text-xs">
+             <table
+               className={`w-full text-left text-xs ${
+                 activeTab === "suppliers"
+                   ? "min-w-[640px]"
+                   : activeTab === "schools"
+                     ? "min-w-[820px]"
+                     : "min-w-[980px]"
+               }`}
+             >
               <thead className="bg-secondary/70 text-[10px] font-extrabold uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="px-5 py-3">Cơ sở</th>
@@ -3476,21 +3522,15 @@ export function AdminFacilitiesPage() {
                   {activeTab === "schools" ? (
                     <>
                       <th className="px-4 py-3">Cấp học</th>
-                      <th className="px-4 py-3 text-right">Học sinh</th>
-                      <th className="px-4 py-3 text-right">Nhu cầu</th>
+                      <th className="px-4 py-3 text-right">Học sinh (số lượng)</th>
                     </>
                   ) : activeTab === "food" ? (
-                      <>
-                      <th className="px-4 py-3">{activeTab === "food" ? "Nhóm thực phẩm" : "Công suất/ngày"}</th>
-                      <th className="px-4 py-3 text-right">{activeTab === "food" ? "Công suất/ngày" : "Đang cung cấp"}</th>
-                      <th className="px-4 py-3 text-right">Cập nhật</th>
-                      </>
-                  ) : activeTab === "suppliers" ? (
                     <>
-                      <th className="px-4 py-3">Công suất/ngày</th>
-                      <th className="px-4 py-3 text-right">Đang cung cấp</th>
+                      <th className="px-4 py-3">Nhóm thực phẩm</th>
+                      <th className="px-4 py-3 text-right">Công suất/ngày</th>
+                      <th className="px-4 py-3 text-right">Cập nhật</th>
                     </>
-                   ) : null}
+                  ) : null}
                   <th className="px-4 py-3">Trạng thái</th>
                   <th className="px-5 py-3 text-right">Chi tiết</th>
                 </tr>
@@ -3517,20 +3557,18 @@ export function AdminFacilitiesPage() {
                       )}
                       {activeTab === "schools" ? (
                         <>
-                          <td className="px-4 py-4">{row.level}</td>
-                          <td className="px-4 py-4 text-right font-bold">{formatNumber(row.students)}</td>
-                          <td className="px-4 py-4 text-right font-bold">{formatNumber(row.demand)}</td>
+                          <td className="px-4 py-4">{row.level || "—"}</td>
+                          <td className="px-4 py-4 text-right font-bold">
+                            {row.students === undefined
+                              ? "—"
+                              : formatNumber(row.students)}
+                          </td>
                         </>
                       ) : activeTab === "food" ? (
                         <>
                           <td className="px-4 py-4">{row.category}</td>
                           <td className="px-4 py-4 text-right font-bold">{formatNumber(row.capacity)}</td>
                           <td className="px-4 py-4 text-right">{row.updated}</td>
-                        </>
-                      ) : activeTab === "suppliers" ? (
-                        <>
-                          <td className="px-4 py-4">{formatNumber(row.capacity)}</td>
-                          <td className="px-4 py-4 text-right font-bold">{formatNumber(row.serving)}</td>
                         </>
                       ) : null}
                       <td className="px-4 py-4">
@@ -4289,21 +4327,12 @@ export function AdminFacilityDetailPage() {
                 <span>{row.contact}</span>
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid gap-2">
               <div className="rounded-xl bg-white/10 p-3">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-white/55">
                   Ngày nộp
                 </p>
                 <p className="mt-1 text-sm font-bold">{submittedAt}</p>
-              </div>
-              <div className="rounded-xl bg-white/10 p-3">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-white/55">
-                  Đánh giá
-                </p>
-                <p className="mt-1 text-sm font-bold text-[#f4c95d]">
-                  {managementStatusLabel(currentStatus)}
-                  {application ? ` · ${application.score}/100` : ""}
-                </p>
               </div>
             </div>
           </div>

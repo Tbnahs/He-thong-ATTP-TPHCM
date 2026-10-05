@@ -93,7 +93,6 @@ import {
   type CriteriaDefinition,
   type CriteriaGroup,
   type CriteriaSet,
-  type ApplicationStatus,
   type ListApplicationsParams,
   type ListPublicRecordsCategory,
   type NewsCategory,
@@ -9959,10 +9958,16 @@ function SupplementDialog({
 
 export function AdminApplicationPage() {
   const { id = "" } = useParams<{ id: string }>();
+  const [, setLocation] = useLocation();
   const application = applications.find((item) => item.id === id);
   const [evaluation, setEvaluation] = useState<"" | "passed" | "failed">("");
   const [supplementNote, setSupplementNote] = useState("");
   const [notice, setNotice] = useState("");
+  useEffect(() => {
+    if (application) {
+      setLocation(`/admin/facilities/application-${application.id}`);
+    }
+  }, [application?.id, setLocation]);
   useEffect(() => {
     if (!application) return;
     setEvaluation(
@@ -9974,6 +9979,15 @@ export function AdminApplicationPage() {
     );
     setSupplementNote(application.reviewNote ?? "");
   }, [application?.id, application?.status, application?.reviewNote]);
+  if (Boolean(application)) {
+    return (
+      <AdminShell reviewLayout>
+        <div className="mx-auto max-w-4xl px-5 py-12 text-sm text-muted-foreground">
+          Đang mở trang xét duyệt có thông tin người ký…
+        </div>
+      </AdminShell>
+    );
+  }
   const snapshotCriteria = application?.criteriaSnapshot ?? [];
   const snapshotKeys = new Set(snapshotCriteria.map((item) => item.key));
   const criteria = application
@@ -10033,7 +10047,7 @@ export function AdminApplicationPage() {
       metadata: {
         "Mã hồ sơ": application.reference,
         "Loại hình": typeNames[application.type],
-        "Kết quả": "Đạt",
+        "Kết quả": "Đã duyệt",
       },
       applicationData: getPublicApplicationData(
         application.type,
@@ -10062,7 +10076,7 @@ export function AdminApplicationPage() {
     application.published = true;
     saveApplicationRecord(application);
     syncApprovedFacility(application);
-    setNotice("Đã lưu hồ sơ đạt và công bố trên cổng thông tin.");
+    setNotice("Đã duyệt hồ sơ và công bố trên cổng thông tin.");
   };
   const requestSupplement = () => {
     if (!application || !supplementNote.trim()) {
@@ -10076,7 +10090,7 @@ export function AdminApplicationPage() {
     removePublishedRecord();
     setEvaluation("failed");
     setNotice(
-      "Đã lưu yêu cầu bổ sung và chuyển hồ sơ về trạng thái cần bổ sung.",
+      "Đã lưu yêu cầu bổ sung và chuyển hồ sơ về trạng thái “Yêu cầu bổ sung”.",
     );
   };
   if (!application)
