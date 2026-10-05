@@ -670,6 +670,22 @@ const getFacilityRegistrant = (
         })
       : undefined);
   const data = application?.data ?? linkedAccount?.registration?.fields ?? {};
+  const email = [
+    linkedAccount?.email,
+    data.email,
+    data.foodSafetyContactEmail,
+    ...(Array.isArray(data.foodSafetyContacts)
+      ? data.foodSafetyContacts.map((contact) =>
+          contact && typeof contact === "object"
+            ? (contact as Record<string, unknown>).email
+            : undefined,
+        )
+      : []),
+  ]
+    .map((candidate) =>
+      typeof candidate === "string" ? candidate.trim() : "",
+    )
+    .find((candidate) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(candidate));
   return {
     name: String(
       data.representative ??
@@ -682,9 +698,7 @@ const getFacilityRegistrant = (
     phone: String(
       data.representativePhone ?? data.contact ?? application?.contact ?? "—",
     ),
-    email: String(
-      linkedAccount?.email ?? data.email ?? "Chưa cập nhật",
-    ),
+    email: email ?? "Chưa cập nhật",
     username: String(
       linkedAccount?.username ?? linkedAccount?.email ?? "Tài khoản hồ sơ",
     ),
