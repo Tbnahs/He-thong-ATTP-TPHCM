@@ -4673,6 +4673,27 @@ export function AdminFacilityDetailPage() {
       setNotice("Vui lòng ghi rõ nội dung cần cơ sở bổ sung.");
       return;
     }
+    const reviewer = {
+      name: reviewerForm.name.trim(),
+      position: reviewerForm.position.trim(),
+      phone: reviewerForm.phone.trim(),
+      email: reviewerForm.email.trim(),
+    };
+    if (
+      !reviewer.name ||
+      !reviewer.position ||
+      !reviewer.phone ||
+      !reviewer.email
+    ) {
+      setNotice(
+        "Vui lòng nhập đầy đủ họ tên, chức vụ, số điện thoại và email cán bộ duyệt.",
+      );
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(reviewer.email)) {
+      setNotice("Email cán bộ duyệt chưa hợp lệ.");
+      return;
+    }
     if (
       !registrant.email ||
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registrant.email.trim())
@@ -4687,6 +4708,7 @@ export function AdminFacilityDetailPage() {
         applicantName: registrant.name,
         recipientEmail: registrant.email.trim(),
         reason: reviewNote.trim(),
+        reviewer,
       });
     } catch (requestError) {
       setNotice(

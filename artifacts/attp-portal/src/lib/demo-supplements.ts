@@ -10,12 +10,20 @@ const linkLifetimeMs = 48 * 60 * 60 * 1000;
 
 export type DemoSupplementStatus = "open" | "submitted" | "expired";
 
+export type DemoSupplementReviewer = {
+  name: string;
+  position: string;
+  phone: string;
+  email: string;
+};
+
 export type DemoSupplementRequest = {
   token: string;
   applicationId: string;
   applicantName: string;
   recipientEmail: string;
   reason: string;
+  reviewer?: DemoSupplementReviewer;
   createdAt: string;
   expiresAt: string;
   status: DemoSupplementStatus;
@@ -69,11 +77,13 @@ export const createDemoSupplementRequest = ({
   applicantName,
   recipientEmail,
   reason,
+  reviewer,
 }: {
   applicationId: string;
   applicantName: string;
   recipientEmail: string;
   reason: string;
+  reviewer: DemoSupplementReviewer;
 }) => {
   if (typeof window === "undefined" || !window.crypto?.randomUUID) {
     throw new Error("Trình duyệt hiện tại không hỗ trợ tạo liên kết demo.");
@@ -91,6 +101,7 @@ export const createDemoSupplementRequest = ({
     applicantName,
     recipientEmail,
     reason,
+    reviewer,
     createdAt: new Date(now).toISOString(),
     expiresAt: new Date(now + linkLifetimeMs).toISOString(),
     status: "open",
@@ -103,11 +114,13 @@ export const createDemoSupplementRequest = ({
 
 export const submitDemoSupplement = ({
   token,
-  response,
+  updatedData,
+  applicationAttachments,
   attachments,
 }: {
   token: string;
-  response: string;
+  updatedData: Record<string, unknown>;
+  applicationAttachments: Attachment[];
   attachments: Attachment[];
 }) => {
   const requests = readRequests();
@@ -127,13 +140,47 @@ export const submitDemoSupplement = ({
   );
   if (!application) throw new Error("Không tìm thấy hồ sơ đăng ký trong bản demo.");
 
+  const textValue = (...keys: string[]) => {
+    for (const key of keys) {
+      const value = updatedData[key];
+      if (typeof value === "string" && value.trim()) return value.trim();
+      if (Array.isArray(value)) {
+        const first = value.find(
+          (entry): entry is string => typeof entry === "string" && Boolean(entry.trim()),
+        );
+        if (first) return first.trim();
+      }
+    }
+    return "";
+  };
+  const schoolContactRows = Array.isArray(updatedData.foodSafetyContacts)
+    ? updatedData.foodSafetyContacts
+    : [];
+  const firstSchoolContact =
+    typeof schoolContactRows[0] === "object" && schoolContactRows[0] !== null
+      ? (schoolContactRows[0] as Record<string, unknown>)
+      : {};
+  const applicantName =
+    textValue("applicantName", "facilityName", "legalName") ||
+    application.applicantName;
+  const address =
+    (application.type === "school"
+      ? textValue("addressMain", "addressDetail")
+      : textValue("facilityAddress", "headquartersAddress", "addressDetail")) ||
+    application.address;
+  const contact =
+    (application.type === "meal-provider"
+      ? textValue("foodSafetyContactPhone", "contact")
+      : (typeof firstSchoolContact.phone === "string"
+          ? firstSchoolContact.phone.trim()
+          : "") || textValue("contact")) || application.contact;
   const updatedApplication: Application = {
     ...application,
-    data: {
-      ...application.data,
-      supplementResponse: response.trim(),
-    },
-    attachments: [...application.attachments, ...attachments],
+    applicantName,
+    address,
+    contact,
+    data: updatedData,
+    attachments: applicationAttachments,
     status: "pending",
     reviewNote: null,
     reviewer: undefined,
@@ -145,7 +192,6 @@ export const submitDemoSupplement = ({
     ...request,
     status: "submitted",
     submittedAt: new Date().toISOString(),
-    response: response.trim(),
     attachments,
   };
   requests[requestIndex] = submittedRequest;

@@ -1,77 +1,28 @@
-import { useState, type ChangeEvent, type FormEvent } from "react";
-import { ArrowLeft, CheckCircle2, FileText, Paperclip, Send } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { Link, useParams } from "wouter";
-import { Button } from "@/components/ui/button";
 import {
   getDemoSupplementByToken,
   submitDemoSupplement,
   type DemoSupplementRequest,
 } from "@/lib/demo-supplements";
 import { applications } from "@/lib/mock-data";
-import {
-  EVIDENCE_ACCEPT,
-  EVIDENCE_MAX_SIZE_LABEL,
-  validateEvidenceFiles,
-} from "@/lib/file-upload";
-import type { Attachment } from "@/lib/mock-data";
+import { SupplementRegistrationForm } from "@/pages/supplement-registration-form";
+
+const reviewerValue = (value?: string) => value?.trim() || "Chưa cập nhật";
 
 export function SupplementApplicationPage() {
   const { token = "" } = useParams<{ token: string }>();
   const [request, setRequest] = useState<DemoSupplementRequest | undefined>(
     () => getDemoSupplementByToken(token),
   );
-  const [response, setResponse] = useState("");
-  const [files, setFiles] = useState<File[]>([]);
-  const [error, setError] = useState("");
-  const [fileInputKey, setFileInputKey] = useState(0);
+  useEffect(() => {
+    setRequest(getDemoSupplementByToken(token));
+  }, [token]);
+
   const application = applications.find(
     (item) => item.id === request?.applicationId,
   );
-
-  const onChooseFiles = (event: ChangeEvent<HTMLInputElement>) => {
-    const selected = Array.from(event.target.files ?? []);
-    const validationError = validateEvidenceFiles(selected);
-    if (validationError) {
-      setError(validationError);
-      event.target.value = "";
-      return;
-    }
-    setError("");
-    setFiles((current) => [...current, ...selected]);
-    setFileInputKey((current) => current + 1);
-  };
-
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!request) return;
-    if (!response.trim()) {
-      setError("Vui lòng mô tả nội dung đã bổ sung.");
-      return;
-    }
-
-    const attachments: Attachment[] = files.map((file) => ({
-      name: file.name,
-      kind: file.type || "application/octet-stream",
-      size: file.size,
-      fieldKey: "supplement",
-    }));
-
-    try {
-      const submitted = submitDemoSupplement({
-        token,
-        response,
-        attachments,
-      });
-      setRequest(submitted);
-      setError("");
-    } catch (submissionError) {
-      setError(
-        submissionError instanceof Error
-          ? submissionError.message
-          : "Không thể gửi phần bổ sung.",
-      );
-    }
-  };
 
   if (!request || !application) {
     return (
@@ -100,10 +51,27 @@ export function SupplementApplicationPage() {
     request.status === "expired" ||
     (request.status === "open" &&
       new Date(request.expiresAt).getTime() <= Date.now());
+  const isLocked = request.status === "submitted" || isExpired;
+  const reviewer = request.reviewer;
+  const handleSubmit = (
+    updatedData: Record<string, unknown>,
+    applicationAttachments: Parameters<
+      typeof submitDemoSupplement
+    >[0]["applicationAttachments"],
+    newAttachments: Parameters<typeof submitDemoSupplement>[0]["attachments"],
+  ) => {
+    const submitted = submitDemoSupplement({
+      token,
+      updatedData,
+      applicationAttachments,
+      attachments: newAttachments,
+    });
+    setRequest(submitted);
+  };
 
   return (
-    <main className="min-h-screen bg-muted/40 px-4 py-8 sm:py-12">
-      <div className="mx-auto max-w-3xl">
+    <main className="min-h-screen bg-muted/40 px-4 py-7 sm:py-10">
+      <div className="mx-auto max-w-5xl">
         <Link
           href="/"
           className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:underline"
@@ -117,149 +85,100 @@ export function SupplementApplicationPage() {
               BỔ SUNG HỒ SƠ ĐĂNG KÝ
             </p>
             <h1 className="mt-2 text-2xl font-extrabold sm:text-3xl">
-              Cập nhật hồ sơ của bạn
+              Hồ sơ đăng ký của bạn
             </h1>
             <p className="mt-2 text-sm leading-6 text-white/80">
               Mã hồ sơ {application.reference} · {application.applicantName}
             </p>
           </div>
 
-          <div className="space-y-5 p-5 sm:p-8">
-            <div
-              className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm leading-6 text-amber-950"
+          <div className="space-y-6 p-4 sm:p-8">
+            <section
+              className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-amber-950 sm:p-5"
               role="note"
+              aria-label="Yêu cầu từ cán bộ duyệt"
             >
-              <strong>Bản demo:</strong> không gửi email thật, không xác minh người
-              truy cập và không tải tệp lên máy chủ. Liên kết chỉ hoạt động trên
-              trình duyệt đã tạo yêu cầu.
-            </div>
-
-            <section className="rounded-2xl border border-border bg-background p-5">
-              <p className="text-xs font-extrabold uppercase tracking-wide text-muted-foreground">
+              <p className="text-xs font-extrabold uppercase tracking-wide text-amber-900">
                 Yêu cầu từ cán bộ duyệt
               </p>
-              <p className="mt-2 text-sm font-semibold leading-7">
+              <p className="mt-2 whitespace-pre-line text-sm font-semibold leading-7">
                 {request.reason}
               </p>
-              <p className="mt-3 text-xs text-muted-foreground">
-                Gửi đến: {request.recipientEmail}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Liên kết demo có hiệu lực đến{" "}
-                {new Intl.DateTimeFormat("vi-VN", {
-                  dateStyle: "medium",
-                  timeStyle: "short",
-                }).format(new Date(request.expiresAt))}
-              </p>
+              <dl className="mt-4 grid gap-x-6 gap-y-3 border-t border-amber-300/70 pt-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                <div className="min-w-0">
+                  <dt className="text-xs font-semibold text-amber-900/70">
+                    Cán bộ duyệt
+                  </dt>
+                  <dd className="mt-1 break-words font-bold">
+                    {reviewerValue(reviewer?.name)}
+                  </dd>
+                </div>
+                <div className="min-w-0">
+                  <dt className="text-xs font-semibold text-amber-900/70">
+                    Chức vụ
+                  </dt>
+                  <dd className="mt-1 break-words font-bold">
+                    {reviewerValue(reviewer?.position)}
+                  </dd>
+                </div>
+                <div className="min-w-0">
+                  <dt className="text-xs font-semibold text-amber-900/70">
+                    Số điện thoại
+                  </dt>
+                  <dd className="mt-1 break-words font-bold">
+                    {reviewer?.phone ? (
+                      <a href={`tel:${reviewer.phone}`} className="hover:underline">
+                        {reviewer.phone}
+                      </a>
+                    ) : (
+                      "Chưa cập nhật"
+                    )}
+                  </dd>
+                </div>
+                <div className="min-w-0">
+                  <dt className="text-xs font-semibold text-amber-900/70">
+                    Email
+                  </dt>
+                  <dd className="mt-1 break-words font-bold">
+                    {reviewer?.email ? (
+                      <a
+                        href={`mailto:${reviewer.email}`}
+                        className="hover:underline"
+                      >
+                        {reviewer.email}
+                      </a>
+                    ) : (
+                      "Chưa cập nhật"
+                    )}
+                  </dd>
+                </div>
+              </dl>
             </section>
 
-            {request.status === "submitted" ? (
-              <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-950">
+            {request.status === "submitted" && (
+              <section className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950">
                 <div className="flex items-center gap-2 font-extrabold">
-                  <CheckCircle2 size={20} /> Đã gửi phần bổ sung
+                  <CheckCircle2 size={19} /> Đã gửi hồ sơ bổ sung
                 </div>
-                <p className="mt-2 text-sm leading-6">
-                  Hồ sơ đã được chuyển về trạng thái chờ duyệt. Cán bộ sẽ xem nội
-                  dung và các tệp bạn cung cấp.
+                <p className="mt-1 text-sm leading-6">
+                  Các thay đổi đã được lưu vào hồ sơ và hồ sơ đã chuyển về trạng
+                  thái chờ duyệt.
                 </p>
-                {request.response && (
-                  <p className="mt-4 rounded-xl bg-white/80 p-3 text-sm leading-6">
-                    {request.response}
-                  </p>
-                )}
-                {request.attachments.length > 0 && (
-                  <ul className="mt-3 space-y-2">
-                    {request.attachments.map((attachment, index) => (
-                      <li
-                        key={`${attachment.name}-${index}`}
-                        className="flex items-center gap-2 text-sm font-semibold"
-                      >
-                        <FileText size={16} /> {attachment.name}
-                      </li>
-                    ))}
-                  </ul>
-                )}
               </section>
-            ) : isExpired ? (
-              <section className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm leading-6 text-rose-950">
-                Liên kết demo đã hết hạn. Vui lòng liên hệ cán bộ tiếp nhận để tạo
-                yêu cầu bổ sung mới.
-              </section>
-            ) : (
-              <form onSubmit={onSubmit} className="space-y-5">
-                <label className="block text-sm font-bold">
-                  Nội dung phản hồi <span className="text-rose-600">*</span>
-                  <textarea
-                    required
-                    id="supplement-response"
-                    value={response}
-                    onChange={(event) => setResponse(event.target.value)}
-                    rows={5}
-                    placeholder="Mô tả giấy tờ hoặc thông tin bạn đã bổ sung..."
-                    className="focus-ring mt-2 w-full resize-y rounded-xl border border-input bg-background p-3.5 text-sm font-normal leading-6"
-                    data-testid="textarea-supplement-response"
-                  />
-                </label>
-
-                <div>
-                  <label
-                    htmlFor={`supplement-files-${fileInputKey}`}
-                    className="block text-sm font-bold"
-                  >
-                    Tệp minh chứng bổ sung
-                  </label>
-                  <div className="mt-2 rounded-2xl border border-dashed border-border bg-background p-4">
-                    <input
-                      key={fileInputKey}
-                      id={`supplement-files-${fileInputKey}`}
-                      type="file"
-                      accept={EVIDENCE_ACCEPT}
-                      multiple
-                      onChange={onChooseFiles}
-                      className="block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-2 file:font-bold file:text-primary-foreground"
-                      data-testid="input-supplement-files"
-                    />
-                    <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                      Chấp nhận PDF, JPG, PNG; tối đa {EVIDENCE_MAX_SIZE_LABEL} mỗi
-                      tệp. Trong demo chỉ lưu tên và thông tin tệp.
-                    </p>
-                    {files.length > 0 && (
-                      <ul className="mt-3 space-y-2">
-                        {files.map((file, index) => (
-                          <li
-                            key={`${file.name}-${index}`}
-                            className="flex items-center gap-2 text-sm font-medium"
-                          >
-                            <Paperclip size={15} />
-                            <span className="break-all">{file.name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {(file.size / 1024 / 1024).toFixed(2)} MB
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                </div>
-
-                {error && (
-                  <p
-                    className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-900"
-                    role="alert"
-                  >
-                    {error}
-                  </p>
-                )}
-
-                <Button
-                  type="submit"
-                  className="min-h-11 w-full rounded-xl font-bold sm:w-auto"
-                  data-testid="button-submit-supplement"
-                >
-                  <Send size={16} /> Gửi phần bổ sung
-                </Button>
-              </form>
             )}
+            {isExpired && request.status !== "submitted" && (
+              <section className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm leading-6 text-rose-950">
+                Liên kết demo đã hết hạn. Vui lòng liên hệ cán bộ duyệt để tạo
+                yêu cầu bổ sung mới. Hồ sơ bên dưới chỉ được xem.
+              </section>
+            )}
+
+            <SupplementRegistrationForm
+              key={application.id}
+              application={application}
+              disabled={isLocked}
+              onSubmit={handleSubmit}
+            />
           </div>
         </section>
       </div>
