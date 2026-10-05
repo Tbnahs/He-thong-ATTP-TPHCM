@@ -4630,30 +4630,6 @@ function ApplicationForm({
               ? "Kê khai theo tình trạng thực tế tại thời điểm khảo sát; nội dung không phát sinh hoặc không áp dụng cần ghi rõ."
               : `Đang chỉnh sửa hồ sơ của ${account?.email || "cơ sở đăng ký"}.`}
           </p>
-          {mode === "register" && (
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={fillDemoRegistration}
-                data-testid="button-fill-registration-demo"
-              >
-                Điền nhanh mẫu demo
-              </Button>
-              <p className="text-xs leading-5 text-muted-foreground">
-                Điền mẫu đủ các bước của nhóm đã chọn; không tự nộp hồ sơ.
-              </p>
-              {demoFillNotice && (
-                <p
-                  className="w-full text-xs font-semibold text-primary"
-                  role="status"
-                  data-testid="status-registration-demo-fill"
-                >
-                  {demoFillNotice}
-                </p>
-              )}
-            </div>
-          )}
           {type === "school" && (
             <div className="paper-form-guidance">
               <p className="paper-guidance-title">
