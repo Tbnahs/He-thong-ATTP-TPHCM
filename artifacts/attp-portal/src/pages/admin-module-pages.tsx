@@ -59,6 +59,11 @@ import {
 } from "@/lib/mock-data";
 import { syncApprovedFacility } from "@/lib/approved-facilities";
 import { findManagedAdminAccount } from "@/lib/admin-permissions";
+import {
+  createDemoSupplementRequest,
+  getLatestDemoSupplementForApplication,
+  type DemoSupplementRequest,
+} from "@/lib/demo-supplements";
 
 type FacilityCategory =
   | "Trường học có bếp ăn bán trú"
@@ -4206,6 +4211,8 @@ export function AdminFacilityDetailPage() {
   const [, navigate] = useLocation();
   const [notice, setNotice] = useState("");
   const [reviewNote, setReviewNote] = useState("");
+  const [demoSupplementRequest, setDemoSupplementRequest] =
+    useState<DemoSupplementRequest>();
   const [reviewerForm, setReviewerForm] = useState<
     Omit<ApplicationReviewer, "reviewedAt" | "accountId">
   >({
@@ -4270,6 +4277,11 @@ export function AdminFacilityDetailPage() {
       signature:
         application?.reviewer?.signature ?? reviewerAccount?.signature ?? "",
     });
+    setDemoSupplementRequest(
+      application?.id
+        ? getLatestDemoSupplementForApplication(application.id)
+        : undefined,
+    );
   }, [
     application?.id,
     application?.status,
@@ -4428,6 +4440,29 @@ export function AdminFacilityDetailPage() {
       setNotice("Vui lòng ghi rõ nội dung cần cơ sở bổ sung.");
       return;
     }
+    if (
+      !registrant.email ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registrant.email.trim())
+    ) {
+      setNotice("Hồ sơ chưa có email hợp lệ để tạo thông báo mô phỏng.");
+      return;
+    }
+    let createdRequest: DemoSupplementRequest;
+    try {
+      createdRequest = createDemoSupplementRequest({
+        applicationId: application.id,
+        applicantName: registrant.name,
+        recipientEmail: registrant.email.trim(),
+        reason: reviewNote.trim(),
+      });
+    } catch (requestError) {
+      setNotice(
+        requestError instanceof Error
+          ? requestError.message
+          : "Không thể tạo thông báo mô phỏng.",
+      );
+      return;
+    }
     application.status = "needs-more-info";
     application.reviewNote = reviewNote.trim();
     application.reviewer = undefined;
@@ -4435,7 +4470,8 @@ export function AdminFacilityDetailPage() {
     saveApplicationRecord(application);
     removePublishedRecord();
     setDetailStatus("needs-more-info");
-    setNotice("Đã gửi yêu cầu bổ sung và cập nhật trạng thái hồ sơ.");
+    setDemoSupplementRequest(createdRequest);
+    setNotice("Đã tạo email mô phỏng. Email thật chưa được gửi.");
   };
 
   const formatQuickNumber = (value?: number) =>
@@ -4854,7 +4890,7 @@ export function AdminFacilityDetailPage() {
                       className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-900 hover:bg-amber-100"
                       data-testid="button-request-supplement-facility-detail"
                     >
-                      <Info size={15} /> Yêu cầu bổ sung
+                      <Mail size={15} /> Tạo email yêu cầu bổ sung
                     </button>
                     <button
                       type="button"
@@ -4872,6 +4908,87 @@ export function AdminFacilityDetailPage() {
                   <strong>Ghi chú đã gửi:</strong> {application.reviewNote}
                 </div>
               ) : null}
+              {demoSupplementRequest && (
+                <section
+                  className="mt-4 rounded-xl border border-sky-200 bg-sky-50 p-4"
+                  data-testid="demo-supplement-email-preview"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-extrabold text-sky-950">
+                      Email mô phỏng · chưa gửi thật
+                    </p>
+                    <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-sky-900">
+                      {demoSupplementRequest.status === "submitted"
+                        ? "Đã nhận phản hồi"
+                        : demoSupplementRequest.status === "expired"
+                          ? "Liên kết hết hạn"
+                          : "Đang chờ bổ sung"}
+                    </span>
+                  </div>
+                  <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                    <div>
+                      <dt className="text-xs font-semibold text-sky-900/70">
+                        Người nhận
+                      </dt>
+                      <dd className="mt-0.5 break-all font-semibold text-sky-950">
+                        {demoSupplementRequest.recipientEmail}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs font-semibold text-sky-900/70">
+                        Hết hạn
+                      </dt>
+                      <dd className="mt-0.5 font-semibold text-sky-950">
+                        {new Intl.DateTimeFormat("vi-VN", {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        }).format(new Date(demoSupplementRequest.expiresAt))}
+                      </dd>
+                    </div>
+                  </dl>
+                  <p className="mt-3 rounded-lg bg-white/80 p-3 text-sm leading-6 text-sky-950">
+                    <strong>Nội dung:</strong> {demoSupplementRequest.reason}
+                  </p>
+                  {demoSupplementRequest.status === "submitted" ? (
+                    <div className="mt-3 rounded-lg bg-white/80 p-3 text-sm leading-6 text-sky-950">
+                      <p>
+                        <strong>Phản hồi người kê khai:</strong>{" "}
+                        {demoSupplementRequest.response || "—"}
+                      </p>
+                      {demoSupplementRequest.attachments.length > 0 && (
+                        <ul className="mt-2 space-y-1">
+                          {demoSupplementRequest.attachments.map(
+                            (attachment, index) => (
+                              <li
+                                key={`${attachment.name}-${index}`}
+                                className="flex items-center gap-2"
+                              >
+                                <FileText size={14} />
+                                <span>{attachment.name}</span>
+                                <span className="text-xs text-sky-900/70">
+                                  (tệp chưa được tải lên trong demo)
+                                </span>
+                              </li>
+                            ),
+                          )}
+                        </ul>
+                      )}
+                    </div>
+                  ) : demoSupplementRequest.status === "open" ? (
+                    <Link
+                      href={`/supplement/${demoSupplementRequest.token}`}
+                      className="mt-3 inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-sky-900 px-3 py-2 text-sm font-bold text-white hover:bg-sky-800"
+                      data-testid="link-open-demo-supplement"
+                    >
+                      <ArrowUpRight size={15} /> Mở trang bổ sung
+                    </Link>
+                  ) : (
+                    <p className="mt-3 text-sm text-sky-950">
+                      Tạo yêu cầu mới để cấp liên kết demo khác.
+                    </p>
+                  )}
+                </section>
+              )}
             </section>
           </aside>
         </div>

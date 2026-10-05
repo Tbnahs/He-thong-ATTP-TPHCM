@@ -3,3 +3,4 @@
 - [Excel in frontend-only portal](excel-frontend-portal.md) — browser-only Excel exports/imports use SheetJS; persistence still needs a backend.
 - [Facility history integration](facility-history-api.md) — approved profiles can display portal and external-system history now; production sync needs an explicit API contract.
 - [Registration review compatibility](registration-schema-compatibility.md) — preserve forms and sign-off, keep three review statuses, and source school facts from submissions.
+- [Supplement notice boundary](supplement-notice-boundary.md) — keep supplement notifications visibly demo-only until authenticated server access and persistent storage exist.
