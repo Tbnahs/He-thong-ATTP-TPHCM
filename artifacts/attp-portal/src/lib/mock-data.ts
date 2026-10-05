@@ -27,6 +27,7 @@ export interface Attachment {
   fieldKey?: string;
   previewUrl?: string;
   previewStorageKey?: string;
+  isSample?: boolean;
 }
 export interface CriteriaSource {
   id: string;
@@ -3566,20 +3567,26 @@ export const applications: Application[] = [
       {
         name: "giay-phep-attp.pdf",
         kind: "application/pdf",
-        size: 420000,
+        size: 2359,
         fieldKey: "businessLicense",
+        previewUrl: "/demo-attachments/demo-food-safety-record.pdf",
+        isSample: true,
       },
       {
         name: "kho-bao-quan-01.jpg",
         kind: "image/jpeg",
-        size: 1800000,
+        size: 157377,
         fieldKey: "storageEvidence",
+        previewUrl: "/demo-attachments/demo-cold-storage.jpg",
+        isSample: true,
       },
       {
         name: "phuong-tien-van-chuyen.jpg",
         kind: "image/jpeg",
-        size: 1400000,
+        size: 142361,
         fieldKey: "transportEvidence",
+        previewUrl: "/demo-attachments/demo-food-delivery.jpg",
+        isSample: true,
       },
     ],
     scoreBreakdown: {
@@ -3617,8 +3624,18 @@ export const applications: Application[] = [
       {
         name: "quyet-dinh-thanh-lap.pdf",
         kind: "application/pdf",
-        size: 510000,
+        size: 2378,
         fieldKey: "schoolDecision",
+        previewUrl: "/demo-attachments/demo-school-kitchen-review.pdf",
+        isSample: true,
+      },
+      {
+        name: "bep-an-truong-hoc.jpg",
+        kind: "image/jpeg",
+        size: 145131,
+        fieldKey: "schoolKitchenEvidence",
+        previewUrl: "/demo-attachments/demo-school-kitchen.jpg",
+        isSample: true,
       },
     ],
     scoreBreakdown: {

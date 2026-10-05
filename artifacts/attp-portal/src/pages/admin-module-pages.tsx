@@ -4106,6 +4106,10 @@ export function AdminFacilitiesPage() {
                         <p className="mt-1 text-sm text-muted-foreground">
                           Bấm vào ảnh hoặc file để xem chi tiết.
                         </p>
+                        <p className="mt-1 text-xs font-semibold text-amber-700">
+                          Tệp có nhãn MẪU chỉ dùng để thử giao diện, không phải
+                          bằng chứng thật.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -4154,6 +4158,11 @@ export function AdminFacilitiesPage() {
                               : "Dung lượng chưa cập nhật"}{" "}
                             · Xem
                           </span>
+                          {file.isSample && (
+                            <span className="mt-1 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-amber-800">
+                              Tệp mẫu · Minh họa
+                            </span>
+                          )}
                         </span>
                       </button>
                     ))
@@ -4316,6 +4325,11 @@ function RegistrationAttachmentPreviewDialog({
                 ? ` · ${(file.size / 1024 / 1024).toFixed(2)} MB`
                 : ""}
             </p>
+            {file.isSample && (
+              <p className="mt-2 inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-amber-900">
+                Tệp mẫu · Không phải giấy tờ hoặc bằng chứng thật
+              </p>
+            )}
           </div>
           <button
             type="button"
