@@ -7,7 +7,7 @@ import {
   type DemoSupplementRequest,
 } from "@/lib/demo-supplements";
 import { applications } from "@/lib/mock-data";
-import { SupplementRegistrationForm } from "@/pages/supplement-registration-form";
+import { ApplicationForm } from "@/pages/portal-pages";
 
 const reviewerValue = (value?: string) => value?.trim() || "Chưa cập nhật";
 
@@ -16,6 +16,7 @@ export function SupplementApplicationPage() {
   const [request, setRequest] = useState<DemoSupplementRequest | undefined>(
     () => getDemoSupplementByToken(token),
   );
+  const [showRequestInfo, setShowRequestInfo] = useState(false);
   useEffect(() => {
     setRequest(getDemoSupplementByToken(token));
   }, [token]);
@@ -93,66 +94,96 @@ export function SupplementApplicationPage() {
           </div>
 
           <div className="space-y-6 p-4 sm:p-8">
-            <section
-              className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-amber-950 sm:p-5"
-              role="note"
-              aria-label="Yêu cầu từ cán bộ duyệt"
-            >
-              <p className="text-xs font-extrabold uppercase tracking-wide text-amber-900">
-                Yêu cầu từ cán bộ duyệt
-              </p>
-              <p className="mt-2 whitespace-pre-line text-sm font-semibold leading-7">
-                {request.reason}
-              </p>
-              <dl className="mt-4 grid gap-x-6 gap-y-3 border-t border-amber-300/70 pt-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
-                <div className="min-w-0">
-                  <dt className="text-xs font-semibold text-amber-900/70">
-                    Cán bộ duyệt
-                  </dt>
-                  <dd className="mt-1 break-words font-bold">
-                    {reviewerValue(reviewer?.name)}
-                  </dd>
+            <section>
+              <button
+                type="button"
+                onClick={() => setShowRequestInfo((visible) => !visible)}
+                aria-expanded={showRequestInfo}
+                aria-controls="supplement-request-info"
+                className="focus-ring flex w-full items-center justify-between gap-4 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-left text-amber-950 transition hover:bg-amber-100 sm:p-5"
+                data-testid="button-toggle-supplement-request"
+              >
+                <span>
+                  <span className="block text-xs font-extrabold uppercase tracking-wide text-amber-900">
+                    Thông tin cán bộ yêu cầu bổ sung
+                  </span>
+                  <span className="mt-1 block text-sm text-amber-900/80">
+                    {showRequestInfo
+                      ? "Ẩn nội dung yêu cầu"
+                      : "Nhấn để xem nội dung yêu cầu và thông tin liên hệ"}
+                  </span>
+                </span>
+                <span aria-hidden="true" className="text-xl font-bold">
+                  {showRequestInfo ? "−" : "+"}
+                </span>
+              </button>
+              {showRequestInfo && (
+                <div
+                  id="supplement-request-info"
+                  className="rounded-b-2xl border border-t-0 border-amber-300 bg-amber-50/70 p-4 text-amber-950 sm:p-5"
+                  role="note"
+                  aria-label="Yêu cầu từ cán bộ duyệt"
+                >
+                  <p className="text-xs font-extrabold uppercase tracking-wide text-amber-900">
+                    Nội dung yêu cầu
+                  </p>
+                  <p className="mt-2 whitespace-pre-line text-sm font-semibold leading-7">
+                    {request.reason}
+                  </p>
+                  <dl className="mt-4 grid gap-x-6 gap-y-3 border-t border-amber-300/70 pt-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="min-w-0">
+                      <dt className="text-xs font-semibold text-amber-900/70">
+                        Cán bộ duyệt
+                      </dt>
+                      <dd className="mt-1 break-words font-bold">
+                        {reviewerValue(reviewer?.name)}
+                      </dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-xs font-semibold text-amber-900/70">
+                        Chức vụ
+                      </dt>
+                      <dd className="mt-1 break-words font-bold">
+                        {reviewerValue(reviewer?.position)}
+                      </dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-xs font-semibold text-amber-900/70">
+                        Số điện thoại
+                      </dt>
+                      <dd className="mt-1 break-words font-bold">
+                        {reviewer?.phone ? (
+                          <a
+                            href={`tel:${reviewer.phone}`}
+                            className="hover:underline"
+                          >
+                            {reviewer.phone}
+                          </a>
+                        ) : (
+                          "Chưa cập nhật"
+                        )}
+                      </dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-xs font-semibold text-amber-900/70">
+                        Email
+                      </dt>
+                      <dd className="mt-1 break-words font-bold">
+                        {reviewer?.email ? (
+                          <a
+                            href={`mailto:${reviewer.email}`}
+                            className="hover:underline"
+                          >
+                            {reviewer.email}
+                          </a>
+                        ) : (
+                          "Chưa cập nhật"
+                        )}
+                      </dd>
+                    </div>
+                  </dl>
                 </div>
-                <div className="min-w-0">
-                  <dt className="text-xs font-semibold text-amber-900/70">
-                    Chức vụ
-                  </dt>
-                  <dd className="mt-1 break-words font-bold">
-                    {reviewerValue(reviewer?.position)}
-                  </dd>
-                </div>
-                <div className="min-w-0">
-                  <dt className="text-xs font-semibold text-amber-900/70">
-                    Số điện thoại
-                  </dt>
-                  <dd className="mt-1 break-words font-bold">
-                    {reviewer?.phone ? (
-                      <a href={`tel:${reviewer.phone}`} className="hover:underline">
-                        {reviewer.phone}
-                      </a>
-                    ) : (
-                      "Chưa cập nhật"
-                    )}
-                  </dd>
-                </div>
-                <div className="min-w-0">
-                  <dt className="text-xs font-semibold text-amber-900/70">
-                    Email
-                  </dt>
-                  <dd className="mt-1 break-words font-bold">
-                    {reviewer?.email ? (
-                      <a
-                        href={`mailto:${reviewer.email}`}
-                        className="hover:underline"
-                      >
-                        {reviewer.email}
-                      </a>
-                    ) : (
-                      "Chưa cập nhật"
-                    )}
-                  </dd>
-                </div>
-              </dl>
+              )}
             </section>
 
             {request.status === "submitted" && (
@@ -173,11 +204,12 @@ export function SupplementApplicationPage() {
               </section>
             )}
 
-            <SupplementRegistrationForm
+            <ApplicationForm
               key={application.id}
-              application={application}
-              disabled={isLocked}
-              onSubmit={handleSubmit}
+              mode="supplement"
+              supplementApplication={application}
+              readOnly={isLocked}
+              onSupplementSubmit={handleSubmit}
             />
           </div>
         </section>

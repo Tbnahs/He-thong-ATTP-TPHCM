@@ -3202,31 +3202,46 @@ export function FacilityProfilePage() {
   return <FacilityProfileEditor />;
 }
 
-function ApplicationForm({
+export function ApplicationForm({
   mode = "register",
   account,
   initialSnapshot,
+  supplementApplication,
+  onSupplementSubmit,
+  readOnly = false,
 }: {
-  mode?: "register" | "edit";
+  mode?: "register" | "edit" | "supplement";
   account?: FacilityAccount | null;
   initialSnapshot?: RegistrationSnapshot;
+  supplementApplication?: Application;
+  onSupplementSubmit?: (
+    data: Record<string, unknown>,
+    applicationAttachments: Attachment[],
+    newAttachments: Attachment[],
+  ) => void;
+  readOnly?: boolean;
 }) {
+  const startingFields =
+    supplementApplication?.data ?? initialSnapshot?.fields ?? {};
+  const startingFiles =
+    supplementApplication?.attachments ?? initialSnapshot?.files ?? [];
   const [type, setType] = useState<ApplicationType>(
-    initialSnapshot?.type || "school",
+    supplementApplication?.type || initialSnapshot?.type || "school",
   );
   const [fields, setFields] = useState<Record<string, CriteriaValue>>(
-    initialSnapshot?.fields || {},
+    startingFields as Record<string, CriteriaValue>,
   );
   const [files, setFiles] = useState<Attachment[]>(
-    initialSnapshot?.files || [],
+    startingFiles,
   );
+  const [newFiles, setNewFiles] = useState<Attachment[]>([]);
   const [notice, setNotice] = useState("");
   const [demoFillNotice, setDemoFillNotice] = useState("");
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [schoolStep, setSchoolStep] = useState(0);
   const [schoolConfirmed, setSchoolConfirmed] = useState(
-    initialSnapshot?.fields.schoolSubmissionConfirmed === "true",
+    startingFields.schoolSubmissionConfirmed === "true",
   );
   const [registeredProviders, setRegisteredProviders] = useState<
     RegisteredMealProvider[]
@@ -3291,7 +3306,20 @@ function ApplicationForm({
       };
     });
   }, [type]);
-  const formSet = getCriteriaSet(type);
+  const currentFormSet = getCriteriaSet(type);
+  const formSet =
+    mode === "supplement" &&
+    supplementApplication?.criteriaSnapshot.length
+      ? {
+          ...currentFormSet,
+          version:
+            supplementApplication.criteriaVersion || currentFormSet.version,
+          criteria: supplementApplication.criteriaSnapshot,
+          groups: supplementApplication.criteriaGroups.length
+            ? supplementApplication.criteriaGroups
+            : currentFormSet.groups,
+        }
+      : currentFormSet;
   const isSchoolRegistrationField = (item: CriteriaDefinition) =>
     item.groupId === "school-survey-metadata" ||
     item.groupId === "school-group-1";
@@ -3369,6 +3397,7 @@ function ApplicationForm({
     setSchoolConfirmed(false);
     setFields({});
     setFiles([]);
+    setNewFiles([]);
     setNotice("");
     setDemoFillNotice("");
   };
@@ -3607,10 +3636,9 @@ function ApplicationForm({
         };
       }),
     );
-    setFiles((prev) => [
-      ...prev,
-      ...prepared.map((item) => item.attachment),
-    ]);
+    const addedFiles = prepared.map((item) => item.attachment);
+    setFiles((prev) => [...prev, ...addedFiles]);
+    setNewFiles((prev) => [...prev, ...addedFiles]);
     setNotice(
       prepared.some((item) => item.storageFailed)
         ? "Tệp đã được đính kèm nhưng không lưu được bản xem trước PDF trên thiết bị này."
@@ -3665,10 +3693,9 @@ function ApplicationForm({
         };
       }),
     );
-    setFiles((prev) => [
-      ...prev,
-      ...prepared.map((item) => item.attachment),
-    ]);
+    const addedFiles = prepared.map((item) => item.attachment);
+    setFiles((prev) => [...prev, ...addedFiles]);
+    setNewFiles((prev) => [...prev, ...addedFiles]);
     event.target.value = "";
     setNotice(
       prepared.some((item) => item.storageFailed)
@@ -3689,6 +3716,12 @@ function ApplicationForm({
         void deleteAttachmentContent(file.previewStorageKey).catch(() => {});
     });
     setFiles((prev) =>
+      prev.filter(
+        (file) =>
+          !(file.name === name && (!fieldKey || file.fieldKey === fieldKey)),
+      ),
+    );
+    setNewFiles((prev) =>
       prev.filter(
         (file) =>
           !(file.name === name && (!fieldKey || file.fieldKey === fieldKey)),
@@ -4175,6 +4208,7 @@ function ApplicationForm({
     type === "school" ? getSchoolLocationIssues() : [];
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    if (readOnly) return;
     setSubmitAttempted(true);
     const missing = getMissingRequiredFields();
     const missingSchoolConfirmation = type === "school" && !schoolConfirmed;
@@ -4457,6 +4491,24 @@ function ApplicationForm({
       scoreBreakdown: {},
       published: false,
     };
+    if (mode === "supplement") {
+      if (!onSupplementSubmit) {
+        setNotice("Không thể gửi hồ sơ bổ sung. Vui lòng tải lại trang.");
+        return;
+      }
+      try {
+        onSupplementSubmit(input.data, input.attachments, newFiles);
+        setSubmitted(true);
+        setNotice("Thông tin bổ sung đã được gửi tới cán bộ chuyên môn.");
+      } catch (submissionError) {
+        setNotice(
+          submissionError instanceof Error
+            ? submissionError.message
+            : "Không thể gửi hồ sơ bổ sung.",
+        );
+      }
+      return;
+    }
     saveApplicationRecord(applicationRecord);
     if (mode === "register") {
       const accountEmail = email.trim().toLowerCase();
@@ -4515,38 +4567,44 @@ function ApplicationForm({
         <p className="mono-label mt-7 text-primary">
           {mode === "register"
             ? "TẠO TÀI KHOẢN THÀNH CÔNG"
-            : "ĐÃ CẬP NHẬT HỒ SƠ"}
+            : mode === "supplement"
+              ? "ĐÃ GỬI HỒ SƠ BỔ SUNG"
+              : "ĐÃ CẬP NHẬT HỒ SƠ"}
         </p>
         <h1 className="display-tight mt-3 text-4xl font-extrabold">
           {mode === "register"
             ? "Đã tiếp nhận hồ sơ đăng ký."
-            : "Thông tin đã được lưu."}
+            : mode === "supplement"
+              ? "Đã gửi thông tin bổ sung."
+              : "Thông tin đã được lưu."}
         </h1>
         <p className="mx-auto mt-4 max-w-lg text-sm leading-6 text-muted-foreground">
           {mode === "register"
             ? "Cán bộ chuyên môn sẽ liên hệ qua số điện thoại hoặc email trong hồ sơ nếu cần bổ sung thông tin."
-            : "Bạn có thể tiếp tục chỉnh sửa hồ sơ khi nhận yêu cầu bổ sung từ cán bộ chuyên môn."}
+            : mode === "supplement"
+              ? "Hồ sơ đã được chuyển lại cho cán bộ chuyên môn rà soát."
+              : "Bạn có thể tiếp tục chỉnh sửa hồ sơ khi nhận yêu cầu bổ sung từ cán bộ chuyên môn."}
         </p>
-        <div className="mt-8 flex justify-center gap-3">
-          {mode === "register" ? (
-            <>
+        {mode !== "supplement" && (
+          <div className="mt-8 flex justify-center gap-3">
+            {mode === "register" ? (
               <ButtonLink href="/" variant="outline">
                 Về trang chủ
               </ButtonLink>
-            </>
-          ) : (
-            <Button
-              type="button"
-              onClick={() => {
-                setSubmitted(false);
-                setNotice("");
-              }}
-              className="rounded-xl"
-            >
-              Tiếp tục chỉnh sửa
-            </Button>
-          )}
-        </div>
+            ) : (
+              <Button
+                type="button"
+                onClick={() => {
+                  setSubmitted(false);
+                  setNotice("");
+                }}
+                className="rounded-xl"
+              >
+                Tiếp tục chỉnh sửa
+              </Button>
+            )}
+          </div>
+        )}
         {notice && <Notice message={notice} onClose={() => setNotice("")} />}
       </div>
     );
@@ -4683,31 +4741,33 @@ function ApplicationForm({
           <p className="paper-form-subtitle">
             Nhóm đối tượng thực hiện: <strong>{selectedTypeLabel}</strong>
           </p>
-          <div className="paper-form-type-row">
-            <label htmlFor="registration-type">
-              Chọn nhóm đối tượng để kê khai{" "}
-              <span className="text-destructive">*</span>
-            </label>
-            <select
-              id="registration-type"
-              value={type}
-              onChange={(event) =>
-                changeType(event.target.value as ApplicationType)
-              }
-              className="focus-ring"
-              data-testid="select-registration-type"
-            >
-              <option value="school">Cơ sở giáo dục</option>
-              <option value="meal-provider">
-                Cơ sở suất ăn sẵn
-              </option>
-              <option value="food-supplier">Cơ sở cung cấp thực phẩm</option>
-            </select>
-          </div>
+          {mode !== "supplement" && (
+            <div className="paper-form-type-row">
+              <label htmlFor="registration-type">
+                Chọn nhóm đối tượng để kê khai{" "}
+                <span className="text-destructive">*</span>
+              </label>
+              <select
+                id="registration-type"
+                value={type}
+                onChange={(event) =>
+                  changeType(event.target.value as ApplicationType)
+                }
+                className="focus-ring"
+                data-testid="select-registration-type"
+              >
+                <option value="school">Cơ sở giáo dục</option>
+                <option value="meal-provider">Cơ sở suất ăn sẵn</option>
+                <option value="food-supplier">Cơ sở cung cấp thực phẩm</option>
+              </select>
+            </div>
+          )}
           <p className="paper-form-note">
             {mode === "register"
               ? "Kê khai theo tình trạng thực tế tại thời điểm khảo sát; nội dung không phát sinh hoặc không áp dụng cần ghi rõ."
-              : `Đang chỉnh sửa hồ sơ của ${account?.email || "cơ sở đăng ký"}.`}
+              : mode === "supplement"
+                ? "Rà soát lại hồ sơ đăng ký đã gửi và cập nhật trực tiếp những nội dung cần bổ sung."
+                : `Đang chỉnh sửa hồ sơ của ${account?.email || "cơ sở đăng ký"}.`}
           </p>
           {type === "school" && (
             <div className="paper-form-guidance">
@@ -4757,6 +4817,19 @@ function ApplicationForm({
               onChange={setSchoolStep}
             />
           )}
+          <fieldset disabled={readOnly} className="contents">
+          {mode === "supplement" &&
+            supplementApplication &&
+            supplementApplication.criteriaSnapshot.length === 0 && (
+              <p
+                className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950"
+                role="note"
+              >
+                Hồ sơ cũ không lưu bản chụp bộ câu hỏi tại thời điểm đăng ký.
+                Các câu trả lời đã lưu được giữ nguyên; những mục không có dữ
+                liệu trong hồ sơ cũ sẽ được để trống để cơ sở kiểm tra.
+              </p>
+            )}
           {(type !== "school" || schoolStep === 0) && groups.map((group, groupIndex) => {
             const groupFields = formFields.filter(
               (item) => item.groupId === group.id,
@@ -4960,6 +5033,7 @@ function ApplicationForm({
               onConfirmationChange={setSchoolConfirmed}
             />
           )}
+          </fieldset>
           {type === "school" ? (
             <div className="paper-submit-bar flex-wrap">
               <div className="flex gap-3 text-sm">
@@ -5011,10 +5085,13 @@ function ApplicationForm({
                     type="submit"
                     className="h-11 rounded-md px-6"
                     data-testid="button-submit-application"
+                    disabled={readOnly}
                   >
                     {mode === "register"
                       ? "Nộp hồ sơ đăng ký"
-                      : "Lưu thay đổi hồ sơ"}{" "}
+                      : mode === "supplement"
+                        ? "Gửi hồ sơ bổ sung"
+                        : "Lưu thay đổi hồ sơ"}{" "}
                     <Send size={16} />
                   </Button>
                 )}
@@ -5037,10 +5114,13 @@ function ApplicationForm({
                 type="submit"
                 className="h-11 rounded-md px-6"
                 data-testid="button-submit-application"
+                disabled={readOnly}
               >
                 {mode === "register"
                   ? "Nộp hồ sơ đăng ký"
-                  : "Lưu thay đổi hồ sơ"}{" "}
+                  : mode === "supplement"
+                    ? "Gửi hồ sơ bổ sung"
+                    : "Lưu thay đổi hồ sơ"}{" "}
                 <Send size={16} />
               </Button>
             </div>
