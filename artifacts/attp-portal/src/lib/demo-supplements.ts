@@ -6,7 +6,7 @@ import {
 } from "@/lib/mock-data";
 
 const storageKey = "attp-demo-supplement-requests";
-const linkLifetimeMs = 48 * 60 * 60 * 1000;
+const facilityAccountsStorageKey = "attp-facility-accounts";
 
 export type DemoSupplementStatus = "open" | "submitted" | "expired";
 
@@ -21,11 +21,12 @@ export type DemoSupplementRequest = {
   token: string;
   applicationId: string;
   applicantName: string;
-  recipientEmail: string;
+  recipientEmail?: string;
   reason: string;
   reviewer?: DemoSupplementReviewer;
   createdAt: string;
-  expiresAt: string;
+  expiresAt?: string;
+  deliveryChannel?: "account" | "email-link";
   status: DemoSupplementStatus;
   submittedAt?: string;
   response?: string;
@@ -49,11 +50,34 @@ const writeRequests = (requests: DemoSupplementRequest[]) => {
   window.localStorage.setItem(storageKey, JSON.stringify(requests));
 };
 
+export const hasDemoFacilityAccountForApplication = (applicationId: string) => {
+  if (typeof window === "undefined") return false;
+  try {
+    const saved = JSON.parse(
+      window.localStorage.getItem(facilityAccountsStorageKey) || "[]",
+    );
+    return (
+      Array.isArray(saved) &&
+      saved.some(
+        (account) =>
+          typeof account === "object" &&
+          account !== null &&
+          "username" in account &&
+          account.username === applicationId,
+      )
+    );
+  } catch {
+    return false;
+  }
+};
+
 const withCurrentExpiry = (
   request: DemoSupplementRequest,
 ): DemoSupplementRequest => {
   if (
     request.status === "open" &&
+    request.deliveryChannel !== "account" &&
+    request.expiresAt &&
     new Date(request.expiresAt).getTime() <= Date.now()
   ) {
     return { ...request, status: "expired" };
@@ -72,21 +96,27 @@ export const getLatestDemoSupplementForApplication = (applicationId: string) =>
     .filter((request) => request.applicationId === applicationId)
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt))[0];
 
+export const getDemoSupplementRequestsForApplication = (
+  applicationId: string,
+) =>
+  readRequests()
+    .map(withCurrentExpiry)
+    .filter((request) => request.applicationId === applicationId)
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+
 export const createDemoSupplementRequest = ({
   applicationId,
   applicantName,
-  recipientEmail,
   reason,
   reviewer,
 }: {
   applicationId: string;
   applicantName: string;
-  recipientEmail: string;
   reason: string;
   reviewer: DemoSupplementReviewer;
 }) => {
   if (typeof window === "undefined" || !window.crypto?.randomUUID) {
-    throw new Error("Trình duyệt hiện tại không hỗ trợ tạo liên kết demo.");
+    throw new Error("Trình duyệt hiện tại không hỗ trợ tạo thông báo.");
   }
 
   const now = Date.now();
@@ -99,11 +129,10 @@ export const createDemoSupplementRequest = ({
     token: window.crypto.randomUUID(),
     applicationId,
     applicantName,
-    recipientEmail,
     reason,
     reviewer,
     createdAt: new Date(now).toISOString(),
-    expiresAt: new Date(now + linkLifetimeMs).toISOString(),
+    deliveryChannel: "account",
     status: "open",
     attachments: [],
   };

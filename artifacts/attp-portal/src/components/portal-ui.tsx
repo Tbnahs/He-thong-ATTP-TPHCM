@@ -31,6 +31,7 @@ import {
   getSessionAdminPermissions,
   type AdminMenuPermissionId,
 } from "@/lib/admin-permissions";
+import { getDemoSupplementRequestsForApplication } from "@/lib/demo-supplements";
 
 export function BrandMark({ compact = false }: { compact?: boolean }) {
   return (
@@ -222,7 +223,9 @@ export function PublicHeader() {
   const [facilityAccount, setFacilityAccount] = useState(
     () => sessionStorage.getItem("attp-session-role") === "facility",
   );
-  const notificationStorageKey = `attp-read-notifications:${sessionStorage.getItem("attp-session-username") || "coso.demo"}`;
+  const facilityAccountName =
+    sessionStorage.getItem("attp-session-username") || "coso.demo";
+  const notificationStorageKey = `attp-read-notifications:${facilityAccountName}`;
   const notifications = [
     {
       id: "incident-update",
@@ -231,6 +234,20 @@ export function PublicHeader() {
       time: "Mới nhất",
       href: "/facility/incidents",
     },
+    ...(facilityAccount && facilityAccountName !== "coso.demo"
+      ? getDemoSupplementRequestsForApplication(facilityAccountName)
+          .filter((request) => request.status === "open")
+          .map((request) => ({
+            id: `supplement:${request.token}`,
+            title: "Yêu cầu bổ sung hồ sơ",
+            text: request.reason,
+            time: new Intl.DateTimeFormat("vi-VN", {
+              day: "2-digit",
+              month: "2-digit",
+            }).format(new Date(request.createdAt)),
+            href: `/facility/supplement/${request.token}`,
+          }))
+      : []),
   ];
   const [readNotifications, setReadNotifications] = useState<string[]>(() => {
     try {
@@ -247,6 +264,7 @@ export function PublicHeader() {
         ["/", "Tổng quan"],
         ["/lookup", "Tra cứu"],
         ["/news", "Tin tức & sự kiện"],
+        ["/facility/applications", "Hồ sơ của tôi"],
         ["/facility/incidents", "Cảnh báo ATTP"],
       ]
     : [
@@ -367,12 +385,12 @@ export function PublicHeader() {
                       ))}
                     </div>
                     <Link
-                      href="/facility/incidents"
+                      href="/facility/applications"
                       onClick={() => setNotificationsOpen(false)}
                       className="block border-t border-border px-4 py-3 text-center text-xs font-bold text-primary hover:bg-secondary"
                       data-testid="link-view-facility-alerts-from-notifications"
                     >
-                      Xem cảnh báo ATTP
+                      Xem hồ sơ của tôi
                     </Link>
                   </div>
                 )}

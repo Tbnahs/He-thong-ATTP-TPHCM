@@ -59,6 +59,7 @@ import {
   findManagedAdminAccount,
   getFirstAllowedAdminPath,
 } from "@/lib/admin-permissions";
+import { getDemoSupplementRequestsForApplication } from "@/lib/demo-supplements";
 import { Button } from "@/components/ui/button";
 import NotFound from "@/pages/not-found";
 import {
@@ -1000,6 +1001,7 @@ type SchoolMealProviderLink = {
   createdAt: string;
 };
 const facilityAccountsStorageKey = "attp-facility-accounts";
+const demoFacilityInitialPassword = "Aa@123456";
 const mealProviderSchoolLinksStorageKey = "attp-meal-provider-school-links";
 const schoolMealProviderLinksStorageKey = "attp-school-meal-provider-links";
 const readFacilityAccounts = (): FacilityAccount[] => {
@@ -2670,9 +2672,294 @@ export function RegisterPage() {
   );
 }
 
+export function FacilityApplicationsPage() {
+  const accountName = sessionStorage.getItem("attp-session-username") || "";
+  const allAccounts = readFacilityAccounts();
+  const account = allAccounts.find(
+    (item) =>
+      item.username.toLowerCase() === accountName.toLowerCase() ||
+      item.email.toLowerCase() === accountName.toLowerCase(),
+  );
+  const linkedAccounts = account
+    ? allAccounts.filter(
+        (item) => item.email.toLowerCase() === account.email.toLowerCase(),
+      )
+    : [];
+  const linkedApplicationIds = new Set(
+    linkedAccounts.map((item) => item.username),
+  );
+  const accountApplications = applications
+    .filter((application) => linkedApplicationIds.has(application.id))
+    .sort((left, right) => right.submittedAt.localeCompare(left.submittedAt));
+  const requestsByApplication = new Map(
+    accountApplications.map((application) => [
+      application.id,
+      getDemoSupplementRequestsForApplication(application.id),
+    ]),
+  );
+  const supplementRequests = accountApplications.flatMap((application) =>
+    (requestsByApplication.get(application.id) ?? []).map((request) => ({
+      application,
+      request,
+    })),
+  );
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordNotice, setPasswordNotice] = useState("");
+
+  const updatePassword = (event: FormEvent) => {
+    event.preventDefault();
+    if (!account) return;
+    if (currentPassword !== account.password) {
+      setPasswordNotice("Mật khẩu hiện tại chưa đúng.");
+      return;
+    }
+    if (newPassword.trim().length < 8) {
+      setPasswordNotice("Mật khẩu mới cần có ít nhất 8 ký tự.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordNotice("Mật khẩu xác nhận chưa khớp.");
+      return;
+    }
+    saveFacilityAccounts(
+      allAccounts.map((item) =>
+        item.email.toLowerCase() === account.email.toLowerCase()
+          ? { ...item, password: newPassword }
+          : item,
+      ),
+    );
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setPasswordNotice("Đã đổi mật khẩu tài khoản trong bản demo.");
+  };
+
+  return (
+    <PublicShell>
+      <main className="mx-auto max-w-6xl px-5 py-9 lg:px-8 lg:py-12">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="mono-label text-primary">TÀI KHOẢN CƠ SỞ</p>
+            <h1 className="display-tight mt-2 text-3xl font-extrabold">
+              Hồ sơ của tôi
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Theo dõi tiến độ và nhận yêu cầu bổ sung tại đây.
+            </p>
+          </div>
+          {account && (
+            <div className="rounded-xl border border-border bg-card px-4 py-3 text-sm">
+              <p className="text-xs font-semibold text-muted-foreground">
+                Tài khoản
+              </p>
+              <p
+                className="mt-1 font-bold"
+                data-testid="text-facility-account-email"
+              >
+                {account.email}
+              </p>
+            </div>
+          )}
+        </div>
+
+        <p className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">
+          Bản demo lưu tài khoản và thông báo trong trình duyệt hiện tại; dữ liệu
+          chưa được đồng bộ sang thiết bị khác.
+        </p>
+
+        {!account ? (
+          <section className="mt-6 rounded-2xl border border-border bg-card p-6">
+            <h2 className="text-lg font-extrabold">
+              Chưa tìm thấy hồ sơ gắn với tài khoản này
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Hồ sơ đăng ký mới sẽ xuất hiện tại đây sau khi bạn nộp biểu mẫu
+              bằng email của người kê khai.
+            </p>
+            <ButtonLink href="/register" className="mt-4">
+              Đăng ký hồ sơ
+            </ButtonLink>
+          </section>
+        ) : (
+          <>
+            <section className="mt-6 space-y-4" aria-label="Danh sách hồ sơ">
+              {accountApplications.length === 0 ? (
+                <div className="rounded-2xl border border-border bg-card p-6">
+                  <h2 className="font-extrabold">Chưa có hồ sơ đăng ký</h2>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    Khi hồ sơ được nộp bằng tài khoản này, tiến độ xử lý sẽ hiển
+                    thị tại đây.
+                  </p>
+                </div>
+              ) : (
+                accountApplications.map((application) => {
+                  const openRequest = (
+                    requestsByApplication.get(application.id) ?? []
+                  ).find((request) => request.status === "open");
+                  return (
+                    <article
+                      key={application.id}
+                      className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6"
+                      data-testid={`card-facility-application-${application.id}`}
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-wide text-primary">
+                            {application.reference} · {typeNames[application.type]}
+                          </p>
+                          <h2 className="mt-1 text-lg font-extrabold">
+                            {application.applicantName}
+                          </h2>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            Ngày nộp {formatDate(application.submittedAt)}
+                          </p>
+                        </div>
+                        <ApplicationStatusBadge status={application.status} />
+                      </div>
+                      {application.status === "needs-more-info" && (
+                        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                          <p className="text-xs font-extrabold uppercase tracking-wide text-amber-900">
+                            Cán bộ yêu cầu bổ sung
+                          </p>
+                          <p className="mt-2 whitespace-pre-line text-sm leading-6 text-amber-950">
+                            {application.reviewNote ||
+                              "Vui lòng xem yêu cầu trong mục thông báo."}
+                          </p>
+                          {openRequest && (
+                            <Link
+                              href={`/facility/supplement/${openRequest.token}`}
+                              className="focus-ring mt-3 inline-flex min-h-10 items-center gap-2 rounded-lg bg-amber-900 px-4 py-2 text-sm font-bold text-white hover:bg-amber-800"
+                              data-testid={`link-respond-supplement-${application.id}`}
+                            >
+                              <FileText size={15} /> Bổ sung hồ sơ
+                            </Link>
+                          )}
+                        </div>
+                      )}
+                    </article>
+                  );
+                })
+              )}
+            </section>
+
+            <section className="mt-8 rounded-2xl border border-border bg-card p-5 sm:p-6">
+              <div className="flex items-center gap-2">
+                <Bell size={18} className="text-primary" />
+                <h2 className="text-lg font-extrabold">Yêu cầu bổ sung</h2>
+              </div>
+              {supplementRequests.length === 0 ? (
+                <p className="mt-3 text-sm text-muted-foreground">
+                  Chưa có yêu cầu bổ sung nào trong tài khoản.
+                </p>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  {supplementRequests.map(({ application, request }) => (
+                    <article
+                      key={request.token}
+                      className="rounded-xl border border-border bg-background p-4"
+                      data-testid={`card-supplement-request-${request.token}`}
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="font-bold">
+                          {application.reference} · {application.applicantName}
+                        </p>
+                        <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-bold text-primary">
+                          {request.status === "open"
+                            ? "Chờ cơ sở phản hồi"
+                            : request.status === "submitted"
+                              ? "Đã gửi bổ sung"
+                              : "Yêu cầu đã được thay thế"}
+                        </span>
+                      </div>
+                      <p className="mt-2 whitespace-pre-line text-sm leading-6 text-muted-foreground">
+                        {request.reason}
+                      </p>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Ngày gửi {formatDate(request.createdAt)}
+                      </p>
+                      {request.status === "open" && (
+                        <Link
+                          href={`/facility/supplement/${request.token}`}
+                          className="focus-ring mt-3 inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:bg-primary/90"
+                          data-testid={`link-open-supplement-${request.token}`}
+                        >
+                          <FileText size={15} /> Mở biểu mẫu bổ sung
+                        </Link>
+                      )}
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section className="mt-8 rounded-2xl border border-border bg-card p-5 sm:p-6">
+              <div className="flex items-center gap-2">
+                <LockKeyhole size={18} className="text-primary" />
+                <h2 className="text-lg font-extrabold">Đổi mật khẩu</h2>
+              </div>
+              <form
+                onSubmit={updatePassword}
+                className="mt-4 grid gap-3 sm:grid-cols-3"
+                data-testid="form-change-facility-password"
+              >
+                <input
+                  type="password"
+                  autoComplete="current-password"
+                  value={currentPassword}
+                  onChange={(event) => setCurrentPassword(event.target.value)}
+                  placeholder="Mật khẩu hiện tại"
+                  className="focus-ring h-11 rounded-xl border border-input bg-background px-3 text-sm"
+                  required
+                />
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  value={newPassword}
+                  onChange={(event) => setNewPassword(event.target.value)}
+                  placeholder="Mật khẩu mới (ít nhất 8 ký tự)"
+                  className="focus-ring h-11 rounded-xl border border-input bg-background px-3 text-sm"
+                  minLength={8}
+                  required
+                />
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  placeholder="Nhập lại mật khẩu mới"
+                  className="focus-ring h-11 rounded-xl border border-input bg-background px-3 text-sm"
+                  minLength={8}
+                  required
+                />
+                <div className="flex flex-wrap items-center gap-3 sm:col-span-3">
+                  <Button type="submit" className="rounded-xl">
+                    Đổi mật khẩu
+                  </Button>
+                  {passwordNotice && (
+                    <p
+                      className="text-sm font-semibold text-muted-foreground"
+                      role="status"
+                    >
+                      {passwordNotice}
+                    </p>
+                  )}
+                </div>
+              </form>
+            </section>
+          </>
+        )}
+      </main>
+    </PublicShell>
+  );
+}
+
 export function AdminLoginPage() {
   const [, navigate] = useLocation();
-  const [username, setUsername] = useState("canbo.demo");
+  const [username, setUsername] = useState(
+    () => sessionStorage.getItem("attp-pending-account-email") || "canbo.demo",
+  );
   const [password, setPassword] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -2695,12 +2982,23 @@ export function AdminLoginPage() {
       setNotice("Tên đăng nhập hoặc mật khẩu chưa đúng.");
       return;
     }
-    const role = managedAdminAccount ? "admin" : inferAccountRole(username);
-    const facilityAccount = readFacilityAccounts().find(
+    const matchingFacilityAccounts = readFacilityAccounts().filter(
       (account) =>
         account.email.toLowerCase() === normalizedUsername ||
         account.username.toLowerCase() === normalizedUsername,
     );
+    const facilityAccount = matchingFacilityAccounts.find(
+      (account) => account.password === password,
+    );
+    if (matchingFacilityAccounts.length > 0 && !facilityAccount) {
+      setNotice("Email/tài khoản hoặc mật khẩu cơ sở chưa đúng.");
+      return;
+    }
+    const role = managedAdminAccount
+      ? "admin"
+      : facilityAccount
+        ? "facility"
+        : inferAccountRole(username);
     if (
       role === "facility" &&
       normalizedUsername !== "coso.demo" &&
@@ -2740,7 +3038,8 @@ export function AdminLoginPage() {
         "attp-session-username",
         facilityAccount?.username || username.trim(),
       );
-      navigate("/facility/incidents");
+      sessionStorage.removeItem("attp-pending-account-email");
+      navigate("/facility/applications");
     }
   };
 
@@ -3239,6 +3538,11 @@ export function ApplicationForm({
   const [demoFillNotice, setDemoFillNotice] = useState("");
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [createdCredentials, setCreatedCredentials] = useState<{
+    email: string;
+    password: string;
+  } | null>(null);
+  const [credentialsCopied, setCredentialsCopied] = useState(false);
   const [schoolStep, setSchoolStep] = useState(0);
   const [schoolConfirmed, setSchoolConfirmed] = useState(
     startingFields.schoolSubmissionConfirmed === "true",
@@ -4514,11 +4818,16 @@ export function ApplicationForm({
       const accountEmail = email.trim().toLowerCase();
       const accountRecord: FacilityAccount = {
         email: accountEmail,
-        password: "",
+        password: demoFacilityInitialPassword,
         username: applicationId,
         registration: snapshot,
       };
       saveFacilityAccounts([...readFacilityAccounts(), accountRecord]);
+      sessionStorage.setItem("attp-pending-account-email", accountEmail);
+      setCreatedCredentials({
+        email: accountEmail,
+        password: demoFacilityInitialPassword,
+      });
       if (type === "meal-provider") {
         const schoolIds = Array.isArray(fields.servingSchools)
           ? (fields.servingSchools as RepeatableValue)
@@ -4580,11 +4889,80 @@ export function ApplicationForm({
         </h1>
         <p className="mx-auto mt-4 max-w-lg text-sm leading-6 text-muted-foreground">
           {mode === "register"
-            ? "Cán bộ chuyên môn sẽ liên hệ qua số điện thoại hoặc email trong hồ sơ nếu cần bổ sung thông tin."
+            ? "Cán bộ sẽ gửi yêu cầu bổ sung trong tài khoản cơ sở. Hãy lưu thông tin đăng nhập bên dưới để theo dõi hồ sơ."
             : mode === "supplement"
               ? "Hồ sơ đã được chuyển lại cho cán bộ chuyên môn rà soát."
               : "Bạn có thể tiếp tục chỉnh sửa hồ sơ khi nhận yêu cầu bổ sung từ cán bộ chuyên môn."}
         </p>
+        {mode === "register" && createdCredentials && (
+          <section
+            className="mx-auto mt-6 max-w-xl rounded-2xl border border-primary/20 bg-secondary/40 p-5 text-left"
+            data-testid="panel-new-facility-credentials"
+          >
+            <h2 className="font-extrabold text-foreground">
+              Thông tin đăng nhập cơ sở
+            </h2>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                  Tài khoản (email người kê khai)
+                </span>
+                <input
+                  value={createdCredentials.email}
+                  readOnly
+                  className="h-11 w-full rounded-lg border border-input bg-background px-3 text-sm font-semibold"
+                  data-testid="input-created-account-email"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                  Mật khẩu ban đầu · có thể đổi sau
+                </span>
+                <input
+                  value={createdCredentials.password}
+                  readOnly
+                  className="h-11 w-full rounded-lg border border-input bg-background px-3 text-sm font-semibold"
+                  data-testid="input-created-account-password"
+                />
+              </label>
+            </div>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-xl"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(
+                      `Tài khoản: ${createdCredentials.email}\nMật khẩu: ${createdCredentials.password}`,
+                    );
+                    setCredentialsCopied(true);
+                  } catch {
+                    setNotice(
+                      "Không thể sao chép tự động. Vui lòng chọn và sao chép thông tin đăng nhập.",
+                    );
+                  }
+                }}
+                data-testid="button-copy-facility-credentials"
+              >
+                <Copy size={15} />
+                {credentialsCopied
+                  ? "Đã sao chép thông tin"
+                  : "Sao chép thông tin đăng nhập"}
+              </Button>
+              <Link
+                href="/admin/login"
+                className="focus-ring inline-flex min-h-10 items-center gap-2 rounded-xl px-3 text-sm font-bold text-primary hover:bg-background"
+                data-testid="link-login-with-new-facility-account"
+              >
+                <LogIn size={15} /> Đăng nhập tài khoản cơ sở
+              </Link>
+            </div>
+            <p className="mt-3 text-xs leading-5 text-muted-foreground">
+              Đây là tài khoản demo, hiện chỉ lưu trên trình duyệt này.
+            </p>
+          </section>
+        )}
         {mode !== "supplement" && (
           <div className="mt-8 flex justify-center gap-3">
             {mode === "register" ? (
