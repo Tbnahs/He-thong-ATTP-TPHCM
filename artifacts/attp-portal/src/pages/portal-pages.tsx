@@ -111,6 +111,10 @@ import {
   validateEvidenceFiles,
 } from "@/lib/file-upload";
 import { syncApprovedFacility } from "@/lib/approved-facilities";
+import {
+  createDemoRegistrationProfile,
+  makeDemoRegistrationAnswer,
+} from "@/lib/demo-registration-data";
 
 const categoryNames: Record<string, string> = {
   "eligible-facilities": "Cơ sở đủ điều kiện",
@@ -3691,59 +3695,77 @@ function ApplicationForm({
       return;
     }
 
-    const sampleApplication = applications.find(
-      (application) => application.type === type,
-    );
-    const demoFields = structuredClone(
-      (sampleApplication?.data ?? {}) as Record<string, CriteriaValue>,
-    );
-    const demoFiles: Attachment[] = (sampleApplication?.attachments ?? []).map(
-      ({ previewUrl: _previewUrl, ...file }) => ({
-        ...file,
-        name: file.name.startsWith("[DEMO]") ? file.name : `[DEMO] ${file.name}`,
-        size: 0,
-      }),
-    );
-    const demoNames: Record<ApplicationType, string> = {
-      school: "Trường Tiểu học Demo",
-      "meal-provider": "Công ty Suất ăn Demo",
-      "food-supplier": "Công ty Thực phẩm Demo",
-    };
-    const demoAddress =
-      "123 Đường Demo, phường Bến Nghé, TP. Hồ Chí Minh";
-    const demoName = demoNames[type];
     const provinceOptions =
       formSet?.criteria.find((item) => item.key === "addressProvince")
         ?.options ?? [];
     const wardOptions =
       formSet?.criteria.find((item) => item.key === "addressWard")?.options ??
       [];
-    const demoProvince =
-      provinceOptions.find((option) => option.includes("Hồ Chí Minh")) ??
-      provinceOptions[0] ??
-      "TP. Hồ Chí Minh";
-    const demoWard =
-      wardOptions.find((option) => option.includes("Bến Nghé")) ??
-      wardOptions[0] ??
-      "Phường Bến Nghé";
-
+    const demoProfile = createDemoRegistrationProfile(
+      type,
+      provinceOptions,
+      wardOptions,
+    );
+    const demoFields: Record<string, CriteriaValue> = {};
+    const demoFiles: Attachment[] = [];
     Object.assign(demoFields, {
-      applicantName: demoName,
-      facilityName: demoName,
-      legalName: demoName,
-      taxCode: "0310000123",
-      address: demoAddress,
-      addressProvince: demoProvince,
-      addressWard: demoWard,
-      addressDetail: "123 Đường Demo",
-      addressMain: demoAddress,
-      contact: "028 1234 5678",
-      email: `demo.${type}@example.com`,
-      licenseNumber: "ATTP-DEMO-2026",
-      licenseExpires: "2027-12-31",
+      applicantName: demoProfile.organization,
+      facilityName: demoProfile.facilityName,
+      legalName: demoProfile.organization,
+      taxCode: demoProfile.taxCode,
+      addressProvince: demoProfile.province,
+      addressWard: demoProfile.ward,
+      addressDetail: demoProfile.addressDetail,
+      addressMain: demoProfile.address,
+      headquartersAddress: demoProfile.address,
+      facilityAddress: demoProfile.address,
+      contact: demoProfile.phone,
+      email: demoProfile.email,
+      licenseNumber: demoProfile.licenseNumber,
+      licenseExpires: demoProfile.licenseExpires,
+      surveyDate: new Date().toISOString().slice(0, 10),
+      surveyLocation: demoProfile.address,
+      informationProvider: demoProfile.contactName,
+      informationProviderPosition: demoProfile.contactTitle,
+      citizenId: demoProfile.citizenId,
     });
     if (type === "school") {
-      demoFields.schoolLevel = "Tiểu học";
+      Object.assign(demoFields, {
+        applicantName: demoProfile.organization,
+        addressMain: demoProfile.address,
+        managementForm: "Công lập",
+        educationLevels: ["Tiểu học"],
+        studentTotal: "720",
+        boardingStudentTotal: "520",
+        establishmentDecision: "Quyết định số 112/QĐ-UBND ngày 15/08/2018",
+        principalName: demoProfile.representative,
+        principalDecision: "Quyết định số 146/QĐ-PGDĐT ngày 20/08/2025",
+      });
+    } else if (type === "meal-provider") {
+      Object.assign(demoFields, {
+        surveyedOrganization: demoProfile.organization,
+        taxIssueDate: "2016-03-12",
+        taxIssuePlace: "Sở Kế hoạch và Đầu tư TP. Hồ Chí Minh",
+        legalRepresentative: demoProfile.representative,
+        legalRepresentativeTitle: demoProfile.representativeTitle,
+        branchCode: `${demoProfile.taxCode}-001`,
+        branchIssueDate: "2021-10-01",
+        branchIssuePlace: "Sở Kế hoạch và Đầu tư TP. Hồ Chí Minh",
+        facilityRepresentative: demoProfile.contactName,
+        facilityRepresentativeTitle: demoProfile.contactTitle,
+        foodSafetyContactName: demoProfile.contactName,
+        foodSafetyContactTitle: demoProfile.contactTitle,
+        foodSafetyContactPhone: demoProfile.phone,
+        foodSafetyContactEmail: demoProfile.email,
+        totalCapacity: "1200",
+        servingUnitCount: "2",
+      });
+    } else {
+      Object.assign(demoFields, {
+        addressProvince: demoProfile.province,
+        addressWard: demoProfile.ward,
+        addressDetail: demoProfile.addressDetail,
+      });
     }
 
     const makeDemoAnswer = (
@@ -3751,80 +3773,32 @@ function ApplicationForm({
       label: string,
       answerType: CriteriaAnswerType,
       options: string[] = [],
-    ): string | string[] => {
-      const normalized = `${key} ${label}`.toLocaleLowerCase("vi");
-      if (answerType === "number") return "120";
-      if (answerType === "date") return "2027-12-31";
-      if (answerType === "yes-no") {
-        return options.includes("Có") ? "Có" : options[0] ?? "Có";
-      }
-      if (answerType === "select") {
-        if (key === "addressProvince" && options.includes(demoProvince)) {
-          return demoProvince;
-        }
-        if (key === "addressWard" && options.includes(demoWard)) {
-          return demoWard;
-        }
-        return options[0] ?? "Demo";
-      }
-      if (answerType === "multi-select") {
-        return options.length > 0 ? [options[0]] : [];
-      }
-      if (normalized.includes("email")) return `demo.${type}@example.com`;
-      if (
-        normalized.includes("phone") ||
-        normalized.includes("điện thoại") ||
-        normalized.includes("liên hệ")
-      )
-        return "0900 000 123";
-      if (
-        normalized.includes("tax") ||
-        normalized.includes("mã số thuế") ||
-        normalized.includes("citizenid")
-      )
-        return "0310000123";
-      if (
-        normalized.includes("address") ||
-        normalized.includes("địa chỉ")
-      )
-        return demoAddress;
-      if (
-        normalized.includes("representative") ||
-        normalized.includes("contactname") ||
-        normalized.includes("người phụ trách")
-      )
-        return "Nguyễn Văn Demo";
-      if (
-        normalized.includes("applicant") ||
-        normalized.includes("facilityname") ||
-        normalized.includes("tên đơn vị") ||
-        normalized.includes("tên trường")
-      )
-        return demoName;
-      if (
-        normalized.includes("license") ||
-        normalized.includes("giấy phép")
-      )
-        return "ATTP-DEMO-2026";
-      if (
-        normalized.includes("time") ||
-        normalized.includes("thời điểm")
-      )
-        return "07:00";
-      if (
-        normalized.includes("description") ||
-        normalized.includes("quy trình") ||
-        normalized.includes("mô tả")
-      )
-        return "Nội dung minh họa phục vụ trình diễn.";
-      return "Thông tin demo";
-    };
+      parentKey = "",
+      rowIndex = 0,
+    ): string | string[] =>
+      makeDemoRegistrationAnswer(
+        type,
+        demoProfile,
+        key,
+        label,
+        answerType,
+        options,
+        parentKey,
+        rowIndex,
+      );
     const addDemoFile = (fieldKey: string, label: string) => {
       if (demoFiles.some((file) => file.fieldKey === fieldKey)) return;
       const imageLike = /ảnh|hình|photo|kho|phương tiện/i.test(label);
       const extension = imageLike ? "jpg" : "pdf";
+      const fileLabel = label
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[đĐ]/g, "d")
+        .toLocaleLowerCase("vi")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
       demoFiles.push({
-        name: `[DEMO] ${label.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "minh-chung"}.${extension}`,
+        name: `[DEMO] ${fileLabel || "minh-chung"}.${extension}`,
         kind: imageLike ? "image/jpeg" : "application/pdf",
         size: 0,
         fieldKey,
@@ -3836,7 +3810,7 @@ function ApplicationForm({
       attachmentPrefix = valueKey,
     ) => {
       if (item.answerType === "file") {
-        if (item.required) addDemoFile(attachmentPrefix, item.label);
+        addDemoFile(attachmentPrefix, item.label);
         return;
       }
       if (item.answerType === "repeatable") {
@@ -3846,26 +3820,26 @@ function ApplicationForm({
         const minimumRows =
           type === "school" && item.key === "foodSafetyContacts"
             ? 2
-            : item.required
-              ? 1
-              : 0;
+            : ["products", "ingredientSuppliers"].includes(item.key)
+              ? 2
+              : 1;
         while (savedRows.length < minimumRows) savedRows.push({});
         for (const [rowIndex, row] of savedRows.entries()) {
           for (const field of item.repeatableFields ?? []) {
             if (hasMeaningfulValue(row[field.key])) continue;
             if (field.answerType === "file") {
-              if (field.required) {
-                addDemoFile(
-                  `${attachmentPrefix}.${rowIndex}.${field.key}`,
-                  field.label,
-                );
-              }
-            } else if (field.required) {
+              addDemoFile(
+                `${attachmentPrefix}.${rowIndex}.${field.key}`,
+                field.label,
+              );
+            } else {
               row[field.key] = makeDemoAnswer(
                 field.key,
                 field.label,
                 field.answerType,
                 field.options ?? [],
+                item.key,
+                rowIndex,
               );
             }
           }
@@ -3905,14 +3879,14 @@ function ApplicationForm({
     if (type === "school" && formSet) {
       const siteId = "demo-school-site";
       const modelId = "demo-school-model";
-      const model = "BATT tự tổ chức";
-      demoFields.addressMain = demoAddress;
+      const model = "BATT hợp đồng";
+      demoFields.addressMain = demoProfile.address;
       demoFields.addressBranches = "";
       demoFields.schoolLocations = [
         {
           id: siteId,
-          name: demoName,
-          address: demoAddress,
+          name: demoProfile.organization,
+          address: demoProfile.address,
           kind: "main",
         },
       ];
@@ -3920,21 +3894,47 @@ function ApplicationForm({
         id: modelId,
         model,
         siteId,
-        siteName: demoName,
-        siteAddress: demoAddress,
+        siteName: demoProfile.organization,
+        siteAddress: demoProfile.address,
       };
-      for (const field of schoolOperatingModelFields) {
-        if (!field.required) continue;
+      for (const [index, field] of schoolOperatingModelFields.entries()) {
         operatingRow[field.key] = makeDemoAnswer(
           field.key,
           field.label,
           field.answerType,
           field.options ?? [],
+          "operatingModels",
+          index,
         );
       }
       demoFields.operatingModels = [operatingRow];
+
+      const registeredProvider = registeredProviders.find(
+        (provider) => provider.type === "meal-provider",
+      );
+      if (registeredProvider) {
+        const providerDetailsPrefix = `schoolModelDetails.${modelId}.`;
+        demoFields[`${providerDetailsPrefix}registeredProviderId`] =
+          registeredProvider.id;
+        demoFields[`${providerDetailsPrefix}serviceLegalName`] =
+          registeredProvider.name;
+        if (registeredProvider.address) {
+          demoFields[`${providerDetailsPrefix}serviceHeadquartersAddress`] =
+            registeredProvider.address;
+        }
+        if (registeredProvider.taxCode) {
+          demoFields[`${providerDetailsPrefix}serviceTaxCode`] =
+            registeredProvider.taxCode;
+        }
+      }
+
       for (const item of getSchoolModelDetailItems(formSet, model)) {
-        if (!item.active || item.key === "operatingModels") continue;
+        if (
+          !item.active ||
+          item.key === "operatingModels" ||
+          !isRegistrationCriteriaVisible(item, demoFields, type)
+        )
+          continue;
         fillCriterion(
           item,
           `schoolModelDetails.${modelId}.${item.key}`,
@@ -3950,7 +3950,7 @@ function ApplicationForm({
     setSubmitAttempted(false);
     setNotice("");
     setDemoFillNotice(
-      "Đã điền dữ liệu minh họa cho nhóm đã chọn. Tệp chỉ là tên giả lập; hồ sơ chưa được nộp.",
+      "Đã điền hồ sơ mẫu vào các bước của nhóm đã chọn. Tệp đính kèm chỉ là tên minh họa; bạn vẫn cần rà soát và tự xác nhận trước khi nộp.",
     );
   };
   const isLinkedProviderModel = (model: string) =>
@@ -4641,7 +4641,7 @@ function ApplicationForm({
                 Điền nhanh mẫu demo
               </Button>
               <p className="text-xs leading-5 text-muted-foreground">
-                Điền dữ liệu minh họa cho nhóm đang chọn; không tự nộp hồ sơ.
+                Điền mẫu đủ các bước của nhóm đã chọn; không tự nộp hồ sơ.
               </p>
               {demoFillNotice && (
                 <p
