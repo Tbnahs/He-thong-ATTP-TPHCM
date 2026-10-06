@@ -3548,6 +3548,8 @@ const sampleApplications: Application[] = [
     "BATT hợp đồng",
     "Căng tin trường học",
   ]),
+  createSampleApplication(27, "food-supplier", "approved"),
+  createSampleApplication(28, "food-supplier", "approved"),
 ];
 
 export const applications: Application[] = [
