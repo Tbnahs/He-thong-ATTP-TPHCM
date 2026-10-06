@@ -1055,6 +1055,7 @@ function SchoolModelRegistrationPanel({
     siteName?: string;
     siteAddress?: string;
     fields?: SubmittedField[];
+    operatingModel?: Record<string, unknown>;
     reconstructed?: boolean;
   };
   const snapshotForms = Array.isArray(forms)
@@ -1063,6 +1064,11 @@ function SchoolModelRegistrationPanel({
   const operatingModels = Array.isArray(registrationData?.operatingModels)
     ? (registrationData.operatingModels as Array<Record<string, unknown>>)
     : [];
+  const operatingModelFields =
+    getCriteriaSet("school").criteria.find((item) => item.key === "operatingModels")
+      ?.repeatableFields?.filter(
+        (field) => field.key !== "model" && field.key !== "siteAddress",
+      ) ?? [];
   const formNumbers: Record<string, string> = {
     "BATT tự tổ chức": "01",
     "BATT hợp đồng": "02",
@@ -1105,10 +1111,27 @@ function SchoolModelRegistrationPanel({
         typeof serviceName === "string" ? serviceName : undefined,
       siteName: String(row.siteName ?? ""),
       siteAddress: String(row.siteAddress ?? ""),
+      operatingModel: row,
       fields,
       reconstructed: true,
     };
   };
+  const findOperatingModel = (form: SubmittedForm) =>
+    operatingModels.find(
+      (row) => Boolean(form.id) && String(row.id ?? "") === form.id,
+    ) ??
+    operatingModels.find(
+      (row) =>
+        String(row.model ?? "") === String(form.model ?? "") &&
+        Boolean(form.siteId) &&
+        String(row.siteId ?? "") === form.siteId,
+    ) ??
+    operatingModels.find(
+      (row) =>
+        String(row.model ?? "") === String(form.model ?? "") &&
+        Boolean(form.siteAddress) &&
+        String(row.siteAddress ?? "") === form.siteAddress,
+    );
   const snapshotKeys = new Set(
     snapshotForms.map((form) =>
       form.id
@@ -1132,6 +1155,7 @@ function SchoolModelRegistrationPanel({
     );
     return {
       ...form,
+      operatingModel: findOperatingModel(form),
       fields: (form.fields ?? []).map((field) => {
         const definition = schema.find((item) => item.key === field.key);
         return {
@@ -1245,6 +1269,36 @@ function SchoolModelRegistrationPanel({
                 </span>
               </summary>
               <div className="border-t border-border bg-card">
+                  <section className="border-b border-border bg-secondary/15 px-4 py-4 sm:px-5">
+                    <h4 className="text-sm font-extrabold">
+                      Quy mô hoạt động đã khai báo
+                    </h4>
+                    {form.operatingModel ? (
+                      <dl className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        {operatingModelFields.map((field) => (
+                          <div
+                            key={field.key}
+                            className="min-w-0 rounded-lg border border-border/80 bg-card p-3"
+                          >
+                            <dt className="text-xs font-bold leading-5 text-muted-foreground">
+                              {field.label}
+                            </dt>
+                            <dd className="mt-1">
+                              <ManagementAnswerDisplay
+                                value={form.operatingModel?.[field.key]}
+                                readable={readable}
+                              />
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    ) : (
+                      <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                        Bản ghi này chưa lưu công suất, số suất theo buổi hoặc
+                        giá của mô hình.
+                      </p>
+                    )}
+                  </section>
                 {form.providerName ? (
                   <p className={`border-b border-border bg-secondary/20 px-4 py-2 text-muted-foreground ${readable ? "text-sm leading-6" : "text-xs"}`}>
                     Đơn vị liên quan:{" "}
@@ -5238,13 +5292,15 @@ export function AdminFacilityDetailPage() {
                     </div>
                     <div>
                       <dt className="text-xs font-semibold text-sky-900/70">
-                        Hết hạn
+                        Hạn phản hồi
                       </dt>
                       <dd className="mt-0.5 font-semibold text-sky-950">
-                        {new Intl.DateTimeFormat("vi-VN", {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                        }).format(new Date(demoSupplementRequest.expiresAt))}
+                        {demoSupplementRequest.expiresAt
+                          ? new Intl.DateTimeFormat("vi-VN", {
+                              dateStyle: "medium",
+                              timeStyle: "short",
+                            }).format(new Date(demoSupplementRequest.expiresAt))
+                          : "Không áp dụng — phản hồi qua tài khoản"}
                       </dd>
                     </div>
                   </dl>

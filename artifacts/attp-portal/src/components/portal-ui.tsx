@@ -929,15 +929,17 @@ export function ButtonLink({
   href,
   children,
   variant = "default",
+  className,
 }: {
   href: string;
   children: ReactNode;
   variant?: "default" | "outline";
+  className?: string;
 }) {
   return (
     <Link
       href={href}
-      className={`focus-ring inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition-transform hover:-translate-y-0.5 ${variant === "outline" ? "border border-border bg-card text-foreground hover:border-primary/40" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}
+      className={`focus-ring inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition-transform hover:-translate-y-0.5 ${variant === "outline" ? "border border-border bg-card text-foreground hover:border-primary/40" : "bg-primary text-primary-foreground hover:bg-primary/90"} ${className ?? ""}`}
       data-testid={`link-action-${href.replaceAll("/", "-")}`}
     >
       {children}

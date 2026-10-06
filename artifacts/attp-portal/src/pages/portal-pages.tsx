@@ -731,7 +731,19 @@ const schoolModelSpecificFields: Record<string, CriteriaDefinition[]> = {
     schoolModelField("Căng tin trường học", "canteenQualityCertificates", "Giấy chứng nhận quản lý chất lượng của đơn vị căng tin", "school-group-3", "repeatable", 114, [], {
       repeatableFields: schoolServiceDocumentFields,
     }),
-    schoolModelField("Căng tin trường học", "canteenOtherLegalDocuments", "Các hồ sơ pháp lý khác", "school-group-3", "text", 115),
+    schoolModelField(
+      "Căng tin trường học",
+      "canteenOtherLegalDocuments",
+      "Các hồ sơ pháp lý khác",
+      "school-group-3",
+      "repeatable",
+      115,
+      [],
+      {
+        required: false,
+        repeatableFields: schoolServiceDocumentFields,
+      },
+    ),
   ],
 };
 
@@ -803,6 +815,7 @@ const schoolModelDetailExcludedForReadyMeals = new Set([
   "transportContainers",
 ]);
 const schoolModelDetailExcludedByModel: Record<string, Set<string>> = {
+  "BATT tự tổ chức": new Set(["drinkingWater"]),
   "BATT hợp đồng": new Set(["qualityCertificateStatus", "qualityCertificates"]),
   "Nhận suất ăn sẵn": schoolModelDetailExcludedForReadyMeals,
   "Căng tin trường học": new Set(["qualityCertificateStatus", "qualityCertificates"]),

@@ -111,18 +111,10 @@ export function AdminProfilePage() {
       setError("Vui lòng nhập họ tên người phụ trách.");
       return;
     }
-    if (
-      profileForm.email.trim() &&
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileForm.email.trim())
-    ) {
-      setError("Vui lòng nhập địa chỉ email hợp lệ.");
-      return;
-    }
     const saved = updateStoredAccount(username, {
       responsibleName: profileForm.responsibleName.trim(),
       position: profileForm.position.trim(),
       phone: profileForm.phone.trim(),
-      email: profileForm.email.trim(),
       signature: profileForm.signature.trim(),
     });
     if (!saved) {
@@ -319,11 +311,13 @@ export function AdminProfilePage() {
                 <input
                   type="email"
                   value={profileForm.email}
-                  onChange={(event) =>
-                    updateProfileForm("email", event.target.value)
-                  }
-                  className="mt-1.5 h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-medium outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
+                  readOnly
+                  aria-readonly="true"
+                  className="mt-1.5 h-11 w-full cursor-not-allowed rounded-xl border border-input bg-slate-50 px-3 text-sm font-medium text-slate-500 outline-none"
                 />
+                <span className="mt-1 block text-xs font-normal text-slate-500">
+                  Email tài khoản chỉ xem; không thể sửa hoặc xóa.
+                </span>
               </label>
               <div className="sm:col-span-2">
                 <SignaturePad

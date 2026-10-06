@@ -51,6 +51,7 @@ export function SupplementApplicationPage() {
   const isExpired =
     request.status === "expired" ||
     (request.status === "open" &&
+      typeof request.expiresAt === "string" &&
       new Date(request.expiresAt).getTime() <= Date.now());
   const isLocked = request.status === "submitted" || isExpired;
   const reviewer = request.reviewer;

@@ -2953,12 +2953,19 @@ const sampleSchoolSpecificFields = (
       answerType: "repeatable",
       repeatableFields: sampleSchoolDocumentFields,
     },
-    { key: "canteenOtherLegalDocuments", label: "Các hồ sơ pháp lý khác", answerType: "text" },
+    {
+      key: "canteenOtherLegalDocuments",
+      label: "Các hồ sơ pháp lý khác",
+      answerType: "repeatable",
+      required: false,
+      repeatableFields: sampleSchoolDocumentFields,
+    },
   ];
   return fields.map((field, order) => ({ ...field, order: 99 + order }));
 };
 
 const sampleSchoolModelExcluded: Record<string, Set<string>> = {
+  "BATT tự tổ chức": new Set(["drinkingWater"]),
   "BATT hợp đồng": new Set(["qualityCertificateStatus", "qualityCertificates"]),
   "Nhận suất ăn sẵn": new Set([
     "qualityCertificateStatus",

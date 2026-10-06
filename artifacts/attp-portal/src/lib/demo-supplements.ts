@@ -107,11 +107,13 @@ export const getDemoSupplementRequestsForApplication = (
 export const createDemoSupplementRequest = ({
   applicationId,
   applicantName,
+  recipientEmail,
   reason,
   reviewer,
 }: {
   applicationId: string;
   applicantName: string;
+  recipientEmail?: string;
   reason: string;
   reviewer: DemoSupplementReviewer;
 }) => {
@@ -129,6 +131,7 @@ export const createDemoSupplementRequest = ({
     token: window.crypto.randomUUID(),
     applicationId,
     applicantName,
+    recipientEmail,
     reason,
     reviewer,
     createdAt: new Date(now).toISOString(),
