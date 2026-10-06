@@ -15,6 +15,12 @@ The review and approved-profile screens must mirror the form actually submitted 
 
 **How to apply:** When a registration field is added or changed, update its saved submission data and use the same saved schema/visibility rules in review and approved-profile rendering. Preserve access to old records and surface missing historical data explicitly.
 
+The approved facility management list should seed demo approvals from the current school and meal-provider forms, not outdated approval fixtures. Retire only known demo rows; keep real browser-saved approvals and legacy record compatibility.
+
+**Why:** The user asked to remove the old reviewed demo profiles and show several approved examples based on the current registration forms.
+
+**How to apply:** Keep fixture cleanup narrowly scoped to known demo IDs, and generate replacement approved examples from the current criteria sets for both active registration types.
+
 An application is approved only when its reviewer record includes the officer’s full name, position, phone, email, signature, and review time. Pending applications must not carry reviewer sign-off. Do not invent an officer identity for an older approval that lacks this information; return it to an unreviewed state until it can be signed correctly. When an active account has permission to review applications, prefill its details but let the officer edit them before approval.
 
 **Why:** The user requires clear accountability for each approval, while demo and older browser-stored records may not contain a real sign-off.

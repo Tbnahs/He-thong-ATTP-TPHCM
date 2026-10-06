@@ -3541,6 +3541,13 @@ const sampleApplications: Application[] = [
   createSampleApplication(13, "school", "needs-more-info", ["BATT hợp đồng"]),
   createSampleApplication(14, "school", "pending", ["Nhận suất ăn sẵn"]),
   createSampleApplication(15, "school", "pending", ["Căng tin trường học"]),
+  createSampleApplication(16, "meal-provider", "approved"),
+  createSampleApplication(17, "meal-provider", "approved"),
+  createSampleApplication(18, "school", "approved", ["BATT tự tổ chức"]),
+  createSampleApplication(19, "school", "approved", [
+    "BATT hợp đồng",
+    "Căng tin trường học",
+  ]),
 ];
 
 export const applications: Application[] = [

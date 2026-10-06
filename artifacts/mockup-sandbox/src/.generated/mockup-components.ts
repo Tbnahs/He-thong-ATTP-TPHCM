@@ -3,10 +3,10 @@ type ModuleMap = Record<string, () => Promise<Record<string, unknown>>>;
 export const modules: ModuleMap = {
   "./components/mockups/facility-dossier-review/Current.tsx": () => import("../components/mockups/facility-dossier-review/Current.tsx"),
   "./components/mockups/facility-dossier-review/Redesign.tsx": () => import("../components/mockups/facility-dossier-review/Redesign.tsx"),
-  "./components/mockups/menu-list/Current.tsx": () => import("../components/mockups/menu-list/Current.tsx"),
-  "./components/mockups/menu-list/Refined.tsx": () => import("../components/mockups/menu-list/Refined.tsx"),
   "./components/mockups/facility-review-readability/FacilityDetailCurrent.tsx": () => import("../components/mockups/facility-review-readability/FacilityDetailCurrent.tsx"),
   "./components/mockups/facility-review-readability/FacilityDetailRedesign.tsx": () => import("../components/mockups/facility-review-readability/FacilityDetailRedesign.tsx"),
   "./components/mockups/facility-review-readability/ReviewQueueCurrent.tsx": () => import("../components/mockups/facility-review-readability/ReviewQueueCurrent.tsx"),
-  "./components/mockups/facility-review-readability/ReviewQueueRedesign.tsx": () => import("../components/mockups/facility-review-readability/ReviewQueueRedesign.tsx")
+  "./components/mockups/facility-review-readability/ReviewQueueRedesign.tsx": () => import("../components/mockups/facility-review-readability/ReviewQueueRedesign.tsx"),
+  "./components/mockups/menu-list/Current.tsx": () => import("../components/mockups/menu-list/Current.tsx"),
+  "./components/mockups/menu-list/Refined.tsx": () => import("../components/mockups/menu-list/Refined.tsx")
 };

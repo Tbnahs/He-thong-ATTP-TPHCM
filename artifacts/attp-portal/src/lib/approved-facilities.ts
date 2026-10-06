@@ -9,6 +9,13 @@ export type ApprovedFacility = {
 };
 
 const profileTypes: ApplicationType[] = ["food-supplier", "meal-provider", "school"];
+const retiredDemoProfileIds = new Set([
+  "app-001",
+  "app-003",
+  "app-004",
+  "app-005",
+  "app-006",
+]);
 
 const formatApprovalDate = (submittedAt: string) => {
   const date = new Date(submittedAt);
@@ -30,7 +37,9 @@ export const createApprovedFacility = (
 });
 
 const isProfileApplication = (application: Application) =>
-  application.status === "approved" && profileTypes.includes(application.type);
+  application.status === "approved" &&
+  profileTypes.includes(application.type) &&
+  !retiredDemoProfileIds.has(application.id);
 
 export const readApprovedFacilities = (): ApprovedFacility[] => {
   if (typeof window === "undefined") {

@@ -155,7 +155,7 @@ const readFacilityAccessAccounts = (): FacilityAccessAccount[] => {
 };
 
 const categoryLabels: Record<ApplicationType, string> = {
-  "food-supplier": "Cơ sở cung cấp thực phẩm (hồ sơ cũ)",
+  "food-supplier": "Cơ sở cung cấp thực phẩm",
   "meal-provider": "cơ sở suất ăn sẵn",
   school: "Cơ sở giáo dục",
 };
@@ -1646,7 +1646,6 @@ export function FacilityProfilesPage() {
           eyebrow="Quản lý hồ sơ"
           title="Hồ sơ chỉ hiển thị sau khi duyệt đạt."
           description="Danh sách được tạo từ snapshot đầy đủ của form đăng ký sau khi cán bộ lưu kết quả Đạt/PASS. Các tab chi tiết tự động bật/tắt theo loại hình cơ sở."
-          action={<div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"><div className="flex items-center gap-2 font-bold"><BadgeCheck size={16} /> Nguồn dữ liệu: hồ sơ đã duyệt</div><p className="mt-1 text-xs text-emerald-800">Cảnh báo ATTP phát sinh sẽ được nối vào tab lịch sử của đúng cơ sở.</p></div>}
         />
         <div className="grid gap-4 md:grid-cols-3">
           <MetricCard label="Cơ sở đã duyệt" value={profiles.length} icon={BadgeCheck} />
@@ -1656,7 +1655,7 @@ export function FacilityProfilesPage() {
         <section className="mt-6 rounded-2xl border border-border bg-card p-4 shadow-sm">
           <div className="grid gap-3 lg:grid-cols-[1fr_280px]">
             <label className="relative block"><span className="sr-only">Tìm cơ sở</span><Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm theo tên, mã số thuế hoặc địa chỉ..." className="h-11 w-full rounded-xl border border-input bg-background pl-10 pr-3 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10" /></label>
-           <select value={category} onChange={(event) => setCategory(event.target.value)} className="h-11 rounded-xl border border-input bg-background px-3 text-sm font-semibold outline-none focus:border-primary" aria-label="Lọc theo loại hình"><option>Tất cả loại hình</option><option>Cơ sở cung cấp thực phẩm (hồ sơ cũ)</option><option>cơ sở suất ăn sẵn</option><option>Cơ sở giáo dục</option></select>
+           <select value={category} onChange={(event) => setCategory(event.target.value)} className="h-11 rounded-xl border border-input bg-background px-3 text-sm font-semibold outline-none focus:border-primary" aria-label="Lọc theo loại hình"><option>Tất cả loại hình</option><option>Cơ sở cung cấp thực phẩm</option><option>cơ sở suất ăn sẵn</option><option>Cơ sở giáo dục</option></select>
           </div>
         </section>
          <section className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">

@@ -4647,7 +4647,7 @@ export function AdminFacilityDetailPage() {
     removePublishedRecord();
     setDetailStatus("needs-more-info");
     setNotice(
-      "Đã ghi nhận yêu cầu trong tài khoản cơ sở trên trình duyệt này. Cơ sở xem tại mục “Hồ sơ của tôi”.",
+      "Đã gửi yêu cầu bổ sung.",
     );
   };
 
@@ -4738,10 +4738,6 @@ export function AdminFacilityDetailPage() {
                     Nội dung được đối chiếu theo loại hồ sơ và các trường đã điền trên portal.
                   </p>
                 </div>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-xs font-bold text-muted-foreground">
-                  <CheckCircle2 size={14} className="text-emerald-600" />
-                  {application ? `Đã tiếp nhận ${submittedAt}` : "Hồ sơ cơ sở"}
-                </span>
               </div>
               <div className="mt-6 space-y-5">
                 {!registrationDisplay.hasSavedData ? (
