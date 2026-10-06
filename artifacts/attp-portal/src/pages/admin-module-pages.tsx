@@ -1377,13 +1377,6 @@ const parseApplicationStatus = (
   ) {
     return "needs-more-info";
   }
-  if (
-    normalized === "approved" ||
-    normalized === "đã duyệt" ||
-    normalized === "đạt"
-  ) {
-    return "approved";
-  }
   return null;
 };
 
@@ -1628,7 +1621,7 @@ function downloadFacilityTemplate() {
         "Bến Nghé",
         "184 Nguyễn Văn Linh, Quận 7",
         "0908 123 456",
-        "Đã duyệt",
+        "Chờ duyệt",
         "5200",
         "",
         "",
@@ -3190,7 +3183,7 @@ export function AdminFacilitiesPage() {
   const [previewFile, setPreviewFile] = useState<Attachment | null>(null);
   const [reviewNote, setReviewNote] = useState("");
   const [reviewConclusion, setReviewConclusion] = useState<
-    "" | "pending" | "approved" | "needs-more-info"
+    "" | "pending" | "needs-more-info"
   >("");
   const [reviewer, setReviewer] = useState("nguyen-minh-anh");
 
@@ -3203,12 +3196,14 @@ export function AdminFacilitiesPage() {
   useEffect(() => {
     setReviewNote(selectedApplication?.reviewNote ?? "");
     setReviewConclusion(
-      selectedApplication?.status ?? "",
+      selectedApplication?.status === "approved"
+        ? ""
+        : selectedApplication?.status ?? "",
     );
   }, [selectedApplication?.id, selectedApplication?.reviewNote, selectedApplication?.status]);
 
   const applicationRows: FacilityManagementRow[] = [
-    ...applications.map((app) => ({
+    ...applications.filter((app) => app.status !== "approved").map((app) => ({
         id: `application-${app.id}`,
         name: app.applicantName,
         province: String(app.data.addressProvince ?? "TP. Hồ Chí Minh"),
@@ -3231,6 +3226,7 @@ export function AdminFacilitiesPage() {
       })),
     ...getStoredRegistrationRows().filter(
       (row) =>
+        row.status !== "approved" &&
         !applications.some(
           (application) =>
             application.applicantName.trim().toLowerCase() ===
@@ -3253,7 +3249,9 @@ export function AdminFacilitiesPage() {
         (row) => !activeType || getRowRegistrationType(row) === activeType,
       ),
       ...importedRows.filter(
-        (row) => !activeType || getRowRegistrationType(row) === activeType,
+        (row) =>
+          row.status !== "approved" &&
+          (!activeType || getRowRegistrationType(row) === activeType),
       ),
     ];
     return source.filter((row) => {
@@ -3290,7 +3288,6 @@ export function AdminFacilitiesPage() {
     needsMoreInfo: rowsForStatusCounts.filter(
       (row) => row.status === "needs-more-info",
     ).length,
-    approved: rowsForStatusCounts.filter((row) => row.status === "approved").length,
   };
 
   const tabCounts = {
@@ -3429,10 +3426,7 @@ export function AdminFacilitiesPage() {
     selectedApplication.published = true;
     saveApplicationRecord(selectedApplication);
     syncApprovedFacility(selectedApplication);
-    setReviewConclusion("approved");
-    setSelectedRow((current) =>
-      current ? { ...current, status: "approved" } : current,
-    );
+    setSelectedRow(null);
     setReviewNote("");
     setNotice("Đã duyệt hồ sơ và công bố cơ sở trên cổng thông tin.");
   };
@@ -3529,14 +3523,14 @@ export function AdminFacilitiesPage() {
       if (!imported.length) {
         setNotice(
           skippedStatuses
-            ? "Trạng thái trong file không hợp lệ. Chỉ chấp nhận Chờ duyệt, Yêu cầu bổ sung hoặc Đã duyệt."
+            ? "Trạng thái trong file không hợp lệ. Chỉ chấp nhận Chờ duyệt hoặc Yêu cầu bổ sung."
             : "Không đọc được dữ liệu. Hãy dùng file mẫu Excel và giữ nguyên dòng tiêu đề.",
         );
         return;
       }
       setImportedRows((previous) => [...imported, ...previous]);
       setNotice(
-        `Đã nhập ${imported.length} cơ sở từ file Excel.${skippedStatuses ? ` Bỏ qua ${skippedStatuses} dòng do trạng thái không thuộc ba trạng thái hồ sơ.` : ""}`,
+        `Đã nhập ${imported.length} cơ sở từ file Excel.${skippedStatuses ? ` Bỏ qua ${skippedStatuses} dòng do trạng thái không thuộc hai trạng thái hồ sơ.` : ""}`,
       );
     };
     reader.readAsArrayBuffer(file);
@@ -3613,11 +3607,10 @@ export function AdminFacilitiesPage() {
           ))}
         </div>
 
-        <section className="mt-5 grid gap-3 sm:grid-cols-3" aria-label="Lọc nhanh theo trạng thái">
+        <section className="mt-5 grid gap-3 sm:grid-cols-2" aria-label="Lọc nhanh theo trạng thái">
           {([
             ["Chờ duyệt", "pending", statusCounts.pending, "amber"],
             ["Yêu cầu bổ sung", "needs-more-info", statusCounts.needsMoreInfo, "blue"],
-            ["Đã duyệt", "approved", statusCounts.approved, "emerald"],
           ] as const).map(([label, value, count, tone]) => {
             const selected = statusFilter === label;
             const toneClasses = {
@@ -3627,9 +3620,6 @@ export function AdminFacilitiesPage() {
               blue: selected
                 ? "border-sky-300 bg-sky-50 text-sky-950"
                 : "border-border bg-card text-foreground hover:border-sky-300",
-              emerald: selected
-                ? "border-emerald-300 bg-emerald-50 text-emerald-950"
-                : "border-border bg-card text-foreground hover:border-emerald-300",
             }[tone];
             return (
               <button
@@ -3673,7 +3663,6 @@ export function AdminFacilitiesPage() {
                 "Tất cả trạng thái",
                 "Chờ duyệt",
                 "Yêu cầu bổ sung",
-                "Đã duyệt",
               ].map((item) => (
                 <option key={item}>{item}</option>
               ))}
@@ -3941,7 +3930,6 @@ export function AdminFacilitiesPage() {
                         event.target.value as
                           | ""
                           | "pending"
-                          | "approved"
                           | "needs-more-info",
                       )
                     }
@@ -3951,7 +3939,6 @@ export function AdminFacilitiesPage() {
                     <option value="">Chọn kết luận</option>
                     <option value="pending">Chờ duyệt</option>
                     <option value="needs-more-info">Yêu cầu bổ sung</option>
-                    <option value="approved">Đã duyệt</option>
                   </select>
                 </label>
                 <label className="block">

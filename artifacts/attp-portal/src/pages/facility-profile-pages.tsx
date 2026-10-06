@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -10,12 +10,15 @@ import {
   FileImage,
   FileText,
   History,
+  KeyRound,
   Link2,
+  LockKeyhole,
   MapPin,
   PackageCheck,
   Search,
   ShieldAlert,
   Truck,
+  UnlockKeyhole,
   Utensils,
   X,
   Eye,
@@ -113,6 +116,37 @@ type FacilityProfile = {
   supplierSources: SupplierSource[];
   registrationFields: { label: string; value: RegistrationValue }[];
   relatedFacilities: RelatedFacility[];
+};
+
+type FacilityAccessAccount = {
+  username: string;
+  email?: string;
+  status?: string;
+  passwordResetRequestedAt?: string;
+  registration?: {
+    fields?: Record<string, unknown>;
+  };
+};
+
+const facilityAccountsStorageKey = "attp-facility-accounts";
+
+const readFacilityAccessAccounts = (): FacilityAccessAccount[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const parsed: unknown = JSON.parse(
+      window.localStorage.getItem(facilityAccountsStorageKey) || "[]",
+    );
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (account): account is FacilityAccessAccount =>
+        typeof account === "object" &&
+        account !== null &&
+        "username" in account &&
+        typeof account.username === "string",
+    );
+  } catch {
+    return [];
+  }
 };
 
 const categoryLabels: Record<ApplicationType, string> = {
@@ -1564,6 +1598,64 @@ export function FacilityProfilesPage() {
   const profiles = useMemo(getFacilityProfiles, []);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("Tất cả loại hình");
+  const [facilityAccounts, setFacilityAccounts] = useState(
+    readFacilityAccessAccounts,
+  );
+  const [notice, setNotice] = useState("");
+  useEffect(() => {
+    window.localStorage.setItem(
+      facilityAccountsStorageKey,
+      JSON.stringify(facilityAccounts),
+    );
+  }, [facilityAccounts]);
+
+  const getLinkedAccount = (profile: FacilityProfile) =>
+    facilityAccounts.find(
+      (account) =>
+        account.username.toLowerCase() === profile.applicationId.toLowerCase(),
+    ) ??
+    facilityAccounts.find(
+      (account) =>
+        String(account.registration?.fields?.applicantName ?? "")
+          .trim()
+          .toLowerCase() === profile.name.trim().toLowerCase(),
+    );
+
+  const toggleFacilityAccount = (profile: FacilityProfile) => {
+    const account = getLinkedAccount(profile);
+    if (!account) return;
+    const isLocked = account.status === "Đang khóa";
+    const nextStatus = isLocked ? "Đang hoạt động" : "Đang khóa";
+    setFacilityAccounts((current) =>
+      current.map((item) =>
+        item.username === account.username
+          ? { ...item, status: nextStatus }
+          : item,
+      ),
+    );
+    setNotice(
+      isLocked
+        ? `Đã mở khóa tài khoản ${account.username}.`
+        : `Đã khóa tài khoản ${account.username}.`,
+    );
+  };
+
+  const requestFacilityPasswordReset = (profile: FacilityProfile) => {
+    const account = getLinkedAccount(profile);
+    if (!account) return;
+    const requestedAt = new Date().toISOString();
+    setFacilityAccounts((current) =>
+      current.map((item) =>
+        item.username === account.username
+          ? { ...item, passwordResetRequestedAt: requestedAt }
+          : item,
+      ),
+    );
+    setNotice(
+      `Đã ghi nhận yêu cầu đặt lại mật khẩu cho ${account.username}. Bản demo chưa gửi email hoặc đổi mật khẩu.`,
+    );
+  };
+
   const filteredProfiles = profiles.filter((profile) => {
     const haystack = `${profile.name} ${profile.address} ${profile.taxCode}`.toLowerCase();
     return haystack.includes(search.trim().toLowerCase()) && (category === "Tất cả loại hình" || profile.category === category);
@@ -1593,9 +1685,116 @@ export function FacilityProfilesPage() {
         </section>
          <section className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
            <div className="flex flex-col gap-2 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="font-extrabold text-foreground">Danh sách cơ sở đã duyệt</h2><p className="mt-1 text-sm text-muted-foreground">{filteredProfiles.length} / {profiles.length} cơ sở đang hiển thị</p></div><span className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground"><Clock3 size={14} /> Dữ liệu đồng bộ theo lần duyệt</span></div>
-           {filteredProfiles.length ? <div className="divide-y divide-border">{filteredProfiles.map((profile) => <div key={profile.id} className="flex flex-col gap-4 px-5 py-5 transition-colors hover:bg-secondary/30 lg:flex-row lg:items-center lg:justify-between"><div className="flex min-w-0 gap-3"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">{profile.applicationType === "meal-provider" ? <Utensils size={21} /> : profile.applicationType === "school" ? <Building2 size={21} /> : <PackageCheck size={21} />}</div><div className="min-w-0"><h3 className="font-extrabold text-foreground">{profile.name}</h3><p className="mt-1 flex items-start gap-1.5 text-sm text-muted-foreground"><MapPin size={15} className="mt-0.5 shrink-0" /> {profile.address}</p><div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-muted-foreground"><span>{profile.category}</span>{profile.applicationType === "school" && profile.mealOrganization ? <span className={`rounded-full px-2.5 py-1 font-bold ${mealOrganizationBadgeClass(profile.mealOrganization)}`}>Tổ chức bữa ăn: {profile.mealOrganization}</span> : null}<span>Duyệt ngày {profile.approvedAt}</span><span>{profile.deliveries.length} giao nhận · {getFacilityIncidents(profile).length} cảnh báo</span></div></div></div><Link href={`/admin/facility-profiles/${profile.id}`} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90" data-testid={`link-facility-profile-${profile.id}`}>Xem hồ sơ <ArrowRight size={16} /></Link></div>)}</div> : <div className="p-5"><EmptyState title="Không có cơ sở phù hợp" description="Thử thay đổi từ khóa hoặc bộ lọc loại hình." /></div>}
+            {filteredProfiles.length ? (
+              <div className="divide-y divide-border">
+                {filteredProfiles.map((profile) => {
+                  const account = getLinkedAccount(profile);
+                  const locked = account?.status === "Đang khóa";
+                  return (
+                    <div
+                      key={profile.id}
+                      className="flex flex-col gap-4 px-5 py-5 transition-colors hover:bg-secondary/30 lg:flex-row lg:items-center lg:justify-between"
+                    >
+                      <div className="flex min-w-0 gap-3">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                          {profile.applicationType === "meal-provider" ? (
+                            <Utensils size={21} />
+                          ) : profile.applicationType === "school" ? (
+                            <Building2 size={21} />
+                          ) : (
+                            <PackageCheck size={21} />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="font-extrabold text-foreground">{profile.name}</h3>
+                          <p className="mt-1 flex items-start gap-1.5 text-sm text-muted-foreground">
+                            <MapPin size={15} className="mt-0.5 shrink-0" /> {profile.address}
+                          </p>
+                          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-muted-foreground">
+                            <span>{profile.category}</span>
+                            {profile.applicationType === "school" && profile.mealOrganization ? (
+                              <span className={`rounded-full px-2.5 py-1 font-bold ${mealOrganizationBadgeClass(profile.mealOrganization)}`}>
+                                Tổ chức bữa ăn: {profile.mealOrganization}
+                              </span>
+                            ) : null}
+                            <span>Duyệt ngày {profile.approvedAt}</span>
+                            <span>{profile.deliveries.length} giao nhận · {getFacilityIncidents(profile).length} cảnh báo</span>
+                            {account ? (
+                              <span className={locked ? "font-extrabold text-rose-700" : "text-emerald-700"}>
+                                Tài khoản: {locked ? "Đang khóa" : "Đang hoạt động"}
+                              </span>
+                            ) : (
+                              <span>Chưa liên kết tài khoản cơ sở</span>
+                            )}
+                          </div>
+                          {account?.passwordResetRequestedAt ? (
+                            <p className="mt-2 text-xs font-semibold text-amber-700">
+                              Đã ghi nhận yêu cầu đặt lại mật khẩu lúc{" "}
+                              {new Intl.DateTimeFormat("vi-VN", {
+                                dateStyle: "short",
+                                timeStyle: "short",
+                              }).format(new Date(account.passwordResetRequestedAt))}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2 lg:justify-end">
+                        <Link
+                          href={`/admin/facility-profiles/${profile.id}`}
+                          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground hover:bg-primary/90"
+                          data-testid={`link-facility-profile-${profile.id}`}
+                        >
+                          Xem hồ sơ <ArrowRight size={16} />
+                        </Link>
+                        <button
+                          type="button"
+                          disabled={!account}
+                          onClick={() => toggleFacilityAccount(profile)}
+                          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-rose-200 px-3.5 py-2 text-sm font-bold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                          title={!account ? "Cơ sở chưa có tài khoản liên kết" : undefined}
+                          data-testid={`button-toggle-facility-account-${profile.id}`}
+                        >
+                          {locked ? <UnlockKeyhole size={16} /> : <LockKeyhole size={16} />}
+                          {locked ? "Mở khóa tài khoản" : "Khóa tài khoản"}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={!account}
+                          onClick={() => requestFacilityPasswordReset(profile)}
+                          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-border px-3.5 py-2 text-sm font-bold text-foreground hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-50"
+                          title={!account ? "Cơ sở chưa có tài khoản liên kết" : undefined}
+                          data-testid={`button-reset-facility-password-${profile.id}`}
+                        >
+                          <KeyRound size={16} /> Đặt lại mật khẩu
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="p-5">
+                <EmptyState title="Không có cơ sở phù hợp" description="Thử thay đổi từ khóa hoặc bộ lọc loại hình." />
+              </div>
+            )}
         </section>
       </div>
+      {notice ? (
+        <div
+          className="fixed bottom-5 right-5 z-50 max-w-sm rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-xl"
+          role="status"
+        >
+          {notice}
+          <button
+            type="button"
+            onClick={() => setNotice("")}
+            className="ml-3 font-black"
+            aria-label="Đóng thông báo"
+          >
+            ×
+          </button>
+        </div>
+      ) : null}
     </AdminShell>
   );
 }

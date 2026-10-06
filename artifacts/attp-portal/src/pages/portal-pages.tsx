@@ -992,6 +992,8 @@ type FacilityAccount = {
   email: string;
   password: string;
   username: string;
+  status?: "Đang hoạt động" | "Đang khóa";
+  passwordResetRequestedAt?: string;
   registration: RegistrationSnapshot;
 };
 type RegisteredMealProvider = {
@@ -3486,6 +3488,10 @@ export function AdminLoginPage() {
     const facilityAccount = matchingFacilityAccounts.find(
       (account) => account.password === password,
     );
+    if (facilityAccount?.status === "Đang khóa") {
+      setNotice("Tài khoản cơ sở đang bị khóa. Vui lòng liên hệ quản trị viên.");
+      return;
+    }
     if (matchingFacilityAccounts.length > 0 && !facilityAccount) {
       setNotice("Email/tài khoản hoặc mật khẩu cơ sở chưa đúng.");
       return;
