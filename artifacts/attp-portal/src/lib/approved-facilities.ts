@@ -87,6 +87,6 @@ export const syncApprovedFacility = (
   );
   window.localStorage.setItem(
     approvedFacilitiesStorageKey,
-    JSON.stringify([createApprovedFacility(application, reviewer), ...saved].slice(0, 5)),
+    JSON.stringify([createApprovedFacility(application, reviewer), ...saved]),
   );
 };

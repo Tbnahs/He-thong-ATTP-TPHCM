@@ -28,8 +28,10 @@ import { Link, useParams } from "wouter";
 import { AdminShell, EmptyState, MetricCard, SectionHeading } from "@/components/portal-ui";
 import { readIncidents, type Incident } from "@/pages/incident-pages";
 import { demoFacilityInitialPassword } from "@/pages/portal-pages";
+import { SchoolModelRegistrationPanel } from "@/pages/admin-module-pages";
 import { readApprovedFacilities, type ApprovedFacility } from "@/lib/approved-facilities";
 import { getCriteriaSet, type ApplicationType, type CriteriaDefinition } from "@/lib/mock-data";
+import { buildRegistrationDisplay } from "@/lib/registration-display";
 import heroFoodImage from "@assets/1788940094256_5613377993845818882_5613377993845818882_1e47059ddc5db7e9cbacbeb3495b9f36.jpg";
 
 type DeliveryKind = "Thức ăn" | "Nguyên liệu";
@@ -116,6 +118,8 @@ type FacilityProfile = {
   deliveries: DeliveryRecord[];
   supplierSources: SupplierSource[];
   registrationFields: { label: string; value: RegistrationValue }[];
+  registrationData: Record<string, unknown>;
+  registrationAttachments: ApprovedFacility["application"]["attachments"];
   relatedFacilities: RelatedFacility[];
 };
 
@@ -340,17 +344,6 @@ const readRows = (value: unknown): Record<string, unknown>[] =>
     ? value.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === "object"))
     : [];
 
-const completeCriteria = (application: ApprovedFacility["application"]) => {
-  const snapshot = application.criteriaSnapshot ?? [];
-  const snapshotKeys = new Set(snapshot.map((item) => item.key));
-  return [
-    ...snapshot,
-    ...getCriteriaSet(application.type).criteria.filter((item) => !snapshotKeys.has(item.key)),
-  ]
-    .filter((item) => item.active)
-    .sort((a, b) => a.order - b.order);
-};
-
 const registrationFieldValue = (
   item: CriteriaDefinition,
   fields: Record<string, unknown>,
@@ -389,6 +382,13 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
   const attachments = application.attachments ?? [];
   const type = application.type;
   const category = categoryLabels[type];
+  const registrationDisplay = buildRegistrationDisplay({
+    type,
+    data: fields,
+    attachments,
+    criteriaSnapshot: application.criteriaSnapshot,
+    criteriaGroups: application.criteriaGroups,
+  });
   const mealOrganization =
     type === "school"
       ? getSchoolMealOrganization(fields.mealModel, fields.operatingModels)
@@ -443,35 +443,10 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
           direction: "Xuất hàng" as const,
         }));
 
-  const registrationFields = completeCriteria(application)
-    .filter((item) => {
-      const condition = item.dependsOn;
-      if (!condition) return true;
-      const currentValue = String(fields[condition.key] ?? "");
-      if (condition.equals !== undefined && currentValue !== condition.equals) {
-        return false;
-      }
-      return condition.notEquals === undefined || currentValue !== condition.notEquals;
-    })
-    .map((item) => ({
+  const registrationFields = registrationDisplay.criteria.map((item) => ({
       label: item.label,
       value: registrationFieldValue(item, fields, attachments),
     }));
-  const schoolModelForms = readRows(fields.schoolModelForms).map((form) => {
-    const formFields = readRows(form.fields);
-    return {
-      label: `Mẫu số ${String(form.formNumber || "—")} · ${String(form.model || "Mô hình")}`,
-      value: formFields
-        .map((field) => {
-          const fieldFiles = Array.isArray(field.files)
-            ? field.files.map(String).join(", ")
-            : "";
-          const fieldValue = fieldFiles || displayValue(field.value);
-          return `${String(field.label || field.key || "Nội dung")}: ${fieldValue}`;
-        })
-        .join("\n"),
-    };
-  });
 
   const firstRelated =
     type === "meal-provider"
@@ -602,6 +577,8 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
     reviewer: approval.reviewer,
     personInCharge,
     mealsPerDay: capacity,
+    registrationData: fields,
+    registrationAttachments: attachments,
     documents: attachments.map((file) => ({
       name: file.name,
       kind: file.kind,
@@ -612,7 +589,6 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
     registrationFields: [
       { label: "Mã hồ sơ", value: application.reference },
       ...registrationFields,
-      ...schoolModelForms,
       { label: "Kết quả duyệt", value: "Đạt / PASS" },
       { label: "Ngày duyệt", value: date },
       { label: "Cán bộ duyệt", value: approval.reviewer },
@@ -1866,7 +1842,18 @@ export function FacilityProfileDetailPage() {
         <div className="mt-6 overflow-x-auto rounded-2xl border border-border bg-card p-2 shadow-sm"><div className="flex min-w-max gap-1" role="tablist" aria-label="Các nội dung trong hồ sơ cơ sở">{tabs.map((tab) => { const Icon = tab.icon; const isActive = activeTab === tab.id; return <button key={tab.id} type="button" role="tab" aria-selected={isActive} onClick={() => setActiveTab(tab.id)} className={`inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-colors ${isActive ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}><Icon size={16} />{tab.label}</button>; })}</div></div>
 
         {activeTab === "info" ? <section className="mt-6 space-y-6">
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm"><div className="flex items-center gap-2"><FileCheck2 size={18} className="text-primary" /><div><h2 className="font-extrabold">Toàn bộ thông tin từ form đăng ký</h2><p className="mt-1 text-xs text-muted-foreground">Snapshot được khóa tại thời điểm cán bộ duyệt đạt.</p></div></div><dl className="mt-4 divide-y divide-border text-sm">{profile.registrationFields.map(({ label, value }) => <div key={label} className="grid gap-2 py-3 sm:grid-cols-[260px_1fr]"><dt className="text-muted-foreground">{label}</dt><dd className="font-semibold text-foreground">{Array.isArray(value) ? <div className="flex flex-wrap gap-1.5">{value.map((item, itemIndex) => <span key={`${label}-${itemIndex}`} className="rounded-full bg-secondary px-2.5 py-1 text-xs">{displayValue(item)}</span>)}</div> : value}</dd></div>)}</dl></div>
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm"><div className="flex items-center gap-2"><FileCheck2 size={18} className="text-primary" /><div><h2 className="font-extrabold">Toàn bộ thông tin từ form đăng ký</h2><p className="mt-1 text-xs text-muted-foreground">Snapshot được khóa tại thời điểm cán bộ duyệt đạt.</p></div></div><dl className="mt-4 divide-y divide-border text-sm">{profile.registrationFields.map(({ label, value }, index) => <div key={`${label}-${index}`} className="grid gap-2 py-3 sm:grid-cols-[260px_1fr]"><dt className="text-muted-foreground">{label}</dt><dd className="font-semibold text-foreground">{Array.isArray(value) ? <div className="flex flex-wrap gap-1.5">{value.map((item, itemIndex) => <span key={`${label}-${itemIndex}`} className="rounded-full bg-secondary px-2.5 py-1 text-xs">{displayValue(item)}</span>)}</div> : value}</dd></div>)}</dl>
+            {isSchool ? (
+              <div className="mt-6">
+                <SchoolModelRegistrationPanel
+                  forms={profile.registrationData.schoolModelForms}
+                  registrationData={profile.registrationData}
+                  attachments={profile.registrationAttachments}
+                  readable
+                />
+              </div>
+            ) : null}
+          </div>
           <div className="rounded-2xl border border-border bg-card p-5 shadow-sm"><div className="flex items-center gap-2"><FileCheck2 size={18} className="text-primary" /><div><h2 className="font-extrabold">Minh chứng đã duyệt</h2><p className="mt-1 text-xs text-muted-foreground">Ảnh minh họa có thể bấm để xem phóng to; tài liệu được giữ nguyên theo hồ sơ.</p></div></div><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{profile.documents.map((document, documentIndex) => document.previewUrl ? <button key={`${document.name}-${documentIndex}`} type="button" onClick={() => setPreviewDocument({ name: document.name, url: document.previewUrl! })} className="group overflow-hidden rounded-xl border border-border bg-secondary/30 text-left transition hover:border-primary/40 hover:shadow-md"><div className="relative aspect-[4/3] overflow-hidden bg-muted"><img src={document.previewUrl} alt={`Minh họa ${document.name}`} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" /><span className="absolute inset-0 flex items-center justify-center bg-slate-950/45 text-white opacity-0 transition group-hover:opacity-100"><ZoomIn size={24} /></span></div><span className="block truncate px-3 py-2.5 text-sm font-semibold" title={document.name}>{document.name}</span></button> : <div key={`${document.name}-${documentIndex}`} className="flex items-center gap-3 rounded-xl border border-border bg-secondary/30 p-3 text-sm"><FileText size={18} className="shrink-0 text-primary" /><span className="min-w-0 truncate font-semibold" title={document.name}>{document.name}</span></div>)}</div><div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4"><div className="flex items-center gap-2 text-sm font-extrabold text-emerald-950"><CheckCircle2 size={16} /> Trạng thái liên thông</div><p className="mt-1 text-sm text-emerald-900">Hồ sơ đã duyệt đạt và được đưa vào danh sách theo dõi.</p><p className="mt-2 text-xs text-emerald-800">Cán bộ duyệt: {profile.reviewer}</p></div></div>
         </section> : null}
 

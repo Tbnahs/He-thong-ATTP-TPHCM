@@ -47,7 +47,6 @@ import { getSchoolModelDetailItems } from "./portal-pages";
 import {
   applications,
   getCriteriaSet,
-  isRegistrationCriteriaVisible,
   regionalPublicRecords,
   saveApplicationRecord,
   schoolOptions,
@@ -58,6 +57,7 @@ import {
   type ApplicationType,
   type Attachment,
 } from "@/lib/mock-data";
+import { buildRegistrationDisplay } from "@/lib/registration-display";
 import { readAttachmentContent } from "@/lib/attachment-content";
 import { syncApprovedFacility } from "@/lib/approved-facilities";
 import { findManagedAdminAccount } from "@/lib/admin-permissions";
@@ -1025,7 +1025,7 @@ function ManagementAnswerDisplay({
   );
 }
 
-function SchoolModelRegistrationPanel({
+export function SchoolModelRegistrationPanel({
   forms,
   registrationData,
   attachments = [],
@@ -3167,6 +3167,7 @@ function LegacyAdminFacilitiesPage() {
 }
 
 export function AdminFacilitiesPage() {
+  const [, navigate] = useLocation();
   const [activeTab, setActiveTab] =
     useState<FacilityManagementTab>("all");
   const [search, setSearch] = useState("");
@@ -3180,26 +3181,12 @@ export function AdminFacilitiesPage() {
   };
   const [notice, setNotice] = useState("");
   const [previewFile, setPreviewFile] = useState<Attachment | null>(null);
-  const [reviewNote, setReviewNote] = useState("");
-  const [reviewConclusion, setReviewConclusion] = useState<
-    "" | "pending" | "needs-more-info"
-  >("");
-  const [reviewer, setReviewer] = useState("nguyen-minh-anh");
 
   const selectedApplication = (
     selectedRow?.applicationId
       ? applications.find((item) => item.id === selectedRow.applicationId)
       : undefined
   ) as Application;
-
-  useEffect(() => {
-    setReviewNote(selectedApplication?.reviewNote ?? "");
-    setReviewConclusion(
-      selectedApplication?.status === "approved"
-        ? ""
-        : selectedApplication?.status ?? "",
-    );
-  }, [selectedApplication?.id, selectedApplication?.reviewNote, selectedApplication?.status]);
 
   const applicationRows: FacilityManagementRow[] = [
     ...applications.filter((app) => app.status !== "approved").map((app) => ({
@@ -3349,86 +3336,15 @@ export function AdminFacilitiesPage() {
   ) as Record<string, unknown> | undefined;
   const selectedRegistrationFiles =
     selectedApplication?.attachments ?? selectedStoredAccount?.registration?.files ?? [];
-  const selectedCriteria = selectedApplication
-    ? selectedApplication.criteriaSnapshot
-        .filter(
-          (item) =>
-            item.active &&
-            selectedRegistrationType !== undefined &&
-            isRegistrationCriteriaVisible(
-              item,
-              selectedRegistrationFields ?? {},
-              selectedRegistrationType,
-            ),
-        )
-        .sort((a, b) => a.order - b.order)
-    : selectedRegistrationType
-      ? getCriteriaSet(selectedRegistrationType).criteria
-          .filter(
-            (item) =>
-              item.active &&
-              isRegistrationCriteriaVisible(
-                item,
-                selectedRegistrationFields ?? {},
-                selectedRegistrationType,
-              ),
-          )
-          .sort((a, b) => a.order - b.order)
-    : [];
-  const selectedGroups = selectedApplication
-    ? selectedApplication.criteriaGroups.slice().sort((a, b) => a.order - b.order)
-    : selectedRegistrationType
-      ? getCriteriaSet(selectedRegistrationType).groups
-          .slice()
-          .sort((a, b) => a.order - b.order)
-    : [];
-
-  const approveSelectedApplication = () => {
-    if (!selectedApplication) return;
-    const publishedRecord = {
-      id: `application-${selectedApplication.id}`,
-      category: "eligible-facilities" as const,
-      title: selectedApplication.applicantName,
-      subtitle: getRegistrationCategory(selectedApplication.type),
-      location: selectedApplication.address,
-      status: "active",
-      publishedAt: new Date().toISOString().slice(0, 10),
-      metadata: {
-        "Mã hồ sơ": selectedApplication.reference,
-        "Loại hình": getRegistrationCategory(selectedApplication.type),
-        "Liên hệ": selectedApplication.contact,
-        "Kết quả": "Đã duyệt",
-      },
-      applicationData: selectedApplication.data,
-      attachments: selectedApplication.attachments,
-    };
-    const existingIndex = regionalPublicRecords.findIndex(
-      (record) => record.id === publishedRecord.id,
-    );
-    if (existingIndex >= 0) {
-      regionalPublicRecords[existingIndex] = publishedRecord;
-    } else {
-      regionalPublicRecords.unshift(publishedRecord);
-    }
-    const savedRecords = JSON.parse(
-      sessionStorage.getItem("attp-published-records") || "[]",
-    ) as typeof regionalPublicRecords;
-    sessionStorage.setItem(
-      "attp-published-records",
-      JSON.stringify([
-        ...savedRecords.filter((record) => record.id !== publishedRecord.id),
-        publishedRecord,
-      ]),
-    );
-    selectedApplication.status = "approved";
-    selectedApplication.reviewNote = null;
-    selectedApplication.published = true;
-    saveApplicationRecord(selectedApplication);
-    syncApprovedFacility(selectedApplication);
-    setSelectedRow(null);
-    setReviewNote("");
-    setNotice("Đã duyệt hồ sơ và công bố cơ sở trên cổng thông tin.");
-  };
+  const selectedRegistrationDisplay = buildRegistrationDisplay({
+    type: selectedRegistrationType,
+    data: selectedRegistrationFields,
+    attachments: selectedRegistrationFiles,
+    criteriaSnapshot: selectedApplication?.criteriaSnapshot,
+    criteriaGroups: selectedApplication?.criteriaGroups,
+  });
+  const selectedCriteria = selectedRegistrationDisplay.criteria;
+  const selectedGroups = selectedRegistrationDisplay.groups;
 
   const exportFacilities = () => {
     downloadExcelTable(
@@ -3916,53 +3832,6 @@ export function AdminFacilitiesPage() {
                   </div>
                 </div>
               </section>
-            <section className="mt-4 rounded-2xl border border-primary/15 bg-secondary/35 p-4 sm:p-5">
-              <div className="grid gap-4 md:grid-cols-2">
-                <label className="block">
-                  <span className="mb-2 block text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
-                    Kết luận hồ sơ
-                  </span>
-                  <select
-                    value={reviewConclusion}
-                    onChange={(event) =>
-                      setReviewConclusion(
-                        event.target.value as
-                          | ""
-                          | "pending"
-                          | "needs-more-info",
-                      )
-                    }
-                    className="focus-ring h-11 w-full rounded-xl border border-input bg-card px-3 text-sm font-bold"
-                    data-testid="select-facility-review-conclusion"
-                  >
-                    <option value="">Chọn kết luận</option>
-                    <option value="pending">Chờ duyệt</option>
-                    <option value="needs-more-info">Yêu cầu bổ sung</option>
-                  </select>
-                </label>
-                <label className="block">
-                  <span className="mb-2 block text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
-                    Ký tên cán bộ
-                  </span>
-                  <select
-                    value={reviewer}
-                    onChange={(event) => setReviewer(event.target.value)}
-                    className="focus-ring h-11 w-full rounded-xl border border-input bg-card px-3 text-sm font-bold"
-                    data-testid="select-facility-reviewer"
-                  >
-                    <option value="nguyen-minh-anh">
-                      Nguyễn Minh Anh · Chuyên viên ATTP
-                    </option>
-                    <option value="tran-thi-bich">
-                      Trần Thị Bích · Trưởng phòng
-                    </option>
-                    <option value="le-quoc-huy">
-                      Lê Quốc Huy · Cán bộ thẩm định
-                    </option>
-                  </select>
-                </label>
-              </div>
-            </section>
             <dl className="mt-5 grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
               {[
                 ["Tỉnh/thành phố", selectedRow.province],
@@ -4107,6 +3976,17 @@ export function AdminFacilitiesPage() {
                   </span>
                 </div>
                 <div className="mt-4 space-y-7 rounded-2xl border border-border bg-background p-4 sm:p-6">
+                  {!selectedRegistrationDisplay.hasSavedData ? (
+                    <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+                      Hồ sơ này không có dữ liệu đăng ký đã lưu để đối chiếu.
+                      Không hiển thị biểu mẫu trống thay cho nội dung đã nộp.
+                    </p>
+                  ) : selectedRegistrationDisplay.reconstructed ? (
+                    <p className="rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-900">
+                      Bản chụp biểu mẫu cũ không có sẵn; các trường dưới đây
+                      được dựng từ dữ liệu đăng ký đã lưu.
+                    </p>
+                  ) : null}
                   {selectedGroups.map((group) => {
                     const groupCriteria = selectedCriteria.filter(
                       (item) => item.groupId === group.id,
@@ -4254,11 +4134,11 @@ export function AdminFacilitiesPage() {
                   <div>
                     <p className="mono-label text-primary">XỬ LÝ HỒ SƠ</p>
                     <h3 className="mt-1 text-xl font-extrabold">
-                      Duyệt ngay tại Duyệt hồ sơ
+                      Mở luồng xét duyệt
                     </h3>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      Không cần mở trang hồ sơ riêng. Kết quả xử lý sẽ được cập nhật
-                      ngay vào danh sách cơ sở.
+                      Xét duyệt và ký xác nhận trong trang chi tiết; hồ sơ được
+                      chuyển vào Quản lý hồ sơ sau khi duyệt.
                     </p>
                   </div>
                   <StatusPill
@@ -4266,18 +4146,18 @@ export function AdminFacilitiesPage() {
                   />
                 </div>
                 {selectedApplication.status !== "approved" && (
-                  <>
-                    <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
-                      <button
-                        type="button"
-                        onClick={approveSelectedApplication}
-                        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground hover:bg-primary/90"
-                        data-testid={`button-approve-facility-${selectedApplication.id}`}
-                      >
-                        <CheckCircle2 size={16} /> Duyệt hồ sơ
-                      </button>
-                    </div>
-                  </>
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate(`/admin/facilities/application-${selectedApplication.id}`)
+                      }
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground hover:bg-primary/90"
+                      data-testid={`button-open-facility-review-${selectedApplication.id}`}
+                    >
+                      <Eye size={16} /> Mở trang xét duyệt
+                    </button>
+                  </div>
                 )}
                 {selectedApplication.status === "approved" && (
                   <p className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
@@ -4638,39 +4518,17 @@ export function AdminFacilityDetailPage() {
       students: row.students,
       demand: row.demand,
     } satisfies Record<string, unknown>);
-  const snapshotCriteria = application?.criteriaSnapshot ?? [];
-  const snapshotKeys = new Set(snapshotCriteria.map((item) => item.key));
-  const registrationCriteria = registrationType
-    ? [
-        ...snapshotCriteria,
-        ...getCriteriaSet(registrationType).criteria.filter(
-          (item) => !snapshotKeys.has(item.key),
-        ),
-      ]
-        .filter(
-          (item) =>
-            item.active &&
-            isRegistrationCriteriaVisible(
-              item,
-              registrationFields,
-              registrationType,
-            ),
-        )
-        .sort((a, b) => a.order - b.order)
-    : [];
-  const snapshotGroupIds = new Set(
-    (application?.criteriaGroups ?? []).map((group) => group.id),
-  );
-  const registrationGroups = registrationType
-    ? [
-        ...(application?.criteriaGroups ?? []),
-        ...getCriteriaSet(registrationType).groups.filter(
-          (group) => !snapshotGroupIds.has(group.id),
-        ),
-      ].sort((a, b) => a.order - b.order)
-    : [];
   const registrationFiles =
     application?.attachments ?? row.storedAccount?.registration?.files ?? [];
+  const registrationDisplay = buildRegistrationDisplay({
+    type: registrationType,
+    data: registrationFields,
+    attachments: registrationFiles,
+    criteriaSnapshot: application?.criteriaSnapshot,
+    criteriaGroups: application?.criteriaGroups,
+  });
+  const registrationCriteria = registrationDisplay.criteria;
+  const registrationGroups = registrationDisplay.groups;
   const registrant = getFacilityRegistrant(application, row.storedAccount) ?? {
     name: row.name,
     phone: row.contact,
@@ -4886,6 +4744,17 @@ export function AdminFacilityDetailPage() {
                 </span>
               </div>
               <div className="mt-6 space-y-5">
+                {!registrationDisplay.hasSavedData ? (
+                  <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+                    Hồ sơ này không có dữ liệu đăng ký đã lưu để đối chiếu.
+                    Không hiển thị biểu mẫu trống thay cho nội dung đã nộp.
+                  </p>
+                ) : registrationDisplay.reconstructed ? (
+                  <p className="rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-900">
+                    Bản chụp biểu mẫu cũ không có sẵn; các trường dưới đây được
+                    dựng từ dữ liệu đăng ký đã lưu.
+                  </p>
+                ) : null}
                 {registrationGroups.map((group, groupIndex) => {
                   const groupCriteria = registrationCriteria.filter(
                     (item) => item.groupId === group.id,
@@ -4949,7 +4818,7 @@ export function AdminFacilityDetailPage() {
                 })}
                 {!registrationCriteria.length && (
                   <p className="rounded-xl border border-dashed border-border p-5 text-sm leading-6 text-muted-foreground">
-                    Chưa có cấu hình trường đăng ký cho loại cơ sở này.
+                    Hồ sơ không có trường đăng ký phù hợp để hiển thị.
                   </p>
                 )}
               </div>

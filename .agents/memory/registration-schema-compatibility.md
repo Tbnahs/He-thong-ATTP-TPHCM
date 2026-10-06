@@ -9,11 +9,11 @@ The new registration flow should expose only “Cơ sở giáo dục” and “C
 
 **How to apply:** Add future fields to the confirmed school or meal-provider criteria sets. Keep compatibility fallbacks for old keys in submit, review, and profile mapping code; do not delete the legacy type unless a migration for stored snapshots exists.
 
-The review must mirror what was actually submitted, including repeated entries and supporting files. If an older record lacks a separate form snapshot, reconstruct it only from saved registration data; if the data is absent, state that clearly rather than showing a fabricated or empty form.
+The review and approved-profile screens must mirror the form actually submitted for each facility type, including repeated entries and supporting files. If an older record lacks a separate form snapshot, reconstruct it only from saved registration data; if the data is absent, state that clearly rather than showing a fabricated or empty form. School-specific model forms must use the same saved form data and conditional visibility in review and profile screens.
 
-**Why:** The user repeatedly emphasized that reviewers must see all declared registration content without omissions.
+**Why:** The user requires registration, review, and approved facility management to stay consistent for all three facility types; reviewers must also see all declared content without omissions.
 
-**How to apply:** When a registration field is added or changed, update its saved submission data and the review rendering together. Preserve access to old records and surface missing historical data explicitly.
+**How to apply:** When a registration field is added or changed, update its saved submission data and use the same saved schema/visibility rules in review and approved-profile rendering. Preserve access to old records and surface missing historical data explicitly.
 
 An application is approved only when its reviewer record includes the officer’s full name, position, phone, email, signature, and review time. Pending applications must not carry reviewer sign-off. Do not invent an officer identity for an older approval that lacks this information; return it to an unreviewed state until it can be signed correctly. When an active account has permission to review applications, prefill its details but let the officer edit them before approval.
 
