@@ -20,7 +20,9 @@ import {
   FileText,
   ImagePlus,
   Info,
+  KeyRound,
   Layers3,
+  LockKeyhole,
   Mail,
   MapPin,
   PieChart,
@@ -29,6 +31,7 @@ import {
   SlidersHorizontal,
   TriangleAlert,
   Utensils,
+  UnlockKeyhole,
   UserRound,
   X,
 } from "lucide-react";
@@ -43,7 +46,10 @@ import {
   StatusPill,
 } from "@/components/portal-ui";
 import { SignatureDisplay, SignaturePad } from "@/components/signature-pad";
-import { getSchoolModelDetailItems } from "./portal-pages";
+import {
+  demoFacilityInitialPassword,
+  getSchoolModelDetailItems,
+} from "./portal-pages";
 import {
   applications,
   getCriteriaSet,
@@ -610,6 +616,8 @@ const facilityTabLabels: Record<FacilityManagementTab, string> = {
 type StoredFacilityAccount = {
   email?: string;
   username?: string;
+  password?: string;
+  status?: "Đang hoạt động" | "Đang khóa";
   registration?: {
     type?: ApplicationType;
     submittedAt?: string;
@@ -3181,6 +3189,22 @@ export function AdminFacilitiesPage() {
   };
   const [notice, setNotice] = useState("");
   const [previewFile, setPreviewFile] = useState<Attachment | null>(null);
+  const [facilityAccounts, setFacilityAccounts] = useState(
+    readStoredFacilityAccounts,
+  );
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      "attp-facility-accounts",
+      JSON.stringify(facilityAccounts),
+    );
+  }, [facilityAccounts]);
+
+  useEffect(() => {
+    if (!notice) return;
+    const timeout = window.setTimeout(() => setNotice(""), 3500);
+    return () => window.clearTimeout(timeout);
+  }, [notice]);
 
   const selectedApplication = (
     selectedRow?.applicationId
@@ -3293,6 +3317,50 @@ export function AdminFacilitiesPage() {
     typeof value === "number" && value > 0
       ? new Intl.NumberFormat("vi-VN").format(value)
       : "—";
+  const getLinkedFacilityAccount = (row: FacilityManagementRow) =>
+    facilityAccounts.find(
+      (account) =>
+        account.username?.toLowerCase() ===
+        (row.applicationId ?? row.storedAccount?.username ?? "").toLowerCase(),
+    ) ??
+    facilityAccounts.find(
+      (account) =>
+        String(account.registration?.fields?.applicantName ?? "")
+          .trim()
+          .toLowerCase() === row.name.trim().toLowerCase(),
+    );
+  const toggleFacilityAccount = (row: FacilityManagementRow) => {
+    const account = getLinkedFacilityAccount(row);
+    if (!account?.username) return;
+    const isLocked = account.status === "Đang khóa";
+    const nextStatus = isLocked ? "Đang hoạt động" : "Đang khóa";
+    setFacilityAccounts((current) =>
+      current.map((item) =>
+        item.username === account.username
+          ? { ...item, status: nextStatus }
+          : item,
+      ),
+    );
+    setNotice(
+      isLocked
+        ? `Đã mở khóa tài khoản ${account.username}.`
+        : `Đã khóa tài khoản ${account.username}.`,
+    );
+  };
+  const resetFacilityPassword = (row: FacilityManagementRow) => {
+    const account = getLinkedFacilityAccount(row);
+    if (!account?.username) return;
+    setFacilityAccounts((current) =>
+      current.map((item) =>
+        item.username === account.username
+          ? { ...item, password: demoFacilityInitialPassword }
+          : item,
+      ),
+    );
+    setNotice(
+      `Đã đặt lại mật khẩu tài khoản ${account.username} về mật khẩu mặc định ban đầu.`,
+    );
+  };
   const selectedStoredAccount = selectedRow?.storedAccount;
   const linkedRegistrant = getFacilityRegistrant(
     selectedApplication,
@@ -3664,13 +3732,75 @@ export function AdminFacilitiesPage() {
                         <StatusPill status={managementStatusLabel(row.status)} />
                       </td>
                       <td className="px-5 py-4 text-right">
-                        <Link
-                          href={`/admin/facilities/${row.id}`}
-                          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-primary/30 px-3 text-base font-bold text-primary hover:bg-primary hover:text-primary-foreground"
-                          data-testid={`button-view-facility-detail-${row.id}`}
-                        >
-                          <Eye size={16} /> Mở hồ sơ
-                        </Link>
+                        <div className="inline-flex items-center justify-end gap-2">
+                          <Link
+                            href={`/admin/facilities/${row.id}`}
+                            aria-label={`Mở hồ sơ ${row.name}`}
+                            title="Mở hồ sơ"
+                            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                            data-testid={`button-view-facility-detail-${row.id}`}
+                          >
+                            <Eye size={16} />
+                          </Link>
+                          {(() => {
+                            const account = getLinkedFacilityAccount(row);
+                            const isLocked = account?.status === "Đang khóa";
+                            return (
+                              <>
+                                <button
+                                  type="button"
+                                  disabled={!account}
+                                  onClick={() => toggleFacilityAccount(row)}
+                                  aria-label={
+                                    !account
+                                      ? "Cơ sở chưa có tài khoản liên kết"
+                                      : isLocked
+                                        ? `Mở khóa tài khoản ${row.name}`
+                                        : `Khóa tài khoản ${row.name}`
+                                  }
+                                  title={
+                                    !account
+                                      ? "Cơ sở chưa có tài khoản liên kết"
+                                      : isLocked
+                                        ? "Mở khóa tài khoản"
+                                        : "Khóa tài khoản"
+                                  }
+                                  className={`inline-flex h-10 w-10 items-center justify-center rounded-lg border disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                                    isLocked
+                                      ? "border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                                      : "border-rose-200 text-rose-700 hover:bg-rose-50"
+                                  }`}
+                                  data-testid={`button-toggle-facility-account-${row.id}`}
+                                >
+                                  {isLocked ? (
+                                    <UnlockKeyhole size={16} />
+                                  ) : (
+                                    <LockKeyhole size={16} />
+                                  )}
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={!account}
+                                  onClick={() => resetFacilityPassword(row)}
+                                  aria-label={
+                                    !account
+                                      ? "Cơ sở chưa có tài khoản liên kết"
+                                      : `Đặt lại mật khẩu ${row.name} về mặc định ban đầu`
+                                  }
+                                  title={
+                                    !account
+                                      ? "Cơ sở chưa có tài khoản liên kết"
+                                      : "Đặt lại mật khẩu về mặc định ban đầu"
+                                  }
+                                  className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border text-foreground hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                                  data-testid={`button-reset-facility-password-${row.id}`}
+                                >
+                                  <KeyRound size={16} />
+                                </button>
+                              </>
+                            );
+                          })()}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -3729,13 +3859,73 @@ export function AdminFacilitiesPage() {
                     <dd className="mt-1">{row.updated}</dd>
                   </div>
                 </dl>
-                <Link
-                  href={`/admin/facilities/${row.id}`}
-                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-base font-bold text-primary-foreground"
-                  data-testid={`button-view-facility-detail-mobile-${row.id}`}
-                >
-                  <Eye size={16} /> Xem chi tiết hồ sơ
-                </Link>
+                <div className="flex gap-2">
+                  <Link
+                    href={`/admin/facilities/${row.id}`}
+                    className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-base font-bold text-primary-foreground"
+                    data-testid={`button-view-facility-detail-mobile-${row.id}`}
+                  >
+                    <Eye size={16} /> Xem chi tiết hồ sơ
+                  </Link>
+                  {(() => {
+                    const account = getLinkedFacilityAccount(row);
+                    const isLocked = account?.status === "Đang khóa";
+                    return (
+                      <>
+                        <button
+                          type="button"
+                          disabled={!account}
+                          onClick={() => toggleFacilityAccount(row)}
+                          aria-label={
+                            !account
+                              ? "Cơ sở chưa có tài khoản liên kết"
+                              : isLocked
+                                ? `Mở khóa tài khoản ${row.name}`
+                                : `Khóa tài khoản ${row.name}`
+                          }
+                          title={
+                            !account
+                              ? "Cơ sở chưa có tài khoản liên kết"
+                              : isLocked
+                                ? "Mở khóa tài khoản"
+                                : "Khóa tài khoản"
+                          }
+                          className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border disabled:cursor-not-allowed disabled:opacity-40 ${
+                            isLocked
+                              ? "border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                              : "border-rose-200 text-rose-700 hover:bg-rose-50"
+                          }`}
+                          data-testid={`button-toggle-facility-account-mobile-${row.id}`}
+                        >
+                          {isLocked ? (
+                            <UnlockKeyhole size={17} />
+                          ) : (
+                            <LockKeyhole size={17} />
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={!account}
+                          onClick={() => resetFacilityPassword(row)}
+                          aria-label={
+                            !account
+                              ? "Cơ sở chưa có tài khoản liên kết"
+                              : `Đặt lại mật khẩu ${row.name} về mặc định ban đầu`
+                          }
+                          title={
+                            !account
+                              ? "Cơ sở chưa có tài khoản liên kết"
+                              : "Đặt lại mật khẩu về mặc định ban đầu"
+                          }
+                          className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-border text-foreground hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40"
+                          data-testid={`button-reset-facility-password-mobile-${row.id}`}
+                        >
+                          <KeyRound size={17} />
+                        </button>
+                      </>
+                    );
+                  })()}
+                </div>
               </article>
             ))}
           </div>
@@ -3750,6 +3940,23 @@ export function AdminFacilitiesPage() {
           File mẫu dùng định dạng Excel tương thích .xls. Giữ nguyên hàng tiêu đề khi nhập; dữ liệu mới sẽ được thêm vào danh sách hiện tại.
         </p>
       </div>
+
+      {notice ? (
+        <div
+          className="fixed bottom-5 right-5 z-50 max-w-sm rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-xl"
+          role="status"
+        >
+          {notice}
+          <button
+            type="button"
+            onClick={() => setNotice("")}
+            className="ml-3 font-black"
+            aria-label="Đóng thông báo"
+          >
+            ×
+          </button>
+        </div>
+      ) : null}
 
       {selectedRow && selectedApplication && false && (
         <div
