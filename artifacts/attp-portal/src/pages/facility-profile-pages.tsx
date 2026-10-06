@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { Link, useParams } from "wouter";
 import { AdminShell, EmptyState, MetricCard, SectionHeading } from "@/components/portal-ui";
+import { SignatureDisplay } from "@/components/signature-pad";
 import { readIncidents, type Incident } from "@/pages/incident-pages";
 import { demoFacilityInitialPassword } from "@/pages/portal-pages";
 import {
@@ -38,6 +39,7 @@ import {
   type ApplicationType,
   type CriteriaDefinition,
   type CriteriaGroup,
+  type ApplicationReviewer,
 } from "@/lib/mock-data";
 import { buildRegistrationDisplay } from "@/lib/registration-display";
 import heroFoodImage from "@assets/1788940094256_5613377993845818882_5613377993845818882_1e47059ddc5db7e9cbacbeb3495b9f36.jpg";
@@ -120,6 +122,7 @@ type FacilityProfile = {
   licenseNumber: string;
   approvedAt: string;
   reviewer: string;
+  reviewerDetails?: ApplicationReviewer;
   personInCharge: string;
   mealsPerDay: string;
   documents: { name: string; kind: string; previewUrl?: string }[];
@@ -351,6 +354,23 @@ const displayValue = (value: unknown): string => {
   return String(value ?? "Chưa khai báo");
 };
 
+const formatReviewedAt = (value?: string) => {
+  if (!value) return "Chưa ghi nhận";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Chưa ghi nhận";
+  return new Intl.DateTimeFormat("vi-VN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+};
+
+const formatReviewedDate = (value?: string) => {
+  if (!value) return "Chưa ghi nhận";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Chưa ghi nhận";
+  return new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium" }).format(date);
+};
+
 const readRows = (value: unknown): Record<string, unknown>[] =>
   Array.isArray(value)
     ? value.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === "object"))
@@ -477,7 +497,8 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
       : type === "school"
         ? "Nhà cung cấp nguyên liệu đầu vào"
         : "Vùng nguyên liệu đã khai báo";
-  const date = approval.approvedAt.split("T")[0].split("-").reverse().join("/");
+  const reviewedAt = application.reviewer?.reviewedAt ?? "";
+  const date = formatReviewedDate(reviewedAt);
   const deliveryBase = `Dữ liệu hồ sơ ${application.reference}`;
   const deliveryVehicle = readRows(fields.deliveryVehicles)[0];
   const vehicleName = String(
@@ -585,8 +606,9 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
     contact: application.contact,
     taxCode: String(fields.taxCode || "Chưa khai báo"),
     licenseNumber: String(fields.licenseNumber || "Chưa khai báo"),
-    approvedAt: date,
+    approvedAt: reviewedAt,
     reviewer: approval.reviewer,
+    reviewerDetails: application.reviewer,
     personInCharge,
     mealsPerDay: capacity,
     registrationData: fields,
@@ -1704,7 +1726,7 @@ export function FacilityProfilesPage() {
                                 Tổ chức bữa ăn: {profile.mealOrganization}
                               </span>
                             ) : null}
-                            <span>Duyệt ngày {profile.approvedAt}</span>
+                            <span>Duyệt lúc {formatReviewedAt(profile.approvedAt)}</span>
                             <span>{profile.deliveries.length} giao nhận · {getFacilityIncidents(profile).length} cảnh báo</span>
                             {account ? (
                               <span className={locked ? "font-extrabold text-rose-700" : "text-emerald-700"}>
@@ -1849,7 +1871,7 @@ export function FacilityProfileDetailPage() {
       <div className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8">
         <Link href="/admin/facility-profiles" className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:underline" data-testid="link-back-to-facility-profiles"><ArrowLeft size={16} /> Quay lại Hồ sơ cơ sở</Link>
         <div className="mt-5 flex flex-col gap-4 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between"><div><p className="mono-label text-primary">HỒ SƠ ĐƯỢC TẠO TỪ KẾT QUẢ DUYỆT</p><div className="mt-2 flex flex-wrap items-center gap-3"><h1 className="text-3xl font-extrabold tracking-tight">{profile.name}</h1><span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary">{profile.category}</span>{isSchool && profile.mealOrganization ? <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${mealOrganizationBadgeClass(profile.mealOrganization)}`}>Tổ chức bữa ăn: {profile.mealOrganization}</span> : null}</div><p className="mt-2 flex items-start gap-1.5 text-sm text-muted-foreground"><MapPin size={15} className="mt-0.5 shrink-0" /> {profile.address}</p></div></div>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><MetricCard label="Ngày duyệt" value={profile.approvedAt} icon={BadgeCheck} /><MetricCard label="Bản ghi giao nhận" value={profile.deliveries.length} tone="blue" icon={Truck} /><MetricCard label="Cảnh báo ATTP" value={incidents.length} tone="orange" icon={ShieldAlert} /><MetricCard label="Quy mô hoạt động" value={profile.mealsPerDay} tone="gold" icon={Utensils} /></div>
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><MetricCard label="Thời điểm duyệt" value={formatReviewedAt(profile.approvedAt)} icon={BadgeCheck} /><MetricCard label="Bản ghi giao nhận" value={profile.deliveries.length} tone="blue" icon={Truck} /><MetricCard label="Cảnh báo ATTP" value={incidents.length} tone="orange" icon={ShieldAlert} /><MetricCard label="Quy mô hoạt động" value={profile.mealsPerDay} tone="gold" icon={Utensils} /></div>
         <div className="mt-6 overflow-x-auto rounded-2xl border border-border bg-card p-2 shadow-sm"><div className="flex min-w-max gap-1" role="tablist" aria-label="Các nội dung trong hồ sơ cơ sở">{tabs.map((tab) => { const Icon = tab.icon; const isActive = activeTab === tab.id; return <button key={tab.id} type="button" role="tab" aria-selected={isActive} onClick={() => setActiveTab(tab.id)} className={`inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-colors ${isActive ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}><Icon size={16} />{tab.label}</button>; })}</div></div>
 
         {activeTab === "info" ? <section className="mt-6 space-y-6">
@@ -1864,7 +1886,7 @@ export function FacilityProfileDetailPage() {
               </div>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-xs font-bold text-muted-foreground">
                 <CheckCircle2 size={14} className="text-emerald-600" />
-                Đã duyệt {profile.approvedAt}
+                Hồ sơ đã được duyệt
               </span>
             </div>
             <div className="mt-6 space-y-5">
@@ -1948,18 +1970,49 @@ export function FacilityProfileDetailPage() {
               readable
             />
           ) : null}
-          <div className="rounded-xl border border-border bg-card px-5 py-4 text-sm shadow-sm">
-            <dl className="grid gap-3 sm:grid-cols-3">
-              {profile.registrationFields
-                .filter(({ label }) => ["Mã hồ sơ", "Ngày duyệt", "Cán bộ duyệt"].includes(label))
-                .map(({ label, value }) => (
-                  <div key={label}>
-                    <dt className="text-xs font-bold text-muted-foreground">{label}</dt>
-                    <dd className="mt-1 font-semibold">{displayValue(value)}</dd>
-                  </div>
-                ))}
-            </dl>
-          </div>
+          <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm sm:p-6">
+            <div>
+              <p className="text-xs font-extrabold uppercase tracking-[.14em] text-emerald-800">KẾT LUẬN XÉT DUYỆT</p>
+              <h2 className="mt-1.5 text-xl font-extrabold text-emerald-950">Thông tin cán bộ duyệt</h2>
+              <p className="mt-1 text-sm text-emerald-900/80">
+                Thông tin đã lưu khi hồ sơ được duyệt.
+              </p>
+            </div>
+            {profile.reviewerDetails ? (
+              <dl className="mt-4 grid gap-x-6 gap-y-4 rounded-xl border border-emerald-200 bg-white p-4 text-sm sm:grid-cols-2">
+                <div>
+                  <dt className="text-xs font-bold text-muted-foreground">Họ tên người duyệt</dt>
+                  <dd className="mt-1 text-base font-semibold">{profile.reviewerDetails.name}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-bold text-muted-foreground">Chức vụ</dt>
+                  <dd className="mt-1 text-base font-semibold">{profile.reviewerDetails.position}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-bold text-muted-foreground">Số điện thoại</dt>
+                  <dd className="mt-1 text-base font-semibold">{profile.reviewerDetails.phone}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-bold text-muted-foreground">Email</dt>
+                  <dd className="mt-1 break-all text-base font-semibold">{profile.reviewerDetails.email}</dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="text-xs font-bold text-muted-foreground">Chữ ký</dt>
+                  <dd className="mt-1 border-b border-emerald-300 pb-2">
+                    <SignatureDisplay value={profile.reviewerDetails.signature} />
+                  </dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="text-xs font-bold text-muted-foreground">Thời điểm duyệt</dt>
+                  <dd className="mt-1 text-base font-semibold">{formatReviewedAt(profile.reviewerDetails.reviewedAt)}</dd>
+                </div>
+              </dl>
+            ) : (
+              <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+                Hồ sơ cũ chưa lưu đầy đủ thông tin ký duyệt.
+              </p>
+            )}
+          </section>
           <div className="rounded-2xl border border-border bg-card p-5 shadow-sm"><div className="flex items-center gap-2"><FileCheck2 size={18} className="text-primary" /><div><h2 className="font-extrabold">Minh chứng đã duyệt</h2><p className="mt-1 text-xs text-muted-foreground">Ảnh minh họa có thể bấm để xem phóng to; tài liệu được giữ nguyên theo hồ sơ.</p></div></div><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{profile.documents.map((document, documentIndex) => document.previewUrl ? <button key={`${document.name}-${documentIndex}`} type="button" onClick={() => setPreviewDocument({ name: document.name, url: document.previewUrl! })} className="group overflow-hidden rounded-xl border border-border bg-secondary/30 text-left transition hover:border-primary/40 hover:shadow-md"><div className="relative aspect-[4/3] overflow-hidden bg-muted"><img src={document.previewUrl} alt={`Minh họa ${document.name}`} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" /><span className="absolute inset-0 flex items-center justify-center bg-slate-950/45 text-white opacity-0 transition group-hover:opacity-100"><ZoomIn size={24} /></span></div><span className="block truncate px-3 py-2.5 text-sm font-semibold" title={document.name}>{document.name}</span></button> : <div key={`${document.name}-${documentIndex}`} className="flex items-center gap-3 rounded-xl border border-border bg-secondary/30 p-3 text-sm"><FileText size={18} className="shrink-0 text-primary" /><span className="min-w-0 truncate font-semibold" title={document.name}>{document.name}</span></div>)}</div><div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4"><div className="flex items-center gap-2 text-sm font-extrabold text-emerald-950"><CheckCircle2 size={16} /> Trạng thái liên thông</div><p className="mt-1 text-sm text-emerald-900">Hồ sơ đã duyệt đạt và được đưa vào danh sách theo dõi.</p><p className="mt-2 text-xs text-emerald-800">Cán bộ duyệt: {profile.reviewer}</p></div></div>
         </section> : null}
 

@@ -17,14 +17,6 @@ const retiredDemoProfileIds = new Set([
   "app-006",
 ]);
 
-const formatApprovalDate = (submittedAt: string) => {
-  const date = new Date(submittedAt);
-  if (Number.isNaN(date.getTime())) return new Date().toISOString().slice(0, 10);
-  return new Date(date.getTime() + 10 * 24 * 60 * 60 * 1000)
-    .toISOString()
-    .slice(0, 10);
-};
-
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
 export const createApprovedFacility = (
@@ -32,7 +24,7 @@ export const createApprovedFacility = (
   reviewer = application.reviewer?.name ?? "Chưa cập nhật",
 ): ApprovedFacility => ({
   application: clone(application),
-  approvedAt: formatApprovalDate(application.submittedAt),
+  approvedAt: application.reviewer?.reviewedAt ?? "",
   reviewer,
 });
 
@@ -60,7 +52,11 @@ export const readApprovedFacilities = (): ApprovedFacility[] => {
     .map((item) => {
       const previous = saved.find((entry) => entry.application.id === item.id);
       return previous
-        ? { ...previous, application: clone(item) }
+        ? {
+            ...previous,
+            application: clone(item),
+            approvedAt: item.reviewer?.reviewedAt ?? "",
+          }
         : createApprovedFacility(item);
     });
   const approvedIds = new Set(approvedFromQueue.map((entry) => entry.application.id));
@@ -69,7 +65,12 @@ export const readApprovedFacilities = (): ApprovedFacility[] => {
   );
   const merged = [
     ...approvedFromQueue,
-    ...saved.filter(
+    ...saved
+      .map((entry) => ({
+        ...entry,
+        approvedAt: entry.application.reviewer?.reviewedAt ?? "",
+      }))
+      .filter(
       (entry) => {
         const currentApplication = currentApplications.get(entry.application.id);
         return (
