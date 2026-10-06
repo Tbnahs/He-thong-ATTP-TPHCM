@@ -4,5 +4,6 @@
 - [Facility history integration](facility-history-api.md) — approved profiles can display portal and external-system history now; production sync needs an explicit API contract.
 - [Registration review compatibility](registration-schema-compatibility.md) — preserve forms and sign-off, keep three review statuses, and source school facts from submissions.
 - [Profile email](account-profile-email.md) — keep the account email visible and prevent edits or deletion from the profile screen.
-- [Supplement notice boundary](supplement-notice-boundary.md) — keep supplement notifications visibly demo-only until authenticated server access and persistent storage exist.
+- [Supplement notice boundary](supplement-notice-boundary.md) — send supplement requests to facility accounts only; keep browser-only delivery limitations explicit.
 - [Attachment preview storage](attachment-preview-storage.md) — keep file bytes out of sessionStorage; browser-local previews are not shared across devices.
+- [Facility account controls](facility-account-controls.md) — profile-list actions stay icon-based; password reset restores that linked account's initial default.

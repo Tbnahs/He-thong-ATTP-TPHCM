@@ -27,6 +27,7 @@ import {
 import { Link, useParams } from "wouter";
 import { AdminShell, EmptyState, MetricCard, SectionHeading } from "@/components/portal-ui";
 import { readIncidents, type Incident } from "@/pages/incident-pages";
+import { demoFacilityInitialPassword } from "@/pages/portal-pages";
 import { readApprovedFacilities, type ApprovedFacility } from "@/lib/approved-facilities";
 import { getCriteriaSet, type ApplicationType, type CriteriaDefinition } from "@/lib/mock-data";
 import heroFoodImage from "@assets/1788940094256_5613377993845818882_5613377993845818882_1e47059ddc5db7e9cbacbeb3495b9f36.jpg";
@@ -121,8 +122,8 @@ type FacilityProfile = {
 type FacilityAccessAccount = {
   username: string;
   email?: string;
+  password?: string;
   status?: string;
-  passwordResetRequestedAt?: string;
   registration?: {
     fields?: Record<string, unknown>;
   };
@@ -1640,19 +1641,18 @@ export function FacilityProfilesPage() {
     );
   };
 
-  const requestFacilityPasswordReset = (profile: FacilityProfile) => {
+  const resetFacilityPassword = (profile: FacilityProfile) => {
     const account = getLinkedAccount(profile);
     if (!account) return;
-    const requestedAt = new Date().toISOString();
     setFacilityAccounts((current) =>
       current.map((item) =>
         item.username === account.username
-          ? { ...item, passwordResetRequestedAt: requestedAt }
+          ? { ...item, password: demoFacilityInitialPassword }
           : item,
       ),
     );
     setNotice(
-      `Đã ghi nhận yêu cầu đặt lại mật khẩu cho ${account.username}. Bản demo chưa gửi email hoặc đổi mật khẩu.`,
+      `Đã đặt lại mật khẩu tài khoản ${account.username} về mật khẩu mặc định ban đầu.`,
     );
   };
 
@@ -1727,45 +1727,67 @@ export function FacilityProfilesPage() {
                               <span>Chưa liên kết tài khoản cơ sở</span>
                             )}
                           </div>
-                          {account?.passwordResetRequestedAt ? (
-                            <p className="mt-2 text-xs font-semibold text-amber-700">
-                              Đã ghi nhận yêu cầu đặt lại mật khẩu lúc{" "}
-                              {new Intl.DateTimeFormat("vi-VN", {
-                                dateStyle: "short",
-                                timeStyle: "short",
-                              }).format(new Date(account.passwordResetRequestedAt))}
-                            </p>
-                          ) : null}
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-2 lg:justify-end">
                         <Link
                           href={`/admin/facility-profiles/${profile.id}`}
-                          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground hover:bg-primary/90"
+                          aria-label={`Xem hồ sơ ${profile.name}`}
+                          title="Xem hồ sơ"
+                          className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                           data-testid={`link-facility-profile-${profile.id}`}
                         >
-                          Xem hồ sơ <ArrowRight size={16} />
+                          <Eye size={17} />
                         </Link>
                         <button
                           type="button"
                           disabled={!account}
                           onClick={() => toggleFacilityAccount(profile)}
-                          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-rose-200 px-3.5 py-2 text-sm font-bold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
-                          title={!account ? "Cơ sở chưa có tài khoản liên kết" : undefined}
+                          aria-label={
+                            !account
+                              ? "Cơ sở chưa có tài khoản liên kết"
+                              : locked
+                                ? "Mở khóa tài khoản"
+                                : "Khóa tài khoản"
+                          }
+                          className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                            locked
+                              ? "border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                              : "border-rose-200 text-rose-700 hover:bg-rose-50"
+                          }`}
+                          title={
+                            !account
+                              ? "Cơ sở chưa có tài khoản liên kết"
+                              : locked
+                                ? "Mở khóa tài khoản"
+                                : "Khóa tài khoản"
+                          }
                           data-testid={`button-toggle-facility-account-${profile.id}`}
                         >
-                          {locked ? <UnlockKeyhole size={16} /> : <LockKeyhole size={16} />}
-                          {locked ? "Mở khóa tài khoản" : "Khóa tài khoản"}
+                          {locked ? (
+                            <UnlockKeyhole size={17} />
+                          ) : (
+                            <LockKeyhole size={17} />
+                          )}
                         </button>
                         <button
                           type="button"
                           disabled={!account}
-                          onClick={() => requestFacilityPasswordReset(profile)}
-                          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-border px-3.5 py-2 text-sm font-bold text-foreground hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-50"
-                          title={!account ? "Cơ sở chưa có tài khoản liên kết" : undefined}
+                          onClick={() => resetFacilityPassword(profile)}
+                          aria-label={
+                            !account
+                              ? "Cơ sở chưa có tài khoản liên kết"
+                              : "Đặt lại mật khẩu về mặc định ban đầu"
+                          }
+                          className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border text-foreground hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                          title={
+                            !account
+                              ? "Cơ sở chưa có tài khoản liên kết"
+                              : "Đặt lại mật khẩu về mặc định ban đầu"
+                          }
                           data-testid={`button-reset-facility-password-${profile.id}`}
                         >
-                          <KeyRound size={16} /> Đặt lại mật khẩu
+                          <KeyRound size={17} />
                         </button>
                       </div>
                     </div>

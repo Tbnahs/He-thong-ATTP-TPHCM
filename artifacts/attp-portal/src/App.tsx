@@ -48,7 +48,6 @@ import {
   FacilityProfileDetailPage,
   FacilityProfilesPage,
 } from "@/pages/facility-profile-pages";
-import { SupplementApplicationPage } from "@/pages/supplement-application-page";
 import {
   canAccessAdminPath,
   getFirstAllowedAdminPath,
@@ -68,7 +67,6 @@ function Router() {
         <Route path="/news" component={NewsPage} />
         <Route path="/news/:slug" component={NewsDetailPage} />
         <Route path="/register" component={RegisterPage} />
-        <Route path="/supplement/:token" component={SupplementApplicationPage} />
         <Route path="/admin/login" component={AdminLoginPage} />
         <Route path="/admin/profile">
           <AdminGuard>

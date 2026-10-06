@@ -993,7 +993,6 @@ type FacilityAccount = {
   password: string;
   username: string;
   status?: "Đang hoạt động" | "Đang khóa";
-  passwordResetRequestedAt?: string;
   registration: RegistrationSnapshot;
 };
 type RegisteredMealProvider = {
@@ -1019,7 +1018,7 @@ type SchoolMealProviderLink = {
   createdAt: string;
 };
 const facilityAccountsStorageKey = "attp-facility-accounts";
-const demoFacilityInitialPassword = "Aa@123456";
+export const demoFacilityInitialPassword = "Aa@123456";
 const demoFacilityAccountProfiles = [
   { applicationId: "app-001", email: "lienhe.anphu@example.com" },
   { applicationId: "app-002", email: "truong.thcsabc@example.vn" },
@@ -2833,6 +2832,10 @@ function FacilityApplicationSupplementEditor({
             <div className="min-w-0 flex-1">
               <p className="text-xs font-extrabold uppercase tracking-wide text-amber-800">
                 Yêu cầu bổ sung hồ sơ
+              </p>
+              <p className="mt-1 text-sm leading-6 text-amber-900/80">
+                Bản demo lưu yêu cầu trên trình duyệt này; chưa đồng bộ sang
+                thiết bị khác.
               </p>
               <h2
                 id={`facility-supplement-request-${application.id}`}

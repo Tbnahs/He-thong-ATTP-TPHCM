@@ -21,12 +21,12 @@ export type DemoSupplementRequest = {
   token: string;
   applicationId: string;
   applicantName: string;
-  recipientEmail?: string;
+  recipientUsername?: string;
   reason: string;
   reviewer?: DemoSupplementReviewer;
   createdAt: string;
   expiresAt?: string;
-  deliveryChannel?: "account" | "email-link";
+  deliveryChannel?: "account";
   status: DemoSupplementStatus;
   submittedAt?: string;
   response?: string;
@@ -76,7 +76,6 @@ const withCurrentExpiry = (
 ): DemoSupplementRequest => {
   if (
     request.status === "open" &&
-    request.deliveryChannel !== "account" &&
     request.expiresAt &&
     new Date(request.expiresAt).getTime() <= Date.now()
   ) {
@@ -84,11 +83,6 @@ const withCurrentExpiry = (
   }
   return request;
 };
-
-export const getDemoSupplementByToken = (token: string) =>
-  readRequests()
-    .map(withCurrentExpiry)
-    .find((request) => request.token === token);
 
 export const getLatestDemoSupplementForApplication = (applicationId: string) =>
   readRequests()
@@ -107,18 +101,21 @@ export const getDemoSupplementRequestsForApplication = (
 export const createDemoSupplementRequest = ({
   applicationId,
   applicantName,
-  recipientEmail,
   reason,
   reviewer,
 }: {
   applicationId: string;
   applicantName: string;
-  recipientEmail?: string;
   reason: string;
   reviewer: DemoSupplementReviewer;
 }) => {
   if (typeof window === "undefined" || !window.crypto?.randomUUID) {
     throw new Error("Trình duyệt hiện tại không hỗ trợ tạo thông báo.");
+  }
+  if (!hasDemoFacilityAccountForApplication(applicationId)) {
+    throw new Error(
+      "Hồ sơ chưa được liên kết với tài khoản cơ sở để nhận yêu cầu bổ sung.",
+    );
   }
 
   const now = Date.now();
@@ -131,7 +128,7 @@ export const createDemoSupplementRequest = ({
     token: window.crypto.randomUUID(),
     applicationId,
     applicantName,
-    recipientEmail,
+    recipientUsername: applicationId,
     reason,
     reviewer,
     createdAt: new Date(now).toISOString(),
