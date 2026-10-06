@@ -589,7 +589,6 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
     registrationFields: [
       { label: "Mã hồ sơ", value: application.reference },
       ...registrationFields,
-      { label: "Kết quả duyệt", value: "Đạt / PASS" },
       { label: "Ngày duyệt", value: date },
       { label: "Cán bộ duyệt", value: approval.reviewer },
     ],
@@ -1488,9 +1487,6 @@ function MealMenuPanel({ profile }: { profile: FacilityProfile }) {
             Dữ liệu minh họa theo hồ sơ; số suất được thay đổi theo từng cơ sở.
           </p>
         </div>
-        <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700">
-          Dữ liệu mẫu
-        </span>
       </div>
       <div className="grid gap-3 px-5 pb-5 md:grid-cols-2 xl:grid-cols-3">
         {sampleMenus.map((menu, dayIndex) => {
@@ -1681,14 +1677,7 @@ export function FacilityProfilesPage() {
                           )}
                         </div>
                         <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="font-extrabold text-foreground">{profile.name}</h3>
-                            {profile.applicationId.startsWith("sample-app-") ? (
-                              <span className="rounded-full bg-amber-100 px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-amber-900">
-                                Dữ liệu mẫu
-                              </span>
-                            ) : null}
-                          </div>
+                          <h3 className="font-extrabold text-foreground">{profile.name}</h3>
                           <p className="mt-1 flex items-start gap-1.5 text-sm text-muted-foreground">
                             <MapPin size={15} className="mt-0.5 shrink-0" /> {profile.address}
                           </p>
@@ -1843,7 +1832,7 @@ export function FacilityProfileDetailPage() {
     <AdminShell>
       <div className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8">
         <Link href="/admin/facility-profiles" className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:underline" data-testid="link-back-to-facility-profiles"><ArrowLeft size={16} /> Quay lại Hồ sơ cơ sở</Link>
-        <div className="mt-5 flex flex-col gap-4 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between"><div><p className="mono-label text-primary">HỒ SƠ ĐƯỢC TẠO TỪ KẾT QUẢ DUYỆT</p><div className="mt-2 flex flex-wrap items-center gap-3"><h1 className="text-3xl font-extrabold tracking-tight">{profile.name}</h1><span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary">{profile.category}</span>{profile.applicationId.startsWith("sample-app-") ? <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-amber-900">Dữ liệu mẫu</span> : null}{isSchool && profile.mealOrganization ? <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${mealOrganizationBadgeClass(profile.mealOrganization)}`}>Tổ chức bữa ăn: {profile.mealOrganization}</span> : null}</div><p className="mt-2 flex items-start gap-1.5 text-sm text-muted-foreground"><MapPin size={15} className="mt-0.5 shrink-0" /> {profile.address}</p></div><span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-2 text-xs font-bold text-emerald-800"><BadgeCheck size={15} /> Đạt / PASS</span></div>
+        <div className="mt-5 flex flex-col gap-4 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between"><div><p className="mono-label text-primary">HỒ SƠ ĐƯỢC TẠO TỪ KẾT QUẢ DUYỆT</p><div className="mt-2 flex flex-wrap items-center gap-3"><h1 className="text-3xl font-extrabold tracking-tight">{profile.name}</h1><span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary">{profile.category}</span>{isSchool && profile.mealOrganization ? <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${mealOrganizationBadgeClass(profile.mealOrganization)}`}>Tổ chức bữa ăn: {profile.mealOrganization}</span> : null}</div><p className="mt-2 flex items-start gap-1.5 text-sm text-muted-foreground"><MapPin size={15} className="mt-0.5 shrink-0" /> {profile.address}</p></div></div>
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><MetricCard label="Ngày duyệt" value={profile.approvedAt} icon={BadgeCheck} /><MetricCard label="Bản ghi giao nhận" value={profile.deliveries.length} tone="blue" icon={Truck} /><MetricCard label="Cảnh báo ATTP" value={incidents.length} tone="orange" icon={ShieldAlert} /><MetricCard label="Quy mô hoạt động" value={profile.mealsPerDay} tone="gold" icon={Utensils} /></div>
         <div className="mt-6 overflow-x-auto rounded-2xl border border-border bg-card p-2 shadow-sm"><div className="flex min-w-max gap-1" role="tablist" aria-label="Các nội dung trong hồ sơ cơ sở">{tabs.map((tab) => { const Icon = tab.icon; const isActive = activeTab === tab.id; return <button key={tab.id} type="button" role="tab" aria-selected={isActive} onClick={() => setActiveTab(tab.id)} className={`inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-colors ${isActive ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}><Icon size={16} />{tab.label}</button>; })}</div></div>
 
