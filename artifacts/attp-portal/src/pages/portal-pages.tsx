@@ -2833,10 +2833,6 @@ function FacilityApplicationSupplementEditor({
               <p className="text-xs font-extrabold uppercase tracking-wide text-amber-800">
                 Yêu cầu bổ sung hồ sơ
               </p>
-              <p className="mt-1 text-sm leading-6 text-amber-900/80">
-                Bản demo lưu yêu cầu trên trình duyệt này; chưa đồng bộ sang
-                thiết bị khác.
-              </p>
               <h2
                 id={`facility-supplement-request-${application.id}`}
                 className="mt-1 text-lg font-extrabold"
