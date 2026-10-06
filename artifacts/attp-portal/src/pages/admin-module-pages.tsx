@@ -926,7 +926,7 @@ const formatManagementAnswer = (
   return formatManagementScalar(value);
 };
 
-function ManagementAnswerDisplay({
+export function ManagementAnswerDisplay({
   value,
   repeatableFields,
   files,

@@ -28,9 +28,17 @@ import { Link, useParams } from "wouter";
 import { AdminShell, EmptyState, MetricCard, SectionHeading } from "@/components/portal-ui";
 import { readIncidents, type Incident } from "@/pages/incident-pages";
 import { demoFacilityInitialPassword } from "@/pages/portal-pages";
-import { SchoolModelRegistrationPanel } from "@/pages/admin-module-pages";
+import {
+  ManagementAnswerDisplay,
+  SchoolModelRegistrationPanel,
+} from "@/pages/admin-module-pages";
 import { readApprovedFacilities, type ApprovedFacility } from "@/lib/approved-facilities";
-import { getCriteriaSet, type ApplicationType, type CriteriaDefinition } from "@/lib/mock-data";
+import {
+  getCriteriaSet,
+  type ApplicationType,
+  type CriteriaDefinition,
+  type CriteriaGroup,
+} from "@/lib/mock-data";
 import { buildRegistrationDisplay } from "@/lib/registration-display";
 import heroFoodImage from "@assets/1788940094256_5613377993845818882_5613377993845818882_1e47059ddc5db7e9cbacbeb3495b9f36.jpg";
 
@@ -118,6 +126,10 @@ type FacilityProfile = {
   deliveries: DeliveryRecord[];
   supplierSources: SupplierSource[];
   registrationFields: { label: string; value: RegistrationValue }[];
+  registrationCriteria: CriteriaDefinition[];
+  registrationGroups: CriteriaGroup[];
+  registrationHasSavedData: boolean;
+  registrationReconstructed: boolean;
   registrationData: Record<string, unknown>;
   registrationAttachments: ApprovedFacility["application"]["attachments"];
   relatedFacilities: RelatedFacility[];
@@ -579,6 +591,10 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
     mealsPerDay: capacity,
     registrationData: fields,
     registrationAttachments: attachments,
+    registrationCriteria: registrationDisplay.criteria,
+    registrationGroups: registrationDisplay.groups,
+    registrationHasSavedData: registrationDisplay.hasSavedData,
+    registrationReconstructed: registrationDisplay.reconstructed,
     documents: attachments.map((file) => ({
       name: file.name,
       kind: file.kind,
@@ -1837,17 +1853,112 @@ export function FacilityProfileDetailPage() {
         <div className="mt-6 overflow-x-auto rounded-2xl border border-border bg-card p-2 shadow-sm"><div className="flex min-w-max gap-1" role="tablist" aria-label="Các nội dung trong hồ sơ cơ sở">{tabs.map((tab) => { const Icon = tab.icon; const isActive = activeTab === tab.id; return <button key={tab.id} type="button" role="tab" aria-selected={isActive} onClick={() => setActiveTab(tab.id)} className={`inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-colors ${isActive ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}><Icon size={16} />{tab.label}</button>; })}</div></div>
 
         {activeTab === "info" ? <section className="mt-6 space-y-6">
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm"><div className="flex items-center gap-2"><FileCheck2 size={18} className="text-primary" /><div><h2 className="font-extrabold">Toàn bộ thông tin từ form đăng ký</h2><p className="mt-1 text-xs text-muted-foreground">Snapshot được khóa tại thời điểm cán bộ duyệt đạt.</p></div></div><dl className="mt-4 divide-y divide-border text-sm">{profile.registrationFields.map(({ label, value }, index) => <div key={`${label}-${index}`} className="grid gap-2 py-3 sm:grid-cols-[260px_1fr]"><dt className="text-muted-foreground">{label}</dt><dd className="font-semibold text-foreground">{Array.isArray(value) ? <div className="flex flex-wrap gap-1.5">{value.map((item, itemIndex) => <span key={`${label}-${itemIndex}`} className="rounded-full bg-secondary px-2.5 py-1 text-xs">{displayValue(item)}</span>)}</div> : value}</dd></div>)}</dl>
-            {isSchool ? (
-              <div className="mt-6">
-                <SchoolModelRegistrationPanel
-                  forms={profile.registrationData.schoolModelForms}
-                  registrationData={profile.registrationData}
-                  attachments={profile.registrationAttachments}
-                  readable
-                />
+          <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="text-xs font-extrabold uppercase tracking-[.14em] text-primary">HỒ SƠ ĐÃ DUYỆT</p>
+                <h2 className="mt-1.5 text-xl font-extrabold sm:text-2xl">Thông tin cơ sở đã khai báo</h2>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Nội dung được nhóm theo biểu mẫu cơ sở đã nộp và được lưu tại thời điểm duyệt.
+                </p>
               </div>
-            ) : null}
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-xs font-bold text-muted-foreground">
+                <CheckCircle2 size={14} className="text-emerald-600" />
+                Đã duyệt {profile.approvedAt}
+              </span>
+            </div>
+            <div className="mt-6 space-y-5">
+              {!profile.registrationHasSavedData ? (
+                <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+                  Hồ sơ này không có dữ liệu đăng ký đã lưu để đối chiếu. Không hiển thị biểu mẫu trống thay cho nội dung đã nộp.
+                </p>
+              ) : profile.registrationReconstructed ? (
+                <p className="rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-900">
+                  Bản chụp biểu mẫu cũ không có sẵn; các trường dưới đây được dựng từ dữ liệu đăng ký đã lưu.
+                </p>
+              ) : null}
+              {profile.registrationGroups.map((group, groupIndex) => {
+                const groupCriteria = profile.registrationCriteria.filter(
+                  (item) => item.groupId === group.id,
+                );
+                if (!groupCriteria.length) return null;
+                return (
+                  <article
+                    key={group.id}
+                    className="overflow-hidden rounded-xl border border-border bg-background"
+                  >
+                    <header className="flex flex-col gap-3 border-b border-border bg-secondary/45 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <span className="inline-flex h-9 min-w-9 shrink-0 items-center justify-center rounded-lg border border-primary/25 bg-card px-2 text-sm font-extrabold text-primary">
+                          {String(groupIndex + 1).padStart(2, "0")}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-xs font-extrabold uppercase tracking-[.12em] text-primary">
+                            Phần {String(groupIndex + 1).padStart(2, "0")}
+                          </p>
+                          <h3 className="mt-1 text-lg font-extrabold leading-7">{group.name}</h3>
+                        </div>
+                      </div>
+                      <span className="shrink-0 text-sm font-semibold text-muted-foreground">
+                        {groupCriteria.length} nội dung kê khai
+                      </span>
+                    </header>
+                    <dl className="grid gap-x-8 bg-card px-5 pb-2 sm:grid-cols-2 sm:px-6">
+                      {groupCriteria.map((item) => (
+                        <div key={item.key} className="min-w-0 border-b border-border/80 py-5">
+                          <dt className="text-sm font-semibold leading-6 text-muted-foreground">
+                            {item.label}
+                          </dt>
+                          {item.description ? (
+                            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                              {item.description}
+                            </p>
+                          ) : null}
+                          <dd className="mt-2 text-base leading-7">
+                            <ManagementAnswerDisplay
+                              value={
+                                item.answerType === "file"
+                                  ? undefined
+                                  : profile.registrationData[item.key]
+                              }
+                              repeatableFields={item.repeatableFields}
+                              attachments={profile.registrationAttachments}
+                              fieldKey={item.key}
+                              readable
+                            />
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </article>
+                );
+              })}
+              {!profile.registrationCriteria.length ? (
+                <p className="rounded-xl border border-dashed border-border p-5 text-sm leading-6 text-muted-foreground">
+                  Hồ sơ không có trường đăng ký phù hợp để hiển thị.
+                </p>
+              ) : null}
+            </div>
+          </section>
+          {isSchool ? (
+            <SchoolModelRegistrationPanel
+              forms={profile.registrationData.schoolModelForms}
+              registrationData={profile.registrationData}
+              attachments={profile.registrationAttachments}
+              readable
+            />
+          ) : null}
+          <div className="rounded-xl border border-border bg-card px-5 py-4 text-sm shadow-sm">
+            <dl className="grid gap-3 sm:grid-cols-3">
+              {profile.registrationFields
+                .filter(({ label }) => ["Mã hồ sơ", "Ngày duyệt", "Cán bộ duyệt"].includes(label))
+                .map(({ label, value }) => (
+                  <div key={label}>
+                    <dt className="text-xs font-bold text-muted-foreground">{label}</dt>
+                    <dd className="mt-1 font-semibold">{displayValue(value)}</dd>
+                  </div>
+                ))}
+            </dl>
           </div>
           <div className="rounded-2xl border border-border bg-card p-5 shadow-sm"><div className="flex items-center gap-2"><FileCheck2 size={18} className="text-primary" /><div><h2 className="font-extrabold">Minh chứng đã duyệt</h2><p className="mt-1 text-xs text-muted-foreground">Ảnh minh họa có thể bấm để xem phóng to; tài liệu được giữ nguyên theo hồ sơ.</p></div></div><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{profile.documents.map((document, documentIndex) => document.previewUrl ? <button key={`${document.name}-${documentIndex}`} type="button" onClick={() => setPreviewDocument({ name: document.name, url: document.previewUrl! })} className="group overflow-hidden rounded-xl border border-border bg-secondary/30 text-left transition hover:border-primary/40 hover:shadow-md"><div className="relative aspect-[4/3] overflow-hidden bg-muted"><img src={document.previewUrl} alt={`Minh họa ${document.name}`} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" /><span className="absolute inset-0 flex items-center justify-center bg-slate-950/45 text-white opacity-0 transition group-hover:opacity-100"><ZoomIn size={24} /></span></div><span className="block truncate px-3 py-2.5 text-sm font-semibold" title={document.name}>{document.name}</span></button> : <div key={`${document.name}-${documentIndex}`} className="flex items-center gap-3 rounded-xl border border-border bg-secondary/30 p-3 text-sm"><FileText size={18} className="shrink-0 text-primary" /><span className="min-w-0 truncate font-semibold" title={document.name}>{document.name}</span></div>)}</div><div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4"><div className="flex items-center gap-2 text-sm font-extrabold text-emerald-950"><CheckCircle2 size={16} /> Trạng thái liên thông</div><p className="mt-1 text-sm text-emerald-900">Hồ sơ đã duyệt đạt và được đưa vào danh sách theo dõi.</p><p className="mt-2 text-xs text-emerald-800">Cán bộ duyệt: {profile.reviewer}</p></div></div>
         </section> : null}
