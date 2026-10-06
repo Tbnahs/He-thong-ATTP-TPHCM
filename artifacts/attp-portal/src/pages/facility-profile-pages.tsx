@@ -371,6 +371,25 @@ const formatReviewedDate = (value?: string) => {
   return new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium" }).format(date);
 };
 
+const hasCompleteReviewer = (
+  reviewer?: ApplicationReviewer,
+): reviewer is ApplicationReviewer =>
+  Boolean(
+    reviewer &&
+      typeof reviewer.name === "string" &&
+      reviewer.name.trim() &&
+      typeof reviewer.position === "string" &&
+      reviewer.position.trim() &&
+      typeof reviewer.phone === "string" &&
+      reviewer.phone.trim() &&
+      typeof reviewer.email === "string" &&
+      reviewer.email.trim() &&
+      typeof reviewer.signature === "string" &&
+      reviewer.signature.trim() &&
+      typeof reviewer.reviewedAt === "string" &&
+      !Number.isNaN(new Date(reviewer.reviewedAt).getTime()),
+  );
+
 const readRows = (value: unknown): Record<string, unknown>[] =>
   Array.isArray(value)
     ? value.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === "object"))
@@ -497,7 +516,10 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
       : type === "school"
         ? "Nhà cung cấp nguyên liệu đầu vào"
         : "Vùng nguyên liệu đã khai báo";
-  const reviewedAt = application.reviewer?.reviewedAt ?? "";
+  const reviewerDetails = hasCompleteReviewer(application.reviewer)
+    ? application.reviewer
+    : undefined;
+  const reviewedAt = reviewerDetails?.reviewedAt ?? "";
   const date = formatReviewedDate(reviewedAt);
   const deliveryBase = `Dữ liệu hồ sơ ${application.reference}`;
   const deliveryVehicle = readRows(fields.deliveryVehicles)[0];
@@ -608,7 +630,7 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
     licenseNumber: String(fields.licenseNumber || "Chưa khai báo"),
     approvedAt: reviewedAt,
     reviewer: approval.reviewer,
-    reviewerDetails: application.reviewer,
+    reviewerDetails,
     personInCharge,
     mealsPerDay: capacity,
     registrationData: fields,

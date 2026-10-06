@@ -33,6 +33,12 @@ Every route that can approve an application must use the same sign-off-validated
 
 **How to apply:** Keep one approval action path; when older routes remain for compatibility, send them to the canonical signed-review page.
 
+The approved-profile conclusion should show the five saved officer sign-off fields and the actual review timestamp. Do not derive approval time from submission time or mix the application reference into the sign-off section.
+
+**Why:** The user asked for the approved result to match the reviewer sign-off shown during review and to use the real time of approval.
+
+**How to apply:** Read the review timestamp from the saved reviewer record, display it in local date-and-time format, and keep application identifiers outside the conclusion.
+
 The application-review workflow has exactly three statuses: pending, needs-more-info, and approved. Do not add rejection, warning, or stopped states to application records. Other modules may use their own monitoring statuses. When loading legacy application records with an unsupported status, normalize them to pending and clear stale review sign-off/publication state.
 
 **Why:** The user explicitly limited “Duyệt hồ sơ” to “Chờ duyệt”, “Yêu cầu bổ sung”, and “Đã duyệt”.

@@ -71,16 +71,18 @@ export const readApprovedFacilities = (): ApprovedFacility[] => {
         approvedAt: entry.application.reviewer?.reviewedAt ?? "",
       }))
       .filter(
-      (entry) => {
-        const currentApplication = currentApplications.get(entry.application.id);
-        return (
-          profileTypes.includes(entry.application.type) &&
-          entry.application.status === "approved" &&
-          !approvedIds.has(entry.application.id) &&
-          (!currentApplication || isProfileApplication(currentApplication))
-        );
-      },
-    ),
+        (entry) => {
+          const currentApplication = currentApplications.get(
+            entry.application.id,
+          );
+          return (
+            profileTypes.includes(entry.application.type) &&
+            entry.application.status === "approved" &&
+            !approvedIds.has(entry.application.id) &&
+            (!currentApplication || isProfileApplication(currentApplication))
+          );
+        },
+      ),
   ];
 
   window.localStorage.setItem(approvedFacilitiesStorageKey, JSON.stringify(merged));
