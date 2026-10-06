@@ -1,4 +1,9 @@
-import { applications, type Application, type ApplicationType } from "@/lib/mock-data";
+import {
+  applications,
+  saveApplicationRecord,
+  type Application,
+  type ApplicationType,
+} from "@/lib/mock-data";
 
 export const approvedFacilitiesStorageKey = "attp-approved-facilities-v2";
 
@@ -54,7 +59,14 @@ export const readApprovedFacilities = (): ApprovedFacility[] => {
       return previous
         ? {
             ...previous,
-            application: clone(item),
+            application: {
+              ...clone(item),
+              // The profile uses the approved snapshot for its evidence list.
+              // Preserve edits made there instead of restoring the queue copy.
+              attachments: clone(
+                previous.application.attachments ?? item.attachments,
+              ),
+            },
             approvedAt: item.reviewer?.reviewedAt ?? "",
           }
         : createApprovedFacility(item);
@@ -101,4 +113,63 @@ export const syncApprovedFacility = (
     approvedFacilitiesStorageKey,
     JSON.stringify([createApprovedFacility(application, reviewer), ...saved]),
   );
+};
+
+export const removeApprovedFacilityAttachment = (
+  applicationId: string,
+  attachmentIndex: number,
+) => {
+  if (typeof window === "undefined") return null;
+
+  const approved = readApprovedFacilities();
+  const facilityIndex = approved.findIndex(
+    (entry) => entry.application.id === applicationId,
+  );
+  const facility = approved[facilityIndex];
+  const existingAttachments = facility?.application.attachments ?? [];
+  const removedAttachment = existingAttachments[attachmentIndex];
+  if (!facility || !removedAttachment) return null;
+
+  const attachments = existingAttachments.filter(
+    (_, index) => index !== attachmentIndex,
+  );
+  const updatedApproved = approved.map((entry, index) =>
+    index === facilityIndex
+      ? {
+          ...entry,
+          application: { ...entry.application, attachments: clone(attachments) },
+        }
+      : entry,
+  );
+  const application = applications.find((item) => item.id === applicationId);
+  const previousAttachments = application?.attachments;
+
+  try {
+    window.localStorage.setItem(
+      approvedFacilitiesStorageKey,
+      JSON.stringify(updatedApproved),
+    );
+    if (application) {
+      application.attachments = clone(attachments);
+      saveApplicationRecord(application);
+    }
+  } catch (error) {
+    if (application && previousAttachments) {
+      application.attachments = previousAttachments;
+    }
+    try {
+      window.localStorage.setItem(
+        approvedFacilitiesStorageKey,
+        JSON.stringify(approved),
+      );
+    } catch {
+      // Keep the original persistence error for the caller to report.
+    }
+    throw error;
+  }
+
+  return {
+    removedAttachment: clone(removedAttachment),
+    attachments: clone(attachments),
+  };
 };

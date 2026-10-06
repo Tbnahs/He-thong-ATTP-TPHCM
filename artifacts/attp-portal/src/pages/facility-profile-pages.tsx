@@ -18,6 +18,7 @@ import {
   Search,
   ShieldAlert,
   Truck,
+  Trash2,
   UnlockKeyhole,
   Utensils,
   X,
@@ -27,6 +28,7 @@ import {
 import { Link, useParams } from "wouter";
 import { AdminShell, EmptyState, MetricCard, SectionHeading } from "@/components/portal-ui";
 import { SignatureDisplay } from "@/components/signature-pad";
+import { deleteAttachmentContent } from "@/lib/attachment-content";
 import { readIncidents, type Incident } from "@/pages/incident-pages";
 import {
   demoFacilityInitialPassword,
@@ -38,7 +40,11 @@ import {
   ManagementAnswerDisplay,
   SchoolModelRegistrationPanel,
 } from "@/pages/admin-module-pages";
-import { readApprovedFacilities, type ApprovedFacility } from "@/lib/approved-facilities";
+import {
+  readApprovedFacilities,
+  removeApprovedFacilityAttachment,
+  type ApprovedFacility,
+} from "@/lib/approved-facilities";
 import {
   getCriteriaSet,
   type ApplicationType,
@@ -1848,15 +1854,67 @@ export function FacilityProfilesPage() {
 
 export function FacilityProfileDetailPage() {
   const { facilityId = "" } = useParams<{ facilityId: string }>();
-  const profiles = useMemo(getFacilityProfiles, []);
+  const profiles = useMemo(getFacilityProfiles, [facilityId]);
   const [activeTab, setActiveTab] = useState<ProfileTabId>("info");
   const [deliveryKind, setDeliveryKind] = useState<"Tất cả" | DeliveryKind>("Tất cả");
   const [previewDocument, setPreviewDocument] = useState<{ name: string; url: string } | null>(null);
-  const profile = profiles.find((item) => item.id === facilityId);
+  const [attachmentOverride, setAttachmentOverride] = useState<{
+    applicationId: string;
+    attachments: FacilityProfile["registrationAttachments"];
+  } | null>(null);
+  const [deleteAttachmentIndex, setDeleteAttachmentIndex] = useState<number | null>(null);
+  const [notice, setNotice] = useState("");
+  const baseProfile = profiles.find((item) => item.id === facilityId);
+  const profile = baseProfile
+    ? {
+        ...baseProfile,
+        registrationAttachments:
+          attachmentOverride?.applicationId === baseProfile.applicationId
+            ? attachmentOverride.attachments
+            : baseProfile.registrationAttachments,
+      }
+    : undefined;
 
   if (!profile) {
     return <AdminShell><div className="mx-auto max-w-4xl px-5 py-12 lg:px-10"><Link href="/admin/facility-profiles" className="inline-flex items-center gap-2 text-sm font-bold text-primary"><ArrowLeft size={16} /> Quay lại Hồ sơ cơ sở</Link><div className="mt-8 rounded-3xl border border-border bg-card p-8 text-center shadow-sm"><h1 className="text-2xl font-extrabold">Không tìm thấy hồ sơ cơ sở</h1><p className="mt-2 text-sm text-muted-foreground">Chỉ hồ sơ đã duyệt đạt mới xuất hiện tại đây.</p></div></div></AdminShell>;
   }
+
+  const confirmDeleteAttachment = async () => {
+    if (deleteAttachmentIndex === null) return;
+    let result: ReturnType<typeof removeApprovedFacilityAttachment>;
+    try {
+      result = removeApprovedFacilityAttachment(
+        profile.applicationId,
+        deleteAttachmentIndex,
+      );
+    } catch {
+      setNotice("Không thể lưu thay đổi. Minh chứng vẫn được giữ trong hồ sơ.");
+      return;
+    }
+    if (!result) {
+      setNotice("Không tìm thấy minh chứng cần xóa. Hãy tải lại trang.");
+      setDeleteAttachmentIndex(null);
+      return;
+    }
+
+    setAttachmentOverride({
+      applicationId: profile.applicationId,
+      attachments: result.attachments,
+    });
+    setDeleteAttachmentIndex(null);
+
+    if (result.removedAttachment.previewStorageKey) {
+      try {
+        await deleteAttachmentContent(result.removedAttachment.previewStorageKey);
+      } catch {
+        setNotice(
+          `Đã gỡ "${result.removedAttachment.name}" khỏi hồ sơ, nhưng chưa dọn được tệp lưu cục bộ.`,
+        );
+        return;
+      }
+    }
+    setNotice(`Đã xóa "${result.removedAttachment.name}" khỏi hồ sơ đã duyệt.`);
+  };
 
   const filteredDeliveries = profile.deliveries.filter((delivery) => deliveryKind === "Tất cả" || delivery.kind === deliveryKind);
   const incidents = getFacilityIncidents(profile);
@@ -1986,6 +2044,82 @@ export function FacilityProfileDetailPage() {
               readable
             />
           ) : null}
+          <section
+            className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6"
+            data-testid="panel-approved-evidence"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-extrabold uppercase tracking-[.14em] text-primary">
+                  QUẢN LÝ TỆP
+                </p>
+                <h2 className="mt-1.5 text-xl font-extrabold">Minh chứng đã duyệt</h2>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  Có thể gỡ từng tệp khỏi hồ sơ. Việc này không thay đổi kết quả duyệt.
+                </p>
+              </div>
+              <span className="rounded-full bg-secondary px-3 py-1.5 text-xs font-bold text-muted-foreground">
+                {profile.registrationAttachments.length} tệp
+              </span>
+            </div>
+            {profile.registrationAttachments.length ? (
+              <ul className="mt-4 divide-y divide-border rounded-xl border border-border">
+                {profile.registrationAttachments.map((file, index) => (
+                  <li
+                    key={`${file.fieldKey ?? "evidence"}-${file.name}-${index}`}
+                    className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
+                    data-testid={`approved-evidence-${index}`}
+                  >
+                    <span className="flex min-w-0 items-center gap-2 text-sm font-semibold">
+                      <FileText size={16} className="shrink-0 text-primary" />
+                      <span className="break-all">{file.name}</span>
+                    </span>
+                    {deleteAttachmentIndex === index ? (
+                      <div
+                        className="flex flex-wrap items-center gap-2"
+                        role="group"
+                        aria-label={`Xác nhận xóa minh chứng ${file.name}`}
+                      >
+                        <span className="text-xs font-semibold text-rose-700">
+                          Gỡ tệp này khỏi hồ sơ?
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => void confirmDeleteAttachment()}
+                          className="rounded-lg bg-rose-600 px-3 py-2 text-xs font-bold text-white hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2"
+                          data-testid={`button-confirm-delete-evidence-${index}`}
+                        >
+                          Xóa
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteAttachmentIndex(null)}
+                          className="rounded-lg border border-border px-3 py-2 text-xs font-bold hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                        >
+                          Hủy
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setDeleteAttachmentIndex(index)}
+                        aria-label={`Xóa minh chứng ${file.name}`}
+                        title={`Xóa minh chứng ${file.name}`}
+                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2"
+                        data-testid={`button-delete-evidence-${index}`}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-4 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+                Hồ sơ không còn minh chứng đính kèm.
+              </p>
+            )}
+          </section>
           <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm sm:p-6">
             <div>
               <p className="text-xs font-extrabold uppercase tracking-[.14em] text-emerald-800">KẾT LUẬN XÉT DUYỆT</p>
@@ -2036,6 +2170,22 @@ export function FacilityProfileDetailPage() {
         {activeTab === "outgoing" ? profile.applicationType === "meal-provider" ? <MealDeliveryHistoryTable deliveries={filteredDeliveries.filter((delivery) => delivery.flow === "Xuất hàng")} /> : <DeliveryHistoryTable title="Cơ sở nhận hàng" description="Lịch sử xuất thực phẩm hoặc suất ăn cho các đơn vị liên quan." deliveries={filteredDeliveries.filter((delivery) => delivery.flow === "Xuất hàng")} deliveryKind={deliveryKind} onDeliveryKindChange={setDeliveryKind} emptyDescription="Chưa có lịch sử xuất hàng cho cơ sở khác." /> : null}
         {activeTab === "incidents" ? <IncidentHistoryTable incidents={incidents} /> : null}
         {previewDocument ? <DocumentPreviewDialog document={previewDocument} onClose={() => setPreviewDocument(null)} /> : null}
+         {notice ? (
+           <div
+             className="fixed bottom-5 right-5 z-50 max-w-sm rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-xl"
+             role="status"
+           >
+             {notice}
+             <button
+               type="button"
+               onClick={() => setNotice("")}
+               className="ml-3 font-black"
+               aria-label="Đóng thông báo"
+             >
+               ×
+             </button>
+           </div>
+         ) : null}
       </div>
     </AdminShell>
   );
