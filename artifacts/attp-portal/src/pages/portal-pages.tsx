@@ -1017,7 +1017,7 @@ type SchoolMealProviderLink = {
   model?: string;
   createdAt: string;
 };
-const facilityAccountsStorageKey = "attp-facility-accounts";
+export const facilityAccountsStorageKey = "attp-facility-accounts";
 export const demoFacilityInitialPassword = "Aa@123456";
 const demoFacilityAccountProfiles = [
   { applicationId: "app-001", email: "lienhe.anphu@example.com" },
@@ -1027,7 +1027,7 @@ const demoFacilityAccountProfiles = [
 ] as const;
 const mealProviderSchoolLinksStorageKey = "attp-meal-provider-school-links";
 const schoolMealProviderLinksStorageKey = "attp-school-meal-provider-links";
-const readFacilityAccounts = (): FacilityAccount[] => {
+export const readFacilityAccounts = (): FacilityAccount[] => {
   if (typeof window === "undefined") return [];
   try {
     const storedAccounts = JSON.parse(
@@ -1134,6 +1134,69 @@ const saveFacilityAccounts = (accounts: FacilityAccount[]) => {
     facilityAccountsStorageKey,
     JSON.stringify(accounts),
   );
+};
+export const ensureFacilityAccountsForApprovedProfiles = (
+  profiles: Array<{
+    applicationId: string;
+    name: string;
+    type: ApplicationType;
+    fields: Record<string, unknown>;
+    files: Attachment[];
+    submittedAt: string;
+  }>,
+) => {
+  const accounts = readFacilityAccounts();
+  const nextAccounts = [...accounts];
+  const createdUsernames: string[] = [];
+  const usedEmails = new Set(
+    accounts.map((account) => account.email.trim().toLowerCase()).filter(Boolean),
+  );
+
+  profiles.forEach((profile) => {
+    const username = profile.applicationId.trim();
+    const normalizedName = profile.name.trim().toLowerCase();
+    const isLinked = nextAccounts.some(
+      (account) =>
+        account.username.trim().toLowerCase() === username.toLowerCase() ||
+        String(account.registration.fields.applicantName ?? "")
+          .trim()
+          .toLowerCase() === normalizedName,
+    );
+    if (!username || !normalizedName || isLinked) return;
+
+    const candidateEmail = [
+      profile.fields.email,
+      profile.fields.contactEmail,
+      profile.fields.applicantEmail,
+    ].find(
+      (value): value is string =>
+        typeof value === "string" &&
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()),
+    );
+    const normalizedEmail = candidateEmail?.trim().toLowerCase() ?? "";
+    const email =
+      normalizedEmail && !usedEmails.has(normalizedEmail)
+        ? normalizedEmail
+        : "";
+
+    nextAccounts.push({
+      email,
+      password: demoFacilityInitialPassword,
+      username,
+      status: "Đang hoạt động",
+      registration: {
+        type: profile.type,
+        fields: profile.fields as Record<string, CriteriaValue>,
+        files: profile.files,
+        submittedAt: profile.submittedAt,
+      },
+    });
+    if (email) usedEmails.add(email);
+    createdUsernames.push(username);
+  });
+
+  if (createdUsernames.length > 0) saveFacilityAccounts(nextAccounts);
+  return { accounts: nextAccounts, createdUsernames };
 };
 const readMealProviderSchoolLinks = (): MealProviderSchoolLink[] => {
   if (typeof window === "undefined") return [];

@@ -28,7 +28,12 @@ import { Link, useParams } from "wouter";
 import { AdminShell, EmptyState, MetricCard, SectionHeading } from "@/components/portal-ui";
 import { SignatureDisplay } from "@/components/signature-pad";
 import { readIncidents, type Incident } from "@/pages/incident-pages";
-import { demoFacilityInitialPassword } from "@/pages/portal-pages";
+import {
+  demoFacilityInitialPassword,
+  ensureFacilityAccountsForApprovedProfiles,
+  facilityAccountsStorageKey,
+  readFacilityAccounts,
+} from "@/pages/portal-pages";
 import {
   ManagementAnswerDisplay,
   SchoolModelRegistrationPanel,
@@ -121,6 +126,7 @@ type FacilityProfile = {
   taxCode: string;
   licenseNumber: string;
   approvedAt: string;
+  submittedAt: string;
   reviewer: string;
   reviewerDetails?: ApplicationReviewer;
   personInCharge: string;
@@ -136,37 +142,6 @@ type FacilityProfile = {
   registrationData: Record<string, unknown>;
   registrationAttachments: ApprovedFacility["application"]["attachments"];
   relatedFacilities: RelatedFacility[];
-};
-
-type FacilityAccessAccount = {
-  username: string;
-  email?: string;
-  password?: string;
-  status?: string;
-  registration?: {
-    fields?: Record<string, unknown>;
-  };
-};
-
-const facilityAccountsStorageKey = "attp-facility-accounts";
-
-const readFacilityAccessAccounts = (): FacilityAccessAccount[] => {
-  if (typeof window === "undefined") return [];
-  try {
-    const parsed: unknown = JSON.parse(
-      window.localStorage.getItem(facilityAccountsStorageKey) || "[]",
-    );
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (account): account is FacilityAccessAccount =>
-        typeof account === "object" &&
-        account !== null &&
-        "username" in account &&
-        typeof account.username === "string",
-    );
-  } catch {
-    return [];
-  }
 };
 
 const categoryLabels: Record<ApplicationType, string> = {
@@ -629,6 +604,7 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
     taxCode: String(fields.taxCode || "Chưa khai báo"),
     licenseNumber: String(fields.licenseNumber || "Chưa khai báo"),
     approvedAt: reviewedAt,
+    submittedAt: application.submittedAt,
     reviewer: approval.reviewer,
     reviewerDetails,
     personInCharge,
@@ -1632,7 +1608,7 @@ export function FacilityProfilesPage() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("Tất cả loại hình");
   const [facilityAccounts, setFacilityAccounts] = useState(
-    readFacilityAccessAccounts,
+    readFacilityAccounts,
   );
   const [notice, setNotice] = useState("");
   useEffect(() => {
@@ -1641,6 +1617,24 @@ export function FacilityProfilesPage() {
       JSON.stringify(facilityAccounts),
     );
   }, [facilityAccounts]);
+  useEffect(() => {
+    const accountSetup = ensureFacilityAccountsForApprovedProfiles(
+      profiles.map((profile) => ({
+        applicationId: profile.applicationId,
+        name: profile.name,
+        type: profile.applicationType,
+        fields: profile.registrationData,
+        files: profile.registrationAttachments,
+        submittedAt: profile.submittedAt,
+      })),
+    );
+    setFacilityAccounts(accountSetup.accounts);
+    if (accountSetup.createdUsernames.length > 0) {
+      setNotice(
+        `Đã tạo ${accountSetup.createdUsernames.length} tài khoản cho cơ sở đã duyệt chưa liên kết. Tên đăng nhập là mã hồ sơ; mật khẩu ban đầu: ${demoFacilityInitialPassword}.`,
+      );
+    }
+  }, [profiles]);
 
   const getLinkedAccount = (profile: FacilityProfile) =>
     facilityAccounts.find(
@@ -2035,7 +2029,6 @@ export function FacilityProfileDetailPage() {
               </p>
             )}
           </section>
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm"><div className="flex items-center gap-2"><FileCheck2 size={18} className="text-primary" /><div><h2 className="font-extrabold">Minh chứng đã duyệt</h2><p className="mt-1 text-xs text-muted-foreground">Ảnh minh họa có thể bấm để xem phóng to; tài liệu được giữ nguyên theo hồ sơ.</p></div></div><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{profile.documents.map((document, documentIndex) => document.previewUrl ? <button key={`${document.name}-${documentIndex}`} type="button" onClick={() => setPreviewDocument({ name: document.name, url: document.previewUrl! })} className="group overflow-hidden rounded-xl border border-border bg-secondary/30 text-left transition hover:border-primary/40 hover:shadow-md"><div className="relative aspect-[4/3] overflow-hidden bg-muted"><img src={document.previewUrl} alt={`Minh họa ${document.name}`} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" /><span className="absolute inset-0 flex items-center justify-center bg-slate-950/45 text-white opacity-0 transition group-hover:opacity-100"><ZoomIn size={24} /></span></div><span className="block truncate px-3 py-2.5 text-sm font-semibold" title={document.name}>{document.name}</span></button> : <div key={`${document.name}-${documentIndex}`} className="flex items-center gap-3 rounded-xl border border-border bg-secondary/30 p-3 text-sm"><FileText size={18} className="shrink-0 text-primary" /><span className="min-w-0 truncate font-semibold" title={document.name}>{document.name}</span></div>)}</div><div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4"><div className="flex items-center gap-2 text-sm font-extrabold text-emerald-950"><CheckCircle2 size={16} /> Trạng thái liên thông</div><p className="mt-1 text-sm text-emerald-900">Hồ sơ đã duyệt đạt và được đưa vào danh sách theo dõi.</p><p className="mt-2 text-xs text-emerald-800">Cán bộ duyệt: {profile.reviewer}</p></div></div>
         </section> : null}
 
          {activeTab === "suppliers" ? profile.applicationType === "meal-provider" ? <SupplierSourcePanel profile={profile} /> : <DeliveryHistoryTable title={schoolSupplierLabel} description={isIngredientSchool ? "Lịch sử nhập nguyên liệu từ các nhà cung cấp đầu vào." : "Lịch sử tiếp nhận suất ăn từ đơn vị liên kết cung cấp."} deliveries={filteredDeliveries.filter((delivery) => delivery.flow === "Nhập hàng")} deliveryKind={deliveryKind} onDeliveryKindChange={setDeliveryKind} emptyDescription={isIngredientSchool ? "Chưa có lịch sử nhập nguyên liệu từ nhà cung cấp." : "Chưa có lịch sử tiếp nhận suất ăn từ đơn vị cung cấp."} /> : null}
