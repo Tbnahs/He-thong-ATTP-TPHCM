@@ -56,3 +56,15 @@ For “Yêu cầu bổ sung”, retain the reviewing officer’s required contac
 **Why:** The user requires reviewer name, position, phone, and email during review, and those details must remain visible to the facility without misrepresenting the record as approved.
 
 **How to apply:** Store the supplemental-review contact with the request and the application; use it for the facility notice. Keep the signed approval reviewer record reserved for approved applications.
+
+The school-registration review step is a read-only summary of declared information, not a completeness checker. Do not show missing-field counts, warning states, or “complete/incomplete” labels there; keep any required-submit validation separate.
+
+**Why:** The user asked for the review step to list what was entered without checking what is missing.
+
+**How to apply:** Render entered locations and models without completeness statuses. Preserve the separate declaration that the information is truthful and enforce genuine submission requirements only when submitting.
+
+Do not create a second facility registration with a tax identifier already used by an existing facility registration.
+
+**Why:** The user reported duplicate applications for the same tax identifier and asked to tell the applicant the application already exists.
+
+**How to apply:** Normalize the facility’s own tax identifier and compare it with existing facility applications/accounts before saving; do not use a linked meal provider’s tax identifier as the school’s identifier.

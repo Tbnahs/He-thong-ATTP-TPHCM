@@ -929,7 +929,7 @@ const schoolRegistrationSteps = [
   { title: "Mô hình", description: "Chọn theo từng địa điểm" },
   { title: "Đơn vị", description: "Khai riêng từng đơn vị thực hiện" },
   { title: "Phiếu chi tiết", description: "Điều kiện theo từng mô hình" },
-  { title: "Rà soát", description: "Kiểm tra trước khi gửi" },
+  { title: "Rà soát", description: "Xem danh sách trước khi gửi" },
 ];
 const schoolProviderDetailItem = (item: CriteriaDefinition) =>
   item.key === "registeredProviderId" ||
@@ -6195,7 +6195,7 @@ export function ApplicationForm({
                         ? "Lưu phần đã bổ sung."
                         : allowPartialSubmission
                           ? "Nộp Thông tin chung và địa chỉ điểm chính."
-                          : "Kiểm tra trước khi nộp."
+                          : "Xem danh sách trước khi nộp."
                       : `Bước ${schoolStep + 1}/${schoolRegistrationSteps.length}`}
                   </strong>
                   <br />
@@ -6864,12 +6864,14 @@ function SchoolApplicationReview({
                 <div className="flex items-start gap-3">
                   <MapPin className="mt-0.5 shrink-0 text-primary" size={18} />
                   <div>
-                    <h3 className="font-bold">
-                      {location.name || "Địa điểm chưa đặt tên"}
-                    </h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {location.address || "Chưa nhập địa chỉ"}
-                    </p>
+                    {location.name && (
+                      <h3 className="font-bold">{location.name}</h3>
+                    )}
+                    {location.address && (
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {location.address}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -6913,20 +6915,18 @@ function SchoolApplicationReview({
                       >
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div>
-                            <div>
-                              <p className="font-semibold">
-                                Mẫu số {modelForm.number} · {model}
+                            <p className="font-semibold">
+                              Mẫu số {modelForm.number} · {model}
+                            </p>
+                            {model === "BATT tự tổ chức" ? (
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                Bếp ăn do cơ sở giáo dục tự tổ chức
                               </p>
-                              {model === "BATT tự tổ chức" ? (
-                                <p className="mt-1 text-xs text-muted-foreground">
-                                  Bếp ăn do cơ sở giáo dục tự tổ chức
-                                </p>
-                              ) : providerName ? (
-                                <p className="mt-1 text-sm text-muted-foreground">
-                                  {providerName}
-                                </p>
-                              ) : null}
-                            </div>
+                            ) : providerName ? (
+                              <p className="mt-1 text-sm text-muted-foreground">
+                                {providerName}
+                              </p>
+                            ) : null}
                           </div>
                           <div className="flex gap-2">
                             <Button
