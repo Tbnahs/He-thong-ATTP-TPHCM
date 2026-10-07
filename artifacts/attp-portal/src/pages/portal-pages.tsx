@@ -5133,6 +5133,7 @@ export function ApplicationForm({
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (readOnly) return;
+    setDemoFillNotice("");
     setSubmitAttempted(true);
     const missing = getMissingRequiredFields();
     const missingSchoolConfirmation = type === "school" && !schoolConfirmed;
@@ -6134,6 +6135,42 @@ export function ApplicationForm({
           của nội dung cung cấp.
         </footer>
       </div>
+      {mode === "register" && !readOnly && (
+        <div className="fixed bottom-5 left-5 z-[60] flex max-w-[calc(100vw-2.5rem)] flex-col items-start gap-2">
+          {demoFillNotice && (
+            <div
+              className="flex max-w-sm items-start gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-xs leading-5 text-foreground shadow-xl"
+              role="status"
+              aria-live="polite"
+              data-testid="status-demo-fill"
+            >
+              <ClipboardCheck
+                size={17}
+                className="mt-0.5 shrink-0 text-primary"
+              />
+              <span>{demoFillNotice}</span>
+              <button
+                type="button"
+                onClick={() => setDemoFillNotice("")}
+                aria-label="Đóng thông báo điền mẫu"
+                className="shrink-0 text-muted-foreground hover:text-foreground"
+                data-testid="button-close-demo-fill-notice"
+              >
+                <X size={15} />
+              </button>
+            </div>
+          )}
+          <Button
+            type="button"
+            onClick={fillDemoRegistration}
+            className="h-11 rounded-full px-4 shadow-xl"
+            data-testid="button-fill-demo-registration"
+          >
+            <ClipboardCheck size={17} />
+            Tự điền mẫu
+          </Button>
+        </div>
+      )}
       {notice && <Notice message={notice} onClose={() => setNotice("")} />}
     </div>
   );
