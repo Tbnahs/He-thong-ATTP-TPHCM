@@ -503,7 +503,7 @@ function SupplementRegistrationForm({
     application.type === "school"
       ? "Cơ sở giáo dục"
       : application.type === "meal-provider"
-        ? "Cơ sở suất ăn sẵn"
+        ? "Cơ sở chế biến và cung cấp suất ăn"
         : "Cơ sở cung cấp thực phẩm";
 
   const assignedFileKeys = new Set<string>();

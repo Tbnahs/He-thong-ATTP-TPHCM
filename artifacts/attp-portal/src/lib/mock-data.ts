@@ -494,7 +494,7 @@ const criteria: Record<ApplicationType, CriteriaSet> = {
               answerType: "select",
               options: [
                 "Cơ sở giáo dục",
-                "Cơ sở cung cấp suất ăn",
+                "Cơ sở chế biến và cung cấp suất ăn",
                 "Đơn vị khác",
               ],
               required: true,
@@ -3335,7 +3335,7 @@ const createSampleApplication = (
     ];
     data.suppliedUnits = [
       {
-        unitType: index % 2 ? "Cơ sở giáo dục" : "Cơ sở cung cấp suất ăn",
+        unitType: index % 2 ? "Cơ sở giáo dục" : "Cơ sở chế biến và cung cấp suất ăn",
         name: sampleFacilityNames["meal-provider"][index % sampleFacilityNames["meal-provider"].length],
         taxCode: `031${String(7000000 + index * 113).slice(-7)}`,
       },
@@ -3594,7 +3594,7 @@ export const applications: Application[] = [
       ],
       suppliedUnits: [
         {
-          unitType: "Cơ sở cung cấp suất ăn",
+          unitType: "Cơ sở chế biến và cung cấp suất ăn",
           name: "Công ty Suất ăn Minh Tâm",
           taxCode: "0314567890",
         },
@@ -3845,7 +3845,7 @@ export const applications: Application[] = [
       licenseNumber: "ATTP-HCM-2026-0082",
       licenseExpires: "2027-06-10",
       products: [{ category: "Thủy sản", name: "Cá basa phi lê", origin: "Đồng Tháp", traceability: "Có" }],
-      suppliedUnits: [{ unitType: "Cơ sở cung cấp suất ăn", name: "Bếp ăn tập thể An Phú", taxCode: "0316655442" }],
+      suppliedUnits: [{ unitType: "Cơ sở chế biến và cung cấp suất ăn", name: "Bếp ăn tập thể An Phú", taxCode: "0316655442" }],
     },
     attachments: [
       { name: "giay-phep-binh-minh.pdf", kind: "application/pdf", size: 460000, fieldKey: "businessLicense" },

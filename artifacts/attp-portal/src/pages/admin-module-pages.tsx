@@ -75,7 +75,7 @@ import {
 type FacilityCategory =
   | "Trường học có bếp ăn bán trú"
   | "Cơ sở cung cấp thực phẩm"
-  | "Cơ sở cung cấp suất ăn";
+  | "Cơ sở chế biến và cung cấp suất ăn";
 
 type Facility = {
   id: string;
@@ -127,7 +127,7 @@ const facilities: Facility[] = [
   {
     id: "facility-005",
     name: "Công ty Suất ăn Minh Tâm",
-    category: "Cơ sở cung cấp suất ăn",
+    category: "Cơ sở chế biến và cung cấp suất ăn",
     address: "Khu công nghiệp Tân Bình",
     contact: "028 3812 8899",
     status: "approved",
@@ -136,7 +136,7 @@ const facilities: Facility[] = [
   {
     id: "facility-006",
     name: "Bếp ăn tập thể An Phú",
-    category: "Cơ sở cung cấp suất ăn",
+    category: "Cơ sở chế biến và cung cấp suất ăn",
     address: "12 Nguyễn Hữu Thọ, Quận 7",
     contact: "0912 555 888",
     status: "stopped",
@@ -148,7 +148,7 @@ const categoryOptions: Array<"Tất cả" | FacilityCategory> = [
   "Tất cả",
   "Trường học có bếp ăn bán trú",
   "Cơ sở cung cấp thực phẩm",
-  "Cơ sở cung cấp suất ăn",
+  "Cơ sở chế biến và cung cấp suất ăn",
 ];
 
 type FacilityManagementTab =
@@ -371,7 +371,7 @@ const createFacilityRow = (
       ? "Trường học có bếp ăn bán trú"
       : group === "food"
         ? "Cơ sở cung cấp thực phẩm"
-        : "Cơ sở cung cấp suất ăn"),
+        : "Cơ sở chế biến và cung cấp suất ăn"),
 });
 
 const additionalFacilityRows: Record<FacilitySeedGroup, FacilityManagementRow[]> = {
@@ -608,7 +608,7 @@ const withFacilityDetails = (
 
 const facilityTabLabels: Record<FacilityManagementTab, string> = {
   all: "Tất cả cơ sở",
-  suppliers: "Cơ sở cung cấp suất ăn",
+  suppliers: "Cơ sở chế biến và cung cấp suất ăn",
   schools: "Cơ sở giáo dục",
   food: "Cơ sở cung cấp thực phẩm",
 };
@@ -721,8 +721,20 @@ const getRegistrationCategory = (type?: ApplicationType) =>
   type === "food-supplier"
     ? "Cơ sở cung cấp thực phẩm"
     : type === "meal-provider"
-      ? "cơ sở suất ăn sẵn"
+      ? "Cơ sở chế biến và cung cấp suất ăn"
       : "Cơ sở giáo dục";
+
+const getFacilityCategoryLabel = (category?: string) => {
+  const normalized = category?.trim().toLocaleLowerCase("vi-VN");
+  if (
+    normalized === "cơ sở cung cấp suất ăn" ||
+    normalized === "cơ sở cung cấp suất ăn sẵn" ||
+    normalized === "cơ sở suất ăn sẵn"
+  ) {
+    return "Cơ sở chế biến và cung cấp suất ăn";
+  }
+  return category;
+};
 
 const getRowRegistrationType = (
   row?: FacilityManagementRow | null,
@@ -732,6 +744,7 @@ const getRowRegistrationType = (
   if (
     row.category === "Cơ sở cung cấp suất ăn" ||
     row.category === "Cơ sở chế biến và cung cấp suất ăn" ||
+    row.category === "Cơ sở suất ăn sẵn" ||
     row.category === "cơ sở suất ăn sẵn"
   )
     return "meal-provider";
@@ -1566,7 +1579,7 @@ function categoryShortName(category: FacilityCategory) {
     ? "Trường học"
     : category === "Cơ sở cung cấp thực phẩm"
       ? "Cung cấp thực phẩm"
-      : "Cung cấp suất ăn";
+      : "Chế biến và cung cấp suất ăn";
 }
 
 function escapeExcelCell(value: unknown) {
@@ -2111,7 +2124,7 @@ export function AdminMonitoringDashboard() {
   const exportDashboardExcel = () => {
     const tabTitle =
       activeTab === "suppliers"
-        ? "Cơ sở cung cấp suất ăn"
+        ? "Cơ sở chế biến và cung cấp suất ăn"
         : activeTab === "schools"
           ? "Cơ sở giáo dục"
           : "Cơ sở cung cấp thực phẩm";
@@ -2214,7 +2227,7 @@ export function AdminMonitoringDashboard() {
                   Theo dõi theo xã/phường
                 </h1>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-white/70">
-                  Lọc và theo dõi các cơ sở cung cấp suất ăn, cơ sở giáo dục và
+                  Lọc và theo dõi các cơ sở chế biến và cung cấp suất ăn, cơ sở giáo dục và
                   cơ sở cung cấp thực phẩm theo từng xã/phường.
                 </p>
               </div>
@@ -2236,7 +2249,7 @@ export function AdminMonitoringDashboard() {
             >
               {(
                 [
-                  ["suppliers", "Cơ sở cung cấp suất ăn"],
+                  ["suppliers", "Cơ sở chế biến và cung cấp suất ăn"],
                   ["schools", "Cơ sở giáo dục"],
                   ["food", "Cơ sở cung cấp thực phẩm"],
                 ] as const
@@ -2277,7 +2290,7 @@ export function AdminMonitoringDashboard() {
                   <p className="mono-label text-primary">BỘ LỌC TRA CỨU</p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {activeTab === "suppliers"
-                      ? "Cơ sở cung cấp suất ăn"
+                      ? "Cơ sở chế biến và cung cấp suất ăn"
                       : activeTab === "schools"
                         ? "Cơ sở giáo dục"
                         : "Cơ sở cung cấp thực phẩm"}
@@ -2516,7 +2529,7 @@ export function AdminMonitoringDashboard() {
               <p className="mono-label text-primary">TRẠNG THÁI</p>
               <h2 className="mt-1 text-lg font-extrabold">
                 {activeTab === "suppliers"
-                  ? "Cơ sở cung cấp suất ăn tại "
+                  ? "Cơ sở chế biến và cung cấp suất ăn tại "
                   : activeTab === "schools"
                     ? "Cơ sở giáo dục tại "
                     : "Cơ sở cung cấp thực phẩm tại "}
@@ -2585,7 +2598,7 @@ export function AdminMonitoringDashboard() {
               <p className="mono-label text-primary">DANH SÁCH THEO ĐỊA BÀN</p>
               <h2 className="mt-1 text-lg font-extrabold">
                 {activeTab === "suppliers"
-                  ? `Cơ sở cung cấp suất ăn tại ${area}`
+                  ? `Cơ sở chế biến và cung cấp suất ăn tại ${area}`
                   : activeTab === "schools"
                     ? `Cơ sở giáo dục tại ${area}`
                     : `Cơ sở cung cấp thực phẩm tại ${area}`}
@@ -3433,7 +3446,7 @@ export function AdminFacilitiesPage() {
       ],
       rows.map((row) => [
         row.name,
-        row.category ?? facilityTabLabels[activeTab],
+        getFacilityCategoryLabel(row.category) ?? facilityTabLabels[activeTab],
         row.province,
         row.ward,
         row.address,
@@ -3476,13 +3489,13 @@ export function AdminFacilitiesPage() {
       const imported: FacilityManagementRow[] = [];
       let skippedStatuses = 0;
       sourceRows.forEach((cells, index) => {
-        const categoryText = cells[1] || "Cơ sở cung cấp suất ăn";
+        const categoryText = cells[1] || "Cơ sở chế biến và cung cấp suất ăn";
         const category = categoryText.includes("thực phẩm")
           ? "Cơ sở cung cấp thực phẩm"
           : categoryText.includes("giáo dục") ||
               categoryText.includes("trường")
             ? "Trường học có bếp ăn bán trú"
-            : "Cơ sở cung cấp suất ăn";
+            : "Cơ sở chế biến và cung cấp suất ăn";
         const status = parseApplicationStatus(cells[6] || "Chờ duyệt");
         if (!status) {
           skippedStatuses += 1;
@@ -3562,7 +3575,7 @@ export function AdminFacilitiesPage() {
           {(
             [
               ["all", "Tất cả", Layers3],
-              ["suppliers", "Cơ sở cung cấp suất ăn", Utensils],
+              ["suppliers", "Cơ sở chế biến và cung cấp suất ăn", Utensils],
               ["schools", "Cơ sở giáo dục", Building2],
               ["food", "Cơ sở cung cấp thực phẩm", FileText],
             ] as const
@@ -3724,7 +3737,7 @@ export function AdminFacilitiesPage() {
                         </>
                       ) : activeTab === "food" ? (
                         <>
-                          <td className="px-4 py-4">{row.category}</td>
+                          <td className="px-4 py-4">{getFacilityCategoryLabel(row.category)}</td>
                           <td className="px-4 py-4 text-right">{row.updated}</td>
                         </>
                       ) : null}
@@ -3851,7 +3864,7 @@ export function AdminFacilitiesPage() {
                   {activeTab === "food" ? (
                     <div>
                       <dt className="text-sm font-bold text-muted-foreground">Nhóm thực phẩm</dt>
-                      <dd className="mt-1">{row.category || "—"}</dd>
+                        <dd className="mt-1">{getFacilityCategoryLabel(row.category) || "—"}</dd>
                     </div>
                   ) : null}
                   <div>
@@ -3980,7 +3993,7 @@ export function AdminFacilitiesPage() {
                   {selectedRow.name}
                 </h2>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {selectedRow.category ?? facilityTabLabels[activeTab]}
+                  {getFacilityCategoryLabel(selectedRow.category) ?? facilityTabLabels[activeTab]}
                 </p>
               </div>
               <button type="button" onClick={() => setSelectedRow(null)} className="rounded-xl bg-secondary p-2 text-muted-foreground" aria-label="Đóng">
@@ -3996,7 +4009,7 @@ export function AdminFacilitiesPage() {
                       <span>
                         {selectedApplication
                           ? getRegistrationCategory(selectedApplication.type)
-                          : selectedRow.category ?? facilityTabLabels[activeTab]}
+                          : getFacilityCategoryLabel(selectedRow.category) ?? facilityTabLabels[activeTab]}
                       </span>
                       <span className="text-white/35">•</span>
                       <span>
@@ -4891,7 +4904,7 @@ export function AdminFacilityDetailPage() {
                   Mã hồ sơ: {application?.reference ?? row.id}
                 </span>
                 <span className="rounded-full bg-white/10 px-3 py-1.5">
-                  {registrationType ? getRegistrationCategory(registrationType) : row.category ?? "Cơ sở"}
+                  {registrationType ? getRegistrationCategory(registrationType) : getFacilityCategoryLabel(row.category) ?? "Cơ sở"}
                 </span>
                 {application?.published ? (
                   <span className="rounded-full bg-emerald-300/15 px-3 py-1.5 text-emerald-100">
@@ -4925,7 +4938,7 @@ export function AdminFacilityDetailPage() {
                   Loại hình
                 </p>
                 <p className="mt-1.5 text-sm font-extrabold leading-5">
-                  {registrationType ? getRegistrationCategory(registrationType) : row.category ?? "Cơ sở"}
+                  {registrationType ? getRegistrationCategory(registrationType) : getFacilityCategoryLabel(row.category) ?? "Cơ sở"}
                 </p>
               </div>
             </div>

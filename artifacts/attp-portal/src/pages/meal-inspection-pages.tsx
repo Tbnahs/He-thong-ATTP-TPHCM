@@ -30,7 +30,7 @@ import cameraViewPath from "../../../../attached_assets/Chi_tiết_kiểm_thực
 
 type CameraState = "online" | "offline";
 type ScoreStatus = "Đạt" | "Cần rà soát" | "Chưa cập nhật";
-type InspectionFacilityType = "Cơ sở cung cấp suất ăn" | "Cơ sở giáo dục";
+type InspectionFacilityType = "Cơ sở chế biến và cung cấp suất ăn" | "Cơ sở giáo dục";
 type InspectionDateMode = "single" | "range";
 
 type SchoolInspection = {
@@ -187,7 +187,7 @@ const seededSchools: SchoolInspection[] = [
     id: "minh-tam",
     initials: "MT",
     name: "Công ty Suất ăn Minh Tâm",
-    shortName: "Cơ sở cung cấp suất ăn",
+    shortName: "Cơ sở chế biến và cung cấp suất ăn",
     ward: "Phường Tân Bình",
     address: "Khu công nghiệp Tân Bình",
     date: "09/03/2026",
@@ -197,13 +197,13 @@ const seededSchools: SchoolInspection[] = [
     statuses: { m1: "Đạt", m2: "Đạt", m3: "Đạt", m4: "Đạt", m5: "Đạt" },
     camera: "online",
     cameraCount: 2,
-    facilityType: "Cơ sở cung cấp suất ăn",
+    facilityType: "Cơ sở chế biến và cung cấp suất ăn",
   },
   {
     id: "bep-an-an-phu",
     initials: "AP",
     name: "Bếp ăn tập thể An Phú",
-    shortName: "Cơ sở cung cấp suất ăn",
+    shortName: "Cơ sở chế biến và cung cấp suất ăn",
     ward: "Phường Tân Phú",
     address: "12 Nguyễn Hữu Thọ, Quận 7",
     date: "08/03/2026",
@@ -213,7 +213,7 @@ const seededSchools: SchoolInspection[] = [
     statuses: { m1: "Đạt", m2: "Đạt", m3: "Cần rà soát", m4: "Đạt", m5: "Đạt" },
     camera: "offline",
     cameraCount: 2,
-    facilityType: "Cơ sở cung cấp suất ăn",
+    facilityType: "Cơ sở chế biến và cung cấp suất ăn",
   },
 ];
 
@@ -627,7 +627,7 @@ export function ThreeStepInspectionDashboard() {
                 className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
                 data-testid="select-filter-facility-type"
               >
-                <option value="Cơ sở cung cấp suất ăn">Cơ sở cung cấp suất ăn</option>
+                <option value="Cơ sở chế biến và cung cấp suất ăn">Cơ sở chế biến và cung cấp suất ăn</option>
                 <option value="Cơ sở giáo dục">Cơ sở giáo dục</option>
               </select>
             </label>

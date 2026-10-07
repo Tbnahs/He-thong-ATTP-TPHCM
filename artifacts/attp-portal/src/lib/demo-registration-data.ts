@@ -292,7 +292,7 @@ export const makeDemoRegistrationAnswer = (
       testingFrequency: "12 tháng",
       waterSource: "Nước máy",
       waterType: "Nước uống đóng bình, đóng chai",
-      unitType: type === "food-supplier" ? "Cơ sở cung cấp suất ăn" : "Cơ sở giáo dục",
+      unitType: type === "food-supplier" ? "Cơ sở chế biến và cung cấp suất ăn" : "Cơ sở giáo dục",
       target: "Cơ sở giáo dục",
       equipmentType: "Tủ mát",
       stoveType: "Bếp điện",

@@ -475,12 +475,12 @@ const regionalFacilities: RegionalFacility[] = [
 ];
 const typeNames: Record<string, string> = {
   "food-supplier": "Cơ sở cung cấp thực phẩm",
-  "meal-provider": "Cơ sở suất ăn sẵn",
+  "meal-provider": "Cơ sở chế biến và cung cấp suất ăn",
   school: "Cơ sở giáo dục",
 };
 const facilityTypeOptions: { value: ApplicationType; label: string }[] = [
   { value: "school", label: "Cơ sở giáo dục" },
-  { value: "meal-provider", label: "Cơ sở suất ăn sẵn" },
+  { value: "meal-provider", label: "Cơ sở chế biến và cung cấp suất ăn" },
   { value: "food-supplier", label: "Cơ sở cung cấp thực phẩm" },
 ];
 const schoolModelFormMap: Record<
@@ -1920,7 +1920,7 @@ export function LookupPage() {
 
 const publicRecordTypeLabels: Record<ApplicationType, string> = {
   "food-supplier": "Cơ sở cung cấp thực phẩm",
-  "meal-provider": "Cơ sở suất ăn sẵn",
+  "meal-provider": "Cơ sở chế biến và cung cấp suất ăn",
   school: "Cơ sở giáo dục",
 };
 
@@ -5757,7 +5757,7 @@ export function ApplicationForm({
                 data-testid="select-registration-type"
               >
                 <option value="school">Cơ sở giáo dục</option>
-                <option value="meal-provider">Cơ sở suất ăn sẵn</option>
+                <option value="meal-provider">Cơ sở chế biến và cung cấp suất ăn</option>
                 <option value="food-supplier">Cơ sở cung cấp thực phẩm</option>
               </select>
             </div>
@@ -7085,7 +7085,7 @@ function SchoolModelDetails({
                               </p>
                               <p className="mt-1 text-muted-foreground">
                                 {selectedProvider.type === "meal-provider"
-                                  ? "Cơ sở cung cấp suất ăn"
+                                  ? "Cơ sở chế biến và cung cấp suất ăn"
                                   : "Cơ sở cung cấp thực phẩm"}
                                 {selectedProvider.taxCode
                                   ? ` · Mã số ${selectedProvider.taxCode}`
@@ -9345,7 +9345,7 @@ export function AdminCriteriaPage() {
             </span>
             {[
               ["school", "Cơ sở giáo dục"],
-              ["meal-provider", "cơ sở suất ăn sẵn"],
+              ["meal-provider", "Cơ sở chế biến và cung cấp suất ăn"],
             ].map(([value, label]) => (
               <button
                 key={value}
