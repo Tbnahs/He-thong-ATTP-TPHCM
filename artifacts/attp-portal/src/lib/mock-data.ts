@@ -1600,7 +1600,7 @@ criteria["meal-provider"] = {
     formField(
       "meal-provider",
       "suppliedUnits",
-      "Danh sách đơn vị nhận suất ăn",
+      "Danh sách các đơn vị cung cấp",
       "meal-provider-group-2",
       "repeatable",
       30,
@@ -1922,7 +1922,7 @@ criteria["meal-provider"] = {
     "Thông tin chung về giấy chứng nhận và tình hình nhân sự",
     "Điều kiện đảm bảo an toàn thực phẩm",
     "Nguồn gốc nguyên liệu",
-    "Danh sách đơn vị nhận suất ăn",
+    "Danh sách các đơn vị cung cấp",
   ]),
   criteria: criteria["meal-provider"].criteria
     .filter((item) => item.key !== "email")

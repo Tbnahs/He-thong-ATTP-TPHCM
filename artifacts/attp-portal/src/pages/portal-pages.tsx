@@ -5714,7 +5714,7 @@ export function ApplicationForm({
     waterSources: "1. Nguồn nước sử dụng trong chế biến thực phẩm",
     ingredientSuppliers: "2. Các nguồn nguyên liệu khác",
     otherContents: "3. Các nội dung khác",
-    suppliedUnits: "1. Danh sách các đơn vị nhận cung cấp suất ăn",
+    suppliedUnits: "1. Danh sách các đơn vị được cung cấp",
   };
   const mealProviderInlinePairs: Record<string, string> = {
     citizenId: "informationProviderPosition",
