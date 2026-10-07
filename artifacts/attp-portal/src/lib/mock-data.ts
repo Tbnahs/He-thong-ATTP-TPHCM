@@ -3920,7 +3920,7 @@ applications
     application.published = application.status === "approved";
   });
 
-const storedApplicationsKey = "attp-submitted-applications";
+export const storedApplicationsKey = "attp-submitted-applications";
 const readStoredApplications = (): Application[] => {
   if (typeof window === "undefined") return [];
   try {

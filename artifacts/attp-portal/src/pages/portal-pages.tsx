@@ -88,6 +88,7 @@ import {
   saveApplicationRecord,
   schoolOptions,
   suppliers,
+  storedApplicationsKey,
   type Application,
   type ApplicationStatus,
   type ApplicationType,
@@ -1074,6 +1075,67 @@ export const readFacilityAccounts = (): FacilityAccount[] => {
   } catch {
     return [];
   }
+};
+const normalizeFacilityTaxCode = (value: unknown) =>
+  typeof value === "string"
+    ? value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "")
+    : "";
+const getFacilityTaxCode = (
+  type: ApplicationType,
+  fields: Record<string, unknown>,
+) => {
+  const keys = type === "school" ? ["privateOwnerTaxCode"] : ["taxCode", "serviceTaxCode"];
+  for (const key of keys) {
+    const value = fields[key];
+    const taxCode =
+      typeof value === "string"
+        ? value
+        : Array.isArray(value) && typeof value[0] === "string"
+          ? value[0]
+          : "";
+    if (normalizeFacilityTaxCode(taxCode)) return taxCode.trim();
+  }
+  return "";
+};
+const hasExistingFacilityTaxCode = (
+  type: ApplicationType,
+  taxCode: string,
+) => {
+  const normalizedTaxCode = normalizeFacilityTaxCode(taxCode);
+  if (!normalizedTaxCode || typeof window === "undefined") return false;
+
+  let storedApplications: Application[] = [];
+  try {
+    const parsed = JSON.parse(
+      window.localStorage.getItem(storedApplicationsKey) || "[]",
+    );
+    if (Array.isArray(parsed)) storedApplications = parsed as Application[];
+  } catch {
+    // The in-memory records and facility accounts remain available if storage is malformed.
+  }
+  const existingApplications = new Map(
+    [...applications, ...storedApplications].map((application) => [
+      application.id,
+      application,
+    ]),
+  );
+  const applicationHasTaxCode = [...existingApplications.values()].some(
+    (application) =>
+      normalizeFacilityTaxCode(
+        getFacilityTaxCode(application.type, application.data),
+      ) === normalizedTaxCode,
+  );
+  if (applicationHasTaxCode) return true;
+
+  return readFacilityAccounts().some(
+    (account) =>
+      normalizeFacilityTaxCode(
+        getFacilityTaxCode(
+          account.registration.type,
+          account.registration.fields,
+        ),
+      ) === normalizedTaxCode,
+  );
 };
 const getRegisteredServiceProviders = (): RegisteredMealProvider[] => {
   const candidates: RegisteredMealProvider[] = [];
@@ -5188,6 +5250,15 @@ export function ApplicationForm({
     if (readOnly) return;
     setDemoFillNotice("");
     setSubmitAttempted(true);
+    if (mode === "register") {
+      const taxCode = getFacilityTaxCode(type, fields);
+      if (taxCode && hasExistingFacilityTaxCode(type, taxCode)) {
+        setNotice(
+          `Hồ sơ này đã được tạo với mã số thuế ${taxCode}. Vui lòng đăng nhập tài khoản cơ sở hiện có.`,
+        );
+        return;
+      }
+    }
     const missing = getMissingRequiredFields();
     const missingSchoolConfirmation = type === "school" && !schoolConfirmed;
     const missingAverageDailyMealDemand =
@@ -5490,6 +5561,15 @@ export function ApplicationForm({
         );
       }
       return;
+    }
+    if (mode === "register") {
+      const taxCode = getFacilityTaxCode(type, input.data);
+      if (taxCode && hasExistingFacilityTaxCode(type, taxCode)) {
+        setNotice(
+          `Hồ sơ này đã được tạo với mã số thuế ${taxCode}. Vui lòng đăng nhập tài khoản cơ sở hiện có.`,
+        );
+        return;
+      }
     }
     saveApplicationRecord(applicationRecord);
     if (mode === "register") {
@@ -6095,22 +6175,6 @@ export function ApplicationForm({
             <SchoolApplicationReview
               locations={schoolLocations}
               getRowsForLocation={getSchoolRowsForLocation}
-              allowPartialSubmission={allowPartialSubmission}
-              missingGeneralFields={getMissingRequiredFields().map(
-                (item) => item.label,
-              )}
-              requiredLocationIssues={
-                allowPartialSubmission ? blockingSchoolLocationIssues : []
-              }
-              locationIssues={
-                allowPartialSubmission
-                  ? schoolLocationIssues.filter(
-                      (issue) =>
-                        !blockingSchoolLocationIssues.includes(issue),
-                    )
-                  : schoolLocationIssues
-              }
-              modelValidation={schoolModelValidation}
               providerNameForRow={getSchoolProviderDisplayName}
               onGoToStep={setSchoolStep}
               onRemoveLocation={removeSchoolLocation}
@@ -6759,11 +6823,6 @@ function SchoolOperatingModelDetails({
 function SchoolApplicationReview({
   locations,
   getRowsForLocation,
-  allowPartialSubmission,
-  missingGeneralFields,
-  requiredLocationIssues,
-  locationIssues,
-  modelValidation,
   providerNameForRow,
   onGoToStep,
   onRemoveLocation,
@@ -6775,24 +6834,6 @@ function SchoolApplicationReview({
   getRowsForLocation: (
     location: SchoolLocationRecord,
   ) => { row: Record<string, string | string[]>; rowIndex: number }[];
-  allowPartialSubmission: boolean;
-  missingGeneralFields: string[];
-  requiredLocationIssues: string[];
-  locationIssues: string[];
-  modelValidation: {
-    missingProviderLinks: {
-      rowId: string;
-      locationId: string;
-      model: string;
-      locationName: string;
-    }[];
-    missingModelDetails: {
-      rowId: string;
-      locationId: string;
-      model: string;
-      labels: string[];
-    }[];
-  };
   providerNameForRow: (rowIndex: number) => string;
   onGoToStep: (step: number) => void;
   onRemoveLocation: (location: SchoolLocationRecord) => void;
@@ -6800,89 +6841,15 @@ function SchoolApplicationReview({
   confirmationChecked: boolean;
   onConfirmationChange: (checked: boolean) => void;
 }) {
-  const mandatoryIssueCount =
-    missingGeneralFields.length +
-    requiredLocationIssues.length +
-    (confirmationChecked ? 0 : 1);
-  const optionalIssueCount =
-    locationIssues.length +
-    modelValidation.missingProviderLinks.length +
-    modelValidation.missingModelDetails.length;
-  const issueCount = mandatoryIssueCount + optionalIssueCount;
-  const hasBlockingIssues = allowPartialSubmission
-    ? mandatoryIssueCount > 0
-    : issueCount > 0;
   return (
     <section className="paper-model-forms" data-testid="school-review-step">
       <div className="paper-model-intro">
         <p className="paper-model-kicker">BƯỚC 6 · RÀ SOÁT VÀ GỬI</p>
-        <h2>Kiểm tra cấu trúc hồ sơ</h2>
+        <h2>Thông tin đã kê khai</h2>
         <p>
-          {allowPartialSubmission
-            ? "Hoàn thành phần Thông tin chung và địa chỉ điểm chính để nộp lần đầu. Các điểm trường khác, mô hình, biểu mẫu chi tiết và minh chứng có thể bổ sung sau trong tài khoản."
-            : "Xác nhận mỗi địa điểm, mô hình và đơn vị có thông tin riêng trước khi gửi. Chọn “Sửa” để quay lại đúng phần kê khai."}
+          Danh sách địa điểm và mô hình đã kê khai. Chọn “Sửa” để cập nhật
+          thông tin.
         </p>
-      </div>
-      <div
-        className={`mt-5 flex items-start gap-3 rounded-xl border p-4 ${
-          hasBlockingIssues
-            ? "border-amber-300 bg-amber-50 text-amber-950"
-            : issueCount
-              ? "border-primary/20 bg-secondary/30 text-foreground"
-              : "border-emerald-300 bg-emerald-50 text-emerald-950"
-        }`}
-        role="status"
-        data-testid="school-review-status"
-      >
-        {hasBlockingIssues ? (
-          <TriangleAlert className="mt-0.5 shrink-0" size={19} />
-        ) : issueCount ? (
-          <Info className="mt-0.5 shrink-0 text-primary" size={19} />
-        ) : (
-          <CheckCircle2 className="mt-0.5 shrink-0" size={19} />
-        )}
-        <div>
-          <p className="font-bold">
-            {issueCount
-              ? allowPartialSubmission
-                ? mandatoryIssueCount
-                  ? `Còn ${mandatoryIssueCount} mục thông tin chung, địa chỉ điểm chính hoặc xác nhận cần hoàn tất`
-                  : `Còn ${optionalIssueCount} mục có thể bổ sung sau`
-                : `Còn ${issueCount} mục cần kiểm tra`
-              : allowPartialSubmission
-                ? "Thông tin chung, địa chỉ điểm chính và xác nhận đã sẵn sàng nộp"
-                : "Các mục bắt buộc đã có thông tin"}
-          </p>
-          {issueCount > 0 && (
-            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
-              {missingGeneralFields.slice(0, 4).map((issue) => (
-                <li key={`general-${issue}`}>Thông tin chung: {issue}</li>
-              ))}
-              {requiredLocationIssues.map((issue) => (
-                <li key={`required-location-${issue}`}>{issue}</li>
-              ))}
-              {!confirmationChecked && (
-                <li>Xác nhận các thông tin đã kê khai</li>
-              )}
-              {locationIssues.slice(0, 4).map((issue) => (
-                <li key={`location-${issue}`}>{issue}</li>
-              ))}
-              {modelValidation.missingProviderLinks.slice(0, 4).map((issue) => (
-                <li key={`provider-${issue.rowId}`}>
-                  Chưa liên kết đơn vị đã đăng ký: {issue.model} ·{" "}
-                  {issue.locationName}
-                </li>
-              ))}
-              {modelValidation.missingModelDetails.slice(0, 4).map((issue) => (
-                <li key={`details-${issue.rowId}`}>
-                  {issue.model}: còn thiếu{" "}
-                  {issue.labels.slice(0, 3).join(", ")}
-                  {issue.labels.length > 3 ? "…" : ""}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
       </div>
       <div className="mt-5 grid gap-4">
         {locations.map((location) => {
@@ -6929,25 +6896,12 @@ function SchoolApplicationReview({
                   )}
                 </div>
               </header>
-              {siteRows.length === 0 ? (
-                <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                  Chưa khai báo mô hình hoạt động tại địa điểm này.
-                </p>
-              ) : (
+              {siteRows.length > 0 && (
                 <div className="mt-3 grid gap-3">
                   {siteRows.map(({ row, rowIndex }) => {
                     const model = schoolFieldText(row.model);
                     const modelForm = getSchoolModelForm(model);
                     const rowId = schoolFieldText(row.id) || String(rowIndex);
-                    const detailIssue =
-                      modelValidation.missingModelDetails.find(
-                        (issue) => issue.rowId === rowId,
-                      );
-                    const providerIssue =
-                      modelValidation.missingProviderLinks.find(
-                        (issue) => issue.rowId === rowId,
-                      );
-                    const incomplete = Boolean(detailIssue || providerIssue);
                     const providerName = providerNameForRow(rowIndex);
                     const editStep =
                       model === "BATT tự tổ chức" ? 4 : 3;
@@ -6958,46 +6912,20 @@ function SchoolApplicationReview({
                         data-testid={`school-review-model-${rowId}`}
                       >
                         <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div className="flex items-start gap-2">
-                            {incomplete ? (
-                              <TriangleAlert
-                                className="mt-0.5 shrink-0 text-amber-700"
-                                size={17}
-                              />
-                            ) : (
-                              <CheckCircle2
-                                className="mt-0.5 shrink-0 text-emerald-700"
-                                size={17}
-                              />
-                            )}
+                          <div>
                             <div>
                               <p className="font-semibold">
                                 Mẫu số {modelForm.number} · {model}
                               </p>
-                              <p className="mt-1 text-sm text-muted-foreground">
-                                {model === "BATT tự tổ chức"
-                                  ? "Bếp ăn do cơ sở giáo dục tự tổ chức"
-                                  : providerName || "Chưa khai báo đơn vị thực hiện"}
-                              </p>
-                              <p
-                                className={`mt-1 text-xs font-semibold ${
-                                  incomplete
-                                    ? "text-amber-800"
-                                    : "text-emerald-800"
-                                }`}
-                              >
-                                {incomplete
-                                  ? allowPartialSubmission
-                                    ? "Có thể bổ sung sau"
-                                    : "Cần bổ sung thông tin/hồ sơ"
-                                  : "Đã khai báo đầy đủ"}
-                              </p>
-                              {detailIssue && (
+                              {model === "BATT tự tổ chức" ? (
                                 <p className="mt-1 text-xs text-muted-foreground">
-                                  Thiếu: {detailIssue.labels.slice(0, 4).join(", ")}
-                                  {detailIssue.labels.length > 4 ? "…" : ""}
+                                  Bếp ăn do cơ sở giáo dục tự tổ chức
                                 </p>
-                              )}
+                              ) : providerName ? (
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                  {providerName}
+                                </p>
+                              ) : null}
                             </div>
                           </div>
                           <div className="flex gap-2">
