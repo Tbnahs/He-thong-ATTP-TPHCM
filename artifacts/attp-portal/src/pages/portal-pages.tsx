@@ -2825,10 +2825,15 @@ function FacilityApplicationSupplementEditor({
     Array.isArray(application.criteriaSnapshot) &&
     application.criteriaSnapshot.length > 0;
   const canEdit =
-    application.status === "needs-more-info" && hasSavedAnswers;
+    (application.status === "pending" ||
+      application.status === "needs-more-info") &&
+    hasSavedAnswers;
   const hasOpenRequest = supplementRequest?.status === "open";
+  const hasOpenSupplementRequest =
+    application.status === "needs-more-info" && hasOpenRequest;
   const canResubmit =
-    canEdit && (!supplementRequest || hasOpenRequest);
+    canEdit &&
+    (application.status === "pending" || !supplementRequest || hasOpenRequest);
   const reviewer =
     supplementRequest?.reviewer ??
     application.supplementReviewer ??
@@ -2870,7 +2875,9 @@ function FacilityApplicationSupplementEditor({
                 : !hasOriginalCriteria
                   ? "Không còn bản chụp bộ câu hỏi gốc. Các câu trả lời còn lưu được nạp vào biểu mẫu tham khảo; mục không có dữ liệu sẽ để trống."
                   : canEdit
-                    ? "Cập nhật trực tiếp trên biểu mẫu đã nộp; các câu trả lời hiện có được giữ nguyên."
+                    ? application.status === "pending"
+                      ? "Hồ sơ đang Chờ duyệt. Bạn có thể bổ sung thông tin trong tài khoản; trạng thái sẽ giữ nguyên khi lưu."
+                      : "Cập nhật trực tiếp trên biểu mẫu đã nộp; các câu trả lời hiện có được giữ nguyên."
                     : "Đây là biểu mẫu và các câu trả lời đã nộp, ở chế độ chỉ xem."}
             </p>
           </div>
@@ -2983,11 +2990,13 @@ function FacilityApplicationSupplementEditor({
       {hasSavedAnswers ? (
         <ApplicationForm
           key={application.id}
-          mode={hasOpenRequest ? "supplement" : "edit"}
+          mode={hasOpenSupplementRequest ? "supplement" : "edit"}
           account={applicationAccount}
           initialSnapshot={applicationAccount.registration}
           supplementApplication={application}
-          onSupplementSubmit={hasOpenRequest ? submitSupplement : undefined}
+          onSupplementSubmit={
+            hasOpenSupplementRequest ? submitSupplement : undefined
+          }
           readOnly={!canResubmit}
         />
       ) : (
@@ -3208,7 +3217,10 @@ export function FacilityApplicationsPage() {
                         className="focus-ring mt-4 inline-flex min-h-10 items-center gap-2 rounded-lg border border-primary/25 px-4 py-2 text-sm font-bold text-primary hover:bg-secondary"
                         data-testid={`link-view-submitted-form-${application.id}`}
                       >
-                        <FileText size={15} /> Xem biểu mẫu đã nộp
+                        <FileText size={15} />{" "}
+                        {application.status === "pending"
+                          ? "Mở hồ sơ để bổ sung"
+                          : "Xem biểu mẫu đã nộp"}
                       </Link>
                     </article>
                   );
@@ -3328,10 +3340,15 @@ export function FacilityApplicationFormPage() {
     Array.isArray(application.criteriaSnapshot) &&
     application.criteriaSnapshot.length > 0;
   const canEdit =
-    application.status === "needs-more-info" && hasSavedAnswers;
+    (application.status === "pending" ||
+      application.status === "needs-more-info") &&
+    hasSavedAnswers;
   const hasOpenRequest = supplementRequest?.status === "open";
+  const hasOpenSupplementRequest =
+    application.status === "needs-more-info" && hasOpenRequest;
   const canResubmit =
-    canEdit && (!supplementRequest || hasOpenRequest);
+    canEdit &&
+    (application.status === "pending" || !supplementRequest || hasOpenRequest);
   const reviewer =
     supplementRequest?.reviewer ??
     application.supplementReviewer ??
@@ -3378,7 +3395,9 @@ export function FacilityApplicationFormPage() {
                 : !hasOriginalCriteria
                   ? "Không còn bản chụp bộ câu hỏi gốc. Các câu trả lời còn lưu được nạp vào biểu mẫu tham khảo; mục không có dữ liệu sẽ để trống."
                   : canEdit
-                    ? "Cập nhật trực tiếp trên biểu mẫu đã nộp; các câu trả lời hiện có được giữ nguyên."
+                    ? application.status === "pending"
+                      ? "Hồ sơ đang Chờ duyệt. Bạn có thể bổ sung thông tin trong tài khoản; trạng thái sẽ giữ nguyên khi lưu."
+                      : "Cập nhật trực tiếp trên biểu mẫu đã nộp; các câu trả lời hiện có được giữ nguyên."
                     : "Đây là biểu mẫu và các câu trả lời đã nộp, ở chế độ chỉ xem."}
             </p>
           </div>
@@ -3482,12 +3501,12 @@ export function FacilityApplicationFormPage() {
           {hasSavedAnswers ? (
             <ApplicationForm
               key={application.id}
-              mode={hasOpenRequest ? "supplement" : "edit"}
+              mode={hasOpenSupplementRequest ? "supplement" : "edit"}
               account={applicationAccount}
               initialSnapshot={applicationAccount.registration}
               supplementApplication={application}
               onSupplementSubmit={
-                hasOpenRequest ? submitSupplement : undefined
+                hasOpenSupplementRequest ? submitSupplement : undefined
               }
               readOnly={!canResubmit}
             />
@@ -4247,6 +4266,12 @@ export function ApplicationForm({
   const isSchoolRegistrationField = (item: CriteriaDefinition) =>
     item.groupId === "school-survey-metadata" ||
     item.groupId === "school-group-1";
+  const isPendingEdit =
+    mode === "edit" && supplementApplication?.status === "pending";
+  const allowPartialSubmission = mode === "register" || isPendingEdit;
+  const isGeneralInformationField = (item: CriteriaDefinition) =>
+    item.groupId === `${type}-group-1` ||
+    (type === "school" && item.groupId === "school-survey-metadata");
   const schoolModelRows: RepeatableValue =
     type === "school" && Array.isArray(fields.operatingModels)
       ? (fields.operatingModels as RepeatableValue)
@@ -4666,7 +4691,22 @@ export function ApplicationForm({
           return false;
         return true;
       })
-      .sort((a, b) => a.order - b.order) ?? [];
+      .sort((a, b) => a.order - b.order)
+      .map((item) => {
+        if (
+          !allowPartialSubmission ||
+          isGeneralInformationField(item)
+        )
+          return item;
+        return {
+          ...item,
+          required: false,
+          repeatableFields: item.repeatableFields?.map((field) => ({
+            ...field,
+            required: false,
+          })),
+        };
+      }) ?? [];
   const schoolOperatingModelFields =
     formSet?.criteria.find((item) => item.key === "operatingModels")
       ?.repeatableFields?.filter(
@@ -5130,6 +5170,19 @@ export function ApplicationForm({
       : { missingProviderLinks: [], missingModelDetails: [] };
   const schoolLocationIssues =
     type === "school" ? getSchoolLocationIssues() : [];
+  const mainSchoolLocation = schoolLocations.find(
+    (location) => location.kind === "main",
+  );
+  const missingSchoolMainAddress =
+    type === "school" && !mainSchoolLocation?.address.trim();
+  const mainSchoolAddressIssue =
+    `Chưa nhập địa chỉ ${mainSchoolLocation?.name || "địa điểm"}`;
+  const blockingSchoolLocationIssues =
+    allowPartialSubmission && type === "school"
+      ? missingSchoolMainAddress
+        ? [mainSchoolAddressIssue]
+        : []
+      : schoolLocationIssues;
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (readOnly) return;
@@ -5138,6 +5191,7 @@ export function ApplicationForm({
     const missing = getMissingRequiredFields();
     const missingSchoolConfirmation = type === "school" && !schoolConfirmed;
     const missingAverageDailyMealDemand =
+      !allowPartialSubmission &&
       type === "school" &&
       fields.mealModel === "Liên kết đơn vị suất ăn" &&
       !String(fields.averageDailyMealDemand ?? "").trim();
@@ -5145,9 +5199,10 @@ export function ApplicationForm({
       missing.length ||
       missingAverageDailyMealDemand ||
       missingSchoolConfirmation ||
-      schoolModelValidation.missingProviderLinks.length ||
-      schoolModelValidation.missingModelDetails.length ||
-      schoolLocationIssues.length
+      blockingSchoolLocationIssues.length ||
+      (!allowPartialSubmission &&
+        (schoolModelValidation.missingProviderLinks.length ||
+          schoolModelValidation.missingModelDetails.length))
     ) {
       const missingSchoolRows =
         type === "meal-provider" && Array.isArray(fields.servingSchools)
@@ -5168,16 +5223,18 @@ export function ApplicationForm({
           ? "Vui lòng xác nhận thông tin trước khi gửi hồ sơ."
           : missingAverageDailyMealDemand
           ? "Vui lòng nhập nhu cầu suất ăn trung bình / 1 ngày."
-          : schoolLocationIssues.length
-            ? `Vui lòng kiểm tra địa điểm và mô hình: ${schoolLocationIssues
+          : blockingSchoolLocationIssues.length
+            ? `Vui lòng kiểm tra địa điểm: ${blockingSchoolLocationIssues
                 .slice(0, 2)
-                .join(", ")}${schoolLocationIssues.length > 2 ? "…" : ""}.`
-          : schoolModelValidation.missingProviderLinks.length
+                .join(", ")}${blockingSchoolLocationIssues.length > 2 ? "…" : ""}.`
+          : !allowPartialSubmission &&
+            schoolModelValidation.missingProviderLinks.length
             ? `Vui lòng chọn đơn vị đã đăng ký trên hệ thống cho ${schoolModelValidation.missingProviderLinks
                 .slice(0, 2)
                 .map((item) => `${item.model} — ${item.locationName}`)
                 .join(", ")}${schoolModelValidation.missingProviderLinks.length > 2 ? "…" : ""}. Nếu chưa có đơn vị phù hợp trong danh sách, hãy để trống và bổ sung sau.`
-          : schoolModelValidation.missingModelDetails.length
+          : !allowPartialSubmission &&
+            schoolModelValidation.missingModelDetails.length
           ? `Vui lòng hoàn thiện ${schoolModelValidation.missingModelDetails
               .flatMap((row) => row.labels)
               .slice(0, 2)
@@ -5403,7 +5460,7 @@ export function ApplicationForm({
       applicantName: input.applicantName,
       address: input.address,
       contact: input.contact,
-      submittedAt,
+      submittedAt: previousApplication?.submittedAt ?? submittedAt,
       status: "pending",
       score: 0,
       reviewNote: null,
@@ -5485,6 +5542,8 @@ export function ApplicationForm({
     setNotice(
       mode === "register"
         ? "Đăng ký thành công. Hồ sơ đã được tiếp nhận để cán bộ chuyên môn rà soát."
+        : isPendingEdit
+          ? "Thông tin bổ sung đã được lưu. Hồ sơ vẫn ở trạng thái Chờ duyệt."
         : isResubmitting
           ? "Hồ sơ đã được gửi lại cho cán bộ chuyên môn rà soát."
           : "Hồ sơ đã được cập nhật và chuyển tới cán bộ chuyên môn rà soát.",
@@ -5512,10 +5571,12 @@ export function ApplicationForm({
         </h1>
         <p className="mx-auto mt-4 max-w-lg text-sm leading-6 text-muted-foreground">
           {mode === "register"
-            ? "Cán bộ sẽ gửi yêu cầu bổ sung trong tài khoản cơ sở. Hãy lưu thông tin đăng nhập bên dưới để theo dõi hồ sơ."
+            ? "Hãy lưu thông tin đăng nhập bên dưới. Bạn có thể tiếp tục bổ sung các phần chi tiết trong tài khoản cơ sở khi hồ sơ đang Chờ duyệt."
+            : isPendingEdit
+              ? "Hồ sơ vẫn ở trạng thái Chờ duyệt. Bạn có thể quay lại tài khoản và bổ sung tiếp các phần còn thiếu."
             : isResubmitting
               ? "Hồ sơ đã được chuyển lại cho cán bộ chuyên môn rà soát."
-              : "Bạn có thể tiếp tục chỉnh sửa hồ sơ khi nhận yêu cầu bổ sung từ cán bộ chuyên môn."}
+              : "Bạn có thể tiếp tục chỉnh sửa hồ sơ theo yêu cầu bổ sung của cán bộ chuyên môn."}
         </p>
         {mode === "register" && createdCredentials && (
           <section
@@ -5742,7 +5803,7 @@ export function ApplicationForm({
           <p className="paper-form-subtitle">
             Nhóm đối tượng thực hiện: <strong>{selectedTypeLabel}</strong>
           </p>
-          {mode !== "supplement" && (
+          {mode === "register" && (
             <div className="paper-form-type-row">
               <label htmlFor="registration-type">
                 Chọn nhóm đối tượng để kê khai{" "}
@@ -5765,9 +5826,13 @@ export function ApplicationForm({
           )}
           <p className="paper-form-note">
             {mode === "register"
-              ? "Kê khai theo tình trạng thực tế tại thời điểm khảo sát; nội dung không phát sinh hoặc không áp dụng cần ghi rõ."
+              ? type === "school"
+                ? "Hoàn thành phần Thông tin chung và nhập địa chỉ điểm chính để nộp lần đầu. Các phần chi tiết có thể bổ sung sau trong tài khoản cơ sở."
+                : "Hoàn thành phần Thông tin chung để nộp lần đầu. Các phần chi tiết có thể bổ sung sau trong tài khoản cơ sở."
               : mode === "supplement"
                 ? "Rà soát lại hồ sơ đăng ký đã gửi và cập nhật trực tiếp những nội dung cần bổ sung."
+                : isPendingEdit && !readOnly
+                  ? "Hồ sơ đang Chờ duyệt. Bạn có thể bổ sung thông tin theo từng lần lưu; trạng thái sẽ được giữ nguyên."
                 : readOnly
                   ? "Biểu mẫu và câu trả lời đã nộp đang được mở ở chế độ chỉ xem."
                   : `Đang chỉnh sửa hồ sơ của ${account?.email || "cơ sở đăng ký"}.`}
@@ -5778,8 +5843,9 @@ export function ApplicationForm({
                 HƯỚNG DẪN KÊ KHAI VÀ XÁC NHẬN THÔNG TIN
               </p>
               <p>
-                Cơ sở giáo dục kê khai đầy đủ phần thông tin chung và tiếp tục
-                kê khai theo biểu mẫu tương ứng với từng mô hình hoạt động.
+                Hoàn thành phần thông tin chung và nhập địa chỉ điểm chính để
+                nộp lần đầu. Mô hình hoạt động, biểu mẫu chi tiết và minh chứng
+                có thể bổ sung sau trong tài khoản cơ sở.
               </p>
               <ul>
                 <li>
@@ -5964,6 +6030,7 @@ export function ApplicationForm({
           {type === "school" && schoolStep === 1 && (
             <SchoolLocationsStep
               locations={schoolLocations}
+              allowPartialSubmission={allowPartialSubmission}
               onUpdate={updateSchoolLocation}
               onAdd={addSchoolLocation}
               onRemove={removeSchoolLocation}
@@ -5972,6 +6039,7 @@ export function ApplicationForm({
           {type === "school" && schoolStep === 2 && (
             <SchoolModelsStep
               locations={schoolLocations}
+              allowPartialSubmission={allowPartialSubmission}
               getRowsForLocation={getSchoolRowsForLocation}
               onModelsChange={setSchoolLocationModels}
               onAddProvider={addSchoolProviderRow}
@@ -5990,6 +6058,7 @@ export function ApplicationForm({
               onChange={update}
               onFilesFor={addFilesFor}
               onRemoveFile={removeFile}
+              allowPartialSubmission={allowPartialSubmission}
               showValidationErrors={submitAttempted}
               registeredProviders={registeredProviders}
               mode="providers"
@@ -6002,6 +6071,7 @@ export function ApplicationForm({
                 operatingFields={schoolOperatingModelFields}
                 getLocationForRow={getSchoolModelLocation}
                 onChange={updateSchoolOperatingModelField}
+                allowPartialSubmission={allowPartialSubmission}
               />
             <SchoolModelDetails
               criteriaSet={formSet}
@@ -6014,6 +6084,7 @@ export function ApplicationForm({
               onChange={update}
               onFilesFor={addFilesFor}
               onRemoveFile={removeFile}
+              allowPartialSubmission={allowPartialSubmission}
               showValidationErrors={submitAttempted}
               registeredProviders={registeredProviders}
               mode="details"
@@ -6024,10 +6095,21 @@ export function ApplicationForm({
             <SchoolApplicationReview
               locations={schoolLocations}
               getRowsForLocation={getSchoolRowsForLocation}
+              allowPartialSubmission={allowPartialSubmission}
               missingGeneralFields={getMissingRequiredFields().map(
                 (item) => item.label,
               )}
-              locationIssues={schoolLocationIssues}
+              requiredLocationIssues={
+                allowPartialSubmission ? blockingSchoolLocationIssues : []
+              }
+              locationIssues={
+                allowPartialSubmission
+                  ? schoolLocationIssues.filter(
+                      (issue) =>
+                        !blockingSchoolLocationIssues.includes(issue),
+                    )
+                  : schoolLocationIssues
+              }
               modelValidation={schoolModelValidation}
               providerNameForRow={getSchoolProviderDisplayName}
               onGoToStep={setSchoolStep}
@@ -6045,13 +6127,19 @@ export function ApplicationForm({
                 <p>
                   <strong>
                     {schoolStep === schoolRegistrationSteps.length - 1
-                      ? "Kiểm tra trước khi nộp."
+                      ? isPendingEdit
+                        ? "Lưu phần đã bổ sung."
+                        : allowPartialSubmission
+                          ? "Nộp Thông tin chung và địa chỉ điểm chính."
+                          : "Kiểm tra trước khi nộp."
                       : `Bước ${schoolStep + 1}/${schoolRegistrationSteps.length}`}
                   </strong>
                   <br />
                   <span className="text-muted-foreground">
                     {schoolStep === schoolRegistrationSteps.length - 1
-                      ? "Sau khi gửi, hồ sơ sẽ khóa chỉnh sửa cho đến khi có yêu cầu bổ sung."
+                      ? allowPartialSubmission
+                        ? "Các phần chi tiết có thể bổ sung trong tài khoản khi hồ sơ đang Chờ duyệt."
+                        : "Sau khi gửi, hồ sơ sẽ khóa chỉnh sửa cho đến khi có yêu cầu bổ sung."
                       : schoolRegistrationSteps[schoolStep]?.description}
                   </span>
                 </p>
@@ -6093,6 +6181,8 @@ export function ApplicationForm({
                   >
                     {mode === "register"
                       ? "Nộp hồ sơ đăng ký"
+                      : isPendingEdit
+                        ? "Lưu phần bổ sung"
                       : isResubmitting
                         ? "Gửi lại hồ sơ"
                         : "Lưu thay đổi hồ sơ"}{" "}
@@ -6106,11 +6196,18 @@ export function ApplicationForm({
               <div className="flex gap-3 text-sm">
                 <LockKeyhole className="mt-0.5 shrink-0 text-primary" size={18} />
                 <p>
-                  <strong>Kiểm tra trước khi nộp.</strong>
+                  <strong>
+                    {isPendingEdit
+                      ? "Lưu nội dung bổ sung."
+                      : allowPartialSubmission
+                        ? "Hoàn thành phần Thông tin chung."
+                        : "Kiểm tra trước khi nộp."}
+                  </strong>
                   <br />
                   <span className="text-muted-foreground">
-                    Sau khi gửi, hồ sơ sẽ khóa chỉnh sửa cho đến khi có yêu cầu bổ
-                    sung.
+                    {allowPartialSubmission
+                      ? "Các phần chi tiết có thể bổ sung trong tài khoản khi hồ sơ đang Chờ duyệt."
+                      : "Sau khi gửi, hồ sơ sẽ khóa chỉnh sửa cho đến khi có yêu cầu bổ sung."}
                   </span>
                 </p>
               </div>
@@ -6122,6 +6219,8 @@ export function ApplicationForm({
               >
                 {mode === "register"
                   ? "Nộp hồ sơ đăng ký"
+                  : isPendingEdit
+                    ? "Lưu phần bổ sung"
                   : isResubmitting
                     ? "Gửi lại hồ sơ"
                     : "Lưu thay đổi hồ sơ"}{" "}
@@ -6131,8 +6230,8 @@ export function ApplicationForm({
           )}
         </form>
         <footer className="paper-form-footer">
-          Người kê khai chịu trách nhiệm về tính đầy đủ, trung thực và chính xác
-          của nội dung cung cấp.
+          Người kê khai chịu trách nhiệm về tính trung thực và chính xác của
+          thông tin đã cung cấp.
         </footer>
       </div>
       {mode === "register" && !readOnly && (
@@ -6236,11 +6335,13 @@ function SchoolWizardStepper({
 
 function SchoolLocationsStep({
   locations,
+  allowPartialSubmission,
   onUpdate,
   onAdd,
   onRemove,
 }: {
   locations: SchoolLocationRecord[];
+  allowPartialSubmission: boolean;
   onUpdate: (
     locationId: string,
     key: "name" | "address",
@@ -6255,8 +6356,9 @@ function SchoolLocationsStep({
         <p className="paper-model-kicker">BƯỚC 2 · ĐỊA ĐIỂM</p>
         <h2>Khai báo riêng từng điểm trường</h2>
         <p>
-          Mỗi địa điểm có mô hình và hồ sơ chi tiết riêng. Địa chỉ điểm chính
-          được giữ tương thích với hồ sơ đã đăng ký trước đây.
+          {allowPartialSubmission
+            ? "Hoàn thành phần Thông tin chung và địa chỉ điểm chính để nộp lần đầu. Các điểm trường khác và mô hình có thể bổ sung trong tài khoản sau."
+            : "Mỗi địa điểm có mô hình và hồ sơ chi tiết riêng. Địa chỉ điểm chính được giữ tương thích với hồ sơ đã đăng ký trước đây."}
         </p>
       </div>
       <div className="mt-5 grid gap-4">
@@ -6306,7 +6408,10 @@ function SchoolLocationsStep({
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="grid gap-1.5">
                 <span className="text-sm font-semibold">
-                  Tên địa điểm <span className="text-destructive">*</span>
+                  Tên địa điểm
+                  {!allowPartialSubmission && (
+                    <span className="text-destructive"> *</span>
+                  )}
                 </span>
                 <input
                   value={location.name}
@@ -6324,7 +6429,10 @@ function SchoolLocationsStep({
               </label>
               <label className="grid gap-1.5 sm:col-span-1">
                 <span className="text-sm font-semibold">
-                  Địa chỉ <span className="text-destructive">*</span>
+                  Địa chỉ
+                  {(!allowPartialSubmission || location.kind === "main") && (
+                    <span className="text-destructive"> *</span>
+                  )}
                 </span>
                 <input
                   value={location.address}
@@ -6356,12 +6464,14 @@ function SchoolLocationsStep({
 
 function SchoolModelsStep({
   locations,
+  allowPartialSubmission,
   getRowsForLocation,
   onModelsChange,
   onAddProvider,
   onRemoveRow,
 }: {
   locations: SchoolLocationRecord[];
+  allowPartialSubmission: boolean;
   getRowsForLocation: (
     location: SchoolLocationRecord,
   ) => { row: Record<string, string | string[]>; rowIndex: number }[];
@@ -6380,6 +6490,8 @@ function SchoolModelsStep({
         <p>
           Một địa điểm có thể có nhiều mô hình. Mỗi đơn vị nấu ăn, cung cấp
           suất ăn hoặc kinh doanh căng tin được tạo thành một hồ sơ riêng.
+          {allowPartialSubmission &&
+            " Có thể để trống phần này khi nộp lần đầu và bổ sung sau trong tài khoản."}
         </p>
       </div>
       <div className="mt-5 grid gap-5">
@@ -6443,7 +6555,9 @@ function SchoolModelsStep({
               </div>
               {selectedModels.length === 0 ? (
                 <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                  Chọn ít nhất một mô hình cho địa điểm này.
+                  {allowPartialSubmission
+                    ? "Chưa chọn mô hình. Có thể bổ sung sau khi nộp Thông tin chung và địa chỉ điểm chính."
+                    : "Chọn ít nhất một mô hình cho địa điểm này."}
                 </p>
               ) : (
                 <div className="mt-5 grid gap-3">
@@ -6532,6 +6646,7 @@ function SchoolOperatingModelDetails({
   operatingFields,
   getLocationForRow,
   onChange,
+  allowPartialSubmission,
 }: {
   rows: RepeatableValue;
   operatingFields: NonNullable<CriteriaDefinition["repeatableFields"]>;
@@ -6539,6 +6654,7 @@ function SchoolOperatingModelDetails({
     row: Record<string, string | string[]>,
   ) => SchoolLocationRecord | undefined;
   onChange: (rowId: string, key: string, value: string) => void;
+  allowPartialSubmission: boolean;
 }) {
   const selectedRows = rows
     .map((row, rowIndex) => ({ row, rowIndex }))
@@ -6554,6 +6670,8 @@ function SchoolOperatingModelDetails({
         <p>
           Nhập số liệu riêng cho từng phiếu. Nếu một mô hình có nhiều đơn vị,
           không gộp công suất hoặc giá thành của các đơn vị vào cùng một dòng.
+          {allowPartialSubmission &&
+            " Các thông tin này có thể bổ sung sau khi nộp phần Thông tin chung."}
         </p>
       </div>
       <div className="mt-5 grid gap-4">
@@ -6586,7 +6704,7 @@ function SchoolOperatingModelDetails({
                     <label key={field.key} htmlFor={inputId}>
                       <span className="mb-1.5 block text-sm font-semibold">
                         {field.label}
-                        {field.required && (
+                        {field.required && !allowPartialSubmission && (
                           <span className="text-destructive"> *</span>
                         )}
                       </span>
@@ -6641,7 +6759,9 @@ function SchoolOperatingModelDetails({
 function SchoolApplicationReview({
   locations,
   getRowsForLocation,
+  allowPartialSubmission,
   missingGeneralFields,
+  requiredLocationIssues,
   locationIssues,
   modelValidation,
   providerNameForRow,
@@ -6655,7 +6775,9 @@ function SchoolApplicationReview({
   getRowsForLocation: (
     location: SchoolLocationRecord,
   ) => { row: Record<string, string | string[]>; rowIndex: number }[];
+  allowPartialSubmission: boolean;
   missingGeneralFields: string[];
+  requiredLocationIssues: string[];
   locationIssues: string[];
   modelValidation: {
     missingProviderLinks: {
@@ -6678,46 +6800,70 @@ function SchoolApplicationReview({
   confirmationChecked: boolean;
   onConfirmationChange: (checked: boolean) => void;
 }) {
-  const issueCount =
+  const mandatoryIssueCount =
     missingGeneralFields.length +
+    requiredLocationIssues.length +
+    (confirmationChecked ? 0 : 1);
+  const optionalIssueCount =
     locationIssues.length +
     modelValidation.missingProviderLinks.length +
     modelValidation.missingModelDetails.length;
+  const issueCount = mandatoryIssueCount + optionalIssueCount;
+  const hasBlockingIssues = allowPartialSubmission
+    ? mandatoryIssueCount > 0
+    : issueCount > 0;
   return (
     <section className="paper-model-forms" data-testid="school-review-step">
       <div className="paper-model-intro">
         <p className="paper-model-kicker">BƯỚC 6 · RÀ SOÁT VÀ GỬI</p>
         <h2>Kiểm tra cấu trúc hồ sơ</h2>
         <p>
-          Xác nhận mỗi địa điểm, mô hình và đơn vị có thông tin riêng trước khi
-          gửi. Chọn “Sửa” để quay lại đúng phần kê khai.
+          {allowPartialSubmission
+            ? "Hoàn thành phần Thông tin chung và địa chỉ điểm chính để nộp lần đầu. Các điểm trường khác, mô hình, biểu mẫu chi tiết và minh chứng có thể bổ sung sau trong tài khoản."
+            : "Xác nhận mỗi địa điểm, mô hình và đơn vị có thông tin riêng trước khi gửi. Chọn “Sửa” để quay lại đúng phần kê khai."}
         </p>
       </div>
       <div
         className={`mt-5 flex items-start gap-3 rounded-xl border p-4 ${
-          issueCount
+          hasBlockingIssues
             ? "border-amber-300 bg-amber-50 text-amber-950"
-            : "border-emerald-300 bg-emerald-50 text-emerald-950"
+            : issueCount
+              ? "border-primary/20 bg-secondary/30 text-foreground"
+              : "border-emerald-300 bg-emerald-50 text-emerald-950"
         }`}
         role="status"
         data-testid="school-review-status"
       >
-        {issueCount ? (
+        {hasBlockingIssues ? (
           <TriangleAlert className="mt-0.5 shrink-0" size={19} />
+        ) : issueCount ? (
+          <Info className="mt-0.5 shrink-0 text-primary" size={19} />
         ) : (
           <CheckCircle2 className="mt-0.5 shrink-0" size={19} />
         )}
         <div>
           <p className="font-bold">
             {issueCount
-              ? `Còn ${issueCount} mục cần kiểm tra`
-              : "Các mục bắt buộc đã có thông tin"}
+              ? allowPartialSubmission
+                ? mandatoryIssueCount
+                  ? `Còn ${mandatoryIssueCount} mục thông tin chung, địa chỉ điểm chính hoặc xác nhận cần hoàn tất`
+                  : `Còn ${optionalIssueCount} mục có thể bổ sung sau`
+                : `Còn ${issueCount} mục cần kiểm tra`
+              : allowPartialSubmission
+                ? "Thông tin chung, địa chỉ điểm chính và xác nhận đã sẵn sàng nộp"
+                : "Các mục bắt buộc đã có thông tin"}
           </p>
           {issueCount > 0 && (
             <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
               {missingGeneralFields.slice(0, 4).map((issue) => (
                 <li key={`general-${issue}`}>Thông tin chung: {issue}</li>
               ))}
+              {requiredLocationIssues.map((issue) => (
+                <li key={`required-location-${issue}`}>{issue}</li>
+              ))}
+              {!confirmationChecked && (
+                <li>Xác nhận các thông tin đã kê khai</li>
+              )}
               {locationIssues.slice(0, 4).map((issue) => (
                 <li key={`location-${issue}`}>{issue}</li>
               ))}
@@ -6841,7 +6987,9 @@ function SchoolApplicationReview({
                                 }`}
                               >
                                 {incomplete
-                                  ? "Cần bổ sung thông tin/hồ sơ"
+                                  ? allowPartialSubmission
+                                    ? "Có thể bổ sung sau"
+                                    : "Cần bổ sung thông tin/hồ sơ"
                                   : "Đã khai báo đầy đủ"}
                               </p>
                               {detailIssue && (
@@ -6891,8 +7039,8 @@ function SchoolApplicationReview({
           data-testid="checkbox-school-confirmation"
         />
         <span className="text-sm leading-6">
-          Tôi xác nhận thông tin kê khai phản ánh đúng thực tế và chịu trách
-          nhiệm về tính đầy đủ, trung thực, chính xác của hồ sơ.
+          Tôi xác nhận các thông tin đã kê khai phản ánh đúng thực tế và chịu
+          trách nhiệm về tính trung thực, chính xác của thông tin đã cung cấp.
         </span>
       </label>
     </section>
@@ -6911,6 +7059,7 @@ function SchoolModelDetails({
   onChange,
   onFilesFor,
   onRemoveFile,
+  allowPartialSubmission,
   showValidationErrors,
   mode,
 }: {
@@ -6925,6 +7074,7 @@ function SchoolModelDetails({
   onChange: (key: string, value: CriteriaValue) => void;
   onFilesFor: (fieldKey: string, event: ChangeEvent<HTMLInputElement>) => void;
   onRemoveFile: (name: string, fieldKey?: string) => void;
+  allowPartialSubmission: boolean;
   showValidationErrors: boolean;
   mode: "providers" | "details";
 }) {
@@ -6987,6 +7137,8 @@ function SchoolModelDetails({
           {mode === "providers"
             ? "Thông tin pháp lý, hợp đồng và phụ trách an toàn thực phẩm được lưu riêng cho từng đơn vị tại từng địa điểm."
             : "Các điều kiện hoạt động, an toàn thực phẩm, kiểm thực và lưu mẫu được kê khai cho đúng địa điểm và mô hình."}
+          {allowPartialSubmission &&
+            " Có thể hoàn thiện các thông tin này sau khi nộp phần Thông tin chung."}
         </p>
       </div>
       {selectedRows.map(({ row, rowIndex }) => {
@@ -7078,7 +7230,8 @@ function SchoolModelDetails({
                           <label className="mt-5 block first:mt-0">
                             <span className="mb-2 block text-sm font-semibold">
                               {item.label}
-                              {providerOptions.length > 0 && (
+                              {providerOptions.length > 0 &&
+                                !allowPartialSubmission && (
                                 <span className="text-destructive"> *</span>
                               )}
                             </span>
@@ -7140,6 +7293,13 @@ function SchoolModelDetails({
                     }
                     const scopedItem: CriteriaDefinition = {
                       ...item,
+                      required: allowPartialSubmission ? false : item.required,
+                      repeatableFields: allowPartialSubmission
+                        ? item.repeatableFields?.map((field) => ({
+                            ...field,
+                            required: false,
+                          }))
+                        : item.repeatableFields,
                       id: `${item.id}-${rowIndex}`,
                       key: scopedKey,
                       dependsOn: item.dependsOn
@@ -7195,7 +7355,9 @@ function SchoolModelDetails({
                           }
                           onFilesFor={onFilesFor}
                           onRemoveFile={onRemoveFile}
-                          showValidationErrors={showValidationErrors}
+                          showValidationErrors={
+                            showValidationErrors && !allowPartialSubmission
+                          }
                         />
                       </div>
                     );
