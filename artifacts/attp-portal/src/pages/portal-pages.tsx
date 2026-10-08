@@ -992,6 +992,7 @@ const sectionEvidenceKey = (groupId: string) => `sectionEvidence.${groupId}`;
 type FacilityAccount = {
   email: string;
   password: string;
+  loginUsername?: string;
   username: string;
   status?: "Đang hoạt động" | "Đang khóa";
   registration: RegistrationSnapshot;
@@ -1075,6 +1076,20 @@ export const readFacilityAccounts = (): FacilityAccount[] => {
   } catch {
     return [];
   }
+};
+const normalizeFacilityLoginUsername = (value: unknown) =>
+  typeof value === "string" ? value.trim().toLowerCase() : "";
+const hasExistingFacilityLoginUsername = (value: string) => {
+  const normalizedUsername = normalizeFacilityLoginUsername(value);
+  if (!normalizedUsername || findManagedAdminAccount(normalizedUsername)) {
+    return true;
+  }
+  return readFacilityAccounts().some((account) =>
+    [account.loginUsername, account.username, account.email].some(
+      (candidate) =>
+        normalizeFacilityLoginUsername(candidate) === normalizedUsername,
+    ),
+  );
 };
 const normalizeFacilityTaxCode = (value: unknown) =>
   typeof value === "string"
@@ -3626,6 +3641,8 @@ export function AdminLoginPage() {
     const matchingFacilityAccounts = readFacilityAccounts().filter(
       (account) =>
         account.email.toLowerCase() === normalizedUsername ||
+        normalizeFacilityLoginUsername(account.loginUsername) ===
+          normalizedUsername ||
         account.username.toLowerCase() === normalizedUsername,
     );
     const facilityAccount = matchingFacilityAccounts.find(
@@ -4236,6 +4253,7 @@ export function ApplicationForm({
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [createdCredentials, setCreatedCredentials] = useState<{
+    loginUsername: string;
     email: string;
     password: string;
   } | null>(null);
@@ -4406,7 +4424,11 @@ export function ApplicationForm({
     setType(nextType);
     setSchoolStep(0);
     setSchoolConfirmed(false);
-    setFields({});
+    setFields((current) =>
+      current.facilityLoginUsername
+        ? { facilityLoginUsername: current.facilityLoginUsername }
+        : {},
+    );
     setFiles([]);
     setNewFiles([]);
     setNotice("");
@@ -5251,6 +5273,19 @@ export function ApplicationForm({
     setDemoFillNotice("");
     setSubmitAttempted(true);
     if (mode === "register") {
+      const loginUsername = normalizeFacilityLoginUsername(
+        fields.facilityLoginUsername,
+      );
+      if (!loginUsername) {
+        setNotice("Vui lòng nhập tài khoản đăng nhập.");
+        return;
+      }
+      if (hasExistingFacilityLoginUsername(loginUsername)) {
+        setNotice(
+          "Tài khoản đăng nhập này đã được sử dụng. Vui lòng chọn tên khác.",
+        );
+        return;
+      }
       const taxCode = getFacilityTaxCode(type, fields);
       if (taxCode && hasExistingFacilityTaxCode(type, taxCode)) {
         setNotice(
@@ -5574,15 +5609,20 @@ export function ApplicationForm({
     saveApplicationRecord(applicationRecord);
     if (mode === "register") {
       const accountEmail = email.trim().toLowerCase();
+      const loginUsername = normalizeFacilityLoginUsername(
+        fields.facilityLoginUsername,
+      );
       const accountRecord: FacilityAccount = {
         email: accountEmail,
         password: demoFacilityInitialPassword,
+        loginUsername,
         username: applicationId,
         registration: snapshot,
       };
       saveFacilityAccounts([...readFacilityAccounts(), accountRecord]);
-      sessionStorage.setItem("attp-pending-account-email", accountEmail);
+      sessionStorage.setItem("attp-pending-account-email", loginUsername);
       setCreatedCredentials({
+        loginUsername,
         email: accountEmail,
         password: demoFacilityInitialPassword,
       });
@@ -5669,13 +5709,13 @@ export function ApplicationForm({
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <label className="block">
                 <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                  Tài khoản (email người kê khai)
+                  Tài khoản đăng nhập
                 </span>
                 <input
-                  value={createdCredentials.email}
+                  value={createdCredentials.loginUsername}
                   readOnly
                   className="h-11 w-full rounded-lg border border-input bg-background px-3 text-sm font-semibold"
-                  data-testid="input-created-account-email"
+                  data-testid="input-created-account-username"
                 />
               </label>
               <label className="block">
@@ -5698,7 +5738,7 @@ export function ApplicationForm({
                 onClick={async () => {
                   try {
                     await navigator.clipboard.writeText(
-                      `Tài khoản: ${createdCredentials.email}\nMật khẩu: ${createdCredentials.password}`,
+                      `Tài khoản đăng nhập: ${createdCredentials.loginUsername}\nMật khẩu: ${createdCredentials.password}`,
                     );
                     setCredentialsCopied(true);
                   } catch {
@@ -5723,7 +5763,8 @@ export function ApplicationForm({
               </Link>
             </div>
             <p className="mt-3 text-xs leading-5 text-muted-foreground">
-              Đây là tài khoản demo, hiện chỉ lưu trên trình duyệt này.
+              Email nhận thông báo hồ sơ: {createdCredentials.email}. Đây là
+              tài khoản demo, hiện chỉ lưu trên trình duyệt này.
             </p>
           </section>
         )}
@@ -5967,6 +6008,35 @@ export function ApplicationForm({
             />
           )}
           <fieldset disabled={readOnly} className="contents">
+          {mode === "register" && (
+            <section className="mb-5 rounded-xl border border-primary/20 bg-secondary/30 p-4 sm:p-5">
+              <label
+                htmlFor="facility-login-username"
+                className="block text-sm font-bold"
+              >
+                Tài khoản đăng nhập{" "}
+                <span className="text-destructive">*</span>
+              </label>
+              <input
+                id="facility-login-username"
+                type="text"
+                autoComplete="username"
+                required
+                value={String(fields.facilityLoginUsername ?? "")}
+                onChange={(event) => {
+                  setNotice("");
+                  update("facilityLoginUsername", event.target.value);
+                }}
+                className="focus-ring mt-2 h-11 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                placeholder="Tự chọn tên dùng để đăng nhập"
+                data-testid="input-facility-login-username"
+              />
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                Dùng tài khoản này để đăng nhập và bổ sung hồ sơ. Không cần nhập
+                mật khẩu ở đây; mật khẩu ban đầu sẽ được cấp sau khi đăng ký.
+              </p>
+            </section>
+          )}
           {(mode === "supplement" || mode === "edit") &&
             supplementApplication &&
             (!Array.isArray(supplementApplication.criteriaSnapshot) ||
