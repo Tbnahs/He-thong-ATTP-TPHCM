@@ -68,6 +68,12 @@ import { readAttachmentContent } from "@/lib/attachment-content";
 import { syncApprovedFacility } from "@/lib/approved-facilities";
 import { findManagedAdminAccount } from "@/lib/admin-permissions";
 import {
+  addressLocationOptions,
+  getAddressProvince,
+  getAddressWard,
+  getAddressWardOptions,
+} from "@/lib/address-data";
+import {
   createDemoSupplementRequest,
   hasDemoFacilityAccountForApplication,
 } from "@/lib/demo-supplements";
@@ -177,6 +183,89 @@ type FacilityManagementRow = {
   detailFields?: Array<{ label: string; value: string }>;
   detailCompleteness?: "complete" | "partial";
   missingFields?: string[];
+  locations?: AddressFilterLocation[];
+};
+
+type AddressFilterLocation = {
+  provinceCode: string;
+  provinceName: string;
+  wardCode: string;
+  wardName: string;
+};
+
+const asAddressText = (value: unknown) =>
+  typeof value === "string" ? value.trim() : "";
+
+const makeAddressFilterLocation = (
+  provinceValue: unknown,
+  wardValue: unknown,
+  provinceCodeValue?: unknown,
+  wardCodeValue?: unknown,
+): AddressFilterLocation => {
+  const provinceInput =
+    asAddressText(provinceCodeValue) || asAddressText(provinceValue);
+  const province = getAddressProvince(provinceInput);
+  const provinceName = province?.label ?? asAddressText(provinceValue);
+  const wardInput = asAddressText(wardCodeValue) || asAddressText(wardValue);
+  const ward =
+    getAddressWard(province?.code ?? provinceInput, wardInput) ?? undefined;
+  return {
+    provinceCode: province?.code ?? asAddressText(provinceCodeValue),
+    provinceName,
+    wardCode: ward?.code ?? asAddressText(wardCodeValue),
+    wardName: ward?.label ?? asAddressText(wardValue),
+  };
+};
+
+const getRegistrationAddressLocations = (
+  type: ApplicationType | undefined,
+  fields: Record<string, unknown>,
+): AddressFilterLocation[] => {
+  if (type === "school") {
+    const savedLocations = Array.isArray(fields.schoolLocations)
+      ? fields.schoolLocations.filter(
+          (location): location is Record<string, unknown> =>
+            typeof location === "object" &&
+            location !== null &&
+            !Array.isArray(location),
+        )
+      : [];
+    const locations = savedLocations.map((location) =>
+      makeAddressFilterLocation(
+        location.provinceName,
+        location.wardName,
+        location.provinceCode,
+        location.wardCode,
+      ),
+    );
+    if (locations.length > 0) return locations;
+    return [
+      makeAddressFilterLocation(
+        fields.addressMainProvinceName ?? fields.addressProvince,
+        fields.addressMainWardName ?? fields.addressWard,
+        fields.addressMainProvinceCode ?? fields.addressProvinceCode,
+        fields.addressMainWardCode ?? fields.addressWardCode,
+      ),
+    ];
+  }
+  if (type === "meal-provider") {
+    return [
+      makeAddressFilterLocation(
+        fields.facilityProvinceName ?? fields.addressProvince,
+        fields.facilityWardName ?? fields.addressWard,
+        fields.facilityProvinceCode ?? fields.addressProvinceCode,
+        fields.facilityWardCode ?? fields.addressWardCode,
+      ),
+    ];
+  }
+  return [
+    makeAddressFilterLocation(
+      fields.addressProvince,
+      fields.addressWard,
+      fields.addressProvinceCode,
+      fields.addressWardCode,
+    ),
+  ];
 };
 
 const facilityManagementData: Record<
@@ -847,6 +936,10 @@ const getStoredRegistrationRows = (): FacilityManagementRow[] =>
             )
           : "—",
         storedAccount: account,
+        locations: getRegistrationAddressLocations(
+          account.registration?.type,
+          fields,
+        ),
       } satisfies FacilityManagementRow;
     })
     .filter((row): row is FacilityManagementRow => row !== null);
@@ -3193,6 +3286,8 @@ export function AdminFacilitiesPage() {
     useState<FacilityManagementTab>("all");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("Tất cả trạng thái");
+  const [provinceFilter, setProvinceFilter] = useState("all");
+  const [wardFilter, setWardFilter] = useState("all");
   const [importedRows, setImportedRows] = useState<FacilityManagementRow[]>([]);
   const [selectedRowState, setSelectedRow] =
     useState<FacilityManagementRow | null>(null);
@@ -3226,11 +3321,14 @@ export function AdminFacilitiesPage() {
   ) as Application;
 
   const applicationRows: FacilityManagementRow[] = [
-    ...applications.filter((app) => app.status !== "approved").map((app) => ({
+    ...applications.filter((app) => app.status !== "approved").map((app) => {
+      const locations = getRegistrationAddressLocations(app.type, app.data);
+      const primaryLocation = locations[0];
+      return {
         id: `application-${app.id}`,
         name: app.applicantName,
-        province: String(app.data.addressProvince ?? "TP. Hồ Chí Minh"),
-        ward: String(app.data.addressWard ?? "—"),
+        province: primaryLocation?.provinceName ?? "—",
+        ward: primaryLocation?.wardName ?? "—",
         address: app.address,
         contact: app.contact,
         status: app.status,
@@ -3246,7 +3344,9 @@ export function AdminFacilitiesPage() {
           new Date(app.submittedAt),
         ),
         applicationId: app.id,
-      })),
+        locations,
+      };
+    }),
     ...getStoredRegistrationRows().filter(
       (row) =>
         row.status !== "approved" &&
@@ -3277,16 +3377,54 @@ export function AdminFacilitiesPage() {
           (!activeType || getRowRegistrationType(row) === activeType),
       ),
     ];
+    const matchesAddress = (row: FacilityManagementRow) => {
+      if (provinceFilter === "all" && wardFilter === "all") return true;
+      const locations =
+        row.locations?.length > 0
+          ? row.locations
+          : [
+              makeAddressFilterLocation(
+                row.province,
+                row.ward,
+                undefined,
+                undefined,
+              ),
+            ];
+      return locations.some((location) => {
+        const provinceCode =
+          location.provinceCode ||
+          getAddressProvince(location.provinceName)?.code ||
+          "";
+        const wardCode =
+          location.wardCode ||
+          getAddressWard(provinceCode || location.provinceName, location.wardName)
+            ?.code ||
+          "";
+        return (
+          (provinceFilter === "all" || provinceCode === provinceFilter) &&
+          (wardFilter === "all" || wardCode === wardFilter)
+        );
+      });
+    };
     return source.filter((row) => {
       const haystack =
         `${row.name} ${row.address} ${row.ward} ${row.contact}`.toLowerCase();
       return (
+        matchesAddress(row) &&
         haystack.includes(search.trim().toLowerCase()) &&
         (statusFilter === "Tất cả trạng thái" ||
           managementStatusLabel(row.status) === statusFilter)
       );
     });
-  }, [activeTab, applicationRows, importedRows, search, statusFilter]);
+  }, [
+    activeTab,
+    applicationRows,
+    importedRows,
+    provinceFilter,
+    search,
+    statusFilter,
+    wardFilter,
+  ]);
 
   const activeRegistrationType =
     activeTab === "schools"
@@ -3303,7 +3441,43 @@ export function AdminFacilitiesPage() {
         getRowRegistrationType(row) === activeRegistrationType;
       const searchableText =
         `${row.name} ${row.address} ${row.ward} ${row.contact}`.toLowerCase();
-      return matchesType && searchableText.includes(search.trim().toLowerCase());
+      const locations =
+        row.locations?.length > 0
+          ? row.locations
+          : [
+              makeAddressFilterLocation(
+                row.province,
+                row.ward,
+                undefined,
+                undefined,
+              ),
+            ];
+      const matchesAddress =
+        provinceFilter === "all" && wardFilter === "all"
+          ? true
+          : locations.some((location) => {
+              const provinceCode =
+                location.provinceCode ||
+                getAddressProvince(location.provinceName)?.code ||
+                "";
+              const wardCode =
+                location.wardCode ||
+                getAddressWard(
+                  provinceCode || location.provinceName,
+                  location.wardName,
+                )?.code ||
+                "";
+              return (
+                (provinceFilter === "all" ||
+                  provinceCode === provinceFilter) &&
+                (wardFilter === "all" || wardCode === wardFilter)
+              );
+            });
+      return (
+        matchesType &&
+        matchesAddress &&
+        searchableText.includes(search.trim().toLowerCase())
+      );
     },
   );
   const statusCounts = {
@@ -3649,6 +3823,37 @@ export function AdminFacilitiesPage() {
                 data-testid="input-facilities-search"
               />
             </label>
+            <select
+              value={provinceFilter}
+              onChange={(event) => {
+                setProvinceFilter(event.target.value);
+                setWardFilter("all");
+              }}
+              className="focus-ring h-12 rounded-xl border border-input bg-background px-3 text-sm font-semibold"
+              data-testid="select-facilities-province"
+            >
+              <option value="all">Tất cả tỉnh/thành phố</option>
+              {addressLocationOptions.map((province) => (
+                <option key={province.code} value={province.code}>
+                  {province.label}
+                </option>
+              ))}
+            </select>
+            <select
+              value={wardFilter}
+              onChange={(event) => setWardFilter(event.target.value)}
+              disabled={provinceFilter === "all"}
+              className="focus-ring h-12 rounded-xl border border-input bg-background px-3 text-sm font-semibold disabled:opacity-60"
+              data-testid="select-facilities-ward"
+            >
+              <option value="all">Tất cả xã/phường</option>
+              {provinceFilter !== "all" &&
+                getAddressWardOptions(provinceFilter).map((ward) => (
+                  <option key={ward.code} value={ward.code}>
+                    {ward.label}
+                  </option>
+                ))}
+            </select>
             <select
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}

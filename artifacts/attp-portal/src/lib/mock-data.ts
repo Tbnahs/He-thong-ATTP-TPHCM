@@ -1,3 +1,5 @@
+import { addressLocationOptions as nationwideAddressOptions } from "@/lib/address-data";
+
 export type ApplicationType = "food-supplier" | "meal-provider" | "school";
 export type CriteriaAnswerType =
   | "text"
@@ -298,8 +300,10 @@ export const getAddressLocation = (
 export const getAddressWardOptions = (provinceLabel?: string) =>
   addressLocationOptions.find((item) => item.label === provinceLabel)?.wards ?? [];
 
-const addressProvinceOptions = addressLocationOptions.map((item) => item.label);
-const addressWardOptions = addressLocationOptions.flatMap((item) =>
+const addressProvinceOptions = nationwideAddressOptions.map(
+  (item) => item.label,
+);
+const addressWardOptions = nationwideAddressOptions.flatMap((item) =>
   item.wards.map((ward) => ward.label),
 );
 

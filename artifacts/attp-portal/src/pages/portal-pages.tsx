@@ -64,6 +64,13 @@ import {
   submitDemoSupplement,
 } from "@/lib/demo-supplements";
 import { Button } from "@/components/ui/button";
+import { AddressFields, type AddressFieldsValue } from "@/components/address-fields";
+import {
+  addressLocationOptions,
+  formatStructuredAddress,
+  getAddressProvinceOptions,
+  getAddressWardOptions,
+} from "@/lib/address-data";
 import NotFound from "@/pages/not-found";
 import {
   AdminShell,
@@ -76,10 +83,7 @@ import {
 } from "@/components/portal-ui";
 import {
   applications,
-  addressLocationOptions,
   criteriaHistory,
-  getAddressLocation,
-  getAddressWardOptions,
   getCriteriaSet,
   getPublicRecords,
   isRegistrationCriteriaVisible,
@@ -872,9 +876,7 @@ export const getSchoolModelDetailItems = (
     (a, b) => a.order - b.order,
   );
 };
-const addressProvinceOptions = addressLocationOptions.map(
-  (location) => location.label,
-);
+const addressProvinceOptions = getAddressProvinceOptions();
 const formatDate = (value?: string) =>
   value
     ? new Intl.DateTimeFormat("vi-VN", {
@@ -922,6 +924,11 @@ type SchoolLocationRecord = {
   name: string;
   address: string;
   kind: "main" | "branch";
+  provinceCode?: string;
+  provinceName?: string;
+  wardCode?: string;
+  wardName?: string;
+  addressDetail?: string;
 };
 const schoolRegistrationSteps = [
   { title: "Thông tin chung", description: "Khai một lần cho toàn cơ sở" },
@@ -945,6 +952,7 @@ const normalizeSchoolLocations = (
   value: CriteriaValue | undefined,
   addressMain: CriteriaValue | undefined,
   addressBranches: CriteriaValue | undefined,
+  fields: Record<string, CriteriaValue>,
 ): SchoolLocationRecord[] => {
   const savedRows =
     Array.isArray(value) &&
@@ -965,6 +973,12 @@ const normalizeSchoolLocations = (
         (index === mainIndex ? "Điểm chính" : `Điểm trường ${index}`),
       address: schoolFieldText(row.address),
       kind: index === mainIndex ? "main" : "branch",
+      provinceCode: schoolFieldText(row.provinceCode),
+      provinceName: schoolFieldText(row.provinceName),
+      wardCode: schoolFieldText(row.wardCode),
+      wardName: schoolFieldText(row.wardName),
+      addressDetail:
+        schoolFieldText(row.addressDetail) || schoolFieldText(row.address),
     }));
   }
 
@@ -979,12 +993,19 @@ const normalizeSchoolLocations = (
       name: "Điểm chính",
       address: mainAddress,
       kind: "main",
+      provinceCode: schoolFieldText(fields.addressMainProvinceCode),
+      provinceName: schoolFieldText(fields.addressMainProvinceName),
+      wardCode: schoolFieldText(fields.addressMainWardCode),
+      wardName: schoolFieldText(fields.addressMainWardName),
+      addressDetail:
+        schoolFieldText(fields.addressMainAddressDetail) || mainAddress,
     },
     ...branchAddresses.map((address, index) => ({
       id: `school-site-legacy-${index + 1}`,
       name: `Điểm trường ${index + 1}`,
       address,
       kind: "branch" as const,
+      addressDetail: address,
     })),
   ];
 };
@@ -3829,7 +3850,9 @@ function LegacyFacilityProfilePage() {
     taxCode: string;
     address: string;
     addressProvince: string;
+    addressProvinceCode: string;
     addressWard: string;
+    addressWardCode: string;
     addressDetail: string;
     representative: string;
     phone: string;
@@ -3847,7 +3870,9 @@ function LegacyFacilityProfilePage() {
     taxCode: "0312345678",
     address: "184 Nguyễn Văn Linh, Quận 7, TP.HCM",
     addressProvince: "TP. Hồ Chí Minh",
+    addressProvinceCode: "",
     addressWard: "Phường Tân Phong",
+    addressWardCode: "",
     addressDetail: "184 Nguyễn Văn Linh",
     representative: "Nguyễn Hoàng Anh",
     phone: "0908 123 456",
@@ -3936,12 +3961,12 @@ function LegacyFacilityProfilePage() {
     const nextProfile = {
       ...profile,
       address: [
-        profile.addressDetail,
-        profile.addressWard,
-        profile.addressProvince,
-      ]
-        .filter(Boolean)
-        .join(", "),
+        formatStructuredAddress({
+          detail: profile.addressDetail,
+          ward: profile.addressWard,
+          province: profile.addressProvince,
+        }),
+      ][0],
     };
     setProfile(nextProfile);
     sessionStorage.setItem(profileStorageKey, JSON.stringify(nextProfile));
@@ -3994,29 +4019,35 @@ function LegacyFacilityProfilePage() {
                 onChange={(value) => update("taxCode", value)}
                 test="input-facility-tax-code"
               />
-              <SelectField
-                label="Chọn Tỉnh / Thành phố *"
-                value={profile.addressProvince}
-                onChange={(value) => update("addressProvince", value)}
-                options={addressProvinceOptions}
-                test="select-facility-address-province"
-              />
-              <SelectField
-                label="Chọn Xã / Phường *"
-                value={profile.addressWard}
-                onChange={(value) => update("addressWard", value)}
-                options={getAddressWardOptions(profile.addressProvince).map(
-                  (ward) => ward.label,
-                )}
-                test="select-facility-address-ward"
-              />
-              <Field
-                label="Địa chỉ chi tiết — số nhà, đường/thôn/ấp *"
-                value={profile.addressDetail}
-                onChange={(value) => update("addressDetail", value)}
-                test="input-facility-address-detail"
-                wide
-              />
+              <div className="md:col-span-2">
+                <AddressFields
+                  idPrefix="facility-profile-address"
+                  required
+                  detailLabel="Địa chỉ chi tiết — số nhà, đường/thôn/ấp"
+                  value={{
+                    provinceCode: profile.addressProvinceCode,
+                    provinceName: profile.addressProvince,
+                    wardCode: profile.addressWardCode,
+                    wardName: profile.addressWard,
+                    detail: profile.addressDetail,
+                  }}
+                  onChange={(value) => {
+                    update("addressProvinceCode", value.provinceCode);
+                    update("addressProvince", value.provinceName);
+                    update("addressWardCode", value.wardCode);
+                    update("addressWard", value.wardName);
+                    update("addressDetail", value.detail);
+                    update(
+                      "address",
+                      formatStructuredAddress({
+                        detail: value.detail,
+                        ward: value.wardName,
+                        province: value.provinceName,
+                      }),
+                    );
+                  }}
+                />
+              </div>
               <Field
                 label="Người đại diện pháp luật *"
                 value={profile.representative}
@@ -4362,8 +4393,18 @@ export function ApplicationForm({
         fields.schoolLocations,
         fields.addressMain,
         fields.addressBranches,
+        fields,
       ),
-    [fields.schoolLocations, fields.addressMain, fields.addressBranches],
+    [
+      fields.schoolLocations,
+      fields.addressMain,
+      fields.addressBranches,
+      fields.addressMainProvinceCode,
+      fields.addressMainProvinceName,
+      fields.addressMainWardCode,
+      fields.addressMainWardName,
+      fields.addressMainAddressDetail,
+    ],
   );
   const getSchoolModelLocation = (row: Record<string, string | string[]>) => {
     const storedId = schoolFieldText(row.siteId);
@@ -4462,8 +4503,18 @@ export function ApplicationForm({
         name: location.name,
         address: location.address,
         kind: location.kind,
+        provinceCode: location.provinceCode ?? "",
+        provinceName: location.provinceName ?? "",
+        wardCode: location.wardCode ?? "",
+        wardName: location.wardName ?? "",
+        addressDetail: location.addressDetail ?? "",
       })),
       addressMain: mainLocation?.address ?? "",
+      addressMainProvinceCode: mainLocation?.provinceCode ?? "",
+      addressMainProvinceName: mainLocation?.provinceName ?? "",
+      addressMainWardCode: mainLocation?.wardCode ?? "",
+      addressMainWardName: mainLocation?.wardName ?? "",
+      addressMainAddressDetail: mainLocation?.addressDetail ?? "",
       addressBranches: nextLocations
         .filter((location) => location.kind !== "main")
         .map((location) => location.address)
@@ -4511,6 +4562,29 @@ export function ApplicationForm({
         location.id === locationId ? { ...location, [key]: value } : location,
       ),
     );
+  const updateSchoolLocationAddress = (
+    locationId: string,
+    value: AddressFieldsValue,
+  ) =>
+    commitSchoolLocations(
+      schoolLocations.map((location) =>
+        location.id === locationId
+          ? {
+              ...location,
+              provinceCode: value.provinceCode,
+              provinceName: value.provinceName,
+              wardCode: value.wardCode,
+              wardName: value.wardName,
+              addressDetail: value.detail,
+              address: formatStructuredAddress({
+                detail: value.detail,
+                ward: value.wardName,
+                province: value.provinceName,
+              }),
+            }
+          : location,
+      ),
+    );
   const addSchoolLocation = () => {
     commitSchoolLocations([
       ...schoolLocations,
@@ -4519,6 +4593,7 @@ export function ApplicationForm({
         name: `Điểm trường ${schoolLocations.length}`,
         address: "",
         kind: "branch",
+        addressDetail: "",
       },
     ]);
   };
@@ -4541,6 +4616,11 @@ export function ApplicationForm({
         ...current,
         schoolLocations: nextLocations,
         addressMain: mainLocation?.address ?? "",
+        addressMainProvinceCode: mainLocation?.provinceCode ?? "",
+        addressMainProvinceName: mainLocation?.provinceName ?? "",
+        addressMainWardCode: mainLocation?.wardCode ?? "",
+        addressMainWardName: mainLocation?.wardName ?? "",
+        addressMainAddressDetail: mainLocation?.addressDetail ?? "",
         addressBranches: nextLocations
           .filter((candidate) => candidate.kind !== "main")
           .map((candidate) => candidate.address)
@@ -5514,9 +5594,15 @@ export function ApplicationForm({
     const address =
       type === "school"
         ? asText(fields.addressMain) || asText(fields.addressDetail)
-        : asText(fields.facilityAddress) ||
-          asText(fields.headquartersAddress) ||
-          asText(fields.addressDetail);
+        : type === "meal-provider"
+          ? asText(fields.facilityAddress) ||
+            asText(fields.headquartersAddress) ||
+            asText(fields.addressDetail)
+          : formatStructuredAddress({
+              detail: asText(fields.addressDetail),
+              ward: asText(fields.addressWard),
+              province: asText(fields.addressProvince),
+            });
     const contact =
       type === "meal-provider"
         ? asText(fields.foodSafetyContactPhone) || asText(fields.contact)
@@ -5811,7 +5897,121 @@ export function ApplicationForm({
   const selectedTypeLabel =
     facilityTypeOptions.find((option) => option.value === type)?.label ??
     "Cơ sở giáo dục";
-  const renderQuestion = (item: CriteriaDefinition) => (
+  const renderQuestion = (item: CriteriaDefinition) => {
+    if (type === "school" && item.key === "addressMain") {
+      const mainLocation =
+        schoolLocations.find((location) => location.kind === "main") ??
+        schoolLocations[0];
+      return (
+        <div className="paper-question">
+          <p className="mb-3 text-sm font-semibold">{item.label} *</p>
+          <AddressFields
+            idPrefix="school-main-address"
+            required={item.required}
+            value={{
+              provinceCode: schoolFieldText(fields.addressMainProvinceCode),
+              provinceName: schoolFieldText(fields.addressMainProvinceName),
+              wardCode: schoolFieldText(fields.addressMainWardCode),
+              wardName: schoolFieldText(fields.addressMainWardName),
+              detail:
+                schoolFieldText(fields.addressMainAddressDetail) ||
+                schoolFieldText(fields.addressMain),
+            }}
+            onChange={(value) => {
+              if (mainLocation) {
+                updateSchoolLocationAddress(mainLocation.id, value);
+              }
+            }}
+          />
+        </div>
+      );
+    }
+    if (type === "school" && item.key === "addressBranches") {
+      return (
+        <div className="paper-question">
+          <p className="text-sm font-semibold">{item.label}</p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            Khai báo riêng địa chỉ và địa giới của từng điểm trường tại Bước 2 ·
+            Địa điểm.
+          </p>
+        </div>
+      );
+    }
+    if (
+      type === "meal-provider" &&
+      ["headquartersAddress", "facilityAddress"].includes(item.key)
+    ) {
+      const prefix =
+        item.key === "headquartersAddress" ? "headquarters" : "facility";
+      return (
+        <div className="paper-question">
+          <p className="mb-3 text-sm font-semibold">{item.label} *</p>
+          <AddressFields
+            idPrefix={`meal-provider-${prefix}-address`}
+            required={item.required}
+            detailLabel="Địa chỉ chi tiết"
+            value={{
+              provinceCode: schoolFieldText(fields[`${prefix}ProvinceCode`]),
+              provinceName: schoolFieldText(fields[`${prefix}ProvinceName`]),
+              wardCode: schoolFieldText(fields[`${prefix}WardCode`]),
+              wardName: schoolFieldText(fields[`${prefix}WardName`]),
+              detail:
+                schoolFieldText(fields[`${prefix}AddressDetail`]) ||
+                schoolFieldText(fields[item.key]),
+            }}
+            onChange={(value) => {
+              update(`${prefix}ProvinceCode`, value.provinceCode);
+              update(`${prefix}ProvinceName`, value.provinceName);
+              update(`${prefix}WardCode`, value.wardCode);
+              update(`${prefix}WardName`, value.wardName);
+              update(`${prefix}AddressDetail`, value.detail);
+              update(
+                item.key,
+                formatStructuredAddress({
+                  detail: value.detail,
+                  ward: value.wardName,
+                  province: value.provinceName,
+                }),
+              );
+            }}
+          />
+        </div>
+      );
+    }
+    if (
+      type === "food-supplier" &&
+      ["addressProvince", "addressWard", "addressDetail"].includes(item.key)
+    ) {
+      if (item.key !== "addressProvince") return null;
+      return (
+        <div className="paper-question">
+          <p className="mb-3 text-sm font-semibold">Địa điểm kho/giao dịch *</p>
+          <AddressFields
+            idPrefix="food-supplier-address"
+            required={item.required}
+            value={{
+              provinceCode: schoolFieldText(fields.addressProvinceCode),
+              provinceName: schoolFieldText(fields.addressProvince),
+              wardCode: schoolFieldText(fields.addressWardCode),
+              wardName: schoolFieldText(fields.addressWard),
+              detail: schoolFieldText(fields.addressDetail),
+            }}
+            onChange={(value) => {
+              update("addressProvinceCode", value.provinceCode);
+              update("addressProvince", value.provinceName);
+              update("addressWardCode", value.wardCode);
+              update("addressWard", value.wardName);
+              update("addressDetail", value.detail);
+            }}
+          />
+          <p className="mt-2 text-xs leading-5 text-muted-foreground">
+            Chọn nơi lưu kho hoặc nơi diễn ra giao dịch/giao nhận hàng; không
+            dùng địa chỉ trụ sở thay thế nếu khác địa điểm.
+          </p>
+        </div>
+      );
+    }
+    return (
     <div className="paper-question">
       {type === "meal-provider" &&
       [
@@ -5878,7 +6078,8 @@ export function ApplicationForm({
           </div>
         )}
     </div>
-  );
+    );
+  };
   const mealProviderSectionNumbers = ["I", "II", "III", "IV", "V"];
   const mealProviderSubsectionHeadings: Record<string, string> = {
     applicantName: "1. Thông tin tổ chức/cá nhân (trụ sở chính)",
@@ -6182,6 +6383,7 @@ export function ApplicationForm({
               locations={schoolLocations}
               allowPartialSubmission={allowPartialSubmission}
               onUpdate={updateSchoolLocation}
+              onAddressUpdate={updateSchoolLocationAddress}
               onAdd={addSchoolLocation}
               onRemove={removeSchoolLocation}
             />
@@ -6471,6 +6673,7 @@ function SchoolLocationsStep({
   locations,
   allowPartialSubmission,
   onUpdate,
+  onAddressUpdate,
   onAdd,
   onRemove,
 }: {
@@ -6480,6 +6683,10 @@ function SchoolLocationsStep({
     locationId: string,
     key: "name" | "address",
     value: string,
+  ) => void;
+  onAddressUpdate: (
+    locationId: string,
+    value: AddressFieldsValue,
   ) => void;
   onAdd: () => void;
   onRemove: (location: SchoolLocationRecord) => void;
@@ -6561,23 +6768,21 @@ function SchoolLocationsStep({
                   data-testid={`input-school-location-name-${index + 1}`}
                 />
               </label>
-              <label className="grid gap-1.5 sm:col-span-1">
-                <span className="text-sm font-semibold">
-                  Địa chỉ
-                  {(!allowPartialSubmission || location.kind === "main") && (
-                    <span className="text-destructive"> *</span>
-                  )}
-                </span>
-                <input
-                  value={location.address}
-                  onChange={(event) =>
-                    onUpdate(location.id, "address", event.target.value)
-                  }
-                  className="focus-ring h-11 rounded-lg border border-input bg-background px-3 text-sm"
-                  placeholder="Số nhà, đường, phường/xã"
-                  data-testid={`input-school-location-address-${index + 1}`}
-                />
-              </label>
+            </div>
+            <div className="mt-4">
+              <AddressFields
+                idPrefix={`school-location-${location.id}`}
+                required={!allowPartialSubmission || location.kind === "main"}
+                detailLabel="Địa chỉ chi tiết"
+                value={{
+                  provinceCode: location.provinceCode ?? "",
+                  provinceName: location.provinceName ?? "",
+                  wardCode: location.wardCode ?? "",
+                  wardName: location.wardName ?? "",
+                  detail: location.addressDetail ?? location.address,
+                }}
+                onChange={(value) => onAddressUpdate(location.id, value)}
+              />
             </div>
           </article>
         ))}
