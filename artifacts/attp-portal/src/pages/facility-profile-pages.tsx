@@ -80,6 +80,7 @@ type DeliveryRecord = {
   kind: DeliveryKind;
   orderCode: string;
   partner: string;
+  origin?: string;
   destination: string;
   quantity: string;
   status: "Đã nhận" | "Đã giao" | "Có sai lệch";
@@ -527,6 +528,7 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
             kind: "Thức ăn",
             orderCode: `${application.reference}-OUT-${String(rowIndex + 1).padStart(2, "0")}`,
             partner: customerName,
+            origin: application.address,
             destination:
               schoolAddresses[schoolId] ||
               String(row.address || "Chưa cập nhật"),
@@ -564,6 +566,12 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
           { length: application.id.startsWith("sample-app-") ? 4 : 1 },
           (_, rowIndex) => {
             const sampleIndex = Number(application.id.match(/\d+$/)?.[0] || index);
+            const isMealDelivery =
+              mealOrganization === "Liên kết đơn vị suất ăn";
+            const sourceRows = isMealDelivery
+              ? linkedMealProviderRows
+              : readRows(fields.ingredientSuppliers);
+            const sourceRow = sourceRows[rowIndex] ?? sourceRows[0];
             const ingredientSuppliers = [
               "Hợp tác xã Rau an toàn Hóc Môn",
               "Công ty Thực phẩm sạch Bình Minh",
@@ -572,8 +580,6 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
               "Công ty Nông sản Mekong Xanh",
               "Cơ sở Trứng sạch Thành Công",
             ];
-            const isMealDelivery =
-              mealOrganization === "Liên kết đơn vị suất ăn";
             return {
               id: `delivery-${application.id}-school-in-${rowIndex + 1}`,
               date,
@@ -586,7 +592,15 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
                       (sampleIndex + rowIndex) % ingredientSuppliers.length
                     ]
                   : firstSupplier,
-              destination: application.applicantName,
+              origin: String(
+                sourceRow?.dispatchAddress ||
+                  sourceRow?.supplierAddress ||
+                  sourceRow?.address ||
+                  sourceRow?.providerAddress ||
+                  sourceRow?.serviceSiteAddress ||
+                  "",
+              ),
+              destination: application.address,
               quantity: isMealDelivery
                 ? `${360 + ((sampleIndex + rowIndex) % 8) * 35} suất ăn`
                 : `${90 + ((sampleIndex + rowIndex) % 9) * 15} kg / lô`,
@@ -648,7 +662,7 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
               kind: "Nguyên liệu",
               orderCode: `${application.reference}-IN`,
               partner: firstSupplier,
-              destination: application.applicantName,
+              destination: application.address,
               quantity: "Theo danh mục đã khai báo",
               status: "Đã nhận",
               sourceSystem: deliveryBase,
@@ -664,6 +678,7 @@ const buildProfile = (approval: ApprovedFacility, index: number): FacilityProfil
               kind: "Nguyên liệu",
               orderCode: `${application.reference}-OUT`,
               partner: application.applicantName,
+              origin: application.address,
               destination: firstRelated,
               quantity: "Theo đơn vị đã khai báo",
               status: "Đã giao",
@@ -804,9 +819,20 @@ function DeliveryHistoryTable({
   onDeliveryKindChange: (value: "Tất cả" | DeliveryKind) => void;
   emptyDescription: string;
 }) {
+  const [locationSearch, setLocationSearch] = useState("");
+  const filteredDeliveries = deliveries.filter((delivery) => {
+    const query = locationSearch.trim().toLowerCase();
+    return (
+      !query ||
+      `${delivery.origin ?? ""} ${delivery.destination}`
+        .toLowerCase()
+        .includes(query)
+    );
+  });
+
   return (
     <section className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-      <div className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 border-b border-border px-5 py-4">
         <div className="flex items-center gap-2">
           <History size={18} className="text-primary" />
           <div>
@@ -814,32 +840,65 @@ function DeliveryHistoryTable({
             <p className="mt-1 text-sm text-muted-foreground">{description}</p>
           </div>
         </div>
-        <select value={deliveryKind} onChange={(event) => onDeliveryKindChange(event.target.value as "Tất cả" | DeliveryKind)} className="h-10 rounded-xl border border-input bg-background px-3 text-sm font-semibold outline-none focus:border-primary" aria-label="Lọc loại giao nhận">
-          <option>Tất cả</option>
-          <option>Thức ăn</option>
-          <option>Nguyên liệu</option>
-        </select>
+        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+          <label className="relative block">
+            <span className="sr-only">Tìm theo nơi giao hoặc nơi nhận</span>
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
+            <input
+              value={locationSearch}
+              onChange={(event) => setLocationSearch(event.target.value)}
+              placeholder="Tìm theo nơi giao hoặc nơi nhận..."
+              className="h-10 w-full rounded-xl border border-input bg-background pl-9 pr-3 text-sm outline-none focus:border-primary"
+              data-testid="input-search-delivery-location"
+            />
+          </label>
+          <select value={deliveryKind} onChange={(event) => onDeliveryKindChange(event.target.value as "Tất cả" | DeliveryKind)} className="h-10 rounded-xl border border-input bg-background px-3 text-sm font-semibold outline-none focus:border-primary" aria-label="Lọc loại giao nhận">
+            <option>Tất cả</option>
+            <option>Thức ăn</option>
+            <option>Nguyên liệu</option>
+          </select>
+        </div>
+        {locationSearch.trim() ? (
+          <p className="text-xs font-semibold text-muted-foreground">
+            {filteredDeliveries.length} / {deliveries.length} lần giao nhận phù hợp
+          </p>
+        ) : null}
       </div>
-      {deliveries.length ? (
+      {filteredDeliveries.length ? (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[850px] text-left text-sm">
+          <table className="w-full min-w-[980px] text-left text-sm">
             <thead className="bg-secondary/45 text-xs uppercase tracking-wide text-muted-foreground">
-              <tr><th className="px-5 py-3">Ngày / đơn hàng</th><th className="px-5 py-3">Loại</th><th className="px-5 py-3">Đối tác</th><th className="px-5 py-3">Điểm giao nhận</th><th className="px-5 py-3">Khối lượng</th></tr>
+              <tr><th className="px-5 py-3">Ngày / đơn hàng</th><th className="px-5 py-3">Loại</th><th className="px-5 py-3">Đối tác</th><th className="px-5 py-3">Nơi giao</th><th className="px-5 py-3">Nơi nhận</th><th className="px-5 py-3">Khối lượng</th></tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {deliveries.map((delivery) => (
+              {filteredDeliveries.map((delivery) => (
                 <tr key={delivery.id} className="hover:bg-secondary/20">
                   <td className="px-5 py-4"><p className="font-bold">{delivery.date}</p><p className="mt-1 text-xs text-muted-foreground">{delivery.orderCode}</p></td>
                   <td className="px-5 py-4"><span className="inline-flex items-center gap-1.5 font-semibold">{delivery.kind === "Thức ăn" ? <Utensils size={15} className="text-primary" /> : <PackageCheck size={15} className="text-amber-700" />}{delivery.kind}</span></td>
                   <td className="px-5 py-4 font-semibold">{delivery.partner}</td>
-                  <td className="px-5 py-4 text-muted-foreground">{delivery.destination}</td>
+                  <td className="px-5 py-4 text-muted-foreground">{delivery.origin || "Chưa cập nhật"}</td>
+                  <td className="px-5 py-4 text-muted-foreground">{delivery.destination || "Chưa cập nhật"}</td>
                   <td className="px-5 py-4 font-semibold">{delivery.quantity}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      ) : <div className="p-5"><EmptyState title="Chưa có bản ghi giao nhận" description={emptyDescription} /></div>}
+      ) : (
+        <div className="p-5">
+          <EmptyState
+            title={deliveries.length ? "Không có lần giao nhận phù hợp" : "Chưa có bản ghi giao nhận"}
+            description={
+              deliveries.length
+                ? "Thử tìm bằng địa chỉ giao hoặc địa chỉ nhận khác."
+                : emptyDescription
+            }
+          />
+        </div>
+      )}
     </section>
   );
 }
@@ -965,42 +1024,78 @@ function MealOrderDetailDialog({
 
 function MealDeliveryHistoryTable({
   deliveries,
+  originAddress,
 }: {
   deliveries: DeliveryRecord[];
+  originAddress: string;
 }) {
   const [selectedDelivery, setSelectedDelivery] =
     useState<DeliveryRecord | null>(null);
+  const [locationSearch, setLocationSearch] = useState("");
+  const query = locationSearch.trim().toLowerCase();
+  const filteredDeliveries = deliveries.filter((delivery) => {
+    const receivingAddress =
+      delivery.mealOrderDetail?.address ?? delivery.destination;
+    return (
+      !query ||
+      `${delivery.origin || originAddress} ${receivingAddress}`
+        .toLowerCase()
+        .includes(query)
+    );
+  });
 
   return (
     <>
       <section className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
         <div className="border-b border-border px-5 py-5">
-          <div className="flex items-center gap-2">
-            <Truck size={18} className="text-primary" />
-            <div>
-              <h2 className="font-extrabold">Cơ sở nhận hàng</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Danh sách lịch sử xuất suất ăn đến các đơn vị nhận hàng.
-              </p>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-2">
+              <Truck size={18} className="text-primary" />
+              <div>
+                <h2 className="font-extrabold">Cơ sở nhận hàng</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Danh sách lịch sử xuất suất ăn đến các đơn vị nhận hàng.
+                </p>
+              </div>
             </div>
+            <label className="relative block lg:w-96">
+              <span className="sr-only">Tìm theo nơi giao hoặc nơi nhận</span>
+              <Search
+                size={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+              />
+              <input
+                value={locationSearch}
+                onChange={(event) => setLocationSearch(event.target.value)}
+                placeholder="Tìm theo nơi giao hoặc nơi nhận..."
+                className="h-10 w-full rounded-xl border border-input bg-background pl-9 pr-3 text-sm outline-none focus:border-primary"
+                data-testid="input-search-meal-delivery-location"
+              />
+            </label>
           </div>
+          {query ? (
+            <p className="mt-3 text-xs font-semibold text-muted-foreground">
+              {filteredDeliveries.length} / {deliveries.length} lần giao nhận phù hợp
+            </p>
+          ) : null}
         </div>
-        {deliveries.length ? (
+        {filteredDeliveries.length ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1080px] text-left text-sm">
+            <table className="w-full min-w-[1220px] text-left text-sm">
               <thead className="bg-secondary/45 text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="px-5 py-3">Mã đơn hàng</th>
                   <th className="px-5 py-3">Ngày giờ</th>
                   <th className="px-5 py-3">Tên khách hàng</th>
                   <th className="px-5 py-3">MST</th>
-                  <th className="px-5 py-3">Địa chỉ</th>
+                  <th className="px-5 py-3">Nơi giao</th>
+                  <th className="px-5 py-3">Nơi nhận</th>
                   <th className="px-5 py-3">Tổng suất ăn</th>
                   <th className="px-5 py-3 text-right">Chi tiết</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {deliveries.map((delivery) => {
+                {filteredDeliveries.map((delivery) => {
                   const detail = delivery.mealOrderDetail;
                   return (
                     <tr
@@ -1021,6 +1116,9 @@ function MealDeliveryHistoryTable({
                       </td>
                       <td className="px-5 py-5 font-mono text-xs">
                         {detail?.taxCode ?? "Chưa cập nhật"}
+                      </td>
+                      <td className="max-w-[240px] px-5 py-5 text-muted-foreground">
+                        {delivery.origin || originAddress || "Chưa cập nhật"}
                       </td>
                       <td className="max-w-[240px] px-5 py-5 text-muted-foreground">
                         {detail?.address ?? delivery.destination}
@@ -1047,8 +1145,16 @@ function MealDeliveryHistoryTable({
         ) : (
           <div className="p-5">
             <EmptyState
-              title="Chưa có lịch sử xuất suất ăn"
-              description="Các phiếu xuất đến cơ sở nhận hàng sẽ hiển thị tại đây."
+              title={
+                deliveries.length
+                  ? "Không có lần giao nhận phù hợp"
+                  : "Chưa có lịch sử xuất suất ăn"
+              }
+              description={
+                deliveries.length
+                  ? "Thử tìm bằng địa chỉ giao hoặc địa chỉ nhận khác."
+                  : "Các phiếu xuất đến cơ sở nhận hàng sẽ hiển thị tại đây."
+              }
             />
           </div>
         )}
@@ -1689,7 +1795,23 @@ export function FacilityProfilesPage() {
   };
 
   const filteredProfiles = profiles.filter((profile) => {
-    const haystack = `${profile.name} ${profile.address} ${profile.taxCode}`.toLowerCase();
+    const foodSupplierLocations =
+      profile.applicationType === "food-supplier"
+        ? [
+            profile.registrationData.addressDetail,
+            profile.registrationData.addressWard,
+            profile.registrationData.addressProvince,
+          ]
+            .filter(
+              (value) =>
+                typeof value === "string" &&
+                value.trim() &&
+                value !== "Chưa khai báo",
+            )
+            .join(" ")
+        : "";
+    const haystack =
+      `${profile.name} ${profile.address} ${profile.taxCode} ${foodSupplierLocations}`.toLowerCase();
     return haystack.includes(search.trim().toLowerCase()) && (category === "Tất cả loại hình" || profile.category === category);
   });
   const totalDeliveries = profiles.reduce((total, profile) => total + profile.deliveries.length, 0);
@@ -1710,7 +1832,7 @@ export function FacilityProfilesPage() {
         </div>
         <section className="mt-6 rounded-2xl border border-border bg-card p-4 shadow-sm">
           <div className="grid gap-3 lg:grid-cols-[1fr_280px]">
-            <label className="relative block"><span className="sr-only">Tìm cơ sở</span><Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm theo tên, mã số thuế hoặc địa chỉ..." className="h-11 w-full rounded-xl border border-input bg-background pl-10 pr-3 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10" /></label>
+            <label className="relative block"><span className="sr-only">Tìm cơ sở</span><Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm tên, mã số thuế, địa chỉ kho/điểm giao dịch..." className="h-11 w-full rounded-xl border border-input bg-background pl-10 pr-3 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10" /></label>
            <select value={category} onChange={(event) => setCategory(event.target.value)} className="h-11 rounded-xl border border-input bg-background px-3 text-sm font-semibold outline-none focus:border-primary" aria-label="Lọc theo loại hình"><option>Tất cả loại hình</option><option>Cơ sở cung cấp thực phẩm</option><option>Cơ sở chế biến và cung cấp suất ăn</option><option>Cơ sở giáo dục</option></select>
           </div>
         </section>
@@ -2167,7 +2289,7 @@ export function FacilityProfileDetailPage() {
 
          {activeTab === "suppliers" ? profile.applicationType === "meal-provider" ? <SupplierSourcePanel profile={profile} /> : <DeliveryHistoryTable title={schoolSupplierLabel} description={isIngredientSchool ? "Lịch sử nhập nguyên liệu từ các nhà cung cấp đầu vào." : "Lịch sử tiếp nhận suất ăn từ đơn vị liên kết cung cấp."} deliveries={filteredDeliveries.filter((delivery) => delivery.flow === "Nhập hàng")} deliveryKind={deliveryKind} onDeliveryKindChange={setDeliveryKind} emptyDescription={isIngredientSchool ? "Chưa có lịch sử nhập nguyên liệu từ nhà cung cấp." : "Chưa có lịch sử tiếp nhận suất ăn từ đơn vị cung cấp."} /> : null}
         {activeTab === "menus" ? <MealMenuPanel profile={profile} /> : null}
-        {activeTab === "outgoing" ? profile.applicationType === "meal-provider" ? <MealDeliveryHistoryTable deliveries={filteredDeliveries.filter((delivery) => delivery.flow === "Xuất hàng")} /> : <DeliveryHistoryTable title="Cơ sở nhận hàng" description="Lịch sử xuất thực phẩm hoặc suất ăn cho các đơn vị liên quan." deliveries={filteredDeliveries.filter((delivery) => delivery.flow === "Xuất hàng")} deliveryKind={deliveryKind} onDeliveryKindChange={setDeliveryKind} emptyDescription="Chưa có lịch sử xuất hàng cho cơ sở khác." /> : null}
+        {activeTab === "outgoing" ? profile.applicationType === "meal-provider" ? <MealDeliveryHistoryTable deliveries={filteredDeliveries.filter((delivery) => delivery.flow === "Xuất hàng")} originAddress={profile.address} /> : <DeliveryHistoryTable title="Cơ sở nhận hàng" description="Lịch sử xuất thực phẩm hoặc suất ăn cho các đơn vị liên quan." deliveries={filteredDeliveries.filter((delivery) => delivery.flow === "Xuất hàng")} deliveryKind={deliveryKind} onDeliveryKindChange={setDeliveryKind} emptyDescription="Chưa có lịch sử xuất hàng cho cơ sở khác." /> : null}
         {activeTab === "incidents" ? <IncidentHistoryTable incidents={incidents} /> : null}
         {previewDocument ? <DocumentPreviewDialog document={previewDocument} onClose={() => setPreviewDocument(null)} /> : null}
          {notice ? (
