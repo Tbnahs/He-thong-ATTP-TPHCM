@@ -2,6 +2,11 @@ import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { FileText, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
+  AddressFields,
+  type AddressFieldsValue,
+} from "@/components/address-fields";
+import { formatStructuredAddress } from "@/lib/address-data";
+import {
   getCriteriaSet,
   isRegistrationCriteriaVisible,
   schoolOptions,
@@ -46,6 +51,55 @@ const asRows = (value: unknown): DataRow[] =>
 
 const asText = (value: unknown) =>
   typeof value === "string" || typeof value === "number" ? String(value) : "";
+
+const isStructuredAddressField = (key: string) =>
+  /address$/i.test(key) || key === "readyMealReceivingPoint";
+
+const getStructuredAddressPrefix = (key: string) => {
+  if (key === "readyMealReceivingPoint") return "readyMealReceiving";
+  return key.replace(/Address$/i, "") || key;
+};
+
+const getStructuredAddressValue = (
+  source: DataRow,
+  key: string,
+  legacyValue?: unknown,
+): AddressFieldsValue => {
+  const prefix = getStructuredAddressPrefix(key);
+  return {
+    provinceCode: asText(source[`${prefix}ProvinceCode`]),
+    provinceName:
+      asText(source[`${prefix}ProvinceName`]) ||
+      asText(source[`${prefix}Province`]),
+    wardCode: asText(source[`${prefix}WardCode`]),
+    wardName:
+      asText(source[`${prefix}WardName`]) || asText(source[`${prefix}Ward`]),
+    detail:
+      asText(source[`${prefix}AddressDetail`]) ||
+      asText(source[`${prefix}Detail`]) ||
+      asText(legacyValue ?? source[key]),
+  };
+};
+
+const getStructuredAddressUpdates = (
+  key: string,
+  value: AddressFieldsValue,
+  keyPrefix = "",
+) => {
+  const prefix = getStructuredAddressPrefix(key);
+  return {
+    [`${keyPrefix}${key}`]: formatStructuredAddress({
+      detail: value.detail,
+      ward: value.wardName,
+      province: value.provinceName,
+    }),
+    [`${keyPrefix}${prefix}ProvinceCode`]: value.provinceCode,
+    [`${keyPrefix}${prefix}ProvinceName`]: value.provinceName,
+    [`${keyPrefix}${prefix}WardCode`]: value.wardCode,
+    [`${keyPrefix}${prefix}WardName`]: value.wardName,
+    [`${keyPrefix}${prefix}AddressDetail`]: value.detail,
+  };
+};
 
 const asSelectedValues = (value: unknown): string[] =>
   Array.isArray(value)
@@ -120,6 +174,8 @@ function AnswerControl({
   attachments,
   disabled,
   onChange,
+  addressValue,
+  onAddressChange,
   onChooseFiles,
   onRemoveFile,
 }: {
@@ -129,6 +185,8 @@ function AnswerControl({
   attachments: Attachment[];
   disabled: boolean;
   onChange: (value: unknown) => void;
+  addressValue?: AddressFieldsValue;
+  onAddressChange?: (value: AddressFieldsValue) => void;
   onChooseFiles: (fieldKey: string, event: ChangeEvent<HTMLInputElement>) => void;
   onRemoveFile: (file: Attachment) => void;
 }) {
@@ -202,6 +260,40 @@ function AnswerControl({
     );
   }
 
+  if (item.answerType === "text" && isStructuredAddressField(item.key)) {
+    return (
+      <div className="min-w-0">
+        <p className="mb-3 text-sm font-semibold">
+          {item.label}
+          {requiredMark}
+        </p>
+        {descriptions}
+        <AddressFields
+          idPrefix={`supplement-${safeId}`}
+          value={
+            addressValue ??
+            getStructuredAddressValue(
+              { [item.key]: value },
+              item.key,
+              value,
+            )
+          }
+          required={item.required}
+          disabled={disabled}
+          onChange={(nextAddress) =>
+            onAddressChange
+              ? onAddressChange(nextAddress)
+              : onChange(
+                  getStructuredAddressUpdates(item.key, nextAddress)[
+                    item.key
+                  ],
+                )
+          }
+        />
+      </div>
+    );
+  }
+
   if (item.answerType === "repeatable") {
     const rows = asRows(value);
     return (
@@ -267,6 +359,26 @@ function AnswerControl({
                         value={row[field.key]}
                         attachments={attachments}
                         disabled={disabled}
+                        addressValue={getStructuredAddressValue(
+                          row,
+                          field.key,
+                          row[field.key],
+                        )}
+                        onAddressChange={(nextAddress) =>
+                          onChange(
+                            rows.map((current, index) =>
+                              index === rowIndex
+                                ? {
+                                    ...current,
+                                    ...getStructuredAddressUpdates(
+                                      field.key,
+                                      nextAddress,
+                                    ),
+                                  }
+                                : current,
+                            ),
+                          )
+                        }
                         onChange={(nextValue) =>
                           onChange(
                             rows.map((current, index) =>
@@ -496,7 +608,38 @@ function SupplementRegistrationForm({
     (item) => !groups.some((group) => group.id === item.groupId),
   );
 
-  const schoolLocations = asRows(data.schoolLocations);
+  const savedSchoolLocations = asRows(data.schoolLocations);
+  const legacyBranchAddresses = Array.isArray(data.addressBranches)
+    ? data.addressBranches.map(asText).filter(Boolean)
+    : asText(data.addressBranches)
+        .split(/[\r\n;]+/)
+        .map((address) => address.trim())
+        .filter(Boolean);
+  const legacyMainAddress = asText(data.addressMain);
+  const schoolLocations: DataRow[] =
+    savedSchoolLocations.length > 0
+      ? savedSchoolLocations
+      : [
+          {
+            id: "legacy-school-main",
+            name: "Điểm chính",
+            address: legacyMainAddress,
+            kind: "main",
+            provinceCode: data.addressMainProvinceCode,
+            provinceName: data.addressMainProvinceName,
+            wardCode: data.addressMainWardCode,
+            wardName: data.addressMainWardName,
+            addressDetail:
+              asText(data.addressMainAddressDetail) || legacyMainAddress,
+          },
+          ...legacyBranchAddresses.map((address, index) => ({
+            id: `legacy-school-branch-${index + 1}`,
+            name: `Điểm trường ${index + 1}`,
+            address,
+            kind: "branch",
+            addressDetail: address,
+          })),
+        ];
   const operatingModels = asRows(data.operatingModels);
   const schoolForms = asRows(data.schoolModelForms);
   const typeLabel =
@@ -549,6 +692,12 @@ function SupplementRegistrationForm({
       ...current,
       schoolLocations: nextLocations,
       addressMain: asText(mainLocation?.address),
+      addressMainProvinceCode: asText(mainLocation?.provinceCode),
+      addressMainProvinceName: asText(mainLocation?.provinceName),
+      addressMainWardCode: asText(mainLocation?.wardCode),
+      addressMainWardName: asText(mainLocation?.wardName),
+      addressMainAddressDetail:
+        asText(mainLocation?.addressDetail) || asText(mainLocation?.address),
       addressBranches: nextLocations
         .filter((location) => location !== mainLocation)
         .map((location) => asText(location.address))
@@ -594,6 +743,81 @@ function SupplementRegistrationForm({
           : "Không thể gửi hồ sơ bổ sung.",
       );
     }
+  };
+
+  const renderAnswerControl = (
+    item: CriteriaDefinition,
+    fieldKey: string,
+    value: unknown,
+    onChange: (value: unknown) => void,
+    addressOptions?: {
+      value?: AddressFieldsValue;
+      onChange?: (value: AddressFieldsValue) => void;
+    },
+  ) => {
+    if (
+      application.type === "food-supplier" &&
+      ["addressProvince", "addressWard", "addressDetail"].includes(item.key)
+    ) {
+      if (item.key !== "addressProvince") return null;
+      return (
+        <div className="min-w-0">
+          <p className="mb-3 text-sm font-semibold">
+            Địa điểm kho/giao dịch
+            {item.required && <span className="text-rose-600"> *</span>}
+          </p>
+          <AddressFields
+            idPrefix="supplement-food-supplier-location"
+            required={item.required}
+            disabled={disabled}
+            value={getStructuredAddressValue(
+              {
+                ...data,
+                addressProvinceName: data.addressProvince,
+                addressWardName: data.addressWard,
+                addressAddressDetail: data.addressDetail,
+              },
+              "address",
+              data.addressDetail,
+            )}
+            onChange={(nextAddress) =>
+              setData((current) => ({
+                ...current,
+                ...getStructuredAddressUpdates("address", nextAddress),
+                addressProvince: nextAddress.provinceName,
+                addressWard: nextAddress.wardName,
+                addressDetail: nextAddress.detail,
+              }))
+            }
+          />
+        </div>
+      );
+    }
+
+    return (
+      <AnswerControl
+        item={item}
+        fieldKey={fieldKey}
+        value={value}
+        attachments={attachments}
+        disabled={disabled}
+        onChange={onChange}
+        addressValue={
+          addressOptions?.value ??
+          getStructuredAddressValue(data, item.key, value)
+        }
+        onAddressChange={
+          addressOptions?.onChange ??
+          ((nextAddress) =>
+            setData((current) => ({
+              ...current,
+              ...getStructuredAddressUpdates(item.key, nextAddress),
+            })))
+        }
+        onChooseFiles={chooseFiles}
+        onRemoveFile={removeFile}
+      />
+    );
   };
 
   return (
@@ -677,16 +901,12 @@ function SupplementRegistrationForm({
                       }
                     >
                       <div className="paper-question">
-                        <AnswerControl
-                          item={item}
-                          fieldKey={item.key}
-                          value={data[item.key]}
-                          attachments={attachments}
-                          disabled={disabled}
-                          onChange={(value) => updateValue(item.key, value)}
-                          onChooseFiles={chooseFiles}
-                          onRemoveFile={removeFile}
-                        />
+                        {renderAnswerControl(
+                          item,
+                          item.key,
+                          data[item.key],
+                          (value) => updateValue(item.key, value),
+                        )}
                       </div>
                     </div>
                   ))}
@@ -706,16 +926,12 @@ function SupplementRegistrationForm({
               <div className="paper-form-field-row">
                 {ungroupedCriteria.map((item) => (
                   <div className="paper-question" key={item.id}>
-                    <AnswerControl
-                      item={item}
-                      fieldKey={item.key}
-                      value={data[item.key]}
-                      attachments={attachments}
-                      disabled={disabled}
-                      onChange={(value) => updateValue(item.key, value)}
-                      onChooseFiles={chooseFiles}
-                      onRemoveFile={removeFile}
-                    />
+                    {renderAnswerControl(
+                      item,
+                      item.key,
+                      data[item.key],
+                      (value) => updateValue(item.key, value),
+                    )}
                   </div>
                 ))}
               </div>
@@ -731,98 +947,95 @@ function SupplementRegistrationForm({
                   </span>
                   <h2>Địa điểm cơ sở giáo dục</h2>
                 </div>
-                {schoolLocations.length > 0 ? (
-                  <div className="mt-4 space-y-4">
-                    {schoolLocations.map((location, index) => (
-                      <div
-                        key={asText(location.id) || index}
-                        className="paper-model-form"
-                      >
-                        <div className="paper-model-form-header">
-                          <h3>
-                            {location.kind === "main"
-                              ? "Địa điểm chính"
-                              : `Địa điểm ${index + 1}`}
-                          </h3>
-                          {!disabled && location.kind !== "main" && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                updateLocations(
-                                  schoolLocations.filter(
-                                    (_, currentIndex) => currentIndex !== index,
-                                  ),
-                                )
-                              }
-                              className="focus-ring rounded-md p-1 text-muted-foreground hover:text-rose-700"
-                              aria-label={`Xóa địa điểm ${index + 1}`}
-                            >
-                              <X size={15} />
-                            </button>
-                          )}
-                        </div>
-                        <div className="paper-form-field-row">
-                          <label className="paper-question">
-                            Tên địa điểm
-                            <input
-                              className={inputClass}
-                              value={asText(location.name)}
-                              disabled={disabled}
-                              onChange={(event) =>
-                                updateLocations(
-                                  schoolLocations.map((current, currentIndex) =>
-                                    currentIndex === index
-                                      ? { ...current, name: event.target.value }
-                                      : current,
-                                  ),
-                                )
-                              }
-                            />
-                          </label>
-                          <label className="paper-question md:col-span-2">
-                            Địa chỉ
-                            <input
-                              className={inputClass}
-                              value={asText(location.address)}
-                              disabled={disabled}
-                              onChange={(event) =>
-                                updateLocations(
-                                  schoolLocations.map((current, currentIndex) =>
-                                    currentIndex === index
-                                      ? { ...current, address: event.target.value }
-                                      : current,
-                                  ),
-                                )
-                              }
-                            />
-                          </label>
-                        </div>
+                <div className="mt-4 space-y-4">
+                  {schoolLocations.map((location, index) => (
+                    <div
+                      key={asText(location.id) || index}
+                      className="paper-model-form"
+                    >
+                      <div className="paper-model-form-header">
+                        <h3>
+                          {location.kind === "main"
+                            ? "Địa điểm chính"
+                            : `Địa điểm ${index + 1}`}
+                        </h3>
+                        {!disabled && location.kind !== "main" && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateLocations(
+                                schoolLocations.filter(
+                                  (_, currentIndex) => currentIndex !== index,
+                                ),
+                              )
+                            }
+                            className="focus-ring rounded-md p-1 text-muted-foreground hover:text-rose-700"
+                            aria-label={`Xóa địa điểm ${index + 1}`}
+                          >
+                            <X size={15} />
+                          </button>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="paper-form-field-row">
-                    {(["addressMain", "addressBranches"] as const).map((key) => (
-                      <label className="paper-question" key={key}>
-                        {key === "addressMain"
-                          ? "Địa chỉ cơ sở chính"
-                          : "Địa chỉ các điểm trường khác"}
-                        <input
-                          className={inputClass}
-                          value={
-                            Array.isArray(data[key])
-                              ? (data[key] as string[]).join(", ")
-                              : asText(data[key])
-                          }
+                      <div className="paper-form-field-row">
+                        <label className="paper-question">
+                          Tên địa điểm
+                          <input
+                            className={inputClass}
+                            value={asText(location.name)}
+                            disabled={disabled}
+                            onChange={(event) =>
+                              updateLocations(
+                                schoolLocations.map((current, currentIndex) =>
+                                  currentIndex === index
+                                    ? { ...current, name: event.target.value }
+                                    : current,
+                                ),
+                              )
+                            }
+                          />
+                        </label>
+                      </div>
+                      <div className="mt-4">
+                        <AddressFields
+                          idPrefix={`supplement-school-location-${asText(location.id) || index}`}
+                          value={{
+                            provinceCode: asText(location.provinceCode),
+                            provinceName: asText(location.provinceName),
+                            wardCode: asText(location.wardCode),
+                            wardName: asText(location.wardName),
+                            detail:
+                              asText(location.addressDetail) ||
+                              asText(location.address),
+                          }}
                           disabled={disabled}
-                          onChange={(event) =>
-                            updateValue(key, event.target.value)
+                          onChange={(addressValue) =>
+                            updateLocations(
+                              schoolLocations.map((current, currentIndex) =>
+                                currentIndex === index
+                                  ? {
+                                      ...current,
+                                      provinceCode:
+                                        addressValue.provinceCode,
+                                      provinceName:
+                                        addressValue.provinceName,
+                                      wardCode: addressValue.wardCode,
+                                      wardName: addressValue.wardName,
+                                      addressDetail: addressValue.detail,
+                                      address: formatStructuredAddress({
+                                        detail: addressValue.detail,
+                                        ward: addressValue.wardName,
+                                        province: addressValue.provinceName,
+                                      }),
+                                    }
+                                  : current,
+                              ),
+                            )
                           }
                         />
-                      </label>
-                    ))}
-                  </div>
-                )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
                 {!disabled && (
                   <Button
                     type="button"
@@ -1023,6 +1236,50 @@ function SupplementRegistrationForm({
                     <div className="paper-form-field-row">
                       {visibleFields.map((item) => {
                         const dataKey = `schoolModelDetails.${formId}.${item.key}`;
+                        const addressPrefix =
+                          getStructuredAddressPrefix(item.key);
+                        const addressOptions =
+                          item.answerType === "text" &&
+                          isStructuredAddressField(item.key)
+                            ? {
+                                value: getStructuredAddressValue(
+                                  {
+                                    [item.key]: data[dataKey],
+                                    [`${addressPrefix}ProvinceCode`]:
+                                      data[
+                                        `schoolModelDetails.${formId}.${addressPrefix}ProvinceCode`
+                                      ],
+                                    [`${addressPrefix}ProvinceName`]:
+                                      data[
+                                        `schoolModelDetails.${formId}.${addressPrefix}ProvinceName`
+                                      ],
+                                    [`${addressPrefix}WardCode`]:
+                                      data[
+                                        `schoolModelDetails.${formId}.${addressPrefix}WardCode`
+                                      ],
+                                    [`${addressPrefix}WardName`]:
+                                      data[
+                                        `schoolModelDetails.${formId}.${addressPrefix}WardName`
+                                      ],
+                                    [`${addressPrefix}AddressDetail`]:
+                                      data[
+                                        `schoolModelDetails.${formId}.${addressPrefix}AddressDetail`
+                                      ],
+                                  },
+                                  item.key,
+                                  data[dataKey],
+                                ),
+                                onChange: (nextAddress: AddressFieldsValue) =>
+                                  setData((current) => ({
+                                    ...current,
+                                    ...getStructuredAddressUpdates(
+                                      item.key,
+                                      nextAddress,
+                                      `schoolModelDetails.${formId}.`,
+                                    ),
+                                  })),
+                              }
+                            : undefined;
                         return (
                           <div
                             key={item.id}
@@ -1035,18 +1292,13 @@ function SupplementRegistrationForm({
                             }
                           >
                             <div className="paper-question">
-                              <AnswerControl
-                                item={item}
-                                fieldKey={dataKey}
-                                value={data[dataKey]}
-                                attachments={attachments}
-                                disabled={disabled}
-                                onChange={(value) =>
-                                  updateValue(dataKey, value)
-                                }
-                                onChooseFiles={chooseFiles}
-                                onRemoveFile={removeFile}
-                              />
+                              {renderAnswerControl(
+                                item,
+                                dataKey,
+                                data[dataKey],
+                                (value) => updateValue(dataKey, value),
+                                addressOptions,
+                              )}
                             </div>
                           </div>
                         );

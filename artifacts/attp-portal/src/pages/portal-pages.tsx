@@ -948,6 +948,51 @@ const schoolFieldText = (value: unknown) =>
     : Array.isArray(value) && typeof value[0] === "string"
       ? value[0]
       : "";
+const isStructuredAddressField = (key: string) =>
+  /address$/i.test(key) || key === "readyMealReceivingPoint";
+const getStructuredAddressPrefix = (key: string) => {
+  if (key === "readyMealReceivingPoint") return "readyMealReceiving";
+  return key.replace(/Address$/i, "") || key;
+};
+const getStructuredAddressValue = (
+  source: Record<string, unknown>,
+  key: string,
+  legacyValue?: unknown,
+): AddressFieldsValue => {
+  const prefix = getStructuredAddressPrefix(key);
+  return {
+    provinceCode: schoolFieldText(source[`${prefix}ProvinceCode`]),
+    provinceName:
+      schoolFieldText(source[`${prefix}ProvinceName`]) ||
+      schoolFieldText(source[`${prefix}Province`]),
+    wardCode: schoolFieldText(source[`${prefix}WardCode`]),
+    wardName:
+      schoolFieldText(source[`${prefix}WardName`]) ||
+      schoolFieldText(source[`${prefix}Ward`]),
+    detail:
+      schoolFieldText(source[`${prefix}AddressDetail`]) ||
+      schoolFieldText(source[`${prefix}Detail`]) ||
+      schoolFieldText(legacyValue ?? source[key]),
+  };
+};
+const getStructuredAddressUpdates = (
+  key: string,
+  value: AddressFieldsValue,
+) => {
+  const prefix = getStructuredAddressPrefix(key);
+  return {
+    [key]: formatStructuredAddress({
+      detail: value.detail,
+      ward: value.wardName,
+      province: value.provinceName,
+    }),
+    [`${prefix}ProvinceCode`]: value.provinceCode,
+    [`${prefix}ProvinceName`]: value.provinceName,
+    [`${prefix}WardCode`]: value.wardCode,
+    [`${prefix}WardName`]: value.wardName,
+    [`${prefix}AddressDetail`]: value.detail,
+  };
+};
 const normalizeSchoolLocations = (
   value: CriteriaValue | undefined,
   addressMain: CriteriaValue | undefined,
@@ -4467,8 +4512,8 @@ export function ApplicationForm({
     setSchoolConfirmed(false);
     setFields((current) =>
       current.facilityLoginUsername
-        ? { facilityLoginUsername: current.facilityLoginUsername }
-        : {},
+        ? { ...current, facilityLoginUsername: current.facilityLoginUsername }
+        : current,
     );
     setFiles([]);
     setNewFiles([]);
@@ -7494,6 +7539,71 @@ function SchoolModelDetails({
                         </div>
                       );
                     }
+                    if (
+                      item.answerType === "text" &&
+                      isStructuredAddressField(item.key)
+                    ) {
+                      const addressPrefix = getStructuredAddressPrefix(
+                        item.key,
+                      );
+                      const currentAddress = getStructuredAddressValue(
+                        {
+                          [item.key]: getFieldValue(rowIndex, item.key),
+                          [`${addressPrefix}ProvinceCode`]: getFieldValue(
+                            rowIndex,
+                            `${addressPrefix}ProvinceCode`,
+                          ),
+                          [`${addressPrefix}ProvinceName`]: getFieldValue(
+                            rowIndex,
+                            `${addressPrefix}ProvinceName`,
+                          ),
+                          [`${addressPrefix}WardCode`]: getFieldValue(
+                            rowIndex,
+                            `${addressPrefix}WardCode`,
+                          ),
+                          [`${addressPrefix}WardName`]: getFieldValue(
+                            rowIndex,
+                            `${addressPrefix}WardName`,
+                          ),
+                          [`${addressPrefix}AddressDetail`]: getFieldValue(
+                            rowIndex,
+                            `${addressPrefix}AddressDetail`,
+                          ),
+                        },
+                        item.key,
+                      );
+                      const required =
+                        item.required && !allowPartialSubmission;
+                      return (
+                        <div
+                          key={scopedKey}
+                          className="paper-question"
+                          data-testid={`structured-school-model-address-${rowIndex}-${item.key}`}
+                        >
+                          <p className="mb-3 text-sm font-semibold">
+                            {item.label}
+                            {required && (
+                              <span className="text-destructive"> *</span>
+                            )}
+                          </p>
+                          <AddressFields
+                            idPrefix={`school-model-${rowIndex}-${item.key}`}
+                            required={required}
+                            value={currentAddress}
+                            onChange={(value) => {
+                              Object.entries(
+                                getStructuredAddressUpdates(item.key, value),
+                              ).forEach(([key, nextValue]) =>
+                                onChange(
+                                  schoolModelFieldKey(rowIndex, key),
+                                  nextValue,
+                                ),
+                              );
+                            }}
+                          />
+                        </div>
+                      );
+                    }
                     const scopedItem: CriteriaDefinition = {
                       ...item,
                       required: allowPartialSubmission ? false : item.required,
@@ -8418,6 +8528,49 @@ function RepeatableQuestion({
                           </button>
                         </div>
                       ))}
+                    </div>
+                  );
+                }
+                if (
+                  field.answerType === "text" &&
+                  isStructuredAddressField(field.key)
+                ) {
+                  return (
+                    <div
+                      key={field.key}
+                      className="md:col-span-2"
+                      data-testid={`structured-repeatable-address-${fieldKey}`}
+                    >
+                      <p className="mb-3 text-sm font-semibold">
+                        {field.label}
+                        {field.required && (
+                          <span className="text-destructive"> *</span>
+                        )}
+                      </p>
+                      <AddressFields
+                        idPrefix={`criteria-${fieldKey}`}
+                        required={field.required}
+                        value={getStructuredAddressValue(
+                          row,
+                          field.key,
+                          fieldValue,
+                        )}
+                        onChange={(addressValue) =>
+                          onChange(
+                            rows.map((current, index) =>
+                              index === rowIndex
+                                ? {
+                                    ...current,
+                                    ...getStructuredAddressUpdates(
+                                      field.key,
+                                      addressValue,
+                                    ),
+                                  }
+                                : current,
+                            ),
+                          )
+                        }
+                      />
                     </div>
                   );
                 }

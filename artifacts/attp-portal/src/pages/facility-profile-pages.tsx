@@ -46,6 +46,11 @@ import {
   type ApprovedFacility,
 } from "@/lib/approved-facilities";
 import {
+  addressLocationOptions,
+  getAddressWardOptions,
+} from "@/lib/address-data";
+import { getRegistrationAddressLocations } from "@/lib/registration-addresses";
+import {
   getCriteriaSet,
   type ApplicationType,
   type CriteriaDefinition,
@@ -1719,6 +1724,8 @@ export function FacilityProfilesPage() {
   const profiles = useMemo(getFacilityProfiles, []);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("Tất cả loại hình");
+  const [provinceFilter, setProvinceFilter] = useState("all");
+  const [wardFilter, setWardFilter] = useState("all");
   const [facilityAccounts, setFacilityAccounts] = useState(
     readFacilityAccounts,
   );
@@ -1795,24 +1802,35 @@ export function FacilityProfilesPage() {
   };
 
   const filteredProfiles = profiles.filter((profile) => {
-    const foodSupplierLocations =
-      profile.applicationType === "food-supplier"
-        ? [
-            profile.registrationData.addressDetail,
-            profile.registrationData.addressWard,
-            profile.registrationData.addressProvince,
-          ]
-            .filter(
-              (value) =>
-                typeof value === "string" &&
-                value.trim() &&
-                value !== "Chưa khai báo",
-            )
-            .join(" ")
-        : "";
+    const locations = getRegistrationAddressLocations(
+      profile.applicationType,
+      profile.registrationData,
+    );
+    const matchesLocation =
+      provinceFilter === "all" && wardFilter === "all"
+        ? true
+        : locations.some(
+            (location) =>
+              (provinceFilter === "all" ||
+                location.provinceCode === provinceFilter) &&
+              (wardFilter === "all" || location.wardCode === wardFilter),
+          );
+    const locationText = locations
+      .map((location) =>
+        [
+          location.detail,
+          location.wardName,
+          location.provinceName,
+        ].join(" "),
+      )
+      .join(" ");
     const haystack =
-      `${profile.name} ${profile.address} ${profile.taxCode} ${foodSupplierLocations}`.toLowerCase();
-    return haystack.includes(search.trim().toLowerCase()) && (category === "Tất cả loại hình" || profile.category === category);
+      `${profile.name} ${profile.address} ${profile.taxCode} ${locationText}`.toLowerCase();
+    return (
+      matchesLocation &&
+      haystack.includes(search.trim().toLowerCase()) &&
+      (category === "Tất cả loại hình" || profile.category === category)
+    );
   });
   const totalDeliveries = profiles.reduce((total, profile) => total + profile.deliveries.length, 0);
   const totalIncidents = profiles.reduce((total, profile) => total + getFacilityIncidents(profile).length, 0);
@@ -1831,9 +1849,65 @@ export function FacilityProfilesPage() {
           <MetricCard label="Sự cố ATTP" value={totalIncidents} tone="orange" icon={ShieldAlert} />
         </div>
         <section className="mt-6 rounded-2xl border border-border bg-card p-4 shadow-sm">
-          <div className="grid gap-3 lg:grid-cols-[1fr_280px]">
-            <label className="relative block"><span className="sr-only">Tìm cơ sở</span><Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm tên, mã số thuế, địa chỉ kho/điểm giao dịch..." className="h-11 w-full rounded-xl border border-input bg-background pl-10 pr-3 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10" /></label>
-           <select value={category} onChange={(event) => setCategory(event.target.value)} className="h-11 rounded-xl border border-input bg-background px-3 text-sm font-semibold outline-none focus:border-primary" aria-label="Lọc theo loại hình"><option>Tất cả loại hình</option><option>Cơ sở cung cấp thực phẩm</option><option>Cơ sở chế biến và cung cấp suất ăn</option><option>Cơ sở giáo dục</option></select>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(240px,1fr)_220px_220px_280px]">
+            <label className="relative block">
+              <span className="sr-only">Tìm cơ sở</span>
+              <Search
+                size={17}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+              />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Tìm tên, mã số thuế, địa chỉ..."
+                className="h-11 w-full rounded-xl border border-input bg-background pl-10 pr-3 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
+                data-testid="input-approved-facility-search"
+              />
+            </label>
+            <select
+              value={provinceFilter}
+              onChange={(event) => {
+                setProvinceFilter(event.target.value);
+                setWardFilter("all");
+              }}
+              className="h-11 rounded-xl border border-input bg-background px-3 text-sm font-semibold outline-none focus:border-primary"
+              aria-label="Lọc theo tỉnh/thành phố"
+              data-testid="select-approved-facility-province"
+            >
+              <option value="all">Tất cả tỉnh/thành phố</option>
+              {addressLocationOptions.map((province) => (
+                <option key={province.code} value={province.code}>
+                  {province.label}
+                </option>
+              ))}
+            </select>
+            <select
+              value={wardFilter}
+              onChange={(event) => setWardFilter(event.target.value)}
+              disabled={provinceFilter === "all"}
+              className="h-11 rounded-xl border border-input bg-background px-3 text-sm font-semibold outline-none focus:border-primary disabled:opacity-60"
+              aria-label="Lọc theo xã/phường"
+              data-testid="select-approved-facility-ward"
+            >
+              <option value="all">Tất cả xã/phường</option>
+              {provinceFilter !== "all" &&
+                getAddressWardOptions(provinceFilter).map((ward) => (
+                  <option key={ward.code} value={ward.code}>
+                    {ward.label}
+                  </option>
+                ))}
+            </select>
+            <select
+              value={category}
+              onChange={(event) => setCategory(event.target.value)}
+              className="h-11 rounded-xl border border-input bg-background px-3 text-sm font-semibold outline-none focus:border-primary"
+              aria-label="Lọc theo loại hình"
+            >
+              <option>Tất cả loại hình</option>
+              <option>Cơ sở cung cấp thực phẩm</option>
+              <option>Cơ sở chế biến và cung cấp suất ăn</option>
+              <option>Cơ sở giáo dục</option>
+            </select>
           </div>
         </section>
          <section className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">

@@ -74,6 +74,11 @@ import {
   getAddressWardOptions,
 } from "@/lib/address-data";
 import {
+  getRegistrationAddressLocations,
+  makeAddressFilterLocation,
+  type RegistrationAddressLocation,
+} from "@/lib/registration-addresses";
+import {
   createDemoSupplementRequest,
   hasDemoFacilityAccountForApplication,
 } from "@/lib/demo-supplements";
@@ -183,89 +188,7 @@ type FacilityManagementRow = {
   detailFields?: Array<{ label: string; value: string }>;
   detailCompleteness?: "complete" | "partial";
   missingFields?: string[];
-  locations?: AddressFilterLocation[];
-};
-
-type AddressFilterLocation = {
-  provinceCode: string;
-  provinceName: string;
-  wardCode: string;
-  wardName: string;
-};
-
-const asAddressText = (value: unknown) =>
-  typeof value === "string" ? value.trim() : "";
-
-const makeAddressFilterLocation = (
-  provinceValue: unknown,
-  wardValue: unknown,
-  provinceCodeValue?: unknown,
-  wardCodeValue?: unknown,
-): AddressFilterLocation => {
-  const provinceInput =
-    asAddressText(provinceCodeValue) || asAddressText(provinceValue);
-  const province = getAddressProvince(provinceInput);
-  const provinceName = province?.label ?? asAddressText(provinceValue);
-  const wardInput = asAddressText(wardCodeValue) || asAddressText(wardValue);
-  const ward =
-    getAddressWard(province?.code ?? provinceInput, wardInput) ?? undefined;
-  return {
-    provinceCode: province?.code ?? asAddressText(provinceCodeValue),
-    provinceName,
-    wardCode: ward?.code ?? asAddressText(wardCodeValue),
-    wardName: ward?.label ?? asAddressText(wardValue),
-  };
-};
-
-const getRegistrationAddressLocations = (
-  type: ApplicationType | undefined,
-  fields: Record<string, unknown>,
-): AddressFilterLocation[] => {
-  if (type === "school") {
-    const savedLocations = Array.isArray(fields.schoolLocations)
-      ? fields.schoolLocations.filter(
-          (location): location is Record<string, unknown> =>
-            typeof location === "object" &&
-            location !== null &&
-            !Array.isArray(location),
-        )
-      : [];
-    const locations = savedLocations.map((location) =>
-      makeAddressFilterLocation(
-        location.provinceName,
-        location.wardName,
-        location.provinceCode,
-        location.wardCode,
-      ),
-    );
-    if (locations.length > 0) return locations;
-    return [
-      makeAddressFilterLocation(
-        fields.addressMainProvinceName ?? fields.addressProvince,
-        fields.addressMainWardName ?? fields.addressWard,
-        fields.addressMainProvinceCode ?? fields.addressProvinceCode,
-        fields.addressMainWardCode ?? fields.addressWardCode,
-      ),
-    ];
-  }
-  if (type === "meal-provider") {
-    return [
-      makeAddressFilterLocation(
-        fields.facilityProvinceName ?? fields.addressProvince,
-        fields.facilityWardName ?? fields.addressWard,
-        fields.facilityProvinceCode ?? fields.addressProvinceCode,
-        fields.facilityWardCode ?? fields.addressWardCode,
-      ),
-    ];
-  }
-  return [
-    makeAddressFilterLocation(
-      fields.addressProvince,
-      fields.addressWard,
-      fields.addressProvinceCode,
-      fields.addressWardCode,
-    ),
-  ];
+  locations?: RegistrationAddressLocation[];
 };
 
 const facilityManagementData: Record<
@@ -3380,7 +3303,7 @@ export function AdminFacilitiesPage() {
     const matchesAddress = (row: FacilityManagementRow) => {
       if (provinceFilter === "all" && wardFilter === "all") return true;
       const locations =
-        row.locations?.length > 0
+        row.locations?.length
           ? row.locations
           : [
               makeAddressFilterLocation(
@@ -3408,7 +3331,17 @@ export function AdminFacilitiesPage() {
     };
     return source.filter((row) => {
       const haystack =
-        `${row.name} ${row.address} ${row.ward} ${row.contact}`.toLowerCase();
+        `${row.name} ${row.address} ${row.ward} ${row.contact} ${
+          row.locations
+            ?.map((location) =>
+              [
+                location.detail,
+                location.wardName,
+                location.provinceName,
+              ].join(" "),
+            )
+            .join(" ") ?? ""
+        }`.toLowerCase();
       return (
         matchesAddress(row) &&
         haystack.includes(search.trim().toLowerCase()) &&
@@ -3440,9 +3373,19 @@ export function AdminFacilitiesPage() {
         !activeRegistrationType ||
         getRowRegistrationType(row) === activeRegistrationType;
       const searchableText =
-        `${row.name} ${row.address} ${row.ward} ${row.contact}`.toLowerCase();
+        `${row.name} ${row.address} ${row.ward} ${row.contact} ${
+          row.locations
+            ?.map((location) =>
+              [
+                location.detail,
+                location.wardName,
+                location.provinceName,
+              ].join(" "),
+            )
+            .join(" ") ?? ""
+        }`.toLowerCase();
       const locations =
-        row.locations?.length > 0
+        row.locations?.length
           ? row.locations
           : [
               makeAddressFilterLocation(
