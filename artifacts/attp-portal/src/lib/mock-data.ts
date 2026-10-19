@@ -195,110 +195,34 @@ const groupList = (type: ApplicationType, names: string[]) =>
 export type AddressWardOption = {
   code: string;
   label: string;
-  latitude: number;
-  longitude: number;
 };
 
 export type AddressLocationOption = {
   code: string;
   label: string;
-  latitude: number;
-  longitude: number;
   wards: AddressWardOption[];
 };
 
-export const addressLocationOptions: AddressLocationOption[] = [
-  {
-    code: "ho_chi_minh",
-    label: "TP. Hồ Chí Minh",
-    latitude: 10.7769,
-    longitude: 106.7009,
-    wards: [
-      { code: "ben_nghe", label: "Phường Bến Nghé", latitude: 10.7796, longitude: 106.7043 },
-      { code: "tan_dinh", label: "Phường Tân Định", latitude: 10.7937, longitude: 106.6915 },
-      { code: "da_kao", label: "Phường Đa Kao", latitude: 10.7901, longitude: 106.6991 },
-      { code: "nguyen_thai_binh", label: "Phường Nguyễn Thái Bình", latitude: 10.7697, longitude: 106.7004 },
-      { code: "cau_ong_lanh", label: "Phường Cầu Ông Lãnh", latitude: 10.7629, longitude: 106.6953 },
-      { code: "tan_phong", label: "Phường Tân Phong", latitude: 10.7351, longitude: 106.7175 },
-      { code: "cu_chi", label: "Xã Củ Chi", latitude: 10.9733, longitude: 106.4936 },
-      { code: "hoc_mon", label: "Xã Hóc Môn", latitude: 10.8897, longitude: 106.5951 },
-    ],
-  },
-  {
-    code: "ha_noi",
-    label: "Hà Nội",
-    latitude: 21.0285,
-    longitude: 105.8542,
-    wards: [
-      { code: "ba_dinh", label: "Phường Ba Đình", latitude: 21.0357, longitude: 105.8342 },
-      { code: "hoan_kiem", label: "Phường Hoàn Kiếm", latitude: 21.0287, longitude: 105.8525 },
-      { code: "cau_giay", label: "Phường Cầu Giấy", latitude: 21.0304, longitude: 105.7932 },
-      { code: "dong_da", label: "Phường Đống Đa", latitude: 21.0142, longitude: 105.8272 },
-    ],
-  },
-  {
-    code: "da_nang",
-    label: "Đà Nẵng",
-    latitude: 16.0544,
-    longitude: 108.2022,
-    wards: [
-      { code: "hai_chau", label: "Phường Hải Châu", latitude: 16.0614, longitude: 108.2191 },
-      { code: "son_tra", label: "Phường Sơn Trà", latitude: 16.0998, longitude: 108.2442 },
-      { code: "thanh_khe", label: "Phường Thanh Khê", latitude: 16.0678, longitude: 108.1846 },
-      { code: "ngu_hanh_son", label: "Phường Ngũ Hành Sơn", latitude: 16.0057, longitude: 108.2636 },
-    ],
-  },
-  {
-    code: "hai_phong",
-    label: "Hải Phòng",
-    latitude: 20.8449,
-    longitude: 106.6881,
-    wards: [
-      { code: "hong_bang", label: "Phường Hồng Bàng", latitude: 20.8612, longitude: 106.6833 },
-      { code: "le_chan", label: "Phường Lê Chân", latitude: 20.8425, longitude: 106.6818 },
-      { code: "ngo_quyen", label: "Phường Ngô Quyền", latitude: 20.856, longitude: 106.692 },
-      { code: "hai_an", label: "Phường Hải An", latitude: 20.8305, longitude: 106.7484 },
-    ],
-  },
-  {
-    code: "can_tho",
-    label: "Cần Thơ",
-    latitude: 10.0452,
-    longitude: 105.7469,
-    wards: [
-      { code: "ninh_kieu", label: "Phường Ninh Kiều", latitude: 10.0341, longitude: 105.7689 },
-      { code: "binh_thuy", label: "Phường Bình Thủy", latitude: 10.0645, longitude: 105.7189 },
-      { code: "cai_rang", label: "Phường Cái Răng", latitude: 10.0026, longitude: 105.7874 },
-      { code: "o_mon", label: "Phường Ô Môn", latitude: 10.1177, longitude: 105.6213 },
-    ],
-  },
-  {
-    code: "hue",
-    label: "Huế",
-    latitude: 16.4637,
-    longitude: 107.5909,
-    wards: [
-      { code: "phu_xuan", label: "Phường Phú Xuân", latitude: 16.4727, longitude: 107.5782 },
-      { code: "thuan_hoa", label: "Phường Thuận Hóa", latitude: 16.455, longitude: 107.5854 },
-      { code: "huong_thuy", label: "Phường Hương Thủy", latitude: 16.4022, longitude: 107.6932 },
-      { code: "huong_tra", label: "Phường Hương Trà", latitude: 16.5205, longitude: 107.4789 },
-    ],
-  },
-];
+export const addressLocationOptions: AddressLocationOption[] =
+  nationwideAddressOptions;
 
 export const getAddressLocation = (
   provinceLabel?: string,
   wardLabel?: string,
 ) => {
   const province = addressLocationOptions.find(
-    (item) => item.label === provinceLabel,
+    (item) => item.code === provinceLabel || item.label === provinceLabel,
   );
-  const ward = province?.wards.find((item) => item.label === wardLabel);
+  const ward = province?.wards.find(
+    (item) => item.code === wardLabel || item.label === wardLabel,
+  );
   return { province, ward };
 };
 
 export const getAddressWardOptions = (provinceLabel?: string) =>
-  addressLocationOptions.find((item) => item.label === provinceLabel)?.wards ?? [];
+  addressLocationOptions.find(
+    (item) => item.code === provinceLabel || item.label === provinceLabel,
+  )?.wards ?? [];
 
 const addressProvinceOptions = nationwideAddressOptions.map(
   (item) => item.label,
@@ -2689,17 +2613,45 @@ const schoolEducationLevelFor = (name: string, fallbackIndex = 0) => {
   ].educationLevel;
 };
 
-const sampleAddresses = [
-  "18 Nguyễn Hữu Thọ, Phường Tân Hưng, TP. Hồ Chí Minh",
-  "42 Nguyễn Thị Minh Khai, Phường Đa Kao, TP. Hồ Chí Minh",
-  "116 Nguyễn Thái Học, Phường Cầu Ông Lãnh, TP. Hồ Chí Minh",
-  "24 Trần Hưng Đạo, Phường Nguyễn Cư Trinh, TP. Hồ Chí Minh",
-  "88 Lê Văn Việt, Phường Tăng Nhơn Phú, TP. Hồ Chí Minh",
-  "205 Phan Văn Trị, Phường 11, TP. Hồ Chí Minh",
-  "67 Quốc lộ 22, Xã Hóc Môn, TP. Hồ Chí Minh",
-  "12 Lê Lợi, Phường Bến Nghé, TP. Hồ Chí Minh",
-  "73 Lý Thường Kiệt, Phường Bảy Hiền, TP. Hồ Chí Minh",
+const sampleAddressSeeds = [
+  { wardCode: "27475", detail: "18 Nguyễn Hữu Thọ" },
+  { wardCode: "26737", detail: "42 Nguyễn Thị Minh Khai" },
+  { wardCode: "26758", detail: "116 Nguyễn Thái Học" },
+  { wardCode: "26743", detail: "12 Lê Lợi" },
+  { wardCode: "26842", detail: "88 Lê Văn Việt" },
+  { wardCode: "26983", detail: "73 Lý Thường Kiệt" },
+  { wardCode: "27559", detail: "67 Quốc lộ 22" },
+  { wardCode: "27004", detail: "205 Cộng Hòa" },
+  { wardCode: "27478", detail: "35 Nguyễn Văn Linh" },
 ];
+
+type SampleAddressLocation = {
+  provinceCode: string;
+  provinceName: string;
+  wardCode: string;
+  wardName: string;
+  addressDetail: string;
+  address: string;
+};
+
+const getSampleAddressLocation = (index: number): SampleAddressLocation => {
+  const province = nationwideAddressOptions.find((item) => item.code === "79");
+  if (!province) throw new Error("Thiếu dữ liệu Thành phố Hồ Chí Minh trong danh mục địa chỉ.");
+  const seed = sampleAddressSeeds[
+    ((index % sampleAddressSeeds.length) + sampleAddressSeeds.length) %
+      sampleAddressSeeds.length
+  ];
+  const ward = province.wards.find((item) => item.code === seed.wardCode);
+  if (!ward) throw new Error(`Thiếu mã phường/xã mẫu ${seed.wardCode} trong danh mục địa chỉ.`);
+  return {
+    provinceCode: province.code,
+    provinceName: province.label,
+    wardCode: ward.code,
+    wardName: ward.label,
+    addressDetail: seed.detail,
+    address: [seed.detail, ward.label, province.label].join(", "),
+  };
+};
 
 const sampleDate = (index: number) =>
   `2026-${String(1 + (index % 8)).padStart(2, "0")}-${String(
@@ -3030,16 +2982,31 @@ const buildSampleSchoolForms = (
   models: string[],
   index: number,
   applicantName: string,
-  address: string,
+  location: SampleAddressLocation,
   contact: string,
 ) => {
   const siteId = `school-site-${index}`;
   const siteName = applicantName;
-  const siteAddress = address;
-  const locations = [{ id: siteId, name: siteName, address: siteAddress, kind: "main" }];
+  const siteAddress = location.address;
+  const locations = [{
+    id: siteId,
+    name: siteName,
+    address: siteAddress,
+    addressDetail: location.addressDetail,
+    provinceCode: location.provinceCode,
+    provinceName: location.provinceName,
+    wardCode: location.wardCode,
+    wardName: location.wardName,
+    kind: "main",
+  }];
   data.schoolLocations = locations;
   data.schoolSubmissionConfirmed = "true";
-  data.addressMain = address;
+  data.addressMain = siteAddress;
+  data.addressMainProvinceCode = location.provinceCode;
+  data.addressMainProvinceName = location.provinceName;
+  data.addressMainWardCode = location.wardCode;
+  data.addressMainWardName = location.wardName;
+  data.addressMainAddressDetail = location.addressDetail;
   data.addressBranches = [];
   const contactNames = [
     "Nguyễn Thị Hương",
@@ -3091,6 +3058,11 @@ const buildSampleSchoolForms = (
       siteId,
       siteName,
       siteAddress,
+      siteProvinceCode: location.provinceCode,
+      siteProvinceName: location.provinceName,
+      siteWardCode: location.wardCode,
+      siteWardName: location.wardName,
+      siteAddressDetail: location.addressDetail,
       capacity: String(capacity),
       morningCapacity: String(morningCapacity),
       lunchCapacity: String(lunchCapacity),
@@ -3236,7 +3208,8 @@ const createSampleApplication = (
   const criteriaSet = getCriteriaSet(type);
   const sampleOrdinal = Math.floor((index - 1) / 3);
   const applicantName = sampleApplicantName(type, index);
-  let address = sampleAddresses[index % sampleAddresses.length];
+  const location = getSampleAddressLocation(index);
+  let address = location.address;
   const contact = `090${String(100000 + index * 731).slice(-6)}`;
   const submittedAt = sampleDate(index);
   const data: Record<string, unknown> = {};
@@ -3292,37 +3265,29 @@ const createSampleApplication = (
   }
 
   data.applicantName = applicantName;
+  Object.assign(data, {
+    address,
+    addressProvince: location.provinceName,
+    addressProvinceCode: location.provinceCode,
+    addressWard: location.wardName,
+    addressWardCode: location.wardCode,
+    addressDetail: location.addressDetail,
+  });
 
   if (type === "food-supplier") {
-    const provinceOptions =
-      criteriaSet.criteria.find((item) => item.key === "addressProvince")
-        ?.options ?? [];
-    const wardOptions =
-      criteriaSet.criteria.find((item) => item.key === "addressWard")
-        ?.options ?? [];
-    const hcmWards = wardOptions.slice(0, 8);
-    const addressDetail = address.split(",")[0].trim();
-    const matchingWard = address
-      .split(",")
-      .map((part) => part.trim())
-      .find((part) => wardOptions.includes(part));
-    const addressWard =
-      matchingWard ??
-      hcmWards[((index - 7) % hcmWards.length + hcmWards.length) % hcmWards.length];
-    const addressProvince = provinceOptions.includes("TP. Hồ Chí Minh")
-      ? "TP. Hồ Chí Minh"
-      : provinceOptions[index % provinceOptions.length] ?? "";
     data.taxCode = `031${String(9000000 + index * 137).slice(-7)}`;
-    data.addressProvince = addressProvince;
-    data.addressWard = addressWard;
-    data.addressDetail = addressDetail;
+    data.warehouseProvinceCode = location.provinceCode;
+    data.warehouseProvinceName = location.provinceName;
+    data.warehouseWardCode = location.wardCode;
+    data.warehouseWardName = location.wardName;
+    data.warehouseAddressDetail = location.addressDetail;
+    data.warehouseAddress = address;
     data.contact = contact;
     data.email = `donvi.mau${String(index).padStart(3, "0")}@example.vn`;
     data.licenseNumber = `ATTP-HCM-2026-${String(100 + index).padStart(4, "0")}`;
     data.licenseExpires = `2027-${String(1 + (index % 12)).padStart(2, "0")}-${String(
       1 + ((index * 7) % 27),
     ).padStart(2, "0")}`;
-    address = [addressDetail, addressWard, addressProvince].join(", ");
     data.products = [
       {
         category: ["Rau củ quả", "Thịt gia súc", "Thủy sản", "Trứng"][index % 4],
@@ -3347,15 +3312,26 @@ const createSampleApplication = (
   }
 
   if (type === "meal-provider") {
+    const headquarters = getSampleAddressLocation(index + 3);
     const capacity = 500 + (index % 8) * 150;
     const breakfastCapacity = Math.round(capacity * 0.15);
     const snackCapacity = Math.round(capacity * 0.1);
     const dinnerCapacity = Math.round(capacity * 0.05);
     const staffTotal = 20 + (index % 5) * 8;
     data.taxCode = `031${String(9000000 + index * 137).slice(-7)}`;
-    data.headquartersAddress = address;
+    data.headquartersAddress = headquarters.address;
+    data.headquartersProvinceCode = headquarters.provinceCode;
+    data.headquartersProvinceName = headquarters.provinceName;
+    data.headquartersWardCode = headquarters.wardCode;
+    data.headquartersWardName = headquarters.wardName;
+    data.headquartersAddressDetail = headquarters.addressDetail;
     data.facilityName = `${applicantName} - Cơ sở chế biến`;
     data.facilityAddress = address;
+    data.facilityProvinceCode = location.provinceCode;
+    data.facilityProvinceName = location.provinceName;
+    data.facilityWardCode = location.wardCode;
+    data.facilityWardName = location.wardName;
+    data.facilityAddressDetail = location.addressDetail;
     data.foodSafetyContactName = [
       "Nguyễn Hoàng Anh",
       "Trần Thị Mai",
@@ -3407,7 +3383,7 @@ const createSampleApplication = (
       selectedModels,
       index,
       applicantName,
-      address,
+      location,
       contact,
     );
   }
@@ -3880,34 +3856,27 @@ applications
     const data: Record<string, unknown> = {
       ...generated.data,
       applicantName: application.applicantName,
-      address: application.address,
-      addressDetail: application.address,
-      addressProvince: "TP. Hồ Chí Minh",
-      addressWard: "Phường Cầu Ông Lãnh",
       contact: application.contact,
     };
+    application.address = String(generated.data.address ?? application.address);
     if (application.type === "school") {
-      data.addressMain = application.address;
       data.schoolLocations = (
         data.schoolLocations as Array<Record<string, unknown>>
       ).map((location) => ({
         ...location,
         name: application.applicantName,
-        address: application.address,
       }));
       data.operatingModels = (
         data.operatingModels as Array<Record<string, unknown>>
       ).map((model) => ({
         ...model,
         siteName: application.applicantName,
-        siteAddress: application.address,
       }));
       data.schoolModelForms = (
         data.schoolModelForms as Array<Record<string, unknown>>
       ).map((form) => ({
         ...form,
         siteName: application.applicantName,
-        siteAddress: application.address,
       }));
     }
     application.criteriaVersion = generated.criteriaVersion;

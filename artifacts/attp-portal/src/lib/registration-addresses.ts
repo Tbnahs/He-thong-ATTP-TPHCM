@@ -130,15 +130,39 @@ export const getRegistrationAddressLocations = (
     ]);
   }
 
-  return dedupeLocations([
-    makeAddressFilterLocation(
-      fields.addressProvince,
-      fields.addressWard,
-      fields.addressProvinceCode,
-      fields.addressWardCode,
-      fields.addressDetail,
-    ),
-  ]);
+  const primaryAddress = makeAddressFilterLocation(
+    fields.addressProvince,
+    fields.addressWard,
+    fields.addressProvinceCode,
+    fields.addressWardCode,
+    fields.addressDetail,
+  );
+  const warehouseAddress = readPrefixedAddress(fields, "warehouse", {
+    provinceName: primaryAddress.provinceName,
+    wardName: primaryAddress.wardName,
+    provinceCode: primaryAddress.provinceCode,
+    wardCode: primaryAddress.wardCode,
+    detail: primaryAddress.detail,
+  });
+  const tradingAddress = readPrefixedAddress(fields, "trading");
+  const hasExplicitWarehouseOrTrading = [
+    "warehouseProvinceCode",
+    "warehouseProvinceName",
+    "warehouseWardCode",
+    "warehouseWardName",
+    "warehouseAddressDetail",
+    "warehouseAddress",
+    "tradingProvinceCode",
+    "tradingProvinceName",
+    "tradingWardCode",
+    "tradingWardName",
+    "tradingAddressDetail",
+    "tradingAddress",
+  ].some((key) => Boolean(asAddressText(fields[key])));
+
+  return hasExplicitWarehouseOrTrading
+    ? dedupeLocations([warehouseAddress, tradingAddress])
+    : dedupeLocations([primaryAddress]);
 };
 
 export { makeAddressFilterLocation };

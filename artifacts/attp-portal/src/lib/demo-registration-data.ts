@@ -6,7 +6,9 @@ export type DemoRegistrationProfile = {
   address: string;
   addressDetail: string;
   province: string;
+  provinceCode: string;
   ward: string;
+  wardCode: string;
   taxCode: string;
   phone: string;
   email: string;
@@ -27,10 +29,12 @@ const profiles: Record<ApplicationType, DemoRegistrationProfile> = {
   school: {
     organization: "Trường Tiểu học Bình Minh",
     facilityName: "Bếp ăn bán trú Trường Tiểu học Bình Minh",
-    address: "35 Nguyễn Du, phường Bến Nghé, TP. Hồ Chí Minh",
+    address: "35 Nguyễn Du, Phường Bến Thành, Thành phố Hồ Chí Minh",
     addressDetail: "35 Nguyễn Du",
-    province: "TP. Hồ Chí Minh",
-    ward: "Phường Bến Nghé",
+    province: "Thành phố Hồ Chí Minh",
+    provinceCode: "79",
+    ward: "Phường Bến Thành",
+    wardCode: "26743",
     taxCode: "0310000001",
     phone: "028 3822 4567",
     email: "binhminh.school@example.com",
@@ -42,17 +46,19 @@ const profiles: Record<ApplicationType, DemoRegistrationProfile> = {
     licenseNumber: "ATTP-DEMO-SCH-2026-01",
     licenseExpires: "2027-12-31",
     providerName: "Công ty Suất ăn Minh Tâm",
-    providerAddress: "Khu công nghiệp Tân Bình, TP. Hồ Chí Minh",
+    providerAddress: "Lô B2, Khu công nghiệp Tân Bình, Phường Tân Bình, Thành phố Hồ Chí Minh",
     providerTaxCode: "0314567890",
     providerRepresentative: "Võ Hoàng Nam",
   },
   "meal-provider": {
     organization: "Công ty Suất ăn Minh Tâm",
     facilityName: "Bếp trung tâm Minh Tâm",
-    address: "Khu công nghiệp Tân Bình, TP. Hồ Chí Minh",
+    address: "Lô B2, Khu công nghiệp Tân Bình, Phường Tân Bình, Thành phố Hồ Chí Minh",
     addressDetail: "Lô B2, Khu công nghiệp Tân Bình",
-    province: "TP. Hồ Chí Minh",
+    province: "Thành phố Hồ Chí Minh",
+    provinceCode: "79",
     ward: "Phường Tân Bình",
+    wardCode: "27004",
     taxCode: "0314567890",
     phone: "028 3812 8899",
     email: "lienhe.minhtam@example.com",
@@ -64,17 +70,19 @@ const profiles: Record<ApplicationType, DemoRegistrationProfile> = {
     licenseNumber: "ATTP-DEMO-MP-2026-01",
     licenseExpires: "2027-07-28",
     providerName: "Công ty Suất ăn Minh Tâm",
-    providerAddress: "Khu công nghiệp Tân Bình, TP. Hồ Chí Minh",
+    providerAddress: "Lô B2, Khu công nghiệp Tân Bình, Phường Tân Bình, Thành phố Hồ Chí Minh",
     providerTaxCode: "0314567890",
     providerRepresentative: "Võ Hoàng Nam",
   },
   "food-supplier": {
     organization: "Công ty TNHH Nông sản An Phú",
     facilityName: "Kho sơ chế và phân phối An Phú",
-    address: "184 Nguyễn Văn Linh, phường Tân Phong, TP. Hồ Chí Minh",
+    address: "184 Nguyễn Văn Linh, Phường Tân Hưng, Thành phố Hồ Chí Minh",
     addressDetail: "184 Nguyễn Văn Linh",
-    province: "TP. Hồ Chí Minh",
-    ward: "Phường Tân Phong",
+    province: "Thành phố Hồ Chí Minh",
+    provinceCode: "79",
+    ward: "Phường Tân Hưng",
+    wardCode: "27475",
     taxCode: "0312345678",
     phone: "0908 123 456",
     email: "lienhe.anphu@example.com",
@@ -86,7 +94,7 @@ const profiles: Record<ApplicationType, DemoRegistrationProfile> = {
     licenseNumber: "ATTP-DEMO-FS-2026-01",
     licenseExpires: "2027-08-12",
     providerName: "Công ty TNHH Nông sản An Phú",
-    providerAddress: "184 Nguyễn Văn Linh, phường Tân Phong, TP. Hồ Chí Minh",
+    providerAddress: "184 Nguyễn Văn Linh, Phường Tân Hưng, Thành phố Hồ Chí Minh",
     providerTaxCode: "0312345678",
     providerRepresentative: "Lê Minh Tuấn",
   },
@@ -179,12 +187,10 @@ export const createDemoRegistrationProfile = (
   const profile = profiles[type];
   const province =
     provinceOptions.find((option) => option.includes("Hồ Chí Minh")) ??
-    "TP. Hồ Chí Minh";
+    profile.province;
   const ward = wardOptions.includes(profile.ward)
     ? profile.ward
-    : wardOptions.find((option) => option.includes("Bến Nghé")) ??
-      wardOptions[0] ??
-      profile.ward;
+    : profile.ward;
   return { ...profile, ward, address: profile.address.replace(profile.ward, ward), province };
 };
 
@@ -368,14 +374,34 @@ export const makeDemoRegistrationAnswer = (
     const supplier = rowIndex === 0
       ? {
           name: "Công ty TNHH Nông sản An Phú",
-          headOfficeAddress: "184 Nguyễn Văn Linh, phường Tân Phong, TP. Hồ Chí Minh",
-          dispatchAddress: "Kho sơ chế An Phú, 184 Nguyễn Văn Linh, TP. Hồ Chí Minh",
+          headOfficeAddress: "184 Nguyễn Văn Linh, Phường Tân Hưng, Thành phố Hồ Chí Minh",
+          headOfficeProvinceCode: "79",
+          headOfficeProvinceName: "Thành phố Hồ Chí Minh",
+          headOfficeWardCode: "27475",
+          headOfficeWardName: "Phường Tân Hưng",
+          headOfficeAddressDetail: "184 Nguyễn Văn Linh",
+          dispatchAddress: "Kho sơ chế An Phú, 184 Nguyễn Văn Linh, Phường Tân Hưng, Thành phố Hồ Chí Minh",
+          dispatchProvinceCode: "79",
+          dispatchProvinceName: "Thành phố Hồ Chí Minh",
+          dispatchWardCode: "27475",
+          dispatchWardName: "Phường Tân Hưng",
+          dispatchAddressDetail: "Kho sơ chế An Phú, 184 Nguyễn Văn Linh",
           contractNumber: "HD-NL-2026-008",
         }
       : {
           name: "Công ty TNHH Thực phẩm Hưng Phát",
-          headOfficeAddress: "25 Đường số 8, TP. Hồ Chí Minh",
-          dispatchAddress: "Kho Hưng Phát, TP. Hồ Chí Minh",
+          headOfficeAddress: "25 Đường số 8, Phường Tân Bình, Thành phố Hồ Chí Minh",
+          headOfficeProvinceCode: "79",
+          headOfficeProvinceName: "Thành phố Hồ Chí Minh",
+          headOfficeWardCode: "27004",
+          headOfficeWardName: "Phường Tân Bình",
+          headOfficeAddressDetail: "25 Đường số 8",
+          dispatchAddress: "Kho Hưng Phát, 25 Đường số 8, Phường Tân Bình, Thành phố Hồ Chí Minh",
+          dispatchProvinceCode: "79",
+          dispatchProvinceName: "Thành phố Hồ Chí Minh",
+          dispatchWardCode: "27004",
+          dispatchWardName: "Phường Tân Bình",
+          dispatchAddressDetail: "Kho Hưng Phát, 25 Đường số 8",
           contractNumber: "HD-NL-2026-012",
         };
     return supplier[key as keyof typeof supplier] ?? profile.organization;
@@ -397,7 +423,12 @@ export const makeDemoRegistrationAnswer = (
     const unitValues: Record<string, string> = {
       name: "Trường Tiểu học Bình Minh",
       unitName: "Trường Tiểu học Bình Minh",
-      unitAddress: "35 Nguyễn Du, phường Bến Nghé, TP. Hồ Chí Minh",
+      unitAddress: "35 Nguyễn Du, Phường Bến Thành, Thành phố Hồ Chí Minh",
+      unitProvinceCode: "79",
+      unitProvinceName: "Thành phố Hồ Chí Minh",
+      unitWardCode: "26743",
+      unitWardName: "Phường Bến Thành",
+      unitAddressDetail: "35 Nguyễn Du",
       taxCode: "0310000001",
     };
     return unitValues[key] ?? profile.organization;
@@ -450,8 +481,18 @@ export const makeDemoRegistrationAnswer = (
   if (parentKey === "drinkingWater") {
     const drinkingWaterValues: Record<string, string> = {
       supplierName: "Công ty Nước uống An Lành",
-      supplierAddress: "12 Đường số 8, TP. Hồ Chí Minh",
-      dispatchAddress: "Kho phân phối An Lành, TP. Hồ Chí Minh",
+      supplierAddress: "12 Đường số 8, Phường Tân Bình, Thành phố Hồ Chí Minh",
+      supplierProvinceCode: "79",
+      supplierProvinceName: "Thành phố Hồ Chí Minh",
+      supplierWardCode: "27004",
+      supplierWardName: "Phường Tân Bình",
+      supplierAddressDetail: "12 Đường số 8",
+      dispatchAddress: "Kho phân phối An Lành, 12 Đường số 8, Phường Tân Bình, Thành phố Hồ Chí Minh",
+      dispatchProvinceCode: "79",
+      dispatchProvinceName: "Thành phố Hồ Chí Minh",
+      dispatchWardCode: "27004",
+      dispatchWardName: "Phường Tân Bình",
+      dispatchAddressDetail: "Kho phân phối An Lành, 12 Đường số 8",
       contractNumber: "HD-NUOC-2026-004",
       certificateType: "Giấy chứng nhận cơ sở đủ điều kiện ATTP",
       testing: "Kiểm nghiệm định kỳ 06 tháng/lần; lưu kết quả tại hồ sơ cơ sở.",
