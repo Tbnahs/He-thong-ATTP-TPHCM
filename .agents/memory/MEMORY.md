@@ -7,3 +7,4 @@
 - [Supplement notice boundary](supplement-notice-boundary.md) — send supplement requests to facility accounts only; keep browser-only delivery limitations explicit.
 - [Attachment preview storage](attachment-preview-storage.md) — keep file bytes out of sessionStorage; browser-local previews are not shared across devices.
 - [Facility account controls](facility-account-controls.md) — profile-list actions stay icon-based; password reset restores that linked account's initial default.
+- [Address workflow scope](address-workflow-scope.md) — use structured address selection across affected features; filter by headquarters or transaction location according to the task.
