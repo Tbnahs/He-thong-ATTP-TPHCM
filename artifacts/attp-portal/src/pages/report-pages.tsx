@@ -18,9 +18,13 @@ import {
   X,
 } from "lucide-react";
 import { AdminShell } from "@/components/portal-ui";
+import { AdministrativeAreaFilter } from "@/components/administrative-area-filter";
+import { demoAddressRecords } from "@/lib/demo-addresses";
 
 type RegionRow = {
   name: string;
+  provinceCode: string;
+  wardCode: string;
   schools: number;
   selfCook: number;
   externalMeals: number;
@@ -39,62 +43,18 @@ type SchoolRow = {
   suppliers: number;
 };
 
-const regionRows: RegionRow[] = [
-  {
-    name: "P. Bến Thành",
-    schools: 12,
-    selfCook: 5,
-    externalMeals: 7,
-    plannedDemand: 5200,
-    actualDemand: 4850,
-    suppliers: 4,
-    capacity: 6000,
-  },
-  {
-    name: "P. Bến Nghé",
-    schools: 8,
-    selfCook: 3,
-    externalMeals: 5,
-    plannedDemand: 3600,
-    actualDemand: 3420,
-    suppliers: 3,
-    capacity: 4500,
-  },
-  {
-    name: "P. Nguyễn Cư Trinh",
-    schools: 10,
-    selfCook: 6,
-    externalMeals: 4,
-    plannedDemand: 4100,
-    actualDemand: 3950,
-    suppliers: 2,
-    capacity: 3200,
-  },
-  {
-    name: "P. Đa Kao",
-    schools: 7,
-    selfCook: 2,
-    externalMeals: 5,
-    plannedDemand: 3000,
-    actualDemand: 2850,
-    suppliers: 3,
-    capacity: 4000,
-  },
-  {
-    name: "P. Cầu Ông Lãnh",
-    schools: 9,
-    selfCook: 4,
-    externalMeals: 5,
-    plannedDemand: 3250,
-    actualDemand: 3070,
-    suppliers: 3,
-    capacity: 3600,
-  },
-];
-
-const wardOptions = `phường Hiệp Bình, phường Tam Bình, phường Thủ Đức, phường Linh Xuân, phường Long Bình, phường Tăng Nhơn Phú, phường Phước Long, phường Long Phước, phường Long Trường, phường An Khánh, phường Bình Trưng, phường Cát Lái, phường Tân Định, phường Sài Gòn, phường Bến Thành, phường Cầu Ông Lãnh, phường Xuân Hòa, phường Bàn Cờ, phường Nhiêu Lộc, phường Vĩnh Hội, phường Khánh Hội, phường Xóm Chiếu, phường Chợ Quán, phường An Đông, phường Chợ Lớn, phường Bình Tiên, phường Bình Tây, phường Bình Phú, phường Phú Lâm, phường Tân Mỹ, phường Tân Hưng, phường Tân Thuận, phường Phú Thuận, phường Chánh Hưng, phường Bình Đông, phường Phú Định, phường Vườn Lài, phường Diên Hồng, phường Hòa Hưng, phường Hòa Bình, phường Phú Thọ, phường Bình Thới, phường Minh Phụng, phường Đông Hưng Thuận, phường Trung Mỹ Tây, phường Tân Thới Hiệp, phường Thới An, phường An Phú Đông, phường Bình Tân, phường Bình Hưng Hòa, phường Bình Trị Đông, phường An Lạc, phường Tân Tạo, phường Gia Định, phường Bình Thạnh, phường Bình Lợi Trung, phường Thạnh Mỹ Tây, phường Bình Quới, phường Hạnh Thông, phường An Nhơn, phường Gò Vấp, phường Thông Tây Hội, phường An Hội Tây, phường An Hội Đông, phường Đức Nhuận, phường Cầu Kiệu, phường Phú Nhuận, phường Tân Sơn Hòa, phường Tân Sơn Nhất, phường Tân Hòa, phường Bảy Hiền, phường Tân Bình, phường Tân Sơn, phường Tây Thạnh, phường Tân Sơn Nhì, phường Phú Thọ Hòa, phường Phú Thạnh, phường Tân Phú, phường Vũng Tàu, phường Tam Thắng, phường Rạch Dừa, phường Phước Thắng, phường Bà Rịa, phường Long Hương, phường Tam Long, phường Phú Mỹ, phường Tân Thành, phường Tân Phước, phường Tân Hải, phường Thới Hòa, phường Đông Hòa, phường Dĩ An, phường Tân Đông Hiệp, phường Thuận An, phường Thuận Giao, phường Bình Hòa, phường Lái Thiêu, phường An Phú, phường Bình Dương, phường Chánh Hiệp, phường Thủ Dầu Một, phường Phú Lợi, phường Vĩnh Tân, phường Bình Cơ, phường Tân Uyên, phường Tân Hiệp, phường Tân Khánh, phường Phú An, phường Tây Nam, phường Long Nguyên, phường Bến Cát, phường Chánh Phú Hòa, phường Hòa Lợi, xã Vĩnh Lộc, xã Tân Vĩnh Lộc, xã Bình Lợi, xã Tân Nhựt, xã Bình Chánh, xã Hưng Long, xã Bình Hưng, xã Cần Giờ, xã An Thới Đông, xã Bình Khánh, xã Thạnh An, xã An Nhơn Tây, xã Thái Mỹ, xã Nhuận Đức, xã Tân An Hội, xã Củ Chi, xã Phú Hòa Đông, xã Bình Mỹ, xã Hóc Môn, xã Bà Điểm, xã Xuân Thới Sơn, xã Đông Thạnh, xã Nhà Bè, xã Hiệp Phước, xã Long Sơn, xã Châu Pha, xã Ngãi Giao, xã Bình Giã, xã Kim Long, xã Châu Đức, xã Xuân Sơn, xã Nghĩa Thành, xã Hòa Hiệp, xã Bình Châu, xã Hồ Tràm, xã Xuyên Mộc, xã Hòa Hội, xã Bàu Lâm, xã Đất Đỏ, xã Long Hải, xã Long Điền, xã Phước Hải, xã Bắc Tân Uyên, xã Thường Tân, xã An Long, xã Phước Thành, xã Phước Hòa, xã Phú Giáo, xã Trừ Văn Thố, xã Bàu Bàng, xã Minh Thạnh, xã Long Hòa, xã Dầu Tiếng, xã Thanh An, đặc khu Côn Đảo`
-  .split(", ")
-  .map((item) => item.trim());
+const regionRows: RegionRow[] = demoAddressRecords.map((address, index) => ({
+  name: address.wardName,
+  provinceCode: address.provinceCode,
+  wardCode: address.wardCode,
+  schools: 5 + ((index * 7) % 13),
+  selfCook: 2 + (index % 6),
+  externalMeals: 3 + ((index * 3) % 8),
+  plannedDemand: 1600 + index * 430,
+  actualDemand: 1450 + index * 390,
+  suppliers: 1 + (index % 5),
+  capacity: 2200 + index * 500,
+}));
 
 const schoolDetails: Record<string, SchoolRow[]> = {
   "P. Bến Thành": [
@@ -183,7 +143,8 @@ function StatCard({
 }
 
 export function AdminReportsPage() {
-  const [ward, setWard] = useState("Tất cả phường/xã");
+  const [provinceCode, setProvinceCode] = useState("all");
+  const [wardCode, setWardCode] = useState("all");
   const [category, setCategory] = useState("Tất cả loại hình");
   const [mealType, setMealType] = useState("Tất cả hình thức");
   const [status, setStatus] = useState("Tất cả trạng thái");
@@ -193,15 +154,16 @@ export function AdminReportsPage() {
   const filteredRows = useMemo(
     () =>
       regionRows.filter((row) => {
-        const normalizedWard = ward.replace(/^phường\s+/i, "P. ");
-        const matchesWard = ward === "Tất cả phường/xã" || row.name === normalizedWard;
+        const matchesArea =
+          (provinceCode === "all" || row.provinceCode === provinceCode) &&
+          (wardCode === "all" || row.wardCode === wardCode);
         const matchesKeyword = row.name.toLowerCase().includes(keyword.trim().toLowerCase());
         const matchesMeal = mealType === "Tất cả hình thức" || mealType === "Tự tổ chức nấu ăn"
           ? mealType === "Tất cả hình thức" || row.selfCook > 0
           : row.externalMeals > 0;
-        return matchesWard && matchesKeyword && matchesMeal && (category || status);
+        return matchesArea && matchesKeyword && matchesMeal && (category || status);
       }),
-    [ward, keyword, mealType, category, status],
+    [provinceCode, wardCode, keyword, mealType, category, status],
   );
 
   const totals = useMemo(
@@ -222,7 +184,8 @@ export function AdminReportsPage() {
   );
 
   const resetFilters = () => {
-    setWard("Tất cả phường/xã");
+    setProvinceCode("all");
+    setWardCode("all");
     setCategory("Tất cả loại hình");
     setMealType("Tất cả hình thức");
     setStatus("Tất cả trạng thái");
@@ -257,7 +220,7 @@ export function AdminReportsPage() {
     URL.revokeObjectURL(url);
   };
 
-  const hasFilters = Boolean(keyword || ward !== "Tất cả phường/xã" || category !== "Tất cả loại hình" || mealType !== "Tất cả hình thức" || status !== "Tất cả trạng thái");
+  const hasFilters = Boolean(keyword || provinceCode !== "all" || wardCode !== "all" || category !== "Tất cả loại hình" || mealType !== "Tất cả hình thức" || status !== "Tất cả trạng thái");
   const balance = totals.capacity - totals.actualDemand;
 
   return (
@@ -294,8 +257,19 @@ export function AdminReportsPage() {
             </div>
             {hasFilters && <button type="button" onClick={resetFilters} className="inline-flex items-center gap-1.5 text-xs font-bold text-[#167345] hover:underline"><X size={14} /> Xóa bộ lọc</button>}
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <FilterSelect label="Phường/Xã" value={ward} onChange={setWard} options={["Tất cả phường/xã", ...wardOptions]} />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <AdministrativeAreaFilter
+              className="contents"
+              provinceCode={provinceCode}
+              wardCode={wardCode}
+              onProvinceChange={(value) => {
+                setProvinceCode(value);
+                setWardCode("all");
+              }}
+              onWardChange={setWardCode}
+              compact
+              testIdPrefix="report"
+            />
             <FilterSelect label="Loại hình cơ sở" value={category} onChange={setCategory} options={["Tất cả loại hình", "Cơ sở chế biến và cung cấp suất ăn", "Cơ sở giáo dục", "Cơ sở cung cấp thực phẩm"]} />
             <FilterSelect label="Hình thức bữa ăn" value={mealType} onChange={setMealType} options={["Tất cả hình thức", "Tự tổ chức nấu ăn", "Sử dụng suất ăn từ bên ngoài"]} />
             <FilterSelect label="Trạng thái hồ sơ" value={status} onChange={setStatus} options={["Tất cả trạng thái", "Đạt", "Chờ hoàn thiện hồ sơ"]} />

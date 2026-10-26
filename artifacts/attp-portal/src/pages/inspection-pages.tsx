@@ -31,6 +31,9 @@ import {
   StatusPill,
 } from "@/components/portal-ui";
 import { Button } from "@/components/ui/button";
+import { AddressFields, type AddressFieldsValue } from "@/components/address-fields";
+import { formatStructuredAddress } from "@/lib/address-data";
+import { getDemoAddress, getDemoFacilityHeadquarters } from "@/lib/demo-addresses";
 import {
   EVIDENCE_ACCEPT,
   EVIDENCE_MAX_SIZE_LABEL,
@@ -71,6 +74,11 @@ type InspectionSchedule = {
   time: string;
   facility: string;
   address: string;
+  provinceCode?: string;
+  provinceName?: string;
+  wardCode?: string;
+  wardName?: string;
+  addressDetail?: string;
   team: string;
   kind: "Định kỳ" | "Đột xuất";
   purpose: string;
@@ -219,7 +227,15 @@ const initialSchedules: InspectionSchedule[] = [
     kind: "Định kỳ",
     purpose: "Kiểm tra điều kiện ATTP",
   },
-];
+].map((schedule, index) => {
+  const location = getDemoAddress(index);
+  return {
+    ...schedule,
+    ...location,
+    address: location.label,
+    addressDetail: location.detail,
+  };
+});
 
 const initialMinutes: InspectionMinute[] = [
   {
@@ -406,7 +422,13 @@ function ScheduleForm({
     date: "2026-09-30",
     time: "08:30",
     team: "Tổ ATTP số 01",
-    address: "",
+    address: {
+      provinceCode: "",
+      provinceName: "",
+      wardCode: "",
+      wardName: "",
+      detail: "",
+    } as AddressFieldsValue,
     kind: "Định kỳ" as InspectionSchedule["kind"],
     purpose: "Kiểm tra điều kiện an toàn thực phẩm",
     note: "",
@@ -451,7 +473,21 @@ function ScheduleForm({
           Tên cơ sở <span className="text-destructive">*</span>
           <select
             value={form.facility}
-            onChange={(event) => update("facility", event.target.value)}
+            onChange={(event) => {
+              const facility = event.target.value;
+              const location = getDemoFacilityHeadquarters(facility);
+              setForm((current) => ({
+                ...current,
+                facility,
+                address: {
+                  provinceCode: location.provinceCode,
+                  provinceName: location.provinceName,
+                  wardCode: location.wardCode,
+                  wardName: location.wardName,
+                  detail: location.detail,
+                },
+              }));
+            }}
             className="focus-ring mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 font-normal"
           >
             <option value="">Chọn tên cơ sở</option>
@@ -490,15 +526,15 @@ function ScheduleForm({
             <option>Tổ ATTP số 03</option>
           </select>
         </label>
-        <label className="text-sm font-semibold">
-          Địa chỉ
-          <input
+        <div className="sm:col-span-2">
+          <p className="mb-2 text-sm font-semibold">Địa điểm kiểm tra *</p>
+          <AddressFields
+            idPrefix="inspection-schedule"
+            required
             value={form.address}
-            onChange={(event) => update("address", event.target.value)}
-            placeholder="Số nhà, đường, phường"
-            className="focus-ring mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 font-normal"
+            onChange={(address) => setForm((current) => ({ ...current, address }))}
           />
-        </label>
+        </div>
         <label className="text-sm font-semibold sm:col-span-2">
           Mục đích
           <input
@@ -523,10 +559,29 @@ function ScheduleForm({
         </Button>
         <Button
           onClick={() => {
-            if (!form.facility.trim()) return;
-            onSave({ ...form, id: `schedule-${Date.now()}` });
+            if (
+              !form.facility.trim() ||
+              !form.address.provinceCode ||
+              !form.address.wardCode ||
+              !form.address.detail.trim()
+            ) return;
+            onSave({
+              ...form,
+              address: formatStructuredAddress(form.address),
+              provinceCode: form.address.provinceCode,
+              provinceName: form.address.provinceName,
+              wardCode: form.address.wardCode,
+              wardName: form.address.wardName,
+              addressDetail: form.address.detail,
+              id: `schedule-${Date.now()}`,
+            });
           }}
-          disabled={!form.facility.trim()}
+          disabled={
+            !form.facility.trim() ||
+            !form.address.provinceCode ||
+            !form.address.wardCode ||
+            !form.address.detail.trim()
+          }
           className="rounded-xl"
         >
           <Save size={16} /> Lưu lịch kiểm tra
