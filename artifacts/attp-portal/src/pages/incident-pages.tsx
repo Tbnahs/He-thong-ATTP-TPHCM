@@ -27,6 +27,9 @@ import {
 import { Link, useLocation, useParams } from "wouter";
 import { AdminShell, PublicShell } from "@/components/portal-ui";
 import { suppliers } from "@/lib/mock-data";
+import { AddressFields, type AddressFieldsValue } from "@/components/address-fields";
+import { formatStructuredAddress } from "@/lib/address-data";
+import { getDemoFacilityOperationalAddress } from "@/lib/demo-addresses";
 import foodPhotoPath from "../../../../attached_assets/0_List_Of_Nucleic_Acid_Foods_1788929888254.jpg";
 import {
   EVIDENCE_ACCEPT,
@@ -256,6 +259,11 @@ export type Incident = {
   meals?: string[];
   suspectedCases?: number;
   address: string;
+  provinceCode?: string;
+  provinceName?: string;
+  wardCode?: string;
+  wardName?: string;
+  addressDetail?: string;
   occurredAt: string;
   reportedAt: string;
   reporter: string;
@@ -366,7 +374,18 @@ const demoMealLifecycles: MealLifecycle[] = [
       { name: "Gạo thơm", supplier: "Nông sản An Phú", batch: "2025060107", unit: "Kg" },
     ],
   },
-];
+].map((incident) => {
+  const location = getDemoFacilityOperationalAddress(incident.facility);
+  return {
+    ...incident,
+    address: location.label,
+    provinceCode: location.provinceCode,
+    provinceName: location.provinceName,
+    wardCode: location.wardCode,
+    wardName: location.wardName,
+    addressDetail: location.detail,
+  };
+});
 
 function getMealLifecycles(update?: SchoolIncidentUpdate) {
   return update?.menus?.length ? update.menus : demoMealLifecycles;
