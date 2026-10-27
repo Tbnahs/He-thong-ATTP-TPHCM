@@ -36,6 +36,7 @@ import {
   EVIDENCE_MAX_SIZE_LABEL,
   validateEvidenceFiles,
 } from "@/lib/file-upload";
+import { getSchoolLocations } from "@/lib/school-locations";
 
 type InspectionResult = "approved" | "warning" | "stopped";
 type FacilityType =
@@ -76,6 +77,7 @@ type InspectionSchedule = {
   purpose: string;
   note?: string;
   facilityType?: FacilityType;
+  schoolLocation?: string;
 };
 
 type InspectionMinute = {
@@ -89,6 +91,7 @@ type InspectionMinute = {
   note: string;
   findings: number;
   facilityType?: FacilityType;
+  schoolLocation?: string;
   inspectionCount?: number;
   answers?: Record<string, InspectionAnswer>;
   signature?: string;
@@ -342,6 +345,12 @@ function facilityTypeForName(name: string): FacilityType {
   return "Cơ sở giáo dục";
 }
 
+const schoolLocationName = (facility: string, locationId?: string) =>
+  locationId
+    ? getSchoolLocations(facility).find((location) => location.id === locationId)
+        ?.name ?? locationId
+    : "";
+
 function ResultBadge({ result }: { result: InspectionResult }) {
   const meta = resultMeta[result];
   return (
@@ -403,6 +412,7 @@ function ScheduleForm({
   const [form, setForm] = useState({
     facilityType: "Cơ sở giáo dục" as FacilityType,
     facility: "",
+    schoolLocation: "",
     date: "2026-09-30",
     time: "08:30",
     team: "Tổ ATTP số 01",
@@ -413,6 +423,11 @@ function ScheduleForm({
   });
   const update = (key: keyof typeof form, value: string) =>
     setForm((current) => ({ ...current, [key]: value }));
+  const schoolLocations =
+    form.facilityType === "Cơ sở giáo dục"
+      ? getSchoolLocations(form.facility)
+      : [];
+  const needsSchoolLocation = schoolLocations.length > 1;
   return (
     <Dialog title="Tạo lịch kiểm tra" onClose={onClose}>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -438,6 +453,8 @@ function ScheduleForm({
                 ...current,
                 facilityType: event.target.value as FacilityType,
                 facility: "",
+                schoolLocation: "",
+                address: "",
               }))
             }
             className="focus-ring mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 font-normal"
@@ -451,7 +468,14 @@ function ScheduleForm({
           Tên cơ sở <span className="text-destructive">*</span>
           <select
             value={form.facility}
-            onChange={(event) => update("facility", event.target.value)}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                facility: event.target.value,
+                schoolLocation: "",
+                address: "",
+              }))
+            }
             className="focus-ring mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 font-normal"
           >
             <option value="">Chọn tên cơ sở</option>
@@ -460,6 +484,33 @@ function ScheduleForm({
             ))}
           </select>
         </label>
+        {needsSchoolLocation && (
+          <label className="text-sm font-semibold">
+            Điểm trường kiểm tra <span className="text-destructive">*</span>
+            <select
+              value={form.schoolLocation}
+              onChange={(event) => {
+                const location = schoolLocations.find(
+                  (item) => item.id === event.target.value,
+                );
+                setForm((current) => ({
+                  ...current,
+                  schoolLocation: event.target.value,
+                  address: location?.address ?? current.address,
+                }));
+              }}
+              className="focus-ring mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 font-normal"
+              data-testid="select-inspection-schedule-school-location"
+            >
+              <option value="">Chọn một điểm trường</option>
+              {schoolLocations.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {location.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <label className="text-sm font-semibold">
           Ngày kiểm tra
           <input
@@ -523,10 +574,10 @@ function ScheduleForm({
         </Button>
         <Button
           onClick={() => {
-            if (!form.facility.trim()) return;
+            if (!form.facility.trim() || (needsSchoolLocation && !form.schoolLocation)) return;
             onSave({ ...form, id: `schedule-${Date.now()}` });
           }}
-          disabled={!form.facility.trim()}
+          disabled={!form.facility.trim() || (needsSchoolLocation && !form.schoolLocation)}
           className="rounded-xl"
         >
           <Save size={16} /> Lưu lịch kiểm tra
@@ -659,6 +710,11 @@ export function InspectionSchedulePage() {
                             >
                               {item.kind === "Đột xuất" ? "ĐX" : "ĐK"}:{" "}
                               {item.facility.replace("Trường ", "")}
+                              {item.schoolLocation && (
+                                <span className="mt-1 block font-medium">
+                                  {schoolLocationName(item.facility, item.schoolLocation)}
+                                </span>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -688,6 +744,11 @@ export function InspectionSchedulePage() {
                     </span>
                   </div>
                   <h3 className="mt-3 font-extrabold">{item.facility}</h3>
+                  {item.schoolLocation && (
+                    <p className="mt-1 text-xs font-semibold text-primary">
+                      Điểm trường: {schoolLocationName(item.facility, item.schoolLocation)}
+                    </p>
+                  )}
                   <p className="mt-1 flex items-start gap-1.5 text-xs leading-5 text-muted-foreground">
                     <CalendarDays size={14} className="mt-0.5 shrink-0" />{" "}
                     {item.time} · {item.address}
@@ -744,6 +805,11 @@ export function InspectionSchedulePage() {
                 <h3 className="mt-2 text-xl font-extrabold">
                   {selectedSchedule.facility}
                 </h3>
+                {selectedSchedule.schoolLocation && (
+                  <p className="mt-1 text-sm font-semibold text-primary">
+                    Điểm trường: {schoolLocationName(selectedSchedule.facility, selectedSchedule.schoolLocation)}
+                  </p>
+                )}
                 <p className="mt-1 text-sm text-muted-foreground">
                   {selectedSchedule.purpose}
                 </p>
@@ -841,6 +907,9 @@ function InspectionMinuteForm({
   const [facilityType, setFacilityType] =
     useState<FacilityType>(initialFacilityType);
   const [facility, setFacility] = useState(initialMinute?.facility ?? "");
+  const [schoolLocation, setSchoolLocation] = useState(
+    initialMinute?.schoolLocation ?? "",
+  );
   const [date, setDate] = useState(initialMinute?.date ?? "2026-09-30");
   const [team, setTeam] = useState(initialMinute?.team ?? "Tổ ATTP số 01");
   const [inspectionCount, setInspectionCount] = useState(
@@ -889,11 +958,15 @@ function InspectionMinuteForm({
   const changeFacilityType = (nextType: FacilityType) => {
     setFacilityType(nextType);
     setFacility("");
+    setSchoolLocation("");
     const nextCriteria = readCriteriaForType(nextType);
     setCriteria(nextCriteria);
     setAnswers(createAnswerMap(nextCriteria));
     setValidationMessage("");
   };
+  const schoolLocations =
+    facilityType === "Cơ sở giáo dục" ? getSchoolLocations(facility) : [];
+  const needsSchoolLocation = schoolLocations.length > 1;
   return (
     <Dialog
       title={
@@ -929,7 +1002,10 @@ function InspectionMinuteForm({
             Tên đơn vị / cơ sở <span className="text-destructive">*</span>
             <select
               value={facility}
-              onChange={(event) => setFacility(event.target.value)}
+              onChange={(event) => {
+                setFacility(event.target.value);
+                setSchoolLocation("");
+              }}
               disabled={readOnly}
               className="focus-ring mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 font-normal"
             >
@@ -939,6 +1015,25 @@ function InspectionMinuteForm({
               ))}
             </select>
           </label>
+          {needsSchoolLocation && (
+            <label className="text-sm font-semibold">
+              Điểm trường kiểm tra <span className="text-destructive">*</span>
+              <select
+                value={schoolLocation}
+                onChange={(event) => setSchoolLocation(event.target.value)}
+                disabled={readOnly}
+                className="focus-ring mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 font-normal"
+                data-testid="select-inspection-minute-school-location"
+              >
+                <option value="">Chọn một điểm trường</option>
+                {schoolLocations.map((location) => (
+                  <option key={location.id} value={location.id}>
+                    {location.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <label className="text-sm font-semibold">
             Ngày lập <span className="text-destructive">*</span>
             <input
@@ -1230,6 +1325,7 @@ function InspectionMinuteForm({
                 (item) => (answers[item.id]?.score ?? 0) < item.weight,
               ).length,
               facilityType,
+              schoolLocation: schoolLocation || undefined,
               inspectionCount,
               answers,
               signature,
@@ -1237,7 +1333,8 @@ function InspectionMinuteForm({
           }}
           disabled={
             !facility.trim() ||
-            !team.trim()
+            !team.trim() ||
+            (needsSchoolLocation && !schoolLocation)
           }
           className="rounded-xl"
         >
@@ -1344,6 +1441,11 @@ export function InspectionMinutesPage() {
                     <h3 className="mt-2 text-base font-extrabold">
                       {item.facility}
                     </h3>
+                    {item.schoolLocation && (
+                      <p className="mt-1 text-sm font-semibold text-primary">
+                        Điểm trường: {schoolLocationName(item.facility, item.schoolLocation)}
+                      </p>
+                    )}
                     <p className="mt-1 text-sm text-muted-foreground">
                       {formatDate(item.date)} · {item.team} · {item.findings} tiêu
                       chí chưa đạt

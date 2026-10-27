@@ -33,6 +33,7 @@ import {
   EVIDENCE_MAX_SIZE_LABEL,
   validateEvidenceFiles,
 } from "@/lib/file-upload";
+import { getSchoolLocations } from "@/lib/school-locations";
 
 type IncidentStatus = "Đang xử lý" | "Đã đóng";
 type IncidentSeverity = "Khẩn cấp" | "Cao" | "Trung bình";
@@ -167,6 +168,12 @@ function getIncidentFacilityOptions(): Record<IncidentFacilityType, string[]> {
   return options;
 }
 
+const schoolLocationName = (facility: string, locationId?: string) =>
+  locationId
+    ? getSchoolLocations(facility).find((location) => location.id === locationId)
+        ?.name ?? locationId
+    : "";
+
 function getFoodSupplierMealProviders() {
   const graph: Record<string, string[]> = {};
   const supplierNamesById = Object.fromEntries(
@@ -253,6 +260,7 @@ export type Incident = {
   title: string;
   facilityType?: IncidentFacilityType;
   facility: string;
+  schoolLocation?: string;
   meals?: string[];
   suspectedCases?: number;
   address: string;
@@ -752,7 +760,14 @@ export function IncidentListPage() {
               {filtered.map((item) => (
                 <tr key={item.id} className="transition-colors hover:bg-[#f8fafc]" data-testid={`row-incident-${item.id}`}>
                   <td className="px-6 py-6 align-middle font-mono text-base leading-6 tracking-[.03em] text-[#334155]" data-testid={`text-incident-code-${item.id}`}>{item.code}</td>
-                  <td className="max-w-[220px] px-6 py-6 align-middle text-base leading-6 text-[#334155]">{item.facility}</td>
+                  <td className="max-w-[220px] px-6 py-6 align-middle text-base leading-6 text-[#334155]">
+                    {item.facility}
+                    {item.schoolLocation && (
+                      <span className="mt-1 block text-xs text-[#64748b]">
+                        {schoolLocationName(item.facility, item.schoolLocation)}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-6 py-6 align-middle"><span className="block text-sm text-[#475569]">{new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(item.occurredAt))}</span><span className="mt-0.5 block text-xs text-[#94a3b8]">{new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit" }).format(new Date(item.occurredAt))}</span></td>
                   <td className="px-6 py-6 align-middle"><span className="inline-flex min-w-8 justify-center rounded bg-[#fef3c7] px-2 py-1 text-xs text-[#000]">{String(item.suspectedCases ?? 0).padStart(2, "0")}</span></td>
                   <td className="max-w-[120px] px-6 py-6 align-middle text-sm leading-5 text-[#475569]">{item.meals?.join(", ") || item.foods || "—"}</td>
@@ -767,7 +782,13 @@ export function IncidentListPage() {
           {filtered.map((item) => (
             <Link key={item.id} href={`/admin/inspections/incidents/${item.id}`} className="block p-5 transition-colors hover:bg-[#f8fafc]" data-testid={`card-incident-${item.id}`}>
               <div className="flex items-start justify-between gap-3"><span className="font-mono text-sm text-[#334155]">{item.code}</span><span className={`rounded-full px-3 py-1 text-xs ${item.status === "Đang xử lý" ? "bg-[#dbeafe] text-[#1d4ed8]" : "bg-[#dcfce7] text-[#15803d]"}`}>{item.status}</span></div>
-              <p className="mt-4 text-base text-[#334155]">{item.facility}</p><p className="mt-2 text-sm text-[#64748b]">{item.title}</p>
+              <p className="mt-4 text-base text-[#334155]">{item.facility}</p>
+              {item.schoolLocation && (
+                <p className="mt-1 text-xs text-[#64748b]">
+                  {schoolLocationName(item.facility, item.schoolLocation)}
+                </p>
+              )}
+              <p className="mt-2 text-sm text-[#64748b]">{item.title}</p>
               <div className="mt-4 flex items-center justify-between text-sm text-[#475569]"><span>{item.meals?.join(", ") || item.foods || "—"} · {item.suspectedCases ?? 0} ca</span><span className="font-semibold text-[#2563eb]">Xem</span></div>
             </Link>
           ))}
@@ -813,6 +834,7 @@ function IncidentCreateModal({
     title: "",
     facilityType: "Cơ sở giáo dục" as IncidentFacilityType | "",
     facility: "",
+    schoolLocation: "",
     occurredAt: "",
     meals: ["Trưa"],
     suspectedCases: "",
@@ -857,6 +879,7 @@ function IncidentCreateModal({
     event.preventDefault();
     if (
       !form.facility ||
+      (schoolLocations.length > 1 && !form.schoolLocation) ||
       !form.occurredAt ||
       !form.meals.length ||
       !form.suspectedCases ||
@@ -879,9 +902,12 @@ function IncidentCreateModal({
       title: form.title || `Nghi ngờ sự cố ATTP tại ${form.facility}`,
       facilityType: form.facilityType || undefined,
       facility: form.facility,
+      schoolLocation: form.schoolLocation || undefined,
       meals: form.meals,
       suspectedCases: Number(form.suspectedCases),
-      address: "Chưa cập nhật địa chỉ",
+      address:
+        schoolLocations.find((location) => location.id === form.schoolLocation)
+          ?.address || "Chưa cập nhật địa chỉ",
       occurredAt: form.occurredAt,
       reportedAt: now,
       reporter: form.reporter,
@@ -919,6 +945,10 @@ function IncidentCreateModal({
   const facilities = form.facilityType
     ? facilityOptions[form.facilityType]
     : [];
+  const schoolLocations =
+    form.facilityType === "Cơ sở giáo dục"
+      ? getSchoolLocations(form.facility)
+      : [];
   const relatedFacilities = getRelatedFacilities(form.facilityType, form.facility);
   const relatedCopy = getRelatedFacilitiesCopy(form.facilityType);
   const toggleRelatedFacility = (name: string) =>
@@ -964,6 +994,7 @@ function IncidentCreateModal({
                         ...current,
                         facilityType: event.target.value as IncidentFacilityType,
                         facility: "",
+                        schoolLocation: "",
                         notifiedFacilities: [],
                       }))}
                       className={`${designInputClass} appearance-none pr-11`}
@@ -985,6 +1016,7 @@ function IncidentCreateModal({
                       onChange={(event) => setForm((current) => ({
                         ...current,
                         facility: event.target.value,
+                        schoolLocation: "",
                         notifiedFacilities: [],
                       }))}
                       className={`${designInputClass} appearance-none pl-11 pr-11`}
@@ -997,6 +1029,34 @@ function IncidentCreateModal({
                   </span>
                   {error(form.facility)}
                 </label>
+                {schoolLocations.length > 1 && (
+                  <label className={designLabelClass}>
+                    Điểm trường xảy ra sự cố <span className="text-[#ef4444]">*</span>
+                    <select
+                      value={form.schoolLocation}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          schoolLocation: event.target.value,
+                        }))
+                      }
+                      className={designInputClass}
+                      data-testid="select-modal-incident-school-location"
+                    >
+                      <option value="">Chọn một điểm trường</option>
+                      {schoolLocations.map((location) => (
+                        <option key={location.id} value={location.id}>
+                          {location.name}
+                        </option>
+                      ))}
+                    </select>
+                    {submitted && !form.schoolLocation && (
+                      <span className="mt-1 block normal-case tracking-normal text-xs font-medium text-[#ef4444]">
+                        Vui lòng chọn điểm trường xảy ra sự cố.
+                      </span>
+                    )}
+                  </label>
+                )}
                 {form.facility && (
                   <section className="rounded-xl border border-[#bfdbfe] bg-[#eff6ff] p-4">
                     <div className="flex items-start gap-3">
@@ -1149,6 +1209,7 @@ export function IncidentCreatePage() {
     title: "",
     facilityType: "" as IncidentFacilityType | "",
     facility: "",
+    schoolLocation: "",
     meals: ["Trưa"],
     suspectedCases: "",
     occurredAt: "",
@@ -1184,7 +1245,7 @@ export function IncidentCreatePage() {
   }));
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (!form.title || !form.facilityType || !form.facility || !form.meals.length || !form.suspectedCases || !form.occurredAt || !form.description || !form.reporter || !form.reporterRole || (relatedFacilities.length > 0 && form.notifiedFacilities.length === 0)) {
+    if (!form.title || !form.facilityType || !form.facility || (schoolLocations.length > 1 && !form.schoolLocation) || !form.meals.length || !form.suspectedCases || !form.occurredAt || !form.description || !form.reporter || !form.reporterRole || (relatedFacilities.length > 0 && form.notifiedFacilities.length === 0)) {
       setSubmitted(true);
       return;
     }
@@ -1197,9 +1258,12 @@ export function IncidentCreatePage() {
       title: form.title,
       facilityType: form.facilityType || undefined,
       facility: form.facility,
+      schoolLocation: form.schoolLocation || undefined,
       meals: form.meals,
       suspectedCases: Number(form.suspectedCases),
-      address: "Chưa cập nhật địa chỉ",
+      address:
+        schoolLocations.find((location) => location.id === form.schoolLocation)
+          ?.address || "Chưa cập nhật địa chỉ",
       occurredAt: form.occurredAt,
       reportedAt: now,
       reporter: form.reporter,
@@ -1222,6 +1286,10 @@ export function IncidentCreatePage() {
     navigate(`/admin/inspections/incidents/${incident.id}`);
   };
   const facilityOptions = getIncidentFacilityOptions();
+  const schoolLocations =
+    form.facilityType === "Cơ sở giáo dục"
+      ? getSchoolLocations(form.facility)
+      : [];
   const relatedFacilities = getRelatedFacilities(form.facilityType, form.facility);
   const relatedCopy = getRelatedFacilitiesCopy(form.facilityType);
   const toggleRelatedFacility = (name: string) =>
@@ -1253,19 +1321,42 @@ export function IncidentCreatePage() {
                 {submitted && !form.title && <span className="mt-1 block normal-case tracking-normal text-xs font-medium text-[#ef4444]">Vui lòng nhập tiêu đề.</span>}
               </label>
               <label className={designLabelClass}>Loại cơ sở <span className="text-[#ef4444]">*</span>
-                <select value={form.facilityType} onChange={(e) => setForm((current) => ({ ...current, facilityType: e.target.value as IncidentFacilityType | "", facility: "", notifiedFacilities: [] }))} className={designInputClass} data-testid="select-incident-facility-type">
+                <select value={form.facilityType} onChange={(e) => setForm((current) => ({ ...current, facilityType: e.target.value as IncidentFacilityType | "", facility: "", schoolLocation: "", notifiedFacilities: [] }))} className={designInputClass} data-testid="select-incident-facility-type">
                   <option value="">Chọn loại cơ sở</option>
                   {Object.keys(incidentFacilityOptions).map((option) => <option key={option} value={option}>{option}</option>)}
                 </select>
                 {submitted && !form.facilityType && <span className="mt-1 block normal-case tracking-normal text-xs font-medium text-[#ef4444]">Vui lòng chọn loại cơ sở.</span>}
               </label>
               <label className={designLabelClass}>Tên cơ sở liên quan <span className="text-[#ef4444]">*</span>
-                <select value={form.facility} onChange={(e) => setForm((current) => ({ ...current, facility: e.target.value, notifiedFacilities: [] }))} disabled={!form.facilityType} className={`${designInputClass} disabled:cursor-not-allowed disabled:bg-[#f1f5f9] disabled:text-[#94a3b8]`} data-testid="select-incident-facility">
+                <select value={form.facility} onChange={(e) => setForm((current) => ({ ...current, facility: e.target.value, schoolLocation: "", notifiedFacilities: [] }))} disabled={!form.facilityType} className={`${designInputClass} disabled:cursor-not-allowed disabled:bg-[#f1f5f9] disabled:text-[#94a3b8]`} data-testid="select-incident-facility">
                   <option value="">{form.facilityType ? "Chọn cơ sở" : "Chọn loại cơ sở trước"}</option>
                   {form.facilityType && facilityOptions[form.facilityType].map((facility) => <option key={facility}>{facility}</option>)}
                 </select>
                 {submitted && !form.facility && <span className="mt-1 block normal-case tracking-normal text-xs font-medium text-[#ef4444]">Vui lòng chọn cơ sở.</span>}
               </label>
+              {schoolLocations.length > 1 && (
+                <label className={designLabelClass}>
+                  Điểm trường xảy ra sự cố <span className="text-[#ef4444]">*</span>
+                  <select
+                    value={form.schoolLocation}
+                    onChange={(event) => update("schoolLocation", event.target.value)}
+                    className={designInputClass}
+                    data-testid="select-incident-school-location"
+                  >
+                    <option value="">Chọn một điểm trường</option>
+                    {schoolLocations.map((location) => (
+                      <option key={location.id} value={location.id}>
+                        {location.name}
+                      </option>
+                    ))}
+                  </select>
+                  {submitted && !form.schoolLocation && (
+                    <span className="mt-1 block normal-case tracking-normal text-xs font-medium text-[#ef4444]">
+                      Vui lòng chọn điểm trường xảy ra sự cố.
+                    </span>
+                  )}
+                </label>
+              )}
                {form.facility && (
                 <section className="rounded-xl border border-[#bfdbfe] bg-[#eff6ff] p-4">
                   <div className="flex items-start gap-3">
@@ -1565,6 +1656,14 @@ export function IncidentDetailPage() {
             <div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-6 xl:grid-cols-4">
               <IncidentDetailCard icon={<FileText size={17} />} label="Mã sự cố" value={incident.code} tone="blue" />
               <IncidentDetailCard icon={<MapPin size={17} />} label="Trường học" value={incident.facility} tone="orange" />
+              {incident.schoolLocation && (
+                <IncidentDetailCard
+                  icon={<MapPin size={17} />}
+                  label="Điểm trường"
+                  value={schoolLocationName(incident.facility, incident.schoolLocation)}
+                  tone="orange"
+                />
+              )}
               <IncidentDetailCard icon={<CircleAlert size={17} />} label="Số ca mắc" value={`${String(incident.suspectedCases ?? 0).padStart(2, "0")} học sinh`} tone="red" valueClassName="text-2xl font-bold text-[#dc2626]" />
               <IncidentDetailCard icon={<Clock3 size={17} />} label="Thời gian" value={formatDate(incident.occurredAt)} tone="purple" />
               <IncidentDetailCard icon={<Bell size={17} />} label="Bữa ăn nghi vấn" value={incident.meals?.join(", ") || incident.foods || "Chưa cập nhật"} tone="amber" />

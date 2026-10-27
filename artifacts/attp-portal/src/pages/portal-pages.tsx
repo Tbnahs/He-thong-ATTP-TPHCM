@@ -72,6 +72,7 @@ import {
   getAddressWardOptions,
 } from "@/lib/address-data";
 import NotFound from "@/pages/not-found";
+import { getSchoolLocationsFromFields } from "@/lib/school-locations";
 import {
   AdminShell,
   ButtonLink,
@@ -2077,6 +2078,8 @@ const getPublicApplicationData = (
       "addressWard",
       "addressMain",
       "addressDetail",
+      "schoolLocations",
+      "addressBranches",
       "educationLevels",
       "studentTotal",
       "boardingStudentTotal",
@@ -2238,6 +2241,18 @@ export function PublicLookupDetailPage() {
     ? getPublicValue(record, "address", "Địa chỉ")
     : record.location;
   const schoolMealModel = getPublicValue(record, "mealModel", "Hình thức tổ chức bữa ăn");
+  const publicSchoolLocations =
+    type === "school"
+      ? getSchoolLocationsFromFields(registration.data).length > 0
+        ? getSchoolLocationsFromFields(registration.data)
+        : [
+            {
+              id: "school-main-public",
+              name: record.title,
+              address,
+            },
+          ]
+      : [];
   const schoolMealOptions = [
     "Tự nấu",
     "Liên kết đơn vị suất ăn",
@@ -2296,6 +2311,28 @@ export function PublicLookupDetailPage() {
               <PublicDetailField label={ownerLabel} value={ownerValue} />
             </dl>
           </PublicDetailSection>
+
+          {type === "school" && publicSchoolLocations.length > 0 && (
+            <PublicDetailSection title="Danh sách điểm trường">
+              <ul className="mt-5 space-y-3">
+                {publicSchoolLocations.map((location, index) => (
+                  <li
+                    key={location.id}
+                    className="rounded-2xl border border-border bg-background p-4"
+                    data-testid={`public-school-location-${index + 1}`}
+                  >
+                    <p className="font-bold text-foreground">{location.name}</p>
+                    {location.address && (
+                      <p className="mt-1 flex items-start gap-2 text-sm leading-6 text-muted-foreground">
+                        <MapPin size={15} className="mt-1 shrink-0 text-primary" />
+                        {location.address}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </PublicDetailSection>
+          )}
 
           <PublicDetailSection title="Thông tin ATTP">
             <dl className="mt-5 grid gap-3 sm:grid-cols-2">
