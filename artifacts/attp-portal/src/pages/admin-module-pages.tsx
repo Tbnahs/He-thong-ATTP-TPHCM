@@ -74,7 +74,6 @@ import {
   getAddressWardOptions,
 } from "@/lib/address-data";
 import {
-  getRegistrationHeadquartersLocation,
   getRegistrationAddressLocations,
   makeAddressFilterLocation,
   type RegistrationAddressLocation,
@@ -823,17 +822,11 @@ const getStoredRegistrationRows = (): FacilityManagementRow[] =>
         fields.applicantName || fields.facilityName || fields.legalName || "",
       ).trim();
       if (!name) return null;
-      const headquarters = getRegistrationHeadquartersLocation(
-        account.registration?.type,
-        fields,
-      );
       const address = [
-        headquarters?.detail ||
-          fields.addressMain ||
-          fields.facilityAddress ||
-          fields.headquartersAddress,
-        headquarters?.wardName || fields.addressWard,
-        headquarters?.provinceName || fields.addressProvince,
+        fields.addressMain || fields.facilityAddress || fields.headquartersAddress,
+        fields.addressDetail,
+        fields.addressWard,
+        fields.addressProvince,
       ]
         .map((value) => String(value ?? "").trim())
         .filter(Boolean)
@@ -847,8 +840,8 @@ const getStoredRegistrationRows = (): FacilityManagementRow[] =>
       return {
         id: `stored-application-${account.username ?? account.email ?? index}`,
         name,
-        province: headquarters?.provinceName ?? String(fields.addressProvince || "—"),
-        ward: headquarters?.wardName ?? String(fields.addressWard ?? "—"),
+        province: String(fields.addressProvince || "TP. Hồ Chí Minh"),
+        ward: String(fields.addressWard ?? "—"),
         address: address || "—",
         contact: String(contact ?? "—"),
         status: "pending",
@@ -866,7 +859,10 @@ const getStoredRegistrationRows = (): FacilityManagementRow[] =>
             )
           : "—",
         storedAccount: account,
-        locations: headquarters ? [headquarters] : [],
+        locations: getRegistrationAddressLocations(
+          account.registration?.type,
+          fields,
+        ),
       } satisfies FacilityManagementRow;
     })
     .filter((row): row is FacilityManagementRow => row !== null);
@@ -3249,9 +3245,8 @@ export function AdminFacilitiesPage() {
 
   const applicationRows: FacilityManagementRow[] = [
     ...applications.filter((app) => app.status !== "approved").map((app) => {
-      const headquarters = getRegistrationHeadquartersLocation(app.type, app.data);
-      const locations = headquarters ? [headquarters] : [];
-      const primaryLocation = headquarters;
+      const locations = getRegistrationAddressLocations(app.type, app.data);
+      const primaryLocation = locations[0];
       return {
         id: `application-${app.id}`,
         name: app.applicantName,

@@ -49,10 +49,7 @@ import {
   addressLocationOptions,
   getAddressWardOptions,
 } from "@/lib/address-data";
-import {
-  getRegistrationAddressLocations,
-  getRegistrationHeadquartersLocation,
-} from "@/lib/registration-addresses";
+import { getRegistrationAddressLocations } from "@/lib/registration-addresses";
 import {
   getCriteriaSet,
   type ApplicationType,
@@ -1805,10 +1802,6 @@ export function FacilityProfilesPage() {
   };
 
   const filteredProfiles = profiles.filter((profile) => {
-    const headquarters = getRegistrationHeadquartersLocation(
-      profile.applicationType,
-      profile.registrationData,
-    );
     const locations = getRegistrationAddressLocations(
       profile.applicationType,
       profile.registrationData,
@@ -1816,12 +1809,11 @@ export function FacilityProfilesPage() {
     const matchesLocation =
       provinceFilter === "all" && wardFilter === "all"
         ? true
-        : Boolean(
-            headquarters &&
+        : locations.some(
+            (location) =>
               (provinceFilter === "all" ||
-                headquarters.provinceCode === provinceFilter) &&
-              (wardFilter === "all" ||
-                headquarters.wardCode === wardFilter),
+                location.provinceCode === provinceFilter) &&
+              (wardFilter === "all" || location.wardCode === wardFilter),
           );
     const locationText = locations
       .map((location) =>
